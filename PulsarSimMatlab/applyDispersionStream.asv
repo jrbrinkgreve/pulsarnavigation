@@ -1,0 +1,313 @@
+function applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, blockLen, centered)
+%{
+Applying interstellar dispersion to a raw pulsar signal FILE, via
+time-block-based overlap-add convolution with edge handling -- fully
+streamed (fread in, fwrite out), so memory use is bounded by blockLen
+and the kernel length, never by the total file size.
+
+  applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, blockLen, centered)
+
+Inputs:
+  inFile   path to a raw float32 (single, little-endian) sample file,
+           e.g. produced by generatePulsarSignal's outFile mode.
+  outFile  path to write the dispersed float32 output to. Same total
+           sample count as inFile.
+  DM       [pc/cm^3] dispersion measure.
+  fs       [Hz] sample rate of the data in inFile.
+  fLow     [Hz] (opt) low edge of the signal band. Default 1.2e9.
+  fHigh    [Hz] (opt) high edge of the signal band. Default 1.6e9.
+  blockLen (opt) number of samples read per block. Default 1e6. Must be
+           well above the dispersion kernel length M for the
+           overlap-add bookkeeping to make sense (warning printed if
+           not). Peak memory is roughly (blockLen + M) * ~12 bytes
+           (single block + FFT buffers), NOT the file size.
+  centered (opt) logical, default true.
+           true  -- symmetric/"same"-mode alignment: pulses stay at
+                    their ORIGINAL nominal times, and the smearing is
+                    split evenly on both sides. Convenient for
+                    comparing sample-for-sample against the
+                    undispersed file, but NOT physically faithful --
+                    real ISM dispersion never advances anything, only
+                    delays.
+           false -- causal alignment: no artificial backward shift.
+                    The highest-frequency (near-zero-delay) content
+                    stays close to its original time, and the signal
+                    trails off to LATER times only as lower
+                    frequencies keep arriving later -- this is what a
+                    real dispersed pulsar signal actually looks like.
+                    The final (M-1)-sample tail of genuinely delayed
+                    energy then falls past the end of a length-Nx
+                    output and is dropped to keep y the same length as
+                    x; use a longer input signal if you need to see
+                    that full tail.
+
+Output: none (written to outFile). Total samples written == total
+samples read from inFile.
+
+--- Method (identical overlap-add as the in-memory version) ---
+
+  ---------t0       -      t0+dt
+  ----------|----------------|---------
+  ---------/ \              / \
+  --------/   \      H     /   \
+  -------/     \          /     \
+  ------|-------|--------|-------|-----
+            ^    to write    ^
+            |      now       |
+          to sum / to store for next round
+
+Each block's LOCAL full convolution (length nBlock+M-1, M = length of
+h) splits into: the first nBlock samples, finalized once the carry from
+the PREVIOUS block is added in (the "to write now" piece, immediately
+fwrite'd); and the last M-1 samples, not yet final -- carried forward
+in RAM (just a length-(M-1) vector, not the whole signal) and added
+into the next block before that portion is written (the "to store for
+next round" piece).
+
+Centering (removing the kernel's own group delay so pulses stay at
+their nominal times): h is odd-length, symmetric, halfM = (M-1)/2. The
+global full-conv sample index for a block starting at file-sample
+startIdx is just startIdx..endIdx (same indexing as the input file);
+that index minus halfM gives the position in the OUTPUT stream. Near
+the very start of the file this maps to <1 (those samples are simply
+not written -- there's no data before sample 1 to have produced them
+validly, so skipping them is the correct edge behavior, not a bug).
+
+Edges:
+  - True start of file: initial carry is zero (no data before sample
+    1 -- exact, not an approximation).
+  - True end of file: Nx is read from the file size up front. After
+    the last block, the leftover carry (length M-1) is flushed the
+    same way -- part of it (thanks to the halfM shift) still lands
+    inside the valid output range and is fwrite'n; the rest (which
+    would require data beyond the end of the file) is correctly
+    dropped, not zero-padded and passed off as real data.
+%}
+
+if nargin < 5 || isempty(fLow),  fLow  = 1.2e9; end
+if nargin < 6 || isempty(fHigh), fHigh = 1.6e9; end
+if nargin < 7 || isempty(blockLen), blockLen = 1e6; end
+if nargin < 8 || isempty(centered), centered = false; end
+
+% --- Determine total sample count from file size (no data loaded yet) ---
+fInfo = dir(inFile);
+if isempty(fInfo)
+    error('applyDispersionStream: inFile "%s" not found.', inFile);
+end
+if mod(fInfo.bytes, 4) ~= 0
+    warning('applyDispersionStream: inFile size is not a multiple of 4 bytes; truncating trailing partial sample.');
+end
+Nx = floor(fInfo.bytes / 4); % float32 = 4 bytes/sample
+
+% --- Build the dispersion kernel h(t) (same as before; this one array
+%     IS held fully in memory -- see makeDispersionKernel's own notes
+%     on kernel size scaling with DM/bandwidth) ---
+h = makeDispersionKernel(DM, fLow, fHigh, fs, 'hann');
+h = h(:).';
+disp("Constructed kernel")
+if mod(numel(h), 2) == 0
+    h = h(1:end-1); % force odd length for exact symmetric centering
+end
+M = numel(h);
+halfM = (M-1)/2;
+if centered
+    offset = halfM; % symmetric "same"-mode: remove the kernel's group delay
+else
+    offset = 0;      % causal: leave the true one-sided (rightward) delay in place
+end
+
+if blockLen <= 4*M
+    warning(['applyDispersionStream: blockLen (%d) is not much larger than ', ...
+        'the kernel length (%d). Overlap-add is still correct, but ', ...
+        'efficiency drops sharply. Consider a larger blockLen or a ', ...
+        'smaller-DM/narrower-band kernel.'], blockLen, M);
+end
+
+fidIn = fopen(inFile, 'r');
+if fidIn == -1
+    error('applyDispersionStream: could not open inFile "%s".', inFile);
+end
+fidOut = fopen(outFile, 'w');
+if fidOut == -1
+    fclose(fidIn);
+    error('applyDispersionStream: could not open outFile "%s" for writing.', outFile);
+end
+cleanupIn  = onCleanup(@() fclose(fidIn));  %#ok<NASGU>
+cleanupOut = onCleanup(@() fclose(fidOut)); %#ok<NASGU>
+
+carry = zeros(1, M-1, 'single'); % "to store for next round" (see diagram)
+Nfft = 2^nextpow2(blockLen + M - 1); % fixed FFT size, reused every block
+H = fft(h, Nfft);
+
+startIdx = 1;
+samplesWritten = 0;
+blockNum = 0;
+
+while startIdx <= Nx
+    xBlock = fread(fidIn, blockLen, 'single=>single').'; % row vector
+    nBlock = numel(xBlock);
+    if nBlock == 0
+        break; % shouldn't happen given the while condition, but guard anyway
+    end
+    endIdx = startIdx + nBlock - 1;
+
+    if nBlock + M - 1 <= Nfft
+        Xb = fft(xBlock, Nfft);
+        convFull = ifft(Xb .* H);
+        convFull = real(convFull(1:nBlock + M - 1));
+    else
+        % guard for an unexpectedly larger-than-planned final block
+        NfftLocal = 2^nextpow2(nBlock + M - 1);
+        Xb = fft(xBlock, NfftLocal);
+        Hlocal = fft(h, NfftLocal);
+        convFull = real(ifft(Xb .* Hlocal));
+        convFull = convFull(1:nBlock + M - 1);
+    end
+
+    % Add in the carry from the previous block (the "to sum" step)
+    convFull(1:M-1) = convFull(1:M-1) + carry;
+
+    outputNow = convFull(1:nBlock);   % finalized for this block
+    carry = convFull(nBlock+1:end);   % "to store for next round"
+
+    % Map this block's global full-conv indices to output-stream
+    % indices via offset (halfM if centered, 0 if causal), and write
+    % only the valid (in-range) portion.
+    fullIdxRange = startIdx:endIdx;
+    yIdxRange = fullIdxRange - offset;
+    valid = yIdxRange >= 1 & yIdxRange <= Nx;
+
+    fwrite(fidOut, outputNow(valid), 'single');
+    samplesWritten = samplesWritten + nnz(valid);
+
+    startIdx = endIdx + 1;
+    blockNum = blockNum + 1;
+end
+
+% Flush the final leftover carry (true end-of-file edge): these are
+% final values. If centered, part of this length-(M-1) tail (thanks to
+% the halfM shift) still falls inside the valid output range. If
+% causal (offset=0), this tail represents genuinely-delayed energy
+% past the end of the file and is correctly dropped rather than
+% padded onto a same-length output.
+finalFullIdx = Nx+1 : Nx+M-1;
+finalYIdx = finalFullIdx - offset;
+validFinal = finalYIdx >= 1 & finalYIdx <= Nx;
+
+fwrite(fidOut, carry(validFinal), 'single');
+samplesWritten = samplesWritten + nnz(validFinal);
+
+fprintf('applyDispersionStream: read %d samples, wrote %d samples (%d blocks) to %s\n', ...
+    Nx, samplesWritten, blockNum, outFile);
+if samplesWritten ~= Nx
+    warning('applyDispersionStream: samples written (%d) != samples read (%d) -- check edge-case handling.', ...
+        samplesWritten, Nx);
+end
+
+end
+
+
+%helper function
+%================================================================================
+
+function [kernel, info] = makeDispersionKernel(DM, fLow, fHigh, fs, taper)
+%MAKEDISPERSIONKERNEL Build a real FIR kernel that applies interstellar-
+% medium (ISM) dispersion to a real-valued RF-sampled signal.
+%
+%   [kernel, info] = makeDispersionKernel(DM, fLow, fHigh, fs, taper)
+%
+% Inputs:
+%   DM      [pc/cm^3] dispersion measure
+%   fLow    [Hz]      lowest frequency of the signal band (e.g. 1.2e9)
+%   fHigh   [Hz]      highest frequency of the signal band (e.g. 1.6e9)
+%   fs      [Hz]      sample rate of the raw RF data (e.g. 4e9)
+%   taper   (opt)     'hann' (default) or 'none'
+%
+% Output:
+%   kernel  real single-precision FIR kernel.
+%   info    struct with .smearTime (s), .kernelLen, .fRefHz, etc.
+%
+% Convention: reference frequency is fHigh (top of band arrives with
+% zero extra delay; lower frequencies lag behind it). To DEdisperse
+% instead of disperse, conjugate H below.
+%
+% IMPORTANT -- kernel size scales with DM and bandwidth: this array is
+% held fully in RAM regardless of how the main filtering is streamed.
+% If info.kernelLen comes back huge, channelize the band into
+% sub-bands first (each channel's smear, and kernel, shrinks with the
+% square of the channel bandwidth) rather than building one giant
+% kernel.
+
+if nargin < 5 || isempty(taper)
+    taper = 'hann';
+end
+
+D = 4148.808; % s * MHz^2 * pc^-1 * cm^3
+
+fLow_MHz  = fLow  / 1e6;
+fHigh_MHz = fHigh / 1e6;
+fRef_MHz  = fHigh_MHz;
+
+tau = @(f_MHz) D * DM ./ (f_MHz.^2);
+tauRef = tau(fRef_MHz);
+
+smearTime = tau(fLow_MHz) - tauRef;
+
+marginFactor = 1.5;
+Nfft = 2^nextpow2(ceil(marginFactor * smearTime * fs));
+Nfft = max(Nfft, 64);
+
+binFreqsHz = (0:Nfft-1) * (fs / Nfft);
+H = ones(1, Nfft);
+
+half = floor(Nfft/2);
+for k = 2:half
+    f_Hz = binFreqsHz(k);
+    f_MHz = f_Hz / 1e6;
+    relDelay = tau(f_MHz) - tauRef;
+    H(k) = exp(-1i * 2*pi * f_Hz * relDelay);
+end
+for k = 2:half
+    mirrorIdx = Nfft - k + 2;
+    if mirrorIdx <= Nfft && mirrorIdx ~= k
+        H(mirrorIdx) = conj(H(k));
+    end
+end
+if mod(Nfft,2) == 0
+    H(half+1) = real(H(half+1));
+end
+
+kernelFull = real(ifft(H));
+kernelFull = fftshift(kernelFull);
+
+switch lower(taper)
+    case 'hann'
+        w = 0.5 - 0.5*cos(2*pi*(0:Nfft-1)/(Nfft-1));
+    case 'none'
+        w = ones(1, Nfft);
+    otherwise
+        error('Unknown taper "%s".', taper);
+end
+
+kernel = single(kernelFull .* w);
+% NOTE: no extra amplitude rescaling here. H(f) has |H(f)|=1 at every
+% frequency (pure phase/all-pass filter), so by Parseval's theorem
+% ifft(H) already comes out unit-energy on its own -- dividing by
+% sum(abs(kernel)) (an L1 rescale) would incorrectly shrink the output
+% by roughly sqrt(kernel length), which for long kernels is a factor of
+% thousands or more. The Hann taper above already keeps the response
+% well-behaved without needing this.
+
+info = struct( ...
+    'smearTime', smearTime, ...
+    'kernelLen', Nfft, ...
+    'fRefHz', fHigh, ...
+    'fLowHz', fLow, ...
+    'fHighHz', fHigh, ...
+    'DM', DM);
+
+fprintf(['makeDispersionKernel: DM=%.2f pc/cm^3, band %.3f-%.3f GHz, ', ...
+    'smear=%.3f ms, kernel length=%d samples (%.1f MB, single)\n'], ...
+    DM, fLow/1e9, fHigh/1e9, smearTime*1e3, Nfft, Nfft*4/1e6);
+
+end
