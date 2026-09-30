@@ -37,14 +37,19 @@ runStage.process  = true;    % false: reuse dedispersed + detected files
 runStage.fold     = true;
 runStage.toa      = true;     % TOA estimation + validation (needs the fold)
 
-plots.dispersion = false;   % raw vs dispersed (reads the big RF files)
-plots.iq         = false;   % dispersed IQ vs dedispersed IQ
+plots.dispersion = true;   % raw vs dispersed (reads the big RF files)
+plots.iq         = true;   % dispersed IQ vs dedispersed IQ
 plots.detected   = true;
 plots.fold       = true;
 plots.toa        = true;
 closeFigures     = true;
 
 if closeFigures, close all; end
+
+%add paths
+scriptDir = fileparts(mfilename('fullpath')); 
+addpath(fullfile(scriptDir, 'functions'));
+
 
 % Parameters
 % --- Pulsar (ground truth for generation)
@@ -56,14 +61,14 @@ DM         = 5;         % [pc cm^-3] dispersion measure
 
 % --- Simulation
 f_in = 4e9;             % [Hz] RF generation sampling rate
-L    = 1000e-3;         % [s]  total signal length
+L    = 100e-3;         % [s]  total signal length
 seed = 42;              % RNG seed for reproducible runs
 
 % --- Receiver (known to the observer)
 fLow        = 1.2e9;    % [Hz] lower edge of observed RF band
 fHigh       = 1.6e9;    % [Hz] upper edge of observed RF band
 fLO         = 1.4e9;    % [Hz] local oscillator
-fs          = 500e6;    % [Hz] IQ sample rate (500e6 also fits the band, at half the cost)
+fs          = 500e6;    % [Hz] IQ sample rate
 filterOrder = 2048;     % IQ low-pass order
 
 % --- Processing
