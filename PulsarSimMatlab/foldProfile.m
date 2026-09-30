@@ -45,6 +45,12 @@ Outputs:
     .weight  [NBin x nSub]         sum of w (same for every channel)
     .weight2 [NBin x nSub]         sum of w^2 (for noise: the variance of a
                                    phase bin is sigma_timebin^2 * weight2 / weight^2)
+    .weightX [NBin x nSub]         sum of w_j*w_(j+1) over time bins split between
+                                   bin j and bin j+1 (circular); covariance of
+                                   neighbouring phase bins is
+                                   sigma_j*sigma_j+1 * weightX_j / (weight_j*weight_j+1).
+                                   Zero for 'nearest'. Needed for correct
+                                   uncertainties of anything that sums over bins.
     .prof    [NBin x nSub x nChan] sum ./ weight (NaN where weight = 0)
     .profTotal [NBin x nChan]      all sub-integrations combined
     .phase   [1 x NBin]            phase of each bin centre, turns in [0,1)
@@ -146,6 +152,7 @@ nCell   = Nbin * nSub;
 S       = zeros(nCell, nChan);
 Wt      = zeros(nCell, 1);
 W2      = zeros(nCell, 1);
+WX      = zeros(nCell, 1);
 tSum    = zeros(nSub, 1);
 nTB     = zeros(nSub, 1);
 
@@ -190,6 +197,7 @@ while kPos <= k2
         w  = [1 - a; a];
         Wt = Wt + accumarray(L, w,    [nCell 1]);
         W2 = W2 + accumarray(L, w.^2, [nCell 1]);
+        WX = WX + accumarray(mod(j0, Nbin) + 1 + base, (1 - a) .* a, [nCell 1]);
         for c = 1:nChan
             v = X(c, :).';
             S(:, c) = S(:, c) + accumarray(L, w .* [v; v], [nCell 1]);
@@ -203,6 +211,7 @@ fold = struct();
 fold.sum     = reshape(S,  Nbin, nSub, nChan);
 fold.weight  = reshape(Wt, Nbin, nSub);
 fold.weight2 = reshape(W2, Nbin, nSub);
+fold.weightX = reshape(WX, Nbin, nSub);
 wFull = repmat(fold.weight, 1, 1, nChan);
 fold.prof = fold.sum ./ wFull;
 fold.prof(wFull == 0) = NaN;

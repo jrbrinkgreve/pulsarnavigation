@@ -51,8 +51,14 @@ profSub = reord(squeeze(sum(fold.prof, 3)));              % [Nbin x nSub]
 if nSub == 1, profSub = profSub(:); end
 wSub  = reord(fold.weight);
 w2Sub = reord(fold.weight2);
+if isfield(fold, 'weightX')
+    wxSub = reord(fold.weightX);
+else
+    wxSub = zeros(size(wSub));                        % older fold files
+end
 wTot  = sum(wSub, 2);
 w2Tot = sum(w2Sub, 2);
+wxTot = sum(wxSub, 2);
 
 % ---- Expected profile ------------------------------------------------------------------
 haveAbs = ~isempty(opts.InfoDisp) && ~isempty(opts.InfoIQ) && ~isempty(opts.InfoDedisp);
@@ -82,7 +88,9 @@ ce = sum(phC(win)' .* Pexp(win))    / sum(Pexp(win));
 check.totalOffset = (cm - ce) * P;
 check.totalEnergyRatio = sum(profTot(win)) / sum(Pexp(win));
 if haveAbs
-    check.totalOffsetNoise = sqrt(sum(((phC(win)' - ce) .* sigTot(win)).^2)) / sum(Pexp(win)) * P;
+    aC = zeros(Nbin, 1);
+    aC(win) = (phC(win)' - ce) / sum(Pexp(win));
+    check.totalOffsetNoise = combNoise(aC, relStd * Pexp, wTot, w2Tot, wxTot) * P;
     onP = Pexp > opts.OnPulseFrac * max(Pexp);
     zr  = (profTot - Pexp) ./ sigTot;
     check.normResidMean = mean(zr(onP), 'omitnan');
@@ -99,8 +107,9 @@ for s = 1:nSub
     if any(isnan(p(win))), continue; end
     subOff(s) = (sum(phC(win)' .* p(win)) / sum(p(win)) - ce) * P;
     if haveAbs
-        sg = relStd * Pexp .* sqrt(w2Sub(:, s)) ./ wSub(:, s);
-        subNoise(s) = sqrt(sum(((phC(win)' - ce) .* sg(win)).^2)) / sum(Pexp(win)) * P;
+        aC = zeros(Nbin, 1);
+        aC(win) = (phC(win)' - ce) / sum(Pexp(win));
+        subNoise(s) = combNoise(aC, relStd * Pexp, wSub(:, s), w2Sub(:, s), wxSub(:, s)) * P;
     end
 end
 check.subOffset = subOff;
@@ -200,6 +209,17 @@ for iu = 1:numel(u)
         shape = shape + wu(iu) * envelopePower(t, info_gen) / numel(v);
     end
 end
+end
+
+
+function sd = combNoise(a, sTB, W, W2, WX)
+%COMBNOISE  Std of sum_j a_j * prof_j, including the covariance of
+% neighbouring phase bins that share time bins (linear assignment).
+% sTB = per-time-bin noise std at each phase bin.
+v  = sTB.^2 .* W2 ./ W.^2;
+cv = sTB .* circshift(sTB, -1) .* WX ./ (W .* circshift(W, -1));
+v(~isfinite(v)) = 0; cv(~isfinite(cv)) = 0;
+sd = sqrt(sum(a.^2 .* v) + 2*sum(a .* circshift(a, -1) .* cv));
 end
 
 
