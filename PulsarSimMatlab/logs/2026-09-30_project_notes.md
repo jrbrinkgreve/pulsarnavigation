@@ -6,7 +6,7 @@ what exists, the conventions every stage follows, the physics and formulas behin
 step, what has been validated (with numbers), what went wrong along the way, and what is
 still to do.
 
-Last updated: 30 September 2026. Status markers: **[validated]** = run in MATLAB and
+Last updated: 1 October 2026 (synced with the code at commit f4ac189). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -121,7 +121,7 @@ after dispersion (only `plotDispersionCheck` needs it).
 | | genEnvMode | `'power'` | power profile Gaussian with that FWHM |
 | | DM | 5 pc cm⁻³ | |
 | Simulation | f_in | 4 GHz | real RF sampling |
-| | L | 1 s (0.1 s for quick tests) | 100 pulse centres at 5, 15, …, 995 ms |
+| | L | 1 s (0.1 s for quick tests; main currently 0.1 s) | 100 pulse centres at 5, 15, …, 995 ms |
 | | seed | 42 | pulsar signal |
 | Receiver | band | 1.2–1.6 GHz | B = 400 MHz |
 | | fLO | 1.4 GHz | |
@@ -133,7 +133,7 @@ after dispersion (only `plotDispersionCheck` needs it).
 | Processing | refFreq | fHigh = 1.6 GHz | dedispersion reference |
 | | f_out | 1 MHz | 1 µs detection bins |
 | | nBin | 1024 | 9.77 µs phase bins |
-| | subintPeriods | 10 (1 for noise-free tests) | turns per sub-integration |
+| | subintPeriods | 10 (1 for noise-free tests) | turns per sub-integration; with L = 0.1 s the fold spans turns 0–9 (data ends at 93.7 ms, turn 9 ~37 % covered) → only **one** sub-int / one TOA |
 
 ---
 
@@ -209,15 +209,15 @@ its original time). Final carry flushed; energy delayed past the file end is dro
 Output length = input length.
 
 **Options:** `RefFreq`, `EdgeFrac` (0.02), `GuardTime`, `MaxLeakage` (1e-8),
-`BlockLen` ([] = auto), `MaxMemoryGB`, `SaveInfo`, `Verbose`.
+`BlockLen` ([] = auto), `MaxMemoryGB` (16), `SaveInfo`, `Verbose`.
 
 **Info:** DM, fLow, fHigh, refFreq, dispersionConst, delayConvention, smearTime,
 bulkDelayRef, edgeWidth, kernelLen, kernelZeroLag, kernelLeakage, kernelEnergy, Nfft,
 blockLen, nBlocks, memEstimateGB, …
 
 **Run (L = 1 s):** Nfft = 2^28, blockLen = 243,205,685 (91 %), 17 blocks, ~11.8 GB,
-81.5 s. **Note:** 11.8 GB exceeds the 8 GB default → the local copy has a higher
-`MaxMemoryGB`; set it deliberately (machine: 24 GB unified memory).
+81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
+memory), which covers this 11.8 GB run.
 
 ### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [written]
 
@@ -371,8 +371,8 @@ squaring.
 chanFreqs, chanEdges, chanFftBins, frameLen, chanMeanPower, samplesDropped,
 fullySupportedBins.
 
-**Noise per bin:** relative std 1/√(B_noise·Δt) ≈ 1/√385 ≈ 5.1 % (1 µs, noise-free
-case; B_noise ≈ 385 MHz). Run: 1.2 s for 1 s of data (I/O bound).
+**Noise per bin:** relative std 1/√(B_noise·Δt) ≈ 1/√390 ≈ 5.1 % (1 µs, noise-free
+case; B_noise ≈ 389.6 MHz for both tapers). Run: 1.2 s for 1 s of data (I/O bound).
 
 ### 5.7 `foldProfile(info_det, outFile, f0, ...)` [validated]
 
@@ -426,8 +426,12 @@ weightX. τ solves C′(τ) = Σ d_j·p_j (d from the template slope, largest on
 flanks) → var(τ) = dᵀ·Cov·d / C″². Same for σ_b via C(τ). `'offpulse'` model: variance
 and lag-1 covariance from off-pulse residuals (needs receiver noise).
 
-**Main passes** `Bnoise` = noiseBandwidth of the dedispersion taper only when receiver
-noise is present (noise sees only W_inv), of both tapers when noise-free.
+**Main passes** `Bnoise` = noiseBandwidth of the **observer's own dedispersion taper
+only** (`info_dedisp.edgeWidth`) ≈ 391.6 MHz, always, regardless of whether noise is
+present (ground-truth rule: the observer does not know the dispersion-stage taper).
+Receiver noise sees only W_inv, so this is exact for it; when the pulsar dominates
+(high SNR, in-pulse) the true value is ~0.5 % lower (both tapers, ≈ 389.6 MHz).
+(Before commit f4ac189 main switched to both tapers in the noise-free case.)
 
 **Outputs** per sub-int: valid, coverage (default `MinCoverage` = 1: complete turns
 only), phase, phaseErr, toa, toaErr, amp, ampErr, baseline, snr (= b/σ_b), redChi2
@@ -496,7 +500,7 @@ TOAs are pooled.
 | Pulsar power after IQ | sigScale = g²·A²·Js/f_in = 4·388.4 MHz/4 GHz ≈ 0.388 (A = 1) |
 | Power bookkeeping | generator 1 → after dispersion ≈ 0.195 (in band) → after IQ ≈ 0.388 |
 | Bin noise (flat band) | σ/P = 1/√(B_noise·Δt) |
-| Noise bandwidth | B_noise = (∫W²)²/∫W⁴ (≈ 385 MHz pulsar, ≈ 390 MHz noise-only) |
+| Noise bandwidth | B_noise = (∫W²)²/∫W⁴ (≈ 389.6 MHz pulsar = both tapers, ≈ 391.6 MHz noise-only = dedispersion taper) |
 | Weighted mean variance | σ²·Σw²/(Σw)² |
 | SNR definition | ρ = S_peak/N (per Hz, in band) = A²/σ_n² |
 | Per-pulse SNR (weak) | ≈ ρ·√(B·σ_t·√π) ≈ 388·ρ (0.5 ms pulse, 400 MHz) |
@@ -587,10 +591,11 @@ mixed signal+noise variance formula within 1 %.
 1. **Run the new receiver stage** (`snrDB = −20`, `rfiOn = false`, all stages on) and
    check: off-pulse normalized residual std ≈ 1.00 in detected-power and fold checks;
    10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1; validateTOA consistent with the
-   predicted errors (main prints the prediction).
+   predicted errors (main prints the prediction). **Needs L = 1 s** (main currently has
+   0.1 s, which gives a single sub-int/TOA).
 2. Few `noiseSeed` values with `runStage.sky = false`, pooled in `validateTOA`.
 3. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
-4. Set `MaxMemoryGB` in `applyDispersionStream` deliberately; generator progress print
+4. ~~Set `MaxMemoryGB` in `applyDispersionStream` deliberately~~ (done: default 16 GB); generator progress print
    per 10 %; retire `envelopeReconstruction` and `plotEnvelope` (or update to
    `binTime0` and `'ieee-le'`).
 
