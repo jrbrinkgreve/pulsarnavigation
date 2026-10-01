@@ -6,39 +6,42 @@ times. A pulse arriving earlier means we are closer to the pulsar in that
 direction; combining several pulsars gives our position.
 
 Pipeline (status):
-  Synthetic data generation
+  Sky (synthetic)
     1. generatePulsarSignal    noise-like pulses, ground truth  [done]
     2. applyDispersionStream   interstellar dispersion          [done]
-    3. applyIQmodulation       downconversion to baseband       [done]
-    -  receiver noise, Earth RFI, clock jitter, pulsar-Earth motion,
-       polarisation?, 3x3 array element signals, multiple pulsars  [todo]
+  Receiver (synthetic)
+    3. addNoiseAndRFI          receiver noise + RFI at RF       [new, to verify]
+    4. applyIQmodulation       downconversion to baseband       [done]
+    -  clock jitter, pulsar-Earth motion, polarisation?,
+       3x3 array element signals, multiple pulsars               [todo]
   Processing
     (  array beamforming, RFI excision - linear, before squaring  [todo] )
-    4. applyInverseDispersion  coherent dedispersion            [done]
-    5. detectPower             square-law detection             [done]
-    6. foldProfile             folding with a phase model       [done]
-    7. estimateTOA             FFT template matching (FFTFIT)   [done, to verify]
+    5. applyInverseDispersion  coherent dedispersion            [done]
+    6. detectPower             square-law detection             [done]
+    7. foldProfile             folding with a phase model       [done]
+    8. estimateTOA             FFT template matching (FFTFIT)   [done]
     -  noise normalization, NP detector                          [todo]
     -  barycentric / timing corrections, residuals               [todo]
     -  navigation solution (multi-pulsar)                        [todo]
   Validation
     - plot/check functions per stage against ground truth        [done]
-    8. validateTOA             TOA vs ground truth              [done, to verify]
-    - Monte Carlo over seeds / noise levels                      [todo]
+    9. validateTOA             TOA vs ground truth              [done]
+    - Monte Carlo over seeds / SNR                               [todo]
 
 Rule: the PROCESSING stages only use what an observer would know
-(ephemeris + receiver settings). Ground truth (info_gen, info_disp) is
-only used by the generation stages and by the check/plot functions.
+(ephemeris + receiver settings). Ground truth (info_gen, info_disp,
+info_rx) is only used by the synthetic stages and the check/plot functions.
 %}
 
 % Run control
-runStage.generate = false;    % false: reuse files on disk (info loaded from *_info.mat)
-runStage.process  = true;    % false: reuse dedispersed + detected files
+runStage.sky      = false;   % pulsar signal + dispersion (the slow part; independent of noise)
+runStage.receiver = true;   % receiver noise/RFI + IQ (rerun this alone to change SNR or RFI)
+runStage.process  = true;   % dedispersion + detection
 runStage.fold     = true;
-runStage.toa      = true;     % TOA estimation + validation (needs the fold)
+runStage.toa      = true;   % TOA estimation + validation (needs the fold)
 
-plots.dispersion = true;   % raw vs dispersed (reads the big RF files)
-plots.iq         = true;   % dispersed IQ vs dedispersed IQ
+plots.dispersion = false;   % raw vs dispersed (reads the big RF files)
+plots.iq         = false;   % dispersed IQ vs dedispersed IQ
 plots.detected   = true;
 plots.fold       = true;
 plots.toa        = true;
@@ -46,74 +49,93 @@ closeFigures     = true;
 
 if closeFigures, close all; end
 
-%add paths
-scriptDir = fileparts(mfilename('fullpath')); 
-addpath(fullfile(scriptDir, 'functions'));
-
-
 % Parameters
 % --- Pulsar (ground truth for generation)
 T          = 10e-3;     % [s]  pulsar period
-A          = 1;         % [V]  noise std dev at pulse peak
+A          = 1;         % [V]  pulsar noise std at pulse peak (sets the signal scale)
 dutycycle  = 5;         % [%]  pulse FWHM as percent of T
 genEnvMode = 'power';   % 'power': power profile has FWHM = dutycycle% of T
 DM         = 5;         % [pc cm^-3] dispersion measure
 
 % --- Simulation
-f_in = 4e9;             % [Hz] RF generation sampling rate
+f_in = 4e9;             % [Hz] RF sampling rate
 L    = 100e-3;         % [s]  total signal length
-seed = 42;              % RNG seed for reproducible runs
+seed = 42;              % RNG seed of the pulsar signal
 
 % --- Receiver (known to the observer)
 fLow        = 1.2e9;    % [Hz] lower edge of observed RF band
 fHigh       = 1.6e9;    % [Hz] upper edge of observed RF band
 fLO         = 1.4e9;    % [Hz] local oscillator
-fs          = 500e6;    % [Hz] IQ sample rate
+fs          = 500e6;    % [Hz] IQ sample rate (D = 8)
 filterOrder = 2048;     % IQ low-pass order
+
+% --- Receiver noise and interference (added at RF, after dispersion)
+% snrDB: pulse-peak signal PSD / receiver-noise PSD in the band (S_peak/SEFD).
+% -20 dB -> ~3.8 SNR per pulse (0.5 ms pulses, 400 MHz); Inf -> no noise.
+% addNoiseAndRFI prints what a value means (SNR per pulse / folded, TOA error).
+snrDB     = 20;
+noiseSeed = seed + 1;   % different seed -> new noise, same pulsar realization
+rfiOn     = false;      % validate noise-only first, then switch RFI on
+
+% Illustrative L-band RFI scenario; INR = power relative to all receiver
+% noise in the 400 MHz band (while the source is on).
+rfi = [ ...
+    rfiSource('bpsk',    'Freq', 1575.42e6, 'ChipRate', 1.023e6, 'INRdB', -10, 'Label', 'GNSS L1 C/A-like'), ...
+    rfiSource('bpsk',    'Freq', 1227.60e6, 'ChipRate', 10.23e6, 'INRdB', -15, 'Label', 'GNSS L2 P(Y)-like'), ...
+    rfiSource('pulsed',  'Freq', 1300e6, 'PulseWidth', 2e-6, 'PRF', 373, 'ChirpBW', 1e6, ...
+              'INRdB', 20, 'Label', 'L-band radar'), ...
+    rfiSource('cw',      'Freq', 1350e6, 'INRdB', -5, 'Label', 'spurious carrier'), ...
+    rfiSource('impulse', 'Rate', 50, 'Duration', 200e-9, 'INRdB', 20, 'Label', 'broadband impulses')];
+if ~rfiOn || isinf(snrDB), rfi = struct([]); end
 
 % --- Processing
 refFreq       = fHigh;  % [Hz] dedispersion reference frequency (same as generation)
-f_out         = 1e6;   % [Hz] detected-power bin rate
+f_out         = 1e6;    % [Hz] detected-power bin rate
 nBin          = 1024;   % phase bins in the fold
-subintPeriods = 1;      % turns per sub-integration
+subintPeriods = 10;     % turns per sub-integration (aim for >~10 SNR per sub-int)
 
 % --- Files
 dataDir       = "data";
 fileRaw       = fullfile(dataDir, "test.dat");
 fileDispersed = fullfile(dataDir, "test_dispersed.dat");
-fileIQ        = fullfile(dataDir, "test_dispersed_IQ_modulated.dat");
+fileRx        = fullfile(dataDir, "test_rx.dat");
+fileIQ        = fullfile(dataDir, "test_rx_IQ.dat");
 fileDedisp    = fullfile(dataDir, "test_IQ_dedispersed.dat");
 fileEnvelope  = fullfile(dataDir, "test_envelope.dat");
 fileFold      = fullfile(dataDir, "test_fold.mat");
 
 % Disk estimate for the streamed files
-% raw + dispersed (real float32 at f_in), IQ + dedispersed (complex at fs), power
-diskGB = L * (2*f_in*4 + 2*fs*8 + f_out*4) / 1e9;
+% raw + dispersed + receiver (real float32 at f_in), IQ + dedispersed (complex at fs), power
+diskGB = L * (3*f_in*4 + 2*fs*8 + f_out*4) / 1e9;
 fprintf('main: L = %.3g s -> about %.1f GB of data files in "%s"\n', L, diskGB, dataDir);
 
-% Synthetic data generation
-if runStage.generate
-    % 1. Pulsar signal
+% Sky: pulsar signal and interstellar dispersion
+if runStage.sky
     info_gen = generatePulsarSignal(fileRaw, T, f_in, A, L, dutycycle, ...
         'Seed', seed, 'EnvelopeMode', genEnvMode, 'Verbose', true);
-
-    % 2. Interstellar dispersion
     info_disp = applyDispersionStream(info_gen.file, fileDispersed, DM, ...
         info_gen.actualFsOut, fLow, fHigh, 'RefFreq', refFreq);
-
-    % 3. IQ downconversion
-    info_IQ = applyIQmodulation(info_disp.file, fileIQ, info_disp.actualFsOut, fs, fLO, ...
-        'FilterOrder', filterOrder, 'Band', [fLow fHigh]);
 else
     info_gen  = loadInfo(fileRaw);
     info_disp = loadInfo(fileDispersed);
-    info_IQ   = loadInfo(fileIQ);
-    checkConsistency(info_gen, info_disp, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs);
 end
 
 if plots.dispersion
     plotDispersionCheck(info_gen, info_disp, 0, 20e-3);
 end
+
+% Receiver: noise + interference at RF (not dispersed), then IQ conversion
+if runStage.receiver
+    info_rx = addNoiseAndRFI(info_disp.file, fileRx, info_disp.actualFsOut, ...
+        'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, ...
+        'RFI', rfi, 'Seed', noiseSeed);
+    info_IQ = applyIQmodulation(info_rx.file, fileIQ, info_rx.actualFsOut, fs, fLO, ...
+        'FilterOrder', filterOrder, 'Band', [fLow fHigh]);
+else
+    info_rx = loadInfo(fileRx);
+    info_IQ = loadInfo(fileIQ);
+end
+checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB);
 
 % Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre
@@ -125,18 +147,12 @@ ephem.DM   = DM;
 ephem.profileFWHM = dutycycle/100;   % [turns] power-profile FWHM, for the template
                                      % (genEnvMode 'amplitude' would need /sqrt(2))
 
-
-
-
-
-
 % Processing
 if runStage.process
-    % 4. Coherent dedispersion
+    % Coherent dedispersion
     info_dedisp = applyInverseDispersion(info_IQ.file, fileDedisp, info_IQ.actualFsOut, ...
         info_IQ.fLO, ephem.DM, fLow, fHigh, 'RefFreq', refFreq);
-
-    % 5. Square-law detection
+    % Square-law detection
     info_det = detectPower(info_dedisp.file, fileEnvelope, info_dedisp.fs, info_dedisp.fLO, ...
         f_out, 'FullySupported', info_dedisp.fullySupported);
 else
@@ -144,38 +160,47 @@ else
     info_det    = loadInfo(fileEnvelope);
 end
 
+truthArgs = {'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp, 'InfoRx', info_rx};
 if plots.iq
-    [~, check_iq] = plotIQCheck(info_gen, info_disp, info_IQ, info_dedisp, 0, 20e-3);
+    [~, check_iq] = plotIQCheck(info_gen, info_disp, info_IQ, info_dedisp, 0, 20e-3, 'InfoRx', info_rx);
 end
 if plots.detected
-    [~, check_det] = plotDetectedPower(info_det, info_gen, 0, 20e-3, ...
-        'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp);
+    [~, check_det] = plotDetectedPower(info_det, info_gen, 0, 20e-3, truthArgs{:});
 end
 
-% 6. Folding
+% Folding
 if runStage.fold
     [info_fold, fold] = foldProfile(info_det, fileFold, ephem.f0, ...
         'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods);
     if plots.fold
-        [~, check_fold] = plotFoldCheck(fold, info_fold, info_gen, ...
-            'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp);
+        [~, check_fold] = plotFoldCheck(fold, info_fold, info_gen, truthArgs{:});
     end
 elseif runStage.toa
     S = load(fileFold, 'fold', 'info');                 % reuse the saved fold
     fold = S.fold; info_fold = S.info;
 end
 
-% 7. TOA estimation
+% TOA estimation and validation
 if runStage.toa
     template = gaussianTemplate(nBin, ephem.profileFWHM);
-    % Noise-equivalent bandwidth of the detected band. The observer knows the
-    % (calibrated) receiver bandpass and its own dedispersion taper; here both
-    % tapers are taken from the stage info.
-    Bnoise = noiseBandwidth(fLow, fHigh, [info_disp.edgeWidth, info_dedisp.edgeWidth]);
+    % Noise-equivalent bandwidth for the radiometer noise model. With receiver
+    % noise dominating, the variance is set by the noise, which only passed the
+    % dedispersion taper; without noise, by the pulsar (both tapers).
+    if info_rx.noiseStd > 0
+        Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
+    else
+        Bnoise = noiseBandwidth(fLow, fHigh, [info_disp.edgeWidth, info_dedisp.edgeWidth]);
+    end
     [toa, info_toa] = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise);
 
-    % 8. Validation against ground truth
     val = validateTOA(toa, info_gen, 'Plot', plots.toa);
+    if isfield(info_rx.prediction, 'toaErrPulse')
+        fprintf(['main: predicted best TOA error per sub-int (%d turns) %.3g us, ' ...
+                 'SNR per sub-int %.1f; whole file %.3g us\n'], subintPeriods, ...
+            info_rx.prediction.toaErrPulse/sqrt(subintPeriods)*1e6, ...
+            info_rx.prediction.snrPulse*sqrt(subintPeriods), ...
+            info_rx.prediction.toaErrFolded*1e6);
+    end
 end
 
 
@@ -192,6 +217,7 @@ end
 s = load(f, 'info');
 info = s.info;
 end
+
 
 
 function tmpl = gaussianTemplate(nBin, fwhmTurns)
@@ -221,7 +247,7 @@ Bn = trapz(f, W.^2)^2 / trapz(f, W.^4);
 end
 
 
-function checkConsistency(info_gen, info_disp, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs)
+function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB)
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
 d = {};
 if abs(info_gen.T - T) > 1e-12,       d{end+1} = 'T';    end
@@ -231,12 +257,16 @@ if abs(info_disp.DM - DM) > 1e-12,    d{end+1} = 'DM';   end
 if abs(info_disp.fLow - fLow) > 1e-3 || abs(info_disp.fHigh - fHigh) > 1e-3
     d{end+1} = 'band';
 end
+if ~(isequal(info_rx.snrDB, snrDB) || (isinf(snrDB) && info_rx.noiseStd == 0))
+    d{end+1} = 'snrDB';
+end
+if ~strcmp(info_rx.inFile, info_disp.file), d{end+1} = 'receiver input'; end
 if abs(info_IQ.fLO - fLO) > 1e-3,     d{end+1} = 'fLO';  end
 if abs(info_IQ.actualFsOut - f_in/round(f_in/fs)) > 1e-3
     d{end+1} = 'fs';
 end
 if ~isempty(d)
     warning('main:stale', ['Files on disk were generated with different ' ...
-        'parameters (%s). Set runStage.generate = true to regenerate.'], strjoin(d, ', '));
+        'parameters (%s). Rerun the corresponding stage.'], strjoin(d, ', '));
 end
 end

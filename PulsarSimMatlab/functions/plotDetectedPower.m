@@ -3,33 +3,36 @@ function [fig, check] = plotDetectedPower(info_det, info_gen, tStart, tSpan, opt
 %{
 Reads the whole detectPower output (it is small) and shows:
 
-  1. overview of the full file (channel sum), with true pulse centres and
-     the not-fully-supported region (grey)
+  1. overview of the full file (channel sum, display-averaged), with the true
+     pulse centres and the not-fully-supported region (grey)
   2. (only if nChan > 1) channel-vs-time waterfall of the zoom window;
      dedispersed pulses must be vertical in every channel
-  3. zoom window: measured power vs the expected profile
-  4. normalized residual (measured - expected) / sigma_expected on the pulses,
-     which should be unit-variance noise without structure. The pulsar
-     signal is itself noise, so sigma scales with the expected power
-     ("self-noise"); dividing by it makes the check visible at any level.
+  3. zoom window: measured power vs the expected power (pulsar + receiver
+     noise baseline)
+  4. normalized residual (measured - expected) / sigma_expected. With
+     receiver noise this covers every bin; without it only the on-pulse bins
+     (off-pulse the expected variance is zero). It should be unit-variance
+     noise without structure. RFI is not in the model, so it shows up here.
 
-The expected profile needs the upstream info structs ('InfoDisp',
-'InfoIQ', 'InfoDedisp'). Without them, panels 3-4 show the measurement
-only and the per-pulse check compares against the true centres.
+Expected power and its variance come from expectedPowerModel (ground truth:
+generator, both band tapers, IQ gain, receiver-noise level). Pass the
+upstream info structs 'InfoDisp', 'InfoIQ', 'InfoDedisp' and, with noise,
+'InfoRx' (from addNoiseAndRFI).
 
-It prints, for every fully supported pulse in the FILE (not just the zoom
-window), the power-centroid offset from the expected centroid, its
-noise-limited uncertainty, and the measured/expected pulse energy, plus a
-summary. This is effectively a first TOA-vs-ground-truth test.
+Printed, per fully supported pulse in the whole file: power-centroid offset
+from the expected centroid (after subtracting the off-pulse baseline), its
+predicted uncertainty, and measured/expected pulse energy; then summaries
+and the normalized-residual statistics on-pulse and off-pulse. The centroid
+is a quick check; it becomes very noisy below a per-pulse SNR of ~10, where
+the fold and TOA checks are the meaningful ones.
 
-  plotDetectedPower(info_det, info_gen)                               % 0-20 ms
   [fig, check] = plotDetectedPower(info_det, info_gen, 0, 20e-3, ...
-      'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp);
+      'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp, ...
+      'InfoRx', info_rx);
 
-Expected power per bin (no receiver noise):
-  gain^2 * A^2 * <p(t)>_bin * Beff / fsIn, with p = G ('power' envelope)
-  or G^2 ('amplitude'), Beff = integral of (W_fwd*W_inv)^2 over the band,
-  and <.>_bin the average over the bin (boxcar), evaluated on a sub-grid.
+Option 'DisplayAverage': time bins averaged for DISPLAY only (default []:
+automatic, so the pulse stands out of the noise where possible). All
+statistics use the full resolution.
 %}
 
 arguments
@@ -40,8 +43,10 @@ arguments
     opts.InfoDisp   struct = struct([])
     opts.InfoIQ     struct = struct([])
     opts.InfoDedisp struct = struct([])
+    opts.InfoRx     struct = struct([])
     opts.SubSamples (1,1) double {mustBeInteger, mustBePositive} = 16
     opts.OnPulseFrac (1,1) double {mustBePositive} = 0.01
+    opts.DisplayAverage double = []
 end
 
 % ---- Read ----------------------------------------------------------------------------
@@ -58,37 +63,52 @@ dt = info_det.binDt;
 tb = info_det.binTime0 + (0:N-1) * dt;            % bin centroid times
 sup = info_det.fullySupportedBins;
 tSup = [tb(sup(1)) - dt/2, tb(sup(2)) + dt/2];
+inSup = tb >= tSup(1) & tb <= tSup(2);
 
-% ---- Expected profile --------------------------------------------------------------------
-haveExp = ~isempty(opts.InfoDisp) && ~isempty(opts.InfoIQ) && ~isempty(opts.InfoDedisp);
-if haveExp
-    [Pexp, Beff, Bnoise] = expectedBinPower(tb, dt, opts.SubSamples, info_gen, ...
-        opts.InfoDisp, opts.InfoIQ, opts.InfoDedisp);
-    relStd = 1 / sqrt(dt * Bnoise);               % per-bin relative noise
-else
-    Pexp = []; Beff = NaN; Bnoise = NaN; relStd = NaN;
-end
-
-% ---- Per-pulse check over the whole file --------------------------------------------------------
 if strcmpi(info_gen.envelopeMode, 'power')
     sigP = info_gen.sigma;
 else
     sigP = info_gen.sigma / sqrt(2);
 end
-halfW = 4 * sigP;
 tcAll = info_gen.pulseCenters;
+
+% ---- Expected power ---------------------------------------------------------------------
+haveExp = ~isempty(opts.InfoDisp) && ~isempty(opts.InfoIQ) && ~isempty(opts.InfoDedisp);
+if haveExp
+    M  = expectedPowerModel(info_gen, opts.InfoDisp, opts.InfoIQ, opts.InfoDedisp, opts.InfoRx);
+    off = ((1:opts.SubSamples) - 0.5)/opts.SubSamples - 0.5;   % boxcar sub-grid
+    pS = zeros(size(tb));
+    for s = off
+        pS = pS + M.envelope(tb + s*dt);
+    end
+    pS   = pS / numel(off);
+    Ps   = M.sigScale * pS;                       % pulsar part
+    Pexp = Ps + M.Pn;                             % + receiver-noise baseline
+    sdB  = sqrt(M.var(Ps, dt));                   % per-bin std
+    offP = pS < 1e-6;                             % truly off-pulse bins
+else
+    M = struct('Pn', 0, 'hasNoise', false, 'hasRFI', false);
+    Ps = []; Pexp = []; sdB = [];
+    Tp   = info_gen.T;                            % distance to the nearest pulse
+    dist = abs(mod(tb - tcAll(1) + Tp/2, Tp) - Tp/2);
+    offP = dist > 6*sigP;
+end
+use0 = offP & inSup;
+if any(use0), base = median(P(use0)); else, base = 0; end   % measured baseline
+
+% ---- Per-pulse check over the whole file ------------------------------------------------
+halfW = 4 * sigP;
 check = struct('tc', {}, 'offset', {}, 'offsetNoise', {}, 'energyRatio', {});
 for tc = tcAll
-    if tc - halfW < tSup(1) || tc + halfW > tSup(2)
-        continue
-    end
+    if tc - halfW < tSup(1) || tc + halfW > tSup(2), continue; end
     sel = tb >= tc - halfW & tb <= tc + halfW;
-    cm = sum(tb(sel) .* P(sel)) / sum(P(sel));
+    Q   = P(sel) - base;
+    cm  = sum(tb(sel) .* Q) / sum(Q);
     if haveExp
-        w   = Pexp(sel);
+        w   = Ps(sel);
         ce  = sum(tb(sel) .* w) / sum(w);
-        er  = sum(P(sel)) / sum(w);
-        sOf = sqrt(sum(((tb(sel) - ce) .* w * relStd).^2)) / sum(w);
+        er  = sum(Q) / sum(w);
+        sOf = sqrt(sum(((tb(sel) - ce) .* sdB(sel)).^2)) / sum(w);
     else
         ce = tc; er = NaN; sOf = NaN;
     end
@@ -98,12 +118,20 @@ end
 
 fprintf('plotDetectedPower: %d bins x %d chan @ %.6g Hz (%.3g us bins)\n', ...
     N, nChan, 1/dt, dt*1e6);
+if haveExp
+    fprintf('  expected: pulse peak %.4g, noise baseline %.4g, measured off-pulse baseline %.4g', ...
+        M.sigScale, M.Pn, base);
+    if M.hasRFI, fprintf('  (RFI present: not in the model)'); end
+    fprintf('\n');
+end
 if isempty(check)
     fprintf('  no fully supported pulse in the file.\n');
 else
-    for c = check
-        fprintf('  pulse %9.4f ms: offset %+9.3f us (noise ~%.3f us), energy ratio %.4f\n', ...
-            c.tc*1e3, c.offset*1e6, c.offsetNoise*1e6, c.energyRatio);
+    if numel(check) <= 20
+        for c = check
+            fprintf('  pulse %9.4f ms: offset %+9.3f us (noise ~%.3f us), energy ratio %.4f\n', ...
+                c.tc*1e3, c.offset*1e6, c.offsetNoise*1e6, c.energyRatio);
+        end
     end
     off = [check.offset];
     fprintf('  summary over %d pulses: mean offset %+.3f us, rms %.3f us', ...
@@ -116,52 +144,78 @@ else
     end
 end
 
-% ---- Normalized residual statistics (whole file, supported on-pulse bins) -----
+% ---- Normalized residuals ------------------------------------------------------------------
+zAll = [];
 if haveExp
-    onP  = Pexp > opts.OnPulseFrac * max(Pexp);
-    zAll = nan(size(P));
-    zAll(onP) = (P(onP) - Pexp(onP)) ./ (relStd * Pexp(onP));
-    use  = onP & tb >= tSup(1) & tb <= tSup(2);
-    zU   = zAll(use);
-    fprintf(['  normalized residual over %d on-pulse bins: mean %+.4f, std %.4f ' ...
-             '(expect 0 +- %.4f, 1 +- %.4f)\n'], numel(zU), mean(zU), std(zU), ...
-        1/sqrt(numel(zU)), 1/sqrt(2*numel(zU)));
-else
-    zAll = [];
+    zAll = (P - Pexp) ./ sdB;
+    zAll(sdB == 0) = NaN;
+    onP = Ps > opts.OnPulseFrac * M.sigScale;
+    statLine('on-pulse ', zAll(onP & inSup));
+    if M.hasNoise
+        statLine('off-pulse', zAll(offP & inSup));
+    end
 end
 
-% ---- Plot ---------------------------------------------------------------------------------------------
+% ---- Display averaging ---------------------------------------------------------------------
+nd = opts.DisplayAverage;
+if isempty(nd)
+    nd = 1;
+    if haveExp && M.hasNoise
+        need = (3 * sqrt(M.cnn/dt) * M.Pn / M.sigScale)^2;   % bins for 3:1 per display bin
+        nd = max(1, min(round(sigP/(8*dt)), ceil(need)));
+    end
+end
+avg = @(v) mean(reshape(v(1:floor(numel(v)/nd)*nd), nd, []), 1);
+tD  = avg(tb);
+PD  = avg(P);
+if haveExp
+    PexpD = avg(Pexp);
+    zD = (PD - PexpD) ./ (avg(sdB) / sqrt(nd));
+    zD(avg(sdB) == 0) = NaN;
+    if ~M.hasNoise
+        zD(avg(Ps) <= opts.OnPulseFrac * M.sigScale) = NaN;
+    end
+end
+
+% ---- Plot ---------------------------------------------------------------------------------------
 nRows = 3 + (nChan > 1);
 fig = figure('Name', 'Detected power check', 'Color', 'w');
 tl  = tiledlayout(fig, nRows, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(tl, sprintf('Detected power: %d channel(s), %.3g \\mus bins, f_{out} = %.4g Hz', ...
-    nChan, dt*1e6, 1/dt));
-tMsAll = tb * 1e3;
-winSel = tb >= tStart & tb <= tStart + tSpan;
-tW = tMsAll(winSel);
-yTop = 1.05 * max([P, Pexp]);
+title(tl, sprintf('Detected power: %d channel(s), %.3g \\mus bins (display: %.3g \\mus)', ...
+    nChan, dt*1e6, nd*dt*1e6));
+tMsD = tD * 1e3;
+winD = tD >= tStart & tD <= tStart + tSpan;
+tW   = tMsD(winD);
+yLo  = min(PD); yHi = max(PD);
+if haveExp, yLo = min(yLo, min(PexpD)); yHi = max(yHi, max(PexpD)); end
+pad  = 0.05 * (yHi - yLo + eps);
+yl   = [yLo - pad, yHi + pad];
 
 % 1. Overview
 ax1 = nexttile(tl);
 hold(ax1, 'on');
-shadeOutside(ax1, [tMsAll(1) tMsAll(end)], tSup*1e3, yTop);
-plot(ax1, tMsAll, P, 'k');
-plot(ax1, tcAll*1e3, yTop*0.98*ones(size(tcAll)), 'rv', 'MarkerFaceColor', 'r', ...
-    'MarkerSize', 4);
+shadeOutside(ax1, [tMsD(1) tMsD(end)], tSup*1e3, yl);
+plot(ax1, tMsD, PD, 'k');
+if haveExp, plot(ax1, tMsD, PexpD, 'r'); end
+plot(ax1, tcAll*1e3, yl(2)*ones(size(tcAll)) - pad, 'rv', 'MarkerFaceColor', 'r', 'MarkerSize', 4);
 xline(ax1, [tStart, tStart + tSpan]*1e3, 'b-', 'HandleVisibility', 'off');
 hold(ax1, 'off'); box(ax1, 'on'); grid(ax1, 'on');
-xlim(ax1, [tMsAll(1) tMsAll(end)]); ylim(ax1, [0 yTop]);
+xlim(ax1, [tMsD(1) tMsD(end)]); ylim(ax1, yl);
 ylabel(ax1, 'power'); xlabel(ax1, 'Time [ms]');
-legend(ax1, {'not fully supported', 'measured', 'true centres'}, 'Location', 'northeast');
+leg = {'not fully supported', 'measured'};
+if haveExp, leg{end+1} = 'expected'; end
+leg{end+1} = 'true centres';
+legend(ax1, leg, 'Location', 'northeast');
 title(ax1, 'Whole file (blue lines: zoom window)');
 
 % 2. Waterfall (sub-bands only)
 if nChan > 1
     ax2 = nexttile(tl);
-    imagesc(ax2, tW, info_det.chanFreqs/1e9, X(:, winSel)); axis(ax2, 'xy');
+    XD = zeros(nChan, numel(tD));
+    for c = 1:nChan, XD(c, :) = avg(X(c, :)); end
+    imagesc(ax2, tW, info_det.chanFreqs/1e9, XD(:, winD)); axis(ax2, 'xy');
     hold(ax2, 'on');
-    tcW = tcAll(tcAll >= tStart & tcAll <= tStart + tSpan);
-    for tc = tcW
+    for tc = tcAll(tcAll >= tStart & tcAll <= tStart + tSpan)
         xline(ax2, tc*1e3, 'w--');
     end
     hold(ax2, 'off');
@@ -170,43 +224,40 @@ if nChan > 1
     title(ax2, 'Channels vs time (dedispersed pulses should be vertical)');
 end
 
-% 3. Zoom: measured vs expected
+% 3. Zoom
 ax3 = nexttile(tl);
 hold(ax3, 'on');
-shadeOutside(ax3, [tW(1) tW(end)], tSup*1e3, yTop);
-plot(ax3, tW, P(winSel), 'k.-', 'MarkerSize', 6);
+shadeOutside(ax3, [tW(1) tW(end)], tSup*1e3, yl);
+plot(ax3, tW, PD(winD), 'k.-', 'MarkerSize', 6);
 leg = {'not fully supported', 'measured'};
 if haveExp
-    plot(ax3, tW, Pexp(winSel), 'r', 'LineWidth', 1.2);
+    plot(ax3, tW, PexpD(winD), 'r', 'LineWidth', 1.2);
     leg{end+1} = 'expected';
 end
-tcW = tcAll(tcAll >= tStart & tcAll <= tStart + tSpan);
-for tc = tcW
+for tc = tcAll(tcAll >= tStart & tcAll <= tStart + tSpan)
     xline(ax3, tc*1e3, 'r:', 'HandleVisibility', 'off');
 end
-hold(ax3, 'off'); box(ax3, 'on'); grid(ax3, 'on'); ylim(ax3, [0 yTop]);
+hold(ax3, 'off'); box(ax3, 'on'); grid(ax3, 'on'); ylim(ax3, yl);
 ylabel(ax3, 'power'); legend(ax3, leg, 'Location', 'northeast');
 title(ax3, 'Zoom: measured vs ground-truth expectation');
 
 % 4. Normalized residual
 ax4 = nexttile(tl);
 if haveExp
-    zW = zAll(winSel);
-    hold(ax4, 'on');
-    hR = plot(ax4, tW, zW, 'k');
+    hR = plot(ax4, tW, zD(winD), 'k'); hold(ax4, 'on');
     yline(ax4, 0, 'r-', 'HandleVisibility', 'off');
-    h1 = yline(ax4, [-1 1], 'b-', 'LineWidth', 1);
-    h3 = yline(ax4, [-3 3], 'b--', 'LineWidth', 1);
-    hold(ax4, 'off'); box(ax4, 'on'); grid(ax4, 'on');
-    ylim(ax4, [-5 5]);
-    legend(ax4, [hR, h1(1), h3(1)], ...
-        {'(measured - expected) / \sigma', '\pm1\sigma', '\pm3\sigma'}, ...
+    h1 = yline(ax4, [-1 1], 'b-'); h3 = yline(ax4, [-3 3], 'b--');
+    hold(ax4, 'off'); ylim(ax4, [-5 5]); grid(ax4, 'on');
+    legend(ax4, [hR h1(1) h3(1)], {'(measured - expected)/\sigma', '\pm1\sigma', '\pm3\sigma'}, ...
         'Location', 'northeast');
-    title(ax4, sprintf(['Normalized residual on the pulses (bins with expected power ' ...
-        '> %g%% of peak): should be unit-variance noise'], 100*opts.OnPulseFrac));
+    if M.hasNoise
+        title(ax4, 'Normalized residual, all bins (unit-variance noise expected; RFI shows up here)');
+    else
+        title(ax4, 'Normalized residual on the pulses (unit-variance noise expected)');
+    end
     ylabel(ax4, '\sigma');
 else
-    text(ax4, 0.5, 0.5, 'Pass InfoDisp, InfoIQ, InfoDedisp for the expected profile', ...
+    text(ax4, 0.5, 0.5, 'Pass InfoDisp, InfoIQ, InfoDedisp (and InfoRx) for the expected power', ...
         'HorizontalAlignment', 'center', 'Units', 'normalized');
     axis(ax4, 'off');
 end
@@ -216,65 +267,31 @@ zoomAxes = [ax3, ax4];
 if nChan > 1, zoomAxes = [ax2, zoomAxes]; end
 linkaxes(zoomAxes, 'x');
 xlim(ax3, [tW(1) tW(end)]);
+
+check = struct('pulses', check, 'baseline', base, 'displayAverage', nd, 'zAll', zAll);
 end
 
 
 % =========================================================================================
-function [Pexp, Beff, Bnoise] = expectedBinPower(tb, dt, nSub, info_gen, info_disp, info_IQ, info_dedisp)
-fLow = info_dedisp.fLow; fHigh = info_dedisp.fHigh;
-f = linspace(fLow, fHigh, 200001);
-W = taperW(f, info_disp.fLow, info_disp.fHigh, info_disp.edgeWidth) .* ...
-    taperW(f, fLow, fHigh, info_dedisp.edgeWidth);
-Beff = trapz(f, W.^2);                            % sets the mean power
-Bnoise = Beff^2 / trapz(f, W.^4);                 % sets the per-bin variance
-
-% Boxcar average of the envelope over each bin on a sub-grid
-off = ((1:nSub) - 0.5) / nSub - 0.5;              % symmetric offsets in bins
-p = zeros(size(tb));
-for s = off
-    p = p + envelopePower(tb + s*dt, info_gen);
-end
-p = p / nSub;
-Pexp = info_IQ.gainFactor^2 * info_gen.A^2 * p * Beff / info_IQ.fsIn;
+function statLine(name, z)
+z = z(isfinite(z));
+n = numel(z);
+if n == 0, return; end
+fprintf(['  normalized residual %s over %d bins: mean %+.4f, std %.4f ' ...
+         '(expect 0 +- %.4f, 1 +- %.4f)\n'], name, n, mean(z), std(z), ...
+    1/sqrt(n), 1/sqrt(2*n));
 end
 
 
-function p = envelopePower(t, info_gen)
-T = info_gen.T; sig = info_gen.sigma;
-nN = max(1, ceil(6*sig/T + 0.5));
-peakNorm = sum(exp(-0.5*((-nN:nN)*T/sig).^2));
-k0 = round(t/T - 0.5);
-G = zeros(size(t));
-for j = -nN:nN
-    G = G + exp(-0.5*((t - (k0 + j + 0.5)*T)/sig).^2);
-end
-G = G / peakNorm;
-if strcmpi(info_gen.envelopeMode, 'power')
-    p = G;
-else
-    p = G.^2;
-end
-end
-
-
-function W = taperW(f, fLow, fHigh, e)
-W = zeros(size(f));
-ib = f >= fLow & f <= fHigh;
-W(ib) = 1;
-lo = ib & f < fLow + e;   W(lo) = sin(pi/2 * (f(lo) - fLow) / e).^2;
-hi = ib & f > fHigh - e;  W(hi) = sin(pi/2 * (fHigh - f(hi)) / e).^2;
-end
-
-
-function shadeOutside(ax, xr, sup, yTop)
+function shadeOutside(ax, xr, sup, yl)
 c = [0.88 0.88 0.88];
 if sup(1) > xr(1)
-    patch(ax, [xr(1) sup(1) sup(1) xr(1)], [0 0 yTop yTop], c, 'EdgeColor', 'none');
+    patch(ax, [xr(1) sup(1) sup(1) xr(1)], [yl(1) yl(1) yl(2) yl(2)], c, 'EdgeColor', 'none');
 else
     patch(ax, nan(1,4), nan(1,4), c, 'EdgeColor', 'none');      % legend entry
 end
 if sup(2) < xr(2)
-    patch(ax, [sup(2) xr(2) xr(2) sup(2)], [0 0 yTop yTop], c, ...
+    patch(ax, [sup(2) xr(2) xr(2) sup(2)], [yl(1) yl(1) yl(2) yl(2)], c, ...
         'EdgeColor', 'none', 'HandleVisibility', 'off');
 end
 end

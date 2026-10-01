@@ -32,7 +32,8 @@ Name-value options:
   'MaxSamples'  refuse windows longer than this per file (default 1e8)
 
 Expected power (dedispersed, white generator noise, no receiver noise):
-  E|z(t)|^2 = gain^2 * A^2 * p(t) * Beff / fsIn
+  E|z(t)|^2 = gain^2 * A^2 * p(t) * Beff / fsIn  (+ receiver-noise baseline
+  when 'InfoRx' from addNoiseAndRFI is given; see expectedPowerModel)
   p(t) = G(t) ('power' envelope mode) or G(t)^2 ('amplitude' mode),
   Beff = integral over the band of (W_fwd(f) * W_inv(f))^2 df,
   gain = 2 for the 'envelope' IQ convention, fsIn = generator rate.
@@ -51,6 +52,7 @@ arguments
     opts.ZoomSpan   (1,1) double {mustBePositive}    = 200e-9
     opts.FreqMargin (1,1) double {mustBeNonnegative} = 0.1
     opts.MaxSamples (1,1) double {mustBePositive}    = 1e8
+    opts.InfoRx     struct = struct([])
 end
 
 fs  = info_dedisp.fs;
@@ -106,8 +108,10 @@ tEnd = t0 + n/fs;
 T    = info_gen.T;
 sigG = info_gen.sigma;
 
-% Expected dedispersed power profile at the bin centres
-[Pexp, Beff] = expectedPower(tAx, info_gen, info_disp, info_IQ, info_dedisp);
+% Expected dedispersed power at the bin centres: pulsar + receiver noise
+M    = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, opts.InfoRx);
+PsX  = M.sigScale * M.envelope(tAx);
+Pexp = PsX + M.Pn;
 
 % Fully supported time range of the dedispersed file
 fsup = (info_dedisp.fullySupported - 1) / fs;     % [s]
@@ -126,6 +130,8 @@ end
 halfW = 4 * sigP;
 binDur = pix / fs;
 check = struct('tc', {}, 'offset', {}, 'energyRatio', {}, 'offsetNoise', {});
+offB = PsX < 1e-6 * M.sigScale;
+if any(offB), baseX = median(Px(offB)); else, baseX = 0; end   % measured baseline
 fprintf('plotIQCheck: dedispersed pulses vs ground truth (bins %.3g us)\n', binDur*1e6);
 for k = 1:numel(tcIn)
     tc = tcIn(k);
@@ -133,13 +139,13 @@ for k = 1:numel(tcIn)
         continue                                  % window not fully usable
     end
     sel = tAx >= tc - halfW & tAx <= tc + halfW;
-    cm  = sum(tAx(sel) .* Px(sel)) / sum(Px(sel));
-    ce  = sum(tAx(sel) .* Pexp(sel)) / sum(Pexp(sel));
-    er  = sum(Px(sel)) / sum(Pexp(sel));
-    % Noise-limited centroid scatter: each bin has relative std
-    % 1/sqrt(binDur*Beff) (independent complex samples in the band)
-    relStd = 1 / sqrt(binDur * Beff);
-    sOff = sqrt(sum(((tAx(sel) - ce) .* Pexp(sel) * relStd).^2)) / sum(Pexp(sel));
+    Q   = Px(sel) - baseX;
+    cm  = sum(tAx(sel) .* Q) / sum(Q);
+    ce  = sum(tAx(sel) .* PsX(sel)) / sum(PsX(sel));
+    er  = sum(Q) / sum(PsX(sel));
+    % Noise-limited centroid scatter from the signal+noise variance per bin
+    sdX  = sqrt(M.var(PsX(sel), binDur));
+    sOff = sqrt(sum(((tAx(sel) - ce) .* sdX).^2)) / sum(PsX(sel));
     check(end+1) = struct('tc', tc, 'offset', cm - ce, ...
         'energyRatio', er, 'offsetNoise', sOff); %#ok<AGROW>
     fprintf('  pulse at %8.4f ms: centroid offset %+8.3f us (noise ~%.3f us), energy ratio %.4f\n', ...
@@ -232,43 +238,6 @@ colormap(fig, 'parula');
 linkaxes([ax1 ax2 ax3 ax4], 'x');
 linkaxes([ax1 ax2], 'y');
 xlim(ax1, [tMs(1) tMs(end)]);
-end
-
-
-% ======================================================================================
-function [Pexp, Beff] = expectedPower(tAx, info_gen, info_disp, info_IQ, info_dedisp)
-% Band factor: integral of (W_fwd * W_inv)^2 over the band
-fLow = info_dedisp.fLow; fHigh = info_dedisp.fHigh;
-f = linspace(fLow, fHigh, 200001);
-W = taperW(f, info_disp.fLow, info_disp.fHigh, info_disp.edgeWidth) .* ...
-    taperW(f, fLow, fHigh, info_dedisp.edgeWidth);
-Beff = trapz(f, W.^2);
-
-% Periodic unit-peak Gaussian G(t), as in generatePulsarSignal
-T = info_gen.T; sig = info_gen.sigma;
-nN = max(1, ceil(6*sig/T + 0.5));
-peakNorm = sum(exp(-0.5*((-nN:nN)*T/sig).^2));
-k0 = round(tAx/T - 0.5);
-G = zeros(size(tAx));
-for j = -nN:nN
-    G = G + exp(-0.5*((tAx - (k0 + j + 0.5)*T)/sig).^2);
-end
-G = G / peakNorm;
-if strcmpi(info_gen.envelopeMode, 'power')
-    p = G;
-else
-    p = G.^2;
-end
-Pexp = info_IQ.gainFactor^2 * info_gen.A^2 * p * Beff / info_IQ.fsIn;
-end
-
-
-function W = taperW(f, fLow, fHigh, e)
-W = zeros(size(f));
-ib = f >= fLow & f <= fHigh;
-W(ib) = 1;
-lo = ib & f < fLow + e;   W(lo) = sin(pi/2 * (f(lo) - fLow) / e).^2;
-hi = ib & f > fHigh - e;  W(hi) = sin(pi/2 * (fHigh - f(hi)) / e).^2;
 end
 
 
