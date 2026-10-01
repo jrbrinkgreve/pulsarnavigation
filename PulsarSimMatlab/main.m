@@ -49,6 +49,10 @@ closeFigures     = true;
 
 if closeFigures, close all; end
 
+% Paths
+scriptDir = fileparts(mfilename('fullpath'));
+addpath(fullfile(scriptDir, 'functions'));
+
 % Parameters
 % --- Pulsar (ground truth for generation)
 T          = 10e-3;     % [s]  pulsar period
@@ -73,7 +77,7 @@ filterOrder = 2048;     % IQ low-pass order
 % snrDB: pulse-peak signal PSD / receiver-noise PSD in the band (S_peak/SEFD).
 % -20 dB -> ~3.8 SNR per pulse (0.5 ms pulses, 400 MHz); Inf -> no noise.
 % addNoiseAndRFI prints what a value means (SNR per pulse / folded, TOA error).
-snrDB     = 20;
+snrDB     = -20;
 noiseSeed = seed + 1;   % different seed -> new noise, same pulsar realization
 rfiOn     = false;      % validate noise-only first, then switch RFI on
 
@@ -183,14 +187,11 @@ end
 % TOA estimation and validation
 if runStage.toa
     template = gaussianTemplate(nBin, ephem.profileFWHM);
-    % Noise-equivalent bandwidth for the radiometer noise model. With receiver
-    % noise dominating, the variance is set by the noise, which only passed the
-    % dedispersion taper; without noise, by the pulsar (both tapers).
-    if info_rx.noiseStd > 0
-        Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
-    else
-        Bnoise = noiseBandwidth(fLow, fHigh, [info_disp.edgeWidth, info_dedisp.edgeWidth]);
-    end
+    % Noise-equivalent bandwidth for the radiometer noise model, from the
+    % observer's own dedispersion taper (receiver noise only passes this one).
+    % When the pulsar dominates (high SNR, in-pulse) the true value is ~0.5 %
+    % lower, since the simulated signal also passed the dispersion-stage taper.
+    Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
     [toa, info_toa] = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise);
 
     val = validateTOA(toa, info_gen, 'Plot', plots.toa);
