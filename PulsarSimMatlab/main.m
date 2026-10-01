@@ -53,60 +53,8 @@ if closeFigures, close all; end
 scriptDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(scriptDir, 'functions'));
 
-% Parameters
-% --- Pulsar (ground truth for generation)
-T          = 10e-3;     % [s]  pulsar period
-A          = 1;         % [V]  pulsar noise std at pulse peak (sets the signal scale)
-dutycycle  = 5;         % [%]  pulse FWHM as percent of T
-genEnvMode = 'power';   % 'power': power profile has FWHM = dutycycle% of T
-DM         = 5;         % [pc cm^-3] dispersion measure
-
-% --- Simulation
-f_in = 4e9;             % [Hz] RF sampling rate
-L    = 100e-3;         % [s]  total signal length
-seed = 42;              % RNG seed of the pulsar signal
-
-% --- Receiver (known to the observer)
-fLow        = 1.2e9;    % [Hz] lower edge of observed RF band
-fHigh       = 1.6e9;    % [Hz] upper edge of observed RF band
-fLO         = 1.4e9;    % [Hz] local oscillator
-fs          = 500e6;    % [Hz] IQ sample rate (D = 8)
-filterOrder = 2048;     % IQ low-pass order
-
-% --- Receiver noise and interference (added at RF, after dispersion)
-% snrDB: pulse-peak signal PSD / receiver-noise PSD in the band (S_peak/SEFD).
-% -20 dB -> ~3.8 SNR per pulse (0.5 ms pulses, 400 MHz); Inf -> no noise.
-% addNoiseAndRFI prints what a value means (SNR per pulse / folded, TOA error).
-snrDB     = -20;
-noiseSeed = seed + 1;   % different seed -> new noise, same pulsar realization
-rfiOn     = false;      % validate noise-only first, then switch RFI on
-
-% Illustrative L-band RFI scenario; INR = power relative to all receiver
-% noise in the 400 MHz band (while the source is on).
-rfi = [ ...
-    rfiSource('bpsk',    'Freq', 1575.42e6, 'ChipRate', 1.023e6, 'INRdB', -10, 'Label', 'GNSS L1 C/A-like'), ...
-    rfiSource('bpsk',    'Freq', 1227.60e6, 'ChipRate', 10.23e6, 'INRdB', -15, 'Label', 'GNSS L2 P(Y)-like'), ...
-    rfiSource('pulsed',  'Freq', 1300e6, 'PulseWidth', 2e-6, 'PRF', 373, 'ChirpBW', 1e6, ...
-              'INRdB', 20, 'Label', 'L-band radar'), ...
-    rfiSource('cw',      'Freq', 1350e6, 'INRdB', -5, 'Label', 'spurious carrier'), ...
-    rfiSource('impulse', 'Rate', 50, 'Duration', 200e-9, 'INRdB', 20, 'Label', 'broadband impulses')];
-if ~rfiOn || isinf(snrDB), rfi = struct([]); end
-
-% --- Processing
-refFreq       = fHigh;  % [Hz] dedispersion reference frequency (same as generation)
-f_out         = 1e6;    % [Hz] detected-power bin rate
-nBin          = 1024;   % phase bins in the fold
-subintPeriods = 10;     % turns per sub-integration (aim for >~10 SNR per sub-int)
-
-% --- Files
-dataDir       = "data";
-fileRaw       = fullfile(dataDir, "test.dat");
-fileDispersed = fullfile(dataDir, "test_dispersed.dat");
-fileRx        = fullfile(dataDir, "test_rx.dat");
-fileIQ        = fullfile(dataDir, "test_rx_IQ.dat");
-fileDedisp    = fullfile(dataDir, "test_IQ_dedispersed.dat");
-fileEnvelope  = fullfile(dataDir, "test_envelope.dat");
-fileFold      = fullfile(dataDir, "test_fold.mat");
+% Parameters (pulsar, simulation, receiver, noise/RFI, processing, ephemeris, files)
+pipelineParams;
 
 % Disk estimate for the streamed files
 % raw + dispersed + receiver (real float32 at f_in), IQ + dedispersed (complex at fs), power
@@ -141,17 +89,7 @@ else
 end
 checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB);
 
-% Observer knowledge (ephemeris) - in real use from a pulsar catalogue
-% Synthetic case: spin frequency from T; phase 0 at the first pulse centre
-% (T/2), referenced to refFreq.
-ephem.f0   = 1/T;
-ephem.F1   = 0;
-ephem.TRef = 0.5 * T;
-ephem.DM   = DM;
-ephem.profileFWHM = dutycycle/100;   % [turns] power-profile FWHM, for the template
-                                     % (genEnvMode 'amplitude' would need /sqrt(2))
-
-% Processing
+% Processing (uses only the ephemeris 'ephem' and receiver settings)
 if runStage.process
     % Coherent dedispersion
     info_dedisp = applyInverseDispersion(info_IQ.file, fileDedisp, info_IQ.actualFsOut, ...
@@ -208,46 +146,6 @@ end
 % ======================================================================
 %  Local functions
 %  ======================================================================
-function info = loadInfo(dataFile)
-%LOADINFO  Load the <name>_info.mat saved next to a stage's output file.
-[d, name] = fileparts(dataFile);
-f = fullfile(d, name + "_info.mat");
-if ~isfile(f)
-    error('main:noInfo', 'No info file "%s"; run the stage that creates it first.', f);
-end
-s = load(f, 'info');
-info = s.info;
-end
-
-
-
-function tmpl = gaussianTemplate(nBin, fwhmTurns)
-%GAUSSIANTEMPLATE  Periodic Gaussian profile, peak 1 at phase 0 (bin 1).
-ph  = (0:nBin-1).' / nBin;
-sig = fwhmTurns / (2*sqrt(2*log(2)));
-tmpl = zeros(nBin, 1);
-for j = -2:2                                   % periodic images
-    tmpl = tmpl + exp(-0.5*((ph - j)/sig).^2);
-end
-tmpl = tmpl / max(tmpl);
-end
-
-
-function Bn = noiseBandwidth(fLow, fHigh, edgeWidths)
-%NOISEBANDWIDTH  (int W^2)^2 / int W^4 for the product of raised-cosine
-% band-edge tapers (each of the given width, inside [fLow, fHigh]).
-f = linspace(fLow, fHigh, 200001);
-W = ones(size(f));
-for e = edgeWidths
-    w = ones(size(f));
-    lo = f < fLow + e;   w(lo) = sin(pi/2 * (f(lo) - fLow) / e).^2;
-    hi = f > fHigh - e;  w(hi) = sin(pi/2 * (fHigh - f(hi)) / e).^2;
-    W = W .* w;
-end
-Bn = trapz(f, W.^2)^2 / trapz(f, W.^4);
-end
-
-
 function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB)
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
 d = {};

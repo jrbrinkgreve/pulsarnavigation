@@ -6,7 +6,9 @@ what exists, the conventions every stage follows, the physics and formulas behin
 step, what has been validated (with numbers), what went wrong along the way, and what is
 still to do.
 
-Last updated: 1 October 2026 (synced with the code at commit f4ac189). Status markers: **[validated]** = run in MATLAB and
+This file tracks the **current state** of the code (started 30 September 2026 as
+`2026-09-30_project_notes.md`). Last updated: 1 October 2026, evening (after the
+`pipelineParams` / Monte Carlo refactor; see `2026-10-01_session.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -73,6 +75,14 @@ and validates every processing stage against the ground truth.
 
 ## 3. Pipeline map (`main.m`)
 
+**Scripts** (all run from the `PulsarSimMatlab` folder; `dataDir` is relative):
+- `pipelineParams.m`: all parameters (pulsar, simulation, receiver, noise/RFI,
+  processing, the observer's `ephem` struct, file names). A script, so its variables
+  land in the caller's workspace. Edit parameters here.
+- `main.m`: run control (`runStage.*`, `plots.*`), `addpath(functions)`,
+  `pipelineParams;`, then the stages below for one realization.
+- `runMonteCarlo.m`: many receiver-noise realizations through the same stages (§5.11).
+
 ```
 SKY (synthetic)                      runStage.sky
   1. generatePulsarSignal   ─► test.dat              real, f_in = 4 GHz   [validated]
@@ -91,8 +101,10 @@ CHECKS (ground truth, optional via plots.*)
   plotDispersionCheck, plotIQCheck, plotDetectedPower, plotFoldCheck,
   expectedPowerModel (shared model)
 ```
-\* validated on noise-free data; the receiver stage (3) and the noise-aware versions of
-the check functions are written but not yet run.
+\* validated on noise-free data. The receiver stage (3) and the noise-aware check
+functions have been run once (−5 dB, L = 1 s, fLO 1.3 GHz, fs 800 MHz; confirmed by
+Jasper, numbers not yet recorded in §7); the −20 dB reference test and the Monte Carlo
+are still to do.
 
 **Run control** (`main.m`): `runStage.sky` (generator + dispersion, the slow part),
 `runStage.receiver` (noise/RFI + IQ; rerun alone to change SNR or RFI),
@@ -101,13 +113,15 @@ Skipped stages reload their `info` from disk; `checkConsistency` warns when file
 were made with different parameters (T, f_in, L, DM, band, SNR, receiver input, fLO, fs).
 `plots.*` switch the check figures; `closeFigures` runs `close all`.
 
-**Local functions in main**: `loadInfo`, `gaussianTemplate(nBin, fwhmTurns)`
-(periodic Gaussian, peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)`
-(= (∫W²)²/∫W⁴ for a product of raised-cosine edge tapers), `checkConsistency`.
+**Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
+(reload `<name>_info.mat`), `gaussianTemplate(nBin, fwhmTurns)` (periodic Gaussian,
+peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
+product of raised-cosine edge tapers). **Local function in main**: `checkConsistency`.
 
-**Disk use** ≈ L·(3·f_in·4 + 2·fs·8 + f_out·4) bytes: for L = 1 s about 56 GB
-(three 16 GB RF files, two 4 GB complex files, 4 MB power). `test.dat` can be deleted
-after dispersion (only `plotDispersionCheck` needs it).
+**Disk use** ≈ L·(3·f_in·4 + 2·fs·8 + f_out·4) bytes: for L = 1 s at fs = 500 MHz about
+56 GB (three 16 GB RF files, two 4 GB complex files, 4 MB power); at fs = 800 MHz about
+61 GB. `test.dat` can be deleted after dispersion (only `plotDispersionCheck` needs it).
+The MC adds rx + IQ + dedispersed files in `data/mc/` (≈ 2.9 GB at L = 0.1 s, 800 MHz).
 
 ---
 
@@ -121,7 +135,7 @@ after dispersion (only `plotDispersionCheck` needs it).
 | | genEnvMode | `'power'` | power profile Gaussian with that FWHM |
 | | DM | 5 pc cm⁻³ | |
 | Simulation | f_in | 4 GHz | real RF sampling |
-| | L | 1 s (0.1 s for quick tests; main currently 0.1 s) | 100 pulse centres at 5, 15, …, 995 ms |
+| | L | 1 s (0.1 s for quick tests) | 100 pulse centres at 5, 15, …, 995 ms |
 | | seed | 42 | pulsar signal |
 | Receiver | band | 1.2–1.6 GHz | B = 400 MHz |
 | | fLO | 1.4 GHz | |
@@ -134,6 +148,11 @@ after dispersion (only `plotDispersionCheck` needs it).
 | | f_out | 1 MHz | 1 µs detection bins |
 | | nBin | 1024 | 9.77 µs phase bins |
 | | subintPeriods | 10 (1 for noise-free tests) | turns per sub-integration; with L = 0.1 s the fold spans turns 0–9 (data ends at 93.7 ms, turn 9 ~37 % covered) → only **one** sub-int / one TOA |
+
+**Current `pipelineParams.m`** (1 Oct 2026) differs from the reference: L = 0.1 s,
+fLO = 1.3 GHz, fs = 800 MHz (D = 5; band at −100…+300 MHz baseband, which also tests
+the RF↔baseband mapping), snrDB = −5 (ρ = 0.316: SNR per pulse 97.9, best TOA error per
+pulse 2.85 µs), subintPeriods = 1, nBin = 2048 (4.88 µs bins).
 
 ---
 
@@ -163,7 +182,7 @@ not of real pulsars, whose spectra fall as a power law).
 **Info:** format, N, fs, T, A, L, dutycycle, envelopeMode, sigma, FWHM_power,
 FWHM_amplitude, pulseCenters, nPulses, seed, rngType, bytesWritten, elapsed.
 
-**Open:** progress print every 10 blocks is too verbose for long runs (print per 10 %).
+Progress (with `Verbose`) is printed about every 10 % of the blocks.
 
 ### 5.2 `applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, ...)` [validated]
 
@@ -453,6 +472,11 @@ to validate error bars, see drift (phase-model errors, motion, clock, **position
 and catch bad data. For a single TOA set `subintPeriods` ≥ number of turns (e.g. 1e6;
 `Inf` is rejected).
 
+**Template.** Main uses `gaussianTemplate(nBin, ephem.profileFWHM)`. `estimateTOA`
+accepts any [NBin × 1] profile with phase 0 at bin 1, so real data with other pulse
+shapes needs only a different template source (multi-component model or high-SNR
+observed profile); its phase 0 then defines the TOA.
+
 ### 5.9 `validateTOA(toa, info_gen, ...)` [validated]
 
 Matches each valid TOA to the nearest true pulse centre; errors, normalized errors
@@ -486,6 +510,26 @@ TOAs are pooled.
   per-pulse centroid/energy.
 - **`plotDispersionCheck`** [validated]: raw vs dispersed dynamic spectra with expected
   sweep, band-integrated power.
+
+### 5.11 `runMonteCarlo.m` [written, not yet run]
+
+**Idea.** The pulsar signal is fixed (sky files from a `main.m` run, same `seed`); only
+the receiver noise changes. The spread of TOAs between realizations is exactly what the
+radiometer error bars of `estimateTOA` claim to describe, so the pooled normalized errors
+z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
+
+**Code.**
+- `nSeeds` at the top (default 10); noise seeds `seed + (1:nSeeds)`. Seed 1 equals
+  main's `noiseSeed = seed + 1`, so its TOAs must be identical to main's (built-in check).
+- `pipelineParams;` for all parameters; `info_gen`, `info_disp` via `loadInfo`. Errors
+  if the sky files do not match T, L, f_in, seed, DM or band.
+- Per seed: the same stage calls as `main.m` (`addNoiseAndRFI` → `applyIQmodulation` →
+  `applyInverseDispersion` → `detectPower` → `foldProfile` → `estimateTOA`), with
+  `'Verbose', false`, fold not saved, intermediate files in `data/mc/` (overwritten each
+  seed, so main's files are never touched). One progress line per seed.
+- `validateTOA(toaAll, repmat(info_gen, 1, nSeeds))` pools all TOAs; the radiometer
+  prediction is printed at the end.
+- Cost at L = 0.1 s: roughly 15–20 s per seed.
 
 ---
 
@@ -576,7 +620,9 @@ mixed signal+noise variance formula within 1 %.
   ADC quantization/clipping, intermodulation, bandpass ripple, gain drift.
 - **Timing**: no clock jitter/drift, no relative motion (Doppler), single pulsar only.
 - **Pulse**: stable Gaussian profile, no pulse-to-pulse jitter, no profile evolution with
-  frequency, no polarisation.
+  frequency, no polarisation. Gaussian-specific places to revisit for real data or other
+  shapes: `ephem.profileFWHM` (→ template per pulsar), the generator and
+  `expectedPowerModel` profile, the 1 %-of-peak on-pulse threshold in `estimateTOA`.
 - **Estimator**: FFTFIT not optimal under self-noise; weighted (radiometer-model) fit
   not implemented.
 - **Edges**: last ~6.3 ms of each file not fully supported; partial first/last turns
@@ -588,28 +634,36 @@ mixed signal+noise variance formula within 1 %.
 
 ## 10. Open items / immediate next steps
 
-1. **Run the new receiver stage** (`snrDB = −20`, `rfiOn = false`, all stages on) and
-   check: off-pulse normalized residual std ≈ 1.00 in detected-power and fold checks;
-   10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1; validateTOA consistent with the
-   predicted errors (main prints the prediction). **Needs L = 1 s** (main currently has
-   0.1 s, which gives a single sub-int/TOA).
-2. Few `noiseSeed` values with `runStage.sky = false`, pooled in `validateTOA`.
-3. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
-4. ~~Set `MaxMemoryGB` in `applyDispersionStream` deliberately~~ (done: default 16 GB); generator progress print
-   per 10 %; retire `envelopeReconstruction` and `plotEnvelope` (or update to
-   `binTime0` and `'ieee-le'`).
+1. Run `main.m` once to confirm the refactor (`pipelineParams`, helpers in
+   `functions/`): TOAs identical to before.
+2. Record the −5 dB / L = 1 s run in §7.
+3. **Run `runMonteCarlo.m`** (10 seeds, L = 0.1 s, −5 dB → ~90 TOAs): seed 43 identical
+   to main; pooled rms ratio ≈ 1 ± 0.08, |z| < 1 ≈ 68 %, χ² p-value not extreme; median
+   σ at or slightly above 2.85 µs.
+4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
+   std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
+5. Next phases (plan of 1 Oct): **D** SNR sweep in `runMonteCarlo.m` (rms TOA error vs
+   radiometer optimum, −30…+10 dB); **E** noise normalization + NP detector
+   (`detectPulsar.m`); **F** weighted radiometer-model fit in `estimateTOA`.
+6. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
+7. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
+   `binTime0` and `'ieee-le'`.
+
+Done: `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print
+per ~10 %; `*.asv` git-ignored.
 
 ---
 
 ## 11. Roadmap
 
 **Block 1 – noise and detection (in progress)**
-- Receiver noise + RFI [written, to verify]
+- Receiver noise + RFI [run once at −5 dB; full validation via MC pending]
 - Noise normalization (baseline, variance → SNR units)
 - Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20)
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
-- Monte Carlo harness: TOA error vs SNR vs radiometer prediction (reduced setup for speed)
+- Monte Carlo harness: over noise seeds [written: `runMonteCarlo.m`]; TOA error vs SNR vs
+  radiometer prediction [todo, phase D]
 
 **Block 2 – processing robustness**
 - DM check: sub-band TOAs (`NChan`), fit vs 1/f² → DM correction ± error
@@ -658,6 +712,10 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 - **Sub-integrations**: validation of error bars, drift detection (the navigation signal
   itself), outlier detection.
 - **Ground-truth separation**: every processing stage must work unchanged on real data.
+- **Parameters in one script** (`pipelineParams.m`): main and the MC cannot drift apart.
+  Later split into simulation vs observation parameters for real data.
+- **MC on separate files** (`data/mc/`): a later main run with skipped stages never
+  picks up an MC realization (`checkConsistency` does not check the noise seed).
 
 ---
 
@@ -665,10 +723,15 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver, parameters, run control, local helpers | current |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency` | current |
+| `pipelineParams.m` | all parameters + `ephem` (script, shared) | current |
+| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | written, not run |
+| `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
+| `gaussianTemplate.m` | periodic Gaussian TOA template | moved from main |
+| `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
-| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | written |
+| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | run once (−5 dB) |
 | `rfiSource.m` | RFI source definitions | written |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
@@ -678,4 +741,4 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
-| `envelopeReconstruction.m`, `plotEnvelope.m` | legacy | to retire/update |
+| `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

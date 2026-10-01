@@ -45,7 +45,7 @@ SNR definition (receiver end):
      SNR_pulse^2 = B * int( (rho*p)^2 / (1 + rho*p)^2 ) dt
      1/sigma_TOA^2 = B * int( (rho*p')^2 / (1 + rho*p)^2 ) dt
   with rho = 10^(SNRdB/10), p(t) the unit-peak power profile, B = fHigh - fLow.
-  For weak pulses: SNR_pulse ~ rho*sqrt(B*sigma_t*sqrt(pi)), about 383*rho
+  For weak pulses: SNR_pulse ~ rho*sqrt(B*sigma_t*sqrt(pi)), about 388*rho
   for the current 0.5 ms pulses in a 400 MHz band.
 
 RFI power: see rfiSource ('INRdB' relative to the receiver-noise power in

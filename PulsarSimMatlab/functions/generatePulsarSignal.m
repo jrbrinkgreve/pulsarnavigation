@@ -186,7 +186,7 @@ for b = 1:nBlocks
     end
     nWritten = nWritten + cnt;
 
-    if opts.Verbose && (b == nBlocks || mod(b, 10) == 0)
+    if opts.Verbose && (b == nBlocks || mod(b, max(1, round(nBlocks/10))) == 0)
         fprintf('generatePulsarSignal: block %d/%d (%.1f%%)\n', ...
             b, nBlocks, 100*nWritten/N);
     end

@@ -7,11 +7,12 @@ project across sessions (for Jasper and for Claude).
 
 - One file per working session: `YYYY-MM-DD_<short-topic>.md` (ISO date, so files sort
   in time order).
-- `2026-09-30_project_notes.md` is the full reference document (conventions, physics,
-  stage reference, validation record, roadmap). It is the baseline; later logs record
-  **what changed** relative to it, they do not repeat it.
-- When the reference document gets too far out of date, write a new full snapshot
-  (`YYYY-MM-DD_project_notes.md`) instead of editing the old one, so the history is kept.
+- `current_project_notes.md` is the full reference document (conventions, physics,
+  stage reference, validation record, roadmap). It is kept **up to date with the
+  code**: edit it whenever the code or a status changes. (Started 30 Sept 2026 as
+  `2026-09-30_project_notes.md`; its history is in git.)
+- Session logs record **what changed and why**, in time order; they do not repeat the
+  reference document.
 
 ## What a session log contains
 
