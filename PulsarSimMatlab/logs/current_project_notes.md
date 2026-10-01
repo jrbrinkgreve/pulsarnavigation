@@ -680,8 +680,24 @@ mixed signal+noise variance formula within 1 %.
 5. Next phases (plan of 1 Oct): **D** SNR sweep in `runMonteCarlo.m` (rms TOA error vs
    radiometer optimum, −30…+10 dB); **E** noise normalization + NP detector
    (`detectPulsar.m`); **F** weighted radiometer-model fit in `estimateTOA`.
-6. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
-7. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
+6. **Review (Jasper): bandpass filtering and noise bandwidth.** Not yet fully understood;
+   it must be handled carefully. Points to go through together:
+   - Which filters each component passes. Pulsar: dispersion taper W_f (8 MHz sin²
+     edges) → IQ low-pass (flat to ±~355 MHz around fLO) → dedispersion taper W_i.
+     Receiver noise: white at RF over 0–f_in/2 → IQ low-pass → W_i only. The IQ check
+     figure shows it: before dedispersion the noise extends beyond 1.2–1.6 GHz; W_i
+     removes it.
+   - Why the radiometer bandwidth is (∫W²)²/∫W⁴ and not ∫W² or the nominal B: the
+     variance of an averaged |z|² depends on how correlated the spectrum is.
+   - Which B is used where: `estimateTOA` 'Bnoise' = W_i only (391.6 MHz, observer
+     knowledge); the pulsar actually sees W_f·W_i (389.6 MHz); `predictPerformance` in
+     `addNoiseAndRFI` uses a flat B = 400 MHz (~1–2 % optimistic SNR; part of the
+     93.4 vs 97.9 gap). `expectedPowerModel` handles signal/noise filters separately
+     (Js, Jn, css, csn, cnn).
+   - Real data: the receiver bandpass is not ideal (ripple, slopes) and not known
+     exactly → measure W² from the off-pulse spectrum and multiply it into W.
+7. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
+8. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
    `binTime0` and `'ieee-le'`.
 
 Done: `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print

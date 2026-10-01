@@ -40,8 +40,8 @@ runStage.process  = true;   % dedispersion + detection
 runStage.fold     = true;
 runStage.toa      = true;   % TOA estimation + validation (needs the fold)
 
-plots.dispersion = false;   % raw vs dispersed (reads the big RF files)
-plots.iq         = false;   % dispersed IQ vs dedispersed IQ
+plots.dispersion = true;   % raw vs dispersed (reads the big RF files)
+plots.iq         = true;   % dispersed IQ vs dedispersed IQ
 plots.detected   = true;
 plots.fold       = true;
 plots.toa        = true;
