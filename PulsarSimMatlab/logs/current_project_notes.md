@@ -511,7 +511,7 @@ TOAs are pooled.
 - **`plotDispersionCheck`** [validated]: raw vs dispersed dynamic spectra with expected
   sweep, band-integrated power.
 
-### 5.11 `runMonteCarlo.m` [written, not yet run]
+### 5.11 `runMonteCarlo.m` [validated, −5 dB, 10 seeds]
 
 **Idea.** The pulsar signal is fixed (sky files from a `main.m` run, same `seed`); only
 the receiver noise changes. The spread of TOAs between realizations is exactly what the
@@ -570,6 +570,41 @@ z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
 | validateTOA | mean −0.020 ± 0.047 µs, rms 0.491 vs 0.466 µs (ratio 1.053), χ² 109.9/99 (p = 0.21), |z|<1 63.6 %, |z|<2 97.0 % | 68.3 % ± 4.7 %, 95.4 % |
 | Total fold | τ = −2.04e-6 turns = −0.020 ± 0.047 µs (−0.44σ), SNR 4464 (≈ 449·√99), amp 0.3883 ± 0.0001 | amp 0.3884 |
 | Reproducibility | first 9 pulse offsets identical between 0.1 s and 1 s runs (same seed) | |
+
+**With receiver noise, −5 dB (ρ = 0.316), L = 0.1 s, fLO = 1.3 GHz, fs = 800 MHz,
+2048 bins, 1 turn per sub-int, noiseSeed 43 (1 Oct 2026, single run):**
+
+| Check | Result | Expected |
+|---|---|---|
+| Noise baseline | 1.232 measured | 1.233 (g²σ_n²·∫W²/f_in) |
+| Detected-power normalized residual, off-pulse (73,604 bins) | mean −0.0054, std 0.9995 | 0 ± 0.0037, 1 ± 0.0026 |
+| Detected-power normalized residual, on-pulse (11,592 bins) | mean −0.0065, std 0.9959 | 0 ± 0.0093, 1 ± 0.0066 |
+| Fold normalized residual on / off (263 / 1785 bins) | std 0.987 / 0.990 | 1 ± 0.044 / 1 ± 0.017 |
+| TOAs | 9/10 fitted (turn 9 partial → rejected), median SNR 93.4, median σ 2.880 µs, median red. χ² 0.963 | SNR 97.9 (flat 400 MHz band), best σ 2.85 µs |
+| validateTOA | mean −0.21 ± 0.96 µs, rms 2.50 vs 2.88 µs (ratio 0.868; ±0.24 for 9 TOAs), χ² 6.8/9 (p = 0.34), \|z\|<1 66.7 % | ratio 1 |
+| Total fold | −0.21 ± 0.96 µs (−0.22σ), SNR 280.8 | 0 |
+| Check-function centroids | per pulse mean +3.7 µs (noise ~6.2 µs each), total +3.68 ± 2.06 µs (1.8σ) | 0; watch in the MC |
+
+Conclusions: noise model and B_noise correct; FFTFIT within ~1 % of the radiometer
+optimum at this SNR (little self-noise); off-centre baseband (fLO 1.3 GHz) mapping
+correct. Reference values for MC seed 43: median SNR 93.4, median σ 2.880 µs.
+
+**Monte Carlo, same setup, 10 noise seeds (43–52), 90 TOAs (`runMonteCarlo.m`, 1 Oct 2026):**
+
+| Check | Result | Expected |
+|---|---|---|
+| Mean error | −0.000 µs | 0 ± 0.31 µs |
+| rms / predicted rms | 2.762 / 2.907 µs = 0.950 | 1 ± 0.075 (−0.7σ) |
+| Reduced χ² | 0.91 (90 dof) | 1 ± 0.15 |
+| \|z\| < 1 | 72 % | 68.3 ± 4.9 % |
+| Q-Q plot | on the line incl. tails | |
+
+→ `estimateTOA` uncertainties validated with receiver noise at −5 dB; the noisy chain
+is validated at this SNR. Mean predicted σ 2.907 µs ≈ 2 % above the radiometer optimum.
+Caveat: the seeds share the pulsar realization; its pure self-noise share is ~4 % of the
+per-bin variance at the peak here, so the TOAs are nearly independent. At high SNR the
+MC must also vary the pulsar seed. The check-function centroid offset (+3.7 µs) is not
+tested by the MC (no plot checks there).
 
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
@@ -637,9 +672,9 @@ mixed signal+noise variance formula within 1 %.
 1. Run `main.m` once to confirm the refactor (`pipelineParams`, helpers in
    `functions/`): TOAs identical to before.
 2. Record the −5 dB / L = 1 s run in §7.
-3. **Run `runMonteCarlo.m`** (10 seeds, L = 0.1 s, −5 dB → ~90 TOAs): seed 43 identical
-   to main; pooled rms ratio ≈ 1 ± 0.08, |z| < 1 ≈ 68 %, χ² p-value not extreme; median
-   σ at or slightly above 2.85 µs.
+3. ~~Run `runMonteCarlo.m`~~ (done, §7: ratio 0.950, χ²_red 0.91, 72 % within 1σ).
+   Confirm seed 43 matches main (median SNR 93.4, σ 2.880 µs) from the Command Window.
+   Check-function centroid offset (+3.7 µs, 1.8σ): run main with another `noiseSeed`.
 4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
    std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
 5. Next phases (plan of 1 Oct): **D** SNR sweep in `runMonteCarlo.m` (rms TOA error vs
@@ -657,13 +692,13 @@ per ~10 %; `*.asv` git-ignored.
 ## 11. Roadmap
 
 **Block 1 – noise and detection (in progress)**
-- Receiver noise + RFI [run once at −5 dB; full validation via MC pending]
+- Receiver noise + RFI [noise validated at −5 dB (MC); RFI not yet run]
 - Noise normalization (baseline, variance → SNR units)
 - Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20)
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
-- Monte Carlo harness: over noise seeds [written: `runMonteCarlo.m`]; TOA error vs SNR vs
-  radiometer prediction [todo, phase D]
+- Monte Carlo harness: over noise seeds [validated: `runMonteCarlo.m`]; TOA error vs SNR
+  vs radiometer prediction [todo, phase D; vary the pulsar seed too at high SNR]
 
 **Block 2 – processing robustness**
 - DM check: sub-band TOAs (`NChan`), fit vs 1/f² → DM correction ± error
@@ -725,19 +760,19 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 |---|---|---|
 | `main.m` | pipeline driver: run control, stages, `checkConsistency` | current |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared) | current |
-| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | written, not run |
+| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
 | `gaussianTemplate.m` | periodic Gaussian TOA template | moved from main |
 | `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
-| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | run once (−5 dB) |
+| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI not run |
 | `rfiSource.m` | RFI source definitions | written |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
 | `foldProfile.m` | folding with phase model | validated |
-| `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free) |
+| `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free; −5 dB MC) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
