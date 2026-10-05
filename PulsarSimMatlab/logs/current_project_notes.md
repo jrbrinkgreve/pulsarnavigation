@@ -8,7 +8,8 @@ still to do.
 
 This file tracks the **current state** of the code (started 30 September 2026 as
 `2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
-scintillation assessment; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
+scintillation assessment; bandpass review and exact radiometer optimum in
+`expectedPowerModel`, §5.3/§5.10/§6/§10; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -265,7 +266,14 @@ Gaussian power profile p(t), incl. self-noise, flat band B = fHigh − fLow, ρ 
 | SNR all ~100 pulses | 38.8 |
 | best TOA error per pulse / sub-int / file | 77 µs / 24.5 µs / 7.7 µs |
 
-(FFTFIT in noise-dominated data should reach these within ~1–2 %; B_eff ≈ 390 MHz, not 400.)
+These come from `predictPerformance` with a **flat** band B = 400 MHz: a quick
+approximation (labelled as such in the print and in `info.prediction.note`), useful for
+choosing `snrDB` before anything runs. It is **~1.5 % optimistic** (SNR too high, σ_TOA
+too low) at every SNR, because the band tapers pass fewer independent samples
+(noise-dominated limit: effective B = (∫W_f²W_i²)²/∫W_i⁴ = 388.4 MHz). The exact
+optimum (same Fisher integral with the real tapers) is `expectedPowerModel`
+`snrPulse` / `toaErrPulse` (§5.10), printed by `main.m` and `runMonteCarlo.m` since
+5 Oct 2026. At −20 dB: 3.79 per pulse, 79.0 µs; at −5 dB: 96.5, 2.892 µs.
 
 **RFI model (`rfiSource`).** Power `INRdB` = RFI power while on, relative to **all**
 receiver-noise power in the analysis band (0 dB = as much as the whole in-band noise).
@@ -495,6 +503,13 @@ TOAs are pooled.
   cnn = ∫Wi⁴/Jn², Js = ∫(WfWi)², Jn = ∫Wi². sigScale = g²A²Js/fsIn, Pn = g²σ_n²Jn/fsIn.
   Variance formula verified numerically (0 ≤ ρ ≤ 100, within 1 %). RFI is **not** in the
   model (shows up as excess in the checks).
+  **Best achievable** per pulse (added 5 Oct 2026; Fisher information of the detected
+  power, total-power detection, optimal time weighting): with
+  v = css·Ps² + 2·csn·Ps·Pn + cnn·Pn², SNR² = ∫Ps²/v dt, 1/σ_TOA² = ∫Ps′²/v dt
+  (dt cancels) → `M.snrPulse`, `M.toaErrPulse` (NaN without noise: the integrals diverge
+  in the tails). Flat band (all c = 1/B) reduces to `predictPerformance`. Same Gaussian
+  profile and ±8σ grid as `predictPerformance`. Checked: 96.5 / 2.892 µs at −5 dB in
+  MATLAB = Python port.
 - **`plotDetectedPower`** [validated noise-free; noise version written]: overview,
   optional channel waterfall, zoom vs expected, normalized residual (all bins with noise;
   on-pulse only without). Centroid checks on (P − measured off-pulse baseline). Prints
@@ -549,6 +564,8 @@ z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
 | SNR definition | ρ = S_peak/N (per Hz, in band) = A²/σ_n² |
 | Per-pulse SNR (weak) | ≈ ρ·√(B·σ_t·√π) ≈ 388·ρ (0.5 ms pulse, 400 MHz) |
 | Per-pulse TOA error (weak) | ≈ √2·σ_t / SNR_pulse |
+| Best achievable, exact tapers | SNR² = ∫Ps²/v dt, 1/σ_TOA² = ∫Ps′²/v dt, v = css·Ps² + 2·csn·Ps·Pn + cnn·Pn² |
+| Power vs statistical bandwidth | ∫W² (mean power: 390.0 / 388.4 MHz) vs (∫W²)²/∫W⁴ (variance: 391.6 / 389.6 MHz); B_n ≥ ∫W² for W ≤ 1 |
 | TOA | tRef + τ/fRef |
 | FFTFIT uncertainty | σ_τ = √(dᵀ·Cov·d)/|C″| |
 
@@ -600,7 +617,9 @@ correct. Reference values for MC seed 43: median SNR 93.4, median σ 2.880 µs.
 | Q-Q plot | on the line incl. tails | |
 
 → `estimateTOA` uncertainties validated with receiver noise at −5 dB; the noisy chain
-is validated at this SNR. Mean predicted σ 2.907 µs ≈ 2 % above the radiometer optimum.
+is validated at this SNR. Mean predicted σ 2.907 µs ≈ 2 % above the flat-band optimum
+(2.85 µs), but only **0.5 %** above the exact optimum with the real tapers (2.892 µs,
+§5.10; computed 5 Oct): FFTFIT is nearly optimal at −5 dB.
 Caveat: the seeds share the pulsar realization; its pure self-noise share is ~4 % of the
 per-bin variance at the peak here, so the TOAs are nearly independent. At high SNR the
 MC must also vary the pulsar seed. The check-function centroid offset (+3.7 µs) is not
@@ -706,8 +725,15 @@ mixed signal+noise variance formula within 1 %.
 5. Next phases (plan of 1 Oct): **D** SNR sweep in `runMonteCarlo.m` (rms TOA error vs
    radiometer optimum, −30…+10 dB); **E** noise normalization + NP detector
    (`detectPulsar.m`); **F** weighted radiometer-model fit in `estimateTOA`.
-6. **Review (Jasper): bandpass filtering and noise bandwidth.** Not yet fully understood;
-   it must be handled carefully. Points to go through together:
+6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
+   (`2026-10-05_fidelity.md`). Outcome: all effects ≤ 1.5 % in the simulation; the
+   statistical bandwidth (∫W²)²/∫W⁴ matters mostly for real data (non-flat bandpass,
+   flagged channels → measure from the off-pulse spectrum or off-pulse var/mean²).
+   Fixed: the flat-band prediction (1.5 % optimistic) → exact optimum in
+   `expectedPowerModel`. Documented, not changed: receiver noise does not pass W_f in the
+   simulation (real noise passes the same analog bandpass as the sky signal); < 1 % in
+   SNR; fix later if needed by making the dispersion band slightly wider than the
+   analysis band. Original review points:
    - Which filters each component passes. Pulsar: dispersion taper W_f (8 MHz sin²
      edges) → IQ low-pass (flat to ±~355 MHz around fLO) → dedispersion taper W_i.
      Receiver noise: white at RF over 0–f_in/2 → IQ low-pass → W_i only. The IQ check

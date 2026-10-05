@@ -28,9 +28,17 @@ shows up as a deviation from this model.
   M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp)            % no noise
   M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx)   % with noise
 
+Best achievable per-pulse SNR and TOA error (Fisher information of the
+detected power under this model; total-power detection, optimal time
+weighting), with v = css*Ps^2 + 2*csn*Ps*Pn + cnn*Pn^2 (dt cancels):
+  SNR^2 = int Ps^2 / v dt,     1/sigma_TOA^2 = int Ps'^2 / v dt
+For a flat band (css = csn = cnn = 1/B) this is the flat-band prediction of
+addNoiseAndRFI; with the real tapers it is ~1.5 % less optimistic.
+Only with receiver noise (noise-free, the integrals diverge in the tails).
+
 Fields: sigScale, Pn, css, csn, cnn, Bsignal (=1/css), Bnoise (=1/cnn),
         var(Ps, dt), envelope(t) (unit-peak power profile p(t)),
-        hasNoise, hasRFI.
+        snrPulse, toaErrPulse [s] (NaN without noise), hasNoise, hasRFI.
 %}
 
 arguments
@@ -69,6 +77,19 @@ M.hasRFI   = ~isempty(info_rx) && isfield(info_rx, 'rfi') && ~isempty(info_rx.rf
 css = M.css; csn = M.csn; cnn = M.cnn; Pn = M.Pn;
 M.var      = @(Ps, dt) (css*Ps.^2 + 2*csn*Ps.*Pn + cnn*Pn.^2) ./ dt;
 M.envelope = @(t) envelopePower(t, info_gen);
+
+% Best achievable per-pulse SNR and TOA error (see header)
+M.snrPulse = NaN; M.toaErrPulse = NaN;
+if M.hasNoise
+    sp = info_gen.sigma;                            % std of the power profile
+    if ~strcmpi(info_gen.envelopeMode, 'power'), sp = sp / sqrt(2); end
+    t   = linspace(-8*sp, 8*sp, 40001);
+    Ps  = M.sigScale * exp(-0.5*(t/sp).^2);
+    dPs = -t/sp^2 .* Ps;
+    v   = css*Ps.^2 + 2*csn*Ps*Pn + cnn*Pn^2;
+    M.snrPulse    = sqrt(trapz(t, Ps.^2 ./ v));
+    M.toaErrPulse = 1 / sqrt(trapz(t, dPs.^2 ./ v));
+end
 end
 
 
