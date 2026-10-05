@@ -9,7 +9,8 @@ still to do.
 This file tracks the **current state** of the code (started 30 September 2026 as
 `2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
-`expectedPowerModel`, §5.3/§5.10/§6/§10; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
+`expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
+see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -83,6 +84,8 @@ and validates every processing stage against the ground truth.
 - `main.m`: run control (`runStage.*`, `plots.*`), `addpath(functions)`,
   `pipelineParams;`, then the stages below for one realization.
 - `runMonteCarlo.m`: many receiver-noise realizations through the same stages (§5.11).
+- `runSNRSweep.m`: phase D, TOA precision and error bars versus SNR, pulsar and noise
+  realizations both varied (§5.12).
 
 ```
 SKY (synthetic)                      runStage.sky
@@ -546,6 +549,30 @@ z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
   prediction is printed at the end.
 - Cost at L = 0.1 s: roughly 15–20 s per seed.
 
+### 5.12 `runSNRSweep.m` [validated, 5 Oct 2026]
+
+**Idea.** Phase D: how TOA precision and error-bar honesty change with SNR, against the
+exact optimum (`expectedPowerModel` `toaErrPulse`). Unlike `runMonteCarlo.m` the **pulsar
+realization changes too**: at high SNR the self-noise would otherwise be identical in
+every realization and missing from the scatter.
+
+**Code.**
+- Top: `nReal` (10), `snrList` ([−25 −20 −15 −10 −5 0 10 20] dB), `replotOnly` (true:
+  only redraw the figure from `data/mc/snrSweep.mat`).
+- Outer loop j: new sky (generator + dispersion) with pulsar seed `seed + 100·(j−1)`,
+  noise seed = pulsar seed + 1 (j = 1 = main's 42/43: built-in check). Inner loop over
+  `snrList`, same sky and same noise seed (noise only rescaled: common random numbers,
+  so SNR points are correlated, TOAs within one point are independent across j).
+- Same stage calls as `main.m`; files `data/mc/sweep_*` (main's / MC files untouched).
+  Optimum per sub-int from `expectedPowerModel` (once per SNR, j = 1).
+- Per SNR point: pooled `validateTOA` (`'Plot', false`), plus robust σ = 1.4826·median|err|
+  and outlier fraction |z| > 5. Summary table printed; results saved to
+  `data/mc/snrSweep.mat` (res, toaC, genAll, …).
+- Figure (local `plotSweep`): σ_TOA vs SNR (rms, robust, predicted, optimum); ratios
+  rms/pred and pred/opt on a linear 0.8–3 axis (off-scale points on the edge, labelled);
+  |z| < 1 and outlier fraction vs best SNR per sub-int.
+- Cost: ≈ 7 s sky + ≈ 8 s per SNR value per realization; full run 11.6 min.
+
 ---
 
 ## 6. Key formulas (quick reference)
@@ -625,6 +652,42 @@ per-bin variance at the peak here, so the TOAs are nearly independent. At high S
 MC must also vary the pulsar seed. The check-function centroid offset (+3.7 µs) is not
 tested by the MC (no plot checks there).
 
+**Phase D SNR sweep (`runSNRSweep.m`, 5 Oct 2026): 10 pulsar + noise realizations ×
+8 SNR values, L = 0.1 s, 1 turn per sub-int, 90 TOAs per point (times per sub-int, µs):**
+
+| snrDB | SNR opt | rms | robust | pred | opt | rms/pred | pred/opt | χ²_red | \|z\|<1 | \|z\|>5 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| −25 | 1.2 | 2430 | 1470 | 217 | 249 | 11.2 | 0.87 | 561 | 18 % | 57 % |
+| −20 | 3.8 | 995 | 83.9 | 82.2 | 79.0 | 12.1 | 1.04 | 116 | 56 % | 5.6 % |
+| −15 | 11.8 | 26.3 | 27.6 | 25.6 | 25.3 | 1.030 | 1.012 | 1.07 | 62 % | 0 |
+| −10 | 35.4 | 8.60 | 8.53 | 8.28 | 8.28 | 1.040 | 1.000 | 1.08 | 66 % | 0 |
+| −5 | 96.5 | 3.07 | 2.80 | 2.91 | 2.89 | 1.053 | 1.007 | 1.11 | 66 % | 0 |
+| 0 | 216 | 1.30 | 1.25 | 1.22 | 1.17 | 1.061 | 1.050 | 1.12 | 68 % | 0 |
+| +10 | 496 | 0.561 | 0.537 | 0.538 | 0.358 | 1.044 | 1.502 | 1.09 | 63 % | 0 |
+| +20 | 657 | 0.489 | 0.482 | 0.472 | 0.198 | 1.036 | 2.380 | 1.07 | 61 % | 0 |
+
+Built-in check: j = 1 at −5 dB gives median SNR 93.4, σ 2.880 µs (= main / MC seed 43).
+
+Conclusions:
+1. **Error bars honest for SNR per sub-int ≳ 10**, from receiver-noise- to
+   self-noise-dominated (−15…+20 dB): rms/pred 1.03–1.06 (± 0.075), χ²_red 1.07–1.12,
+   no outliers. The self-noise part of the radiometer model is now tested (pulsar varied).
+   Watch item: all ratios 3–6 % above 1, but the points share the realizations (≈ one
+   measurement of ~1.04 ± 0.075); consistent with the noise-free run (1.053). Settle
+   with nReal ≈ 40 at two SNRs if needed.
+2. **Threshold:** below SNR ≈ 10 per sub-int outliers appear (locking on a noise peak,
+   errors up to ±T/2): 5.6 % at SNR 3.8 (Gaussian core still correct: robust 83.9 vs
+   82.2 µs), 57 % at 1.2 (TOAs ~random; fitted SNR biased up by peak picking, median
+   ~2.1). Rule: sub-int length for SNR ≥ 10; navigation needs outlier rejection.
+   Transition between SNR 3.8 and 11.8 not resolved (extra points −19…−16 dB).
+3. **FFTFIT efficiency:** optimal (≤ 1 %) up to −5 dB; 1.05 at 0 dB, 1.50 at +10 dB,
+   2.38 at +20 dB. FFTFIT saturates at ≈ 0.47 µs (noise-free self-noise value; median
+   SNR 444.7 vs 448.7 noise-free) while the optimum keeps falling (information in the far
+   tails where ρp ≈ 1; needs an exactly known profile shape). Realistic small-antenna
+   navigation (≈ −25…−50 dB, §9) is weak-signal → FFTFIT optimal → **phase F low
+   priority**; phase E first.
+4. The quick test's +10 dB ratio 0.56 (2 realizations, 18 TOAs) was a fluke.
+
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
 trip ~2e-6; IQ tones ~1.5e-6, burst centroid shift 0.04 ns, power ratio 2.000;
@@ -703,8 +766,9 @@ mixed signal+noise variance formula within 1 %.
   MSPs, not in the low-SNR regime), no profile evolution with frequency, no polarisation. Gaussian-specific places to revisit for real data or other
   shapes: `ephem.profileFWHM` (→ template per pulsar), the generator and
   `expectedPowerModel` profile, the 1 %-of-peak on-pulse threshold in `estimateTOA`.
-- **Estimator**: FFTFIT not optimal under self-noise; weighted (radiometer-model) fit
-  not implemented.
+- **Estimator**: FFTFIT not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB;
+  §7 phase D); weighted (radiometer-model) fit not implemented. Below SNR ≈ 10 per
+  sub-int TOAs have outliers (no outlier flag or rejection yet).
 - **Edges**: last ~6.3 ms of each file not fully supported; partial first/last turns
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
@@ -722,9 +786,10 @@ mixed signal+noise variance formula within 1 %.
    Check-function centroid offset (+3.7 µs, 1.8σ): run main with another `noiseSeed`.
 4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
    std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
-5. Next phases (plan of 1 Oct): **D** SNR sweep in `runMonteCarlo.m` (rms TOA error vs
-   radiometer optimum, −30…+10 dB); **E** noise normalization + NP detector
-   (`detectPulsar.m`); **F** weighted radiometer-model fit in `estimateTOA`.
+5. Next phases (plan of 1 Oct): ~~**D** SNR sweep~~ (done 5 Oct as `runSNRSweep.m`,
+   §5.12/§7); **E** noise normalization + NP detector (`detectPulsar.m`) – next;
+   **F** weighted radiometer-model fit in `estimateTOA` – low priority (only gains at
+   high SNR, §7). Optional: resolve the TOA threshold (−19…−16 dB).
 6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
    (`2026-10-05_fidelity.md`). Outcome: all effects ≤ 1.5 % in the simulation; the
    statistical bandwidth (∫W²)²/∫W⁴ matters mostly for real data (non-flat bandpass,
@@ -766,7 +831,7 @@ per ~10 %; `*.asv` git-ignored.
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
 - Monte Carlo harness: over noise seeds [validated: `runMonteCarlo.m`]; TOA error vs SNR
-  vs radiometer prediction [todo, phase D; vary the pulsar seed too at high SNR]
+  vs exact optimum, pulsar seed varied [validated: `runSNRSweep.m`, phase D]
 
 **Block 2 – processing robustness**
 - DM check: sub-band TOAs (`NChan`), fit vs 1/f² → DM correction ± error
@@ -829,6 +894,7 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 | `main.m` | pipeline driver: run control, stages, `checkConsistency` | current |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared) | current |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
+| `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
 | `gaussianTemplate.m` | periodic Gaussian TOA template | moved from main |
 | `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
