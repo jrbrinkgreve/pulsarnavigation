@@ -284,7 +284,8 @@ switch d.type
             vals(:, i) = 2*randi(e.rs, [0 1], CH, 1) - 1;
         end
         [~, col] = ismember(ck, uc);
-        chips = vals(sub2ind([CH numel(uc)], m - ck*CH + 1, col));
+        % reshape: with one chunk vals is a column and indexing would return a column
+        chips = reshape(vals(sub2ind([CH numel(uc)], m - ck*CH + 1, col)), size(nAbs));
         cyc = mod(nAbs * e.r, 1) + d.phase/(2*pi);
         x = e.amp * chips .* cos(2*pi*cyc);
 

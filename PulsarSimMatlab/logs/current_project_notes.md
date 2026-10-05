@@ -10,7 +10,7 @@ This file tracks the **current state** of the code (started 30 September 2026 as
 `2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
 `expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
-see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
+RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -114,7 +114,8 @@ are still to do.
 `runStage.receiver` (noise/RFI + IQ; rerun alone to change SNR or RFI),
 `runStage.process` (dedispersion + detection), `runStage.fold`, `runStage.toa`.
 Skipped stages reload their `info` from disk; `checkConsistency` warns when files on disk
-were made with different parameters (T, f_in, L, DM, band, SNR, receiver input, fLO, fs).
+were made with different parameters (T, f_in, L, DM, band, SNR, receiver input, fLO, fs,
+RFI sources; the RFI check since 5 Oct, `isequaln` on `info_rx.rfi.params` vs `rfi`).
 `plots.*` switch the check figures; `closeFigures` runs `close all`.
 
 **Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
@@ -242,7 +243,7 @@ blockLen, nBlocks, memEstimateGB, …
 81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
 memory), which covers this 11.8 GB run.
 
-### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [written]
+### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7]
 
 **Physics / placement.** Noise and man-made interference are added **at the receiver
 input (RF), after dispersion** → they are not dispersed. Dedispersion later applies the
@@ -290,7 +291,8 @@ P_nb = σ_n²·B/(fs/2). Phases from absolute sample index; chips from `mrg32k3a
 substreams per 65,536-chip chunk; impulse events generated once for the whole file,
 each burst from its own substream → block-size independent.
 
-**Scenario in main** (illustrative L-band; `rfiOn` switch):
+**Scenario in `pipelineParams`** (illustrative L-band; `rfiOn` switch; `rfiSelect` picks
+sources by index, 1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses, [] = all):
 
 | Source | Type | Parameters | INR |
 |---|---|---|---|
@@ -688,6 +690,26 @@ Conclusions:
    priority**; phase E first.
 4. The quick test's +10 dB ratio 0.56 (2 realizations, 18 TOAs) was a fluke.
 
+**RFI test (`main.m`, −5 dB, L = 0.1 s, noise seed 43, one source at a time via
+`rfiSelect`, then all; 5 Oct 2026).** Reference: noise only, median SNR 93.4, σ 2.880 µs.
+
+| Run | Generator check | Effect | TOAs |
+|---|---|---|---|
+| Carrier 1350 MHz, −5 dB | baseline 1.632 (pred. 1.633) | off-pulse residual std 1.2885 vs 1.285 predicted from the cross term 2·P_cw·P_n (a carrier adds less variance than noise of equal power, which would give 1.32) | SNR 74.1 (pred. ~75), σ 3.69 µs (×1.28); ratio 0.805, χ² 5.9/9, total +0.33σ: valid; error bars ~3 % pessimistic expected |
+| Radar 1300 MHz, +20 dB | pulses at k/373 s; after dedispersion 4.17 ms earlier (τ(1.3) − τ(1.6)), ~20 µs streaks (1 MHz chirp × 18.9 µs/MHz; peaked, time–bandwidth product 2); median baseline unchanged (1.236) | spikes ~21 in 1 µs bins; energy ≈ one pulsar pulse each, 3.7 per turn | **destroyed**: rms 2013 µs, ratio 1941, total −40 µs (−28σ), red. χ² 1625, **with confident error bars** (median σ 0.96 µs) |
+| Impulses 50/s, 200 ns, +20 dB (4 bursts) | vertical lines before dedispersion, reversed 6.3 ms sweeps after; ~0.3 % of baseline per µs (off-pulse residual mean +0.010) | coherent dedispersion spreads broadband impulses: natural suppression | unaffected: SNR 93.2, σ 2.866 µs, ratio 0.919 |
+| All five | GNSS L1 peak, L2 ~20 MHz bump in the mean spectrum; baseline 1.795 / 1.808 (pred. 1.80 = 1.233·(1 + 1.026·(0.316 + 0.1 + 0.032))) | as radar, plus SNR loss from carrier/GNSS | destroyed: ratio 1674, total −40 µs (−20σ), red. χ² 939 |
+
+Conclusions: all five RFI types verified (after the bpsk fix, §8 #10). Constant-envelope
+RFI (carrier, GNSS) lowers SNR but keeps TOAs valid; impulses are harmless after
+coherent dedispersion; the radar is catastrophic and only the reduced χ² flags it →
+red. χ² flag in `estimateTOA` (cheap, phase E) and RFI excision before dedispersion
+(Block 2; the radar is trivial to find there). Check figures with strong RFI: the
+dynamic-spectrum colour scale is set by the carrier and the residual panel is pushed
+off-axis by the baseline offset (cosmetic; percentile colour limits would help).
+Check-function centroid offset again positive (+6.3 µs carrier run, +3.1 µs impulse run;
+same noise seed as the +3.7 µs item).
+
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
 trip ~2e-6; IQ tones ~1.5e-6, burst centroid shift 0.04 ns, power ratio 2.000;
@@ -723,6 +745,12 @@ mixed signal+noise variance formula within 1 %.
 9. Main: `generate_new_data = false` crashed (info structs missing) → `loadInfo`;
    `mode` shadowed MATLAB's `mode()` → `detMode`; `run` shadowed `run()` → `runStage`;
    `fs = 500e9` typo → `500e6`.
+10. **GNSS (`'bpsk'`) RFI crashed on first use** (5 Oct): `vals(sub2ind(...))` returns a
+    column when `vals` has one column (one 65,536-chip chunk per 1 ms block, the normal
+    case: chunks last 64 ms for L1, 6.4 ms for L2), because indexing a vector keeps the
+    vector's orientation; `chips .* cos(...)` then expanded to 4e6 × 4e6. Fix:
+    `reshape(..., size(nAbs))`. Lesson: code marked [written] is untested; NumPy ports
+    cannot catch MATLAB indexing-shape bugs; test each branch once.
 
 ---
 
@@ -813,7 +841,9 @@ mixed signal+noise variance formula within 1 %.
      (Js, Jn, css, csn, cnn).
    - Real data: the receiver bandpass is not ideal (ripple, slopes) and not known
      exactly → measure W² from the off-pulse spectrum and multiply it into W.
-7. `rfiOn = true`: observe RFI effects (baseline rise, residual excess, TOA degradation).
+7. ~~`rfiOn = true`: observe RFI effects~~ (done 5 Oct, §7: all types verified; radar
+   destroys TOAs with confident error bars). Follow-ups: red. χ² flag in `estimateTOA`
+   (phase E); RFI excision (Block 2); optional percentile colour limits in the checks.
 8. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
    `binTime0` and `'ieee-le'`.
 
@@ -825,7 +855,8 @@ per ~10 %; `*.asv` git-ignored.
 ## 11. Roadmap
 
 **Block 1 – noise and detection (in progress)**
-- Receiver noise + RFI [noise validated at −5 dB (MC); RFI not yet run]
+- Receiver noise + RFI [noise validated at −5 dB (MC); all RFI types validated 5 Oct]
+- TOA quality flag (red. χ² ≫ 1 → invalid; RFI-locked TOAs have small error bars)
 - Noise normalization (baseline, variance → SNR units)
 - Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20)
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
@@ -836,7 +867,8 @@ per ~10 %; `*.asv` git-ignored.
 **Block 2 – processing robustness**
 - DM check: sub-band TOAs (`NChan`), fit vs 1/f² → DM correction ± error
 - Convention assertions: dedispersion takes `info_IQ` (fLO, fs, mapping, fRef)
-- RFI excision before dedispersion (e.g. spectral kurtosis); test harmonic-PRF radar
+- RFI excision before dedispersion (e.g. spectral kurtosis, time-frequency blanking of the
+  radar); test harmonic-PRF radar. Baseline without excision: §7 RFI test
 - Clock jitter in the generator and its TOA effect
 
 **Block 3 – navigation physics**
@@ -900,8 +932,8 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 | `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
-| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI not run |
-| `rfiSource.m` | RFI source definitions | written |
+| `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
+| `rfiSource.m` | RFI source definitions | validated (5 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |

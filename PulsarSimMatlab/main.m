@@ -87,7 +87,7 @@ else
     info_rx = loadInfo(fileRx);
     info_IQ = loadInfo(fileIQ);
 end
-checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB);
+checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB, rfi);
 
 % Processing (uses only the ephemeris 'ephem' and receiver settings)
 if runStage.process
@@ -148,7 +148,7 @@ end
 % ======================================================================
 %  Local functions
 %  ======================================================================
-function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB)
+function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB, rfi)
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
 d = {};
 if abs(info_gen.T - T) > 1e-12,       d{end+1} = 'T';    end
@@ -162,6 +162,11 @@ if ~(isequal(info_rx.snrDB, snrDB) || (isinf(snrDB) && info_rx.noiseStd == 0))
     d{end+1} = 'snrDB';
 end
 if ~strcmp(info_rx.inFile, info_disp.file), d{end+1} = 'receiver input'; end
+rxRFI = struct([]);                                   % RFI sources the receiver file was made with
+if isfield(info_rx, 'rfi') && ~isempty(info_rx.rfi), rxRFI = [info_rx.rfi.params]; end
+if ~(isempty(rxRFI) && isempty(rfi)) && ~isequaln(rxRFI, rfi)   % isequaln: NaN parameters match
+    d{end+1} = 'RFI';
+end
 if abs(info_IQ.fLO - fLO) > 1e-3,     d{end+1} = 'fLO';  end
 if abs(info_IQ.actualFsOut - f_in/round(f_in/fs)) > 1e-3
     d{end+1} = 'fs';

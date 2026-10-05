@@ -35,6 +35,8 @@ filterOrder = 2048;     % IQ low-pass order
 snrDB     = -5;
 noiseSeed = seed + 1;   % different seed -> new noise, same pulsar realization
 rfiOn     = false;      % validate noise-only first, then switch RFI on
+rfiSelect = [];         % sources of the list below to switch on, e.g. 4 = carrier only
+                        % (1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses); [] = all
 
 % Illustrative L-band RFI scenario; INR = power relative to all receiver
 % noise in the 400 MHz band (while the source is on).
@@ -45,6 +47,7 @@ rfi = [ ...
               'INRdB', 20, 'Label', 'L-band radar'), ...
     rfiSource('cw',      'Freq', 1350e6, 'INRdB', -5, 'Label', 'spurious carrier'), ...
     rfiSource('impulse', 'Rate', 50, 'Duration', 200e-9, 'INRdB', 20, 'Label', 'broadband impulses')];
+if ~isempty(rfiSelect), rfi = rfi(rfiSelect); end
 if ~rfiOn || isinf(snrDB), rfi = struct([]); end
 
 % --- Processing
