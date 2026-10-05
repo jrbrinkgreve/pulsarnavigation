@@ -7,8 +7,8 @@ step, what has been validated (with numbers), what went wrong along the way, and
 still to do.
 
 This file tracks the **current state** of the code (started 30 September 2026 as
-`2026-09-30_project_notes.md`). Last updated: 1 October 2026, evening (after the
-`pipelineParams` / Monte Carlo refactor; see `2026-10-01_session.md`). Status markers: **[validated]** = run in MATLAB and
+`2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
+scintillation assessment; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -651,11 +651,37 @@ mixed signal+noise variance formula within 1 %.
   spectral inversion (assumed f_RF = fLO + f_bb), true fs (trusted via info chaining).
 - **Propagation**: no scattering (irreversible pulse broadening), no DM variations, no
   higher-order frequency terms, no scintillation.
+  - DM variations: δDM = 1e-3 pc cm⁻³ shifts TOAs by ≈ 2.1 µs at 1.4 GHz (chromatic;
+    needs sub-band TOAs, Block 2).
+  - Scintillation/scattering (multipath; Δν_d ≈ 1/(2π·τ_d)). Empirical τ_d (Bhat et al.
+    2004, ±1 dex): ≈ 0.4 ns at DM 5, 1.4 GHz → Δν_d ~ 0.1–1 GHz → only a few scintles in
+    400 MHz → ~100 % band-averaged flux fading on minutes–hours timescales. Effect on the
+    **SNR budget** (fading margin, missed TOAs), not on timing (ns). At DM ≳ 100: τ_d of
+    a few µs → time-variable profile distortion = µs-level timing noise; Δν_d ~ 50 kHz,
+    little fading. With a DM error or profile evolution, scintillation's random frequency
+    weighting turns the chromatic error into TOA jitter.
+  - Modelling choice: within a ≤ 1 s voltage simulation diffractive scintillation is
+    static → a random frequency gain g(f) (correlation bandwidth Δν_d) multiplied into
+    the forward filter, plus optionally an exponential multipath tail (not implemented).
+    Long-term fading statistics, Doppler and DM(t) belong at the TOA/SNR level of a later
+    mission simulation. A scintillated (or power-law) pulsar spectrum S(f) has signal
+    bandwidth (∫S)²/∫S² < the receiver-noise B_n; optimal detection then weights channels
+    by pulsar S/N (`detectPower` `NChan` > 1).
+- **Realistic SNR regime**: −5 dB is a bright pulsar on a large dish. Small antenna
+  (3 m, T_sys ≈ 30 K, SEFD ≈ 2e4 Jy): ρ ≈ −27 dB (Vela, peak ~40 Jy), ≈ −35 dB (J0437,
+  peak ~6 Jy), ≲ −50 dB (typical MSP) → per-pulse SNR ≪ 1, TOAs need minutes–hours of
+  folding, where motion, DM(t) and scintillation matter. Phase D should sweep below −30 dB.
+- **Spectrum**: generator is white; real pulsars S ∝ f^α, mean α ≈ −1.6 (factor ≈ 1.6
+  across 1.2–1.6 GHz) → pulsar B_n below the noise B_n; combined with profile evolution
+  and a DM error this biases wideband TOAs.
 - **Receiver**: ideal linear filters, infinite dynamic range; no amplifier compression,
-  ADC quantization/clipping, intermodulation, bandpass ripple, gain drift.
+  ADC quantization/clipping (2-bit costs ≈ 12 % SNR), intermodulation, bandpass ripple,
+  gain drift; single polarisation (dual pol: √2 in SNR).
 - **Timing**: no clock jitter/drift, no relative motion (Doppler), single pulsar only.
-- **Pulse**: stable Gaussian profile, no pulse-to-pulse jitter, no profile evolution with
-  frequency, no polarisation. Gaussian-specific places to revisit for real data or other
+  Earth's orbital v/c ≈ 1e-4 → ≈ 100 µs phase drift per second at f0 = 100 Hz: the
+  navigation signal itself; needs Doppler terms in the fold phase model (Block 3).
+- **Pulse**: stable Gaussian profile, no pulse-to-pulse jitter (a noise floor for bright
+  MSPs, not in the low-SNR regime), no profile evolution with frequency, no polarisation. Gaussian-specific places to revisit for real data or other
   shapes: `ephem.profileFWHM` (→ template per pulsar), the generator and
   `expectedPowerModel` profile, the 1 %-of-peak on-pulse threshold in `estimateTOA`.
 - **Estimator**: FFTFIT not optimal under self-noise; weighted (radiometer-model) fit
