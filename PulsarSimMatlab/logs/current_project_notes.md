@@ -11,7 +11,8 @@ This file tracks the **current state** of the code (started 30 September 2026 as
 scintillation assessment; bandpass review and exact radiometer optimum in
 `expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
 RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
-2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7; see
+2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7, and the long
+H0 run (`runH0.m`, §5.14/§7); see
 `2026-10-06_phase-e.md`. Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
@@ -88,6 +89,8 @@ and validates every processing stage against the ground truth.
 - `runMonteCarlo.m`: many receiver-noise realizations through the same stages (§5.11).
 - `runSNRSweep.m`: phase D, TOA precision and error bars versus SNR, pulsar and noise
   realizations both varied (§5.12).
+- `runH0.m`: long noise-only run, detection statistics and bin-bin noise correlation under
+  H0 (§5.14).
 
 ```
 SKY (synthetic)                      runStage.sky
@@ -621,7 +624,25 @@ pulse; the detector asks whether the best peak stands out more than noise ever w
 0.996; P(Tmax > η) 0.0098 at 1e-2, 0.0009 at 1e-3 (Rice slightly conservative far from
 the tail: 0.26 at 0.3). MATLAB −5 dB: 9/9 detected, noise ratio 0.992, T0 114.5 (> SNR
 93.4 by ×1.23: T0 uses the H0 noise and ignores self-noise; irrelevant for detection and
-for the small-antenna regime). Sweep results in §7.
+for the small-antenna regime). Sweep results in §7. Long H0 run (§5.14): T0 std 1.008 ±
+0.024, false alarms at the nominal rates down to 1e-2…1e-3.
+
+### 5.14 `runH0.m` [validated, 6 Oct 2026]
+
+**Idea.** Many independent noise-only (H0) profiles to test the H0 side of `detectPulsar`
+and the noise covariance model behind it (and behind the TOA error bars): T0 ~ N(0,1),
+exceedance rates at several P_FA, and the correlation of `normProfile` between phase bins
+(model: lag 1 from weightX, 0 beyond).
+
+**Code.** `nPass` (100) passes; zero sky (generator with A = 0, made once,
+`h0_zero.dat`); per pass receiver noise (`'NoiseStd'` 1, seed `seed + 10000 + i`, no
+overlap with the sweeps) → same processing as main → `detectPulsar` (9 complete turns per
+pass at L = 0.1 s). Collects T0, Tmax, noiseRatio, the circular autocorrelation of each
+`normProfile` (FFT) and the model lag-1 correlation WX/√(W2_j·W2_{j+1}). Implied T0 std
+from the measured correlation: √(Σ R_c·r / Σ R_c·r_model), R_c = template
+autocorrelation. Exceedances at P_FA 1e-1, 1e-2, 1e-3 (Φ⁻¹ and Rice thresholds). Saves
+`data/mc/h0Run.mat`; figure: T0 histogram vs N(0,1), P(statistic > η) vs theory (log),
+correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
 
 ---
 
@@ -787,6 +808,26 @@ Conclusions:
    have to be correlation beyond neighbouring bins; no mechanism identified). If real, the
    effective threshold is ~3.8σ → ~4–5× the nominal P_FA. Test: long H0 run (no pulsar,
    ~900 sub-ints → T0 std ± 0.024, ~0.9 false alarms expected vs ~4 if real).
+   **→ Resolved by the long H0 run (below): a fluctuation of the shared noise realizations.**
+
+**Long H0 run (`runH0.m`, 6 Oct 2026; 100 passes, 900 noise-only profiles):**
+
+| Check | Measured | Expected |
+|---|---|---|
+| T0 std / mean | **1.0076** / +0.034 | 1 ± 0.024 / 0 ± 0.033 |
+| noise ratio | median 0.996 | 1 |
+| normProfile correlation lag 0 / lag 1 | 0.999 / **0.2484** | 1 / model 0.2501 (weightX) |
+| lags 2–200 | mean −0.0008, max \|r\| 0.0026 | 0 (noise 0.0007; mean-subtraction gives −(1 + 2ρ₁)/N ≈ −0.0007) |
+| T0 std implied by the measured correlation | 0.997 | measured 1.008 |
+| exceedances P_FA 1e-1 / 1e-2 / 1e-3 (expected 90 / 9 / 0.9) | T0: 96 / 7 / 3; Tmax: 88 / 13 / 1 | (σ 10 % low would give ~25 at 1e-2) |
+
+Conclusions: the noise covariance model is complete for noise-dominated data (per-bin
+variance, neighbour covariance, nothing beyond) → the detector thresholds give the stated
+P_FA (tested down to 1e-2…1e-3) and the TOA error bars are right in the weak-signal regime.
+The phase E T0 std 1.10 and the phase D ratios 1.03–1.06 were most likely the same
+shared-noise fluctuation (any remaining few % at high SNR would be in the self-noise part,
+irrelevant for the small-antenna target). Rice follows the measured Tmax tail for η ≳ 2.5
+(below, the approximation exceeds 1; thresholds are at 3.5–4.2).
 
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
@@ -875,7 +916,8 @@ mixed signal+noise variance formula within 1 %.
 - **Estimator**: FFTFIT not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB;
   §7 phase D); weighted (radiometer-model) fit not implemented. Below SNR ≈ 10 per
   sub-int TOAs have outliers; the good-TOA definition (detected + χ² ok, §5.13) removes
-  them (§7 phase E). Detection P_FA not yet tested in the tail (watch item §7).
+  them (§7 phase E). Detection P_FA validated down to 1e-2…1e-3 (900 H0 profiles, §7);
+  smaller P_FA (e.g. 1e-6 for navigation) only by extrapolating Gaussian / Rice tails.
 - **Edges**: last ~6.3 ms of each file not fully supported; partial first/last turns
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
@@ -896,7 +938,7 @@ mixed signal+noise variance formula within 1 %.
    std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
 5. Next phases (plan of 1 Oct): ~~**D** SNR sweep~~ (done 5 Oct as `runSNRSweep.m`,
    §5.12/§7); ~~**E** noise normalization + NP detector~~ (done 6 Oct: `detectPulsar.m`,
-   `flagChi2`, good TOAs, §5.13/§7; open: long H0 run for the T0-std watch item);
+   `flagChi2`, good TOAs, §5.13/§7; long H0 run done: watch item resolved, P_FA validated);
    **F** weighted radiometer-model fit in `estimateTOA` – low priority (only gains at
    high SNR, §7). Optional: resolve the TOA threshold (−19…−16 dB).
 6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
@@ -947,8 +989,8 @@ mixed signal+noise variance formula within 1 %.
    kernels (standard in pulsar software). Decide before the reference scenario (§11).
 
 **Agreed order after phase E (6 Oct 2026):**
-1. **Close Block 1** (~1 session): long H0 run (T0-std watch item, P_FA tail; §7 phase E);
-   resolve the TOA threshold (sweep −19…−16 dB, SNR per
+1. **Close Block 1** (~1 session): ~~long H0 run~~ (done 6 Oct, §5.14/§7: T0 std 1.008,
+   P_FA nominal); resolve the TOA threshold (sweep −19…−16 dB, SNR per
    sub-int 3.8–11.8 → minimum SNR as a number); `noiseSeed` test of the +3.7 µs
    check-function centroid offset; stale `main.m` header status lines. Phase F stays low
    priority (weak-signal target).
@@ -982,7 +1024,7 @@ per ~10 %; `*.asv` git-ignored.
 - Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20) [confirmed by
   phase D/E: ≥ ~10, exact threshold open]
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
-  [validated: `detectPulsar`; P_FA tail open]
+  [validated: `detectPulsar`; P_FA nominal down to 1e-2…1e-3, `runH0.m`]
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
 - Monte Carlo harness: over noise seeds [validated: `runMonteCarlo.m`]; TOA error vs SNR
   vs exact optimum, pulsar seed varied [validated: `runSNRSweep.m`, phase D]
@@ -1065,7 +1107,8 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 | `foldProfile.m` | folding with phase model | validated |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free; −5 dB MC) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
-| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA tail open) |
+| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
+| `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
