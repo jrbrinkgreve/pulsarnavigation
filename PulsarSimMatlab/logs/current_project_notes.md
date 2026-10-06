@@ -1007,6 +1007,32 @@ mixed signal+noise variance formula within 1 %.
 **Runtimes (L = 1 s, M-series Mac, 24 GB):** dispersion 81.5 s, IQ 46 s, dedispersion
 7.4 s, detection 1.2 s, fold 0.05 s; generator dominated by random-number generation.
 
+**Experiment 3a — detected power after blanking + per-channel dedispersion
+(`tests/expBlankingVariance.m`, run by Claude 6 Oct 2026; Jasper to run).** Noise only,
+bottom channel (1.2015625 GHz, 4.1667 MHz), 4-sample bins (0.96 µs), DM 5 (filter span
+715 µs incl. guards) and DM 100 (2135 µs); masks: radar 4 µs at 373 Hz (0.2 %), random
+50 µs blanks (10 %), 1 ms gaps every 5 ms (20 %). Valid fraction per output sample
+w = (|h|² ∗ keep)/Σ|h|²; W = bin mean.
+- Mean: P/W = 1 in every W group (E|y|² = w·m exactly).
+- Variance: **exact** for Gaussian input from the sample covariance
+  C_{a,a+τ} = Σ_l h(l)h*(l+τ)·keep(a−l) — a convolution of the mask with
+  q_τ = h·h*(·+τ), one FFT per lag τ = 0…2n−1 → cheap for every bin (matches the direct
+  2n×2n matrix to ≤ 7e-8 of var0). Measured / exact over ~1e6 bins: 0.9998, 1.0001,
+  1.0002 (DM 5), 1.0018, 1.0027, 1.0019 (DM 100), ± 0.0019. Unblanked bin variance 0.302
+  of m² = ν₀/(B·dt) as in §5.16.
+- **Neither simple model holds**: at W 0.25–0.5 exact 0.078–0.088 vs w² model 0.041–0.044
+  and w model 0.110–0.113 (DM 5 random/gaps, DM 100 gaps); DM 100 random 50 µs (blanks
+  ≪ sweep): w² model nearly right (0.226 vs 0.228 at W 0.75–0.9). Physics: in a dispersed
+  channel lag ↔ frequency (chirp), so a blank removes a frequency slice from the affected
+  output samples (fewer independent frequencies → towards w), while with B·dt ≈ 3 the
+  samples in a bin are partly correlated (towards w²); short blanks spread thinly only
+  scale the amplitude (w²). Errors of the simple models up to ±45 %.
+- Next-bin covariance at blanked edges stays ≈ 0.05·var0 (exact 0.050–0.057), not the
+  w²-scaled 0.016–0.020.
+→ Design consequence (unit 3): no g(w) model; carry exact per-time-bin variance and
+lag covariances (from the mask convolutions) where a mask exists, constants from the
+channel spectrum where not.
+
 ---
 
 ## 8. Bugs found and fixed (lessons)
@@ -1133,10 +1159,26 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    Progress (tests pass in Claude's runs, Jasper's runs pending): unit 1 `channelizeIQ`
    (§5.15, 128 × 3.125 MHz, oversampling 4/3); unit 2 `dedisperseChannels` + option
    `AllowRefOutsideBand` in `applyInverseDispersion` (§5.16, §5.5; decisions: common
-   reference via the option, taper inside each channel). Next: unit 3, power per channel
-   and data weights through `detectPower` / `foldProfile` / `detectPulsar` /
-   `estimateTOA`, including the narrow-channel time-bin covariance (§9) and the
-   blanking-variance experiment.
+   reference via the option, taper inside each channel).
+   **Unit 3 design (agreed 6 Oct): power, data weights and an exact noise model through
+   the fold.** Physics: (1) blanked samples carry no signal or noise; after dedispersion
+   each output sample has a valid fraction w = (|h|² ∗ mask); detected power has mean
+   w·m, so the fold keeps Σa·P and Σa·w separately (unbiased even for phase-correlated
+   blanking); variance σ²·g(w) with g between w² and w → decided by experiment (3a).
+   (2) Narrow-channel time-bin covariance ν_l (ν₀ 0.888, ν₁ 0.046, Σ = 1): the fold
+   accumulates time-bin pairs at lags l weighted by ν_l into weight2/weightX (exact;
+   ν = [1] → unchanged). (3) Channels combined as the sum of channel profiles; variance =
+   sum of per-channel variances (own baseline a_c, B_c); a channel missing in some phase
+   bins of a sub-int is excluded from that sub-int (no dips). Decisions (Jasper):
+   weights per phase bin × sub-int × channel (exact; sub-band grouping option later for
+   long runs); equal-weight channel sum (SNR weighting later, with scintillation);
+   exclusion rule; exact lag terms; per-channel b_c by a linear fit with τ fixed.
+   Sub-units: 3a experiment `tests/expBlankingVariance.m` (g(w), ν at blanked edges);
+   3b `detectChannels` + helper `powerCovariance` (power file [nChan × nBins] + weight
+   file, ν from the channel spectrum); 3c `foldProfile` (weight file, per-channel
+   weights, `NoiseCoeffs`); 3d `detectPulsar` + `estimateTOA` (per-channel variance sum,
+   a_c/b_c, exclusion); 3e `tests/testChannelWeights.m` (synthetic masks: unbiased TOAs,
+   honest error bars). Full-band path bit-identical throughout. Then a switch in main.
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
