@@ -27,6 +27,15 @@ Name-value options:
                  fHigh). Must match the forward stage for an exact round
                  trip; any other value leaves a constant shift of
                  tau(RefFreq_fwd) - tau(RefFreq).
+  'AllowRefOutsideBand'  false (default): RefFreq must lie in [fLow, fHigh].
+                 true: any RefFreq > 0. Used per channel of the channelized
+                 front end (dedisperseChannels): every narrow channel is
+                 referenced to the same frequency (e.g. the top of the whole
+                 band), so the delays between channels are removed by the
+                 chirp itself. The filter formula below is exact for any
+                 RefFreq; a reference above the band only adds a pure advance
+                 tau(f) - tau(RefFreq) > 0 for every f, so the overlap is then
+                 all on the future side (nPast = guard only).
   'EdgeFrac'     raised-cosine band-edge taper, fraction of the band,
                  inside the band (default 0.02). Keeps the filter's
                  impulse response compact; content outside the band is
@@ -84,6 +93,7 @@ arguments
     fLow              (1,1) double {mustBePositive, mustBeFinite} = 1.2e9
     fHigh             (1,1) double {mustBePositive, mustBeFinite} = 1.6e9
     opts.RefFreq            double = []
+    opts.AllowRefOutsideBand (1,1) logical = false
     opts.EdgeFrac     (1,1) double {mustBePositive} = 0.02
     opts.GuardTime          double = []
     opts.Nfft               double = []
@@ -112,8 +122,12 @@ if fLow <= fLO - fs/2 || fHigh >= fLO + fs/2
         ['Band %.4g-%.4g Hz does not fit inside the baseband coverage ' ...
          '%.4g-%.4g Hz (fLO +- fs/2).'], fLow, fHigh, fLO - fs/2, fLO + fs/2);
 end
-if ~isscalar(fRef) || fRef < fLow || fRef > fHigh
-    error('applyInverseDispersion:ref', 'RefFreq must lie in [fLow, fHigh].');
+if ~isscalar(fRef) || ~isfinite(fRef) || fRef <= 0
+    error('applyInverseDispersion:ref', 'RefFreq must be a positive scalar.');
+end
+if ~opts.AllowRefOutsideBand && (fRef < fLow || fRef > fHigh)
+    error('applyInverseDispersion:ref', ...
+        'RefFreq must lie in [fLow, fHigh] (or set AllowRefOutsideBand).');
 end
 if opts.EdgeFrac > 0.5
     error('applyInverseDispersion:edge', 'EdgeFrac must be <= 0.5.');
@@ -127,8 +141,10 @@ edgeW = opts.EdgeFrac * (fHigh - fLow);
 guardTime = opts.GuardTime;
 if isempty(guardTime), guardTime = 20 / edgeW; end
 g = ceil(guardTime * fs);
-nFuture  = ceil((tau(fLow) - tau(fRef)) * fs) + g;
-nPast    = ceil((tau(fRef) - tau(fHigh)) * fs) + g;
+% max(., 0): only matters for RefFreq outside the band (then one side is
+% guard only); inside the band both terms are >= 0 and nothing changes.
+nFuture  = max(ceil((tau(fLow) - tau(fRef)) * fs), 0) + g;
+nPast    = max(ceil((tau(fRef) - tau(fHigh)) * fs), 0) + g;
 nOverlap = nPast + nFuture;
 
 % ---- Input size --------------------------------------------------------------------
@@ -270,6 +286,7 @@ info.DM              = DM;
 info.fLow            = fLow;
 info.fHigh           = fHigh;
 info.refFreq         = fRef;
+info.refOutsideBand  = fRef < fLow || fRef > fHigh;
 info.dispersionConst = Kc;
 info.timingConvention = 'same grid as input; content at refFreq unshifted';
 info.bulkDelayRef    = tau(fRef);                % tau(refFreq) vs infinite freq, not removed
