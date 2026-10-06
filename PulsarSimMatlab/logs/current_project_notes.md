@@ -105,6 +105,9 @@ PROCESSING                           runStage.process / .fold / .toa
   6. detectPower            ─► test_envelope.dat     power, 1 MHz bins    [validated]
   7. foldProfile            ─► test_fold.mat         profiles             [validated]
   8. estimateTOA            (in memory: toa, info_toa)                    [validated]
+PROCESSING, channelized (in development, §10 item 1; not yet in main)
+  4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [validated]
+      (next: per-channel excision, per-channel dedispersion, weights through the fold)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -645,6 +648,49 @@ autocorrelation. Exceedances at P_FA 1e-1, 1e-2, 1e-3 (Φ⁻¹ and Rice threshol
 `data/mc/h0Run.mat`; figure: T0 histogram vs N(0,1), P(statistic > η) vs theory (log),
 correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
 
+### 5.15 `channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, ...)` [validated, 6 Oct 2026; channelized front end, unit 1]
+
+**Idea.** First stage of the channelized front end (§10 agreed order item 1): split the IQ
+stream into nChan channels that tile [fLow, fHigh] exactly, each a complex voltage stream
+at a reduced rate, so RFI excision and coherent dedispersion can work per channel.
+Channel j is what a separate receiver would give: mix down by its centre
+fc_j = fLow + (j − ½)·ChanWidth (LO phase 0 at input sample 0), zero-phase low-pass,
+keep every D-th sample: y_j(m) = Σ_n h(mD − n)·x(n)·e^{−i2π(fc_j − fLO)n/fs}.
+- Sample m at t0 + mD/fs (group delay removed → no TOA offset); RF = fc_j + f_bb (no
+  inversion) → each channel file is a normal IQ file with fLO = fc_j, fs = fs/D.
+- Unit DC gain: tone amplitude and passband PSD preserved; the channels' parts inside
+  ±ChanWidth/2 add up to the IQ band power.
+- **Oversampled** (default 4/3): K = fs/ChanWidth = 256, D = K·3/4 = 192, channel rate
+  4.17 MHz. Prototype flat to ±ChanWidth/2 (1.5625 MHz), stopband from fs/D − ChanWidth/2
+  (2.604 MHz) → decimation aliases only into the transition region, never into the useful
+  band; the transition is removed later (per-channel dedispersion keeps ±ChanWidth/2).
+  A critically sampled filterbank (D = K) would alias into the channel edges.
+
+**Method (polyphase form).** With fc_j − fLO = (k_j + β)·fs/K (β = ½ here, band edges on
+the K-grid) and prototype h(r) centred at G = (M−1)/2, zero-padded to L = P·K:
+y_j(m) = e^{−i2π(k_j+β)(mD+G)/K} · Σ_p e^{+i2πk_j p/K}·u_m(p),
+u_m(p) = Σ_q hb(p+qK)·x(mD+G−p−qK), hb(r) = h(r)·e^{+i2πβr/K}: weight a frame of L
+samples, fold into K bins, one K-point IFFT for all channels, phase correction from the
+absolute index (double). Same arithmetic as K mix-filter-decimate receivers at ~1/K cost.
+Prototype: Kaiser-windowed sinc (copy of `applyIQmodulation`'s `kaiserLowpass`), cutoff
+fs/(2D), transition fs/D − ChanWidth → 3853 taps (16 per branch) at 80 dB.
+
+**Files.** `<outBase>_ch001.dat` … (cf32 per channel), `<outBase>_info.mat`
+(`loadInfo(outBase)` works). Info: nChan, chanFreqs, chanWidth, fs (channel rate), K,
+decimation, oversampling, prototype (taps), passband/stopband edges, groupDelayRemoved,
+t0, fullySupported (1-based outputs that see only real data: inputs mD ± G inside the
+file), conventions. Edge outputs see zero-padding.
+
+**Validation (`tests/testChannelizeIQ.m`, 6 Oct 2026).**
+- Tones (4 tones, channels at, beside and far from them): every sample equals the exact
+  prediction A·e^{iφ}·Hc(Δf)·e^{i2πΔf·t_m} to ≤ 2.7e-7 (single precision) → frequency
+  mapping, LO phase, timing and gain exact. |Hc| = 1 ± 1.2e-4 to ±1.5625 MHz; stopband
+  −80.2 dB.
+- White noise (2^23 samples): channel power / Σh² = 1.0007 (per channel 0.988–1.016,
+  1σ 0.55 %); passband PSD level 1.0004 of expected; flat within ±3 % (Welch scatter).
+- Real data (`test_rx_IQ.dat`, seed 43, −5 dB): Σ channel band powers / IQ band power
+  = 1.00007; 0.1 s → 128 × 416,667 samples in 4.1 s (`data/chan/`, 427 MB).
+
 ---
 
 ## 6. Key formulas (quick reference)
@@ -1017,6 +1063,9 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    `weight2`, `weightX` become [NBin × nSub × nChan]; `detectPulsar` / `estimateTOA`
    combine channels with these weights; nChan = 1 must reproduce today's results exactly.
    Also enables sub-band TOAs (DM check, Block 2).
+   Progress: unit 1 `channelizeIQ` done and validated (6 Oct, §5.15, 128 × 3.125 MHz,
+   oversampling 4/3). Next: unit 2, per-channel dedispersion (channel-edge taper question,
+   see the 6 Oct log).
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1341,5 +1390,7 @@ per day).
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
+| `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
+| `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (6 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
