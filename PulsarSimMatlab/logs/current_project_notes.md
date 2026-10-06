@@ -106,9 +106,9 @@ PROCESSING                           runStage.process / .fold / .toa
   7. foldProfile            ─► test_fold.mat         profiles             [validated]
   8. estimateTOA            (in memory: toa, info_toa)                    [validated]
 PROCESSING, channelized (in development, §10 item 1; not yet in main)
-  4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [tests pass]
+  4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [validated]
       (excision per channel goes here, step 2)
-  5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [tests pass]
+  5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [validated]
   6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [tests pass]
       (next: foldProfile with per-channel weights and lag covariances, 3c)
 VALIDATION
@@ -661,7 +661,7 @@ autocorrelation. Exceedances at P_FA 1e-1, 1e-2, 1e-3 (Φ⁻¹ and Rice threshol
 `data/mc/h0Run.mat`; figure: T0 histogram vs N(0,1), P(statistic > η) vs theory (log),
 correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
 
-### 5.15 `channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, ...)` [tests pass (Claude's run, 6 Oct 2026), Jasper's run pending; channelized front end, unit 1]
+### 5.15 `channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, ...)` [validated 6 Oct 2026 (Jasper's run); channelized front end, unit 1]
 
 **Idea.** First stage of the channelized front end (§10 agreed order item 1): split the IQ
 stream into nChan channels that tile [fLow, fHigh] exactly, each a complex voltage stream
@@ -694,7 +694,7 @@ decimation, oversampling, prototype (taps), passband/stopband edges, groupDelayR
 t0, fullySupported (1-based outputs that see only real data: inputs mD ± G inside the
 file), conventions. Edge outputs see zero-padding.
 
-**Tests (`tests/testChannelizeIQ.m`, run by Claude 6 Oct 2026; Jasper to run).**
+**Tests (`tests/testChannelizeIQ.m`, run by Claude and Jasper 6 Oct 2026, identical results).**
 - Tones (4 tones, channels at, beside and far from them): every sample equals the exact
   prediction A·e^{iφ}·Hc(Δf)·e^{i2πΔf·t_m} to ≤ 2.7e-7 (single precision) → frequency
   mapping, LO phase, timing and gain exact. |Hc| = 1 ± 1.2e-4 to ±1.5625 MHz; stopband
@@ -704,7 +704,7 @@ file), conventions. Edge outputs see zero-padding.
 - Real data (`test_rx_IQ.dat`, seed 43, −5 dB): Σ channel band powers / IQ band power
   = 1.00007; 0.1 s → 128 × 416,667 samples in 4.1 s (`data/chan/`, 427 MB).
 
-### 5.16 `dedisperseChannels(info_chan, outBase, DM, ...)` [tests pass (Claude's run, 6 Oct 2026), Jasper's run pending; channelized front end, unit 2]
+### 5.16 `dedisperseChannels(info_chan, outBase, DM, ...)` [validated 6 Oct 2026 (Jasper's run); channelized front end, unit 2]
 
 **Idea.** Coherent dedispersion per channel of `channelizeIQ`, reusing the validated
 `applyInverseDispersion` on each channel file (an ordinary IQ file, fLO = channel
@@ -725,7 +725,7 @@ nPast / nFuture / Nfft / leakage, fullySupported (valid in every channel: channe
 range shrunk by each channel's filter reach), BnoiseChan (3.0596 MHz) and
 BnoiseTotal = nChan·BnoiseChan (391.6 MHz, as the full band), bulkDelayRef.
 
-**Tests (`tests/testDedisperseChannels.m`, run by Claude 6 Oct 2026; Jasper to run).**
+**Tests (`tests/testDedisperseChannels.m`, run by Claude and Jasper 6 Oct 2026, identical results).**
 1. Regression: full-band `applyInverseDispersion` with defaults bit-identical to
    `test_IQ_dedispersed.dat` (nPast, nFuture, Nfft equal).
 2. Commutation: channelize(full-band dedispersed) vs dedisperseChannels(channelize(IQ))
@@ -1041,7 +1041,7 @@ mixed signal+noise variance formula within 1 %.
 7.4 s, detection 1.2 s, fold 0.05 s; generator dominated by random-number generation.
 
 **Experiment 3a — detected power after blanking + per-channel dedispersion
-(`tests/expBlankingVariance.m`, run by Claude 6 Oct 2026; Jasper to run).** Noise only,
+(`tests/expBlankingVariance.m`, run by Claude and Jasper 6 Oct 2026, identical results).** Noise only,
 bottom channel (1.2015625 GHz, 4.1667 MHz), 4-sample bins (0.96 µs), DM 5 (filter span
 715 µs incl. guards) and DM 100 (2135 µs); masks: radar 4 µs at 373 Hz (0.2 %), random
 50 µs blanks (10 %), 1 ms gaps every 5 ms (20 %). Valid fraction per output sample
@@ -1096,6 +1096,16 @@ channel spectrum where not.
     vector's orientation; `chips .* cos(...)` then expanded to 4e6 × 4e6. Fix:
     `reshape(..., size(nAbs))`. Lesson: code marked [written] is untested; NumPy ports
     cannot catch MATLAB indexing-shape bugs; test each branch once.
+11. **Test scripts leaked state through the base workspace** (6 Oct, Jasper's runs of
+    the unit tests one after another): `testDedisperseChannels` / `testDetectChannels`
+    did `oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir))` as *scripts*; the
+    next test's assignment to `restoreDir` destroyed the previous object, whose cleanup
+    then ran at once and switched back to `tests/` → "Unrecognized function or variable
+    'pipelineParams'". Claude's runs used a fresh MATLAB per test and never saw it. Fix:
+    all tests are functions (own workspace; cleanup when the test ends; `run(...)`
+    unchanged). Lessons: run tests the way Jasper does (several in one session); never
+    run two test sessions at once — they share the files in `data/chan/` (an
+    overlapping run gave garbage: noise 72× the radiometer value).
 
 ---
 
@@ -1542,11 +1552,11 @@ per day).
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
-| `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | tests pass (Claude, 6 Oct); Jasper's run pending |
-| `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Claude's run, 6 Oct) |
-| `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | tests pass (Claude, 6 Oct); Jasper's run pending |
-| `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Claude's run, 6 Oct) |
-| `tests/expBlankingVariance.m` | experiment 3a: detected-power variance after blanking (exact via mask convolutions) | passes (Claude's run, 6 Oct) |
+| `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
+| `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
+| `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | validated (6 Oct) |
+| `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Jasper's run, 6 Oct) |
+| `tests/expBlankingVariance.m` | experiment 3a: detected-power variance after blanking (exact via mask convolutions) | passes (Jasper's run, 6 Oct) |
 | `powerCovariance.m` | exact variance / lag covariances of detected time bins from the channel spectrum (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
 | `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
 | `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Claude's run, 6 Oct) |

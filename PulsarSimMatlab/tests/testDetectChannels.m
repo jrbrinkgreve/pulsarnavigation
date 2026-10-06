@@ -1,3 +1,4 @@
+function testDetectChannels()
 %TESTDETECTCHANNELS  Unit tests for detectChannels and powerCovariance (unit 3b).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testDetectChannels.m'). ~30 s.
@@ -144,6 +145,7 @@ if isempty(fails)
     fprintf('testDetectChannels: ALL PASSED\n');
 else
     error('testDetectChannels:failed', 'FAILED: %s', strjoin(fails, ', '));
+end
 end
 
 

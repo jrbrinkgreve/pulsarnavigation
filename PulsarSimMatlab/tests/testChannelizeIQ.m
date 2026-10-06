@@ -1,4 +1,5 @@
-%TESTCHANNELIZEIQ  Unit tests for channelizeIQ (script).
+function testChannelizeIQ()
+%TESTCHANNELIZEIQ  Unit tests for channelizeIQ.
 %{
 Run from the PulsarSimMatlab folder: tests/testChannelizeIQ  (or `run`).
 Synthetic tests write small files to tempdir; test 3 uses the receiver IQ
@@ -163,6 +164,7 @@ if isempty(fails)
     fprintf('testChannelizeIQ: ALL PASSED\n');
 else
     error('testChannelizeIQ:failed', 'FAILED: %s', strjoin(fails, ', '));
+end
 end
 
 

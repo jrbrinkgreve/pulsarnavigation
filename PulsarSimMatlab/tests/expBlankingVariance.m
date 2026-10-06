@@ -1,3 +1,4 @@
+function expBlankingVariance()
 %EXPBLANKINGVARIANCE  Experiment 3a: detected power after blanking + per-channel dedispersion.
 %{
 Run from the PulsarSimMatlab folder: run('tests/expBlankingVariance.m'). ~1 min.
@@ -156,6 +157,7 @@ if isempty(fails)
     fprintf('\nexpBlankingVariance: mean = W and exact variance = measured in all groups: PASS\n');
 else
     error('expBlankingVariance:failed', 'FAILED: %s', strjoin(unique(fails), ', '));
+end
 end
 
 

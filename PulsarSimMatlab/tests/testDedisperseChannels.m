@@ -1,3 +1,4 @@
+function testDedisperseChannels()
 %TESTDEDISPERSECHANNELS  Unit tests for dedisperseChannels (+ applyInverseDispersion option).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testDedisperseChannels.m').
@@ -199,6 +200,7 @@ if isempty(fails)
     fprintf('testDedisperseChannels: ALL PASSED\n');
 else
     error('testDedisperseChannels:failed', 'FAILED: %s', strjoin(fails, ', '));
+end
 end
 
 
