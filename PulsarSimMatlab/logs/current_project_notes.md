@@ -12,7 +12,8 @@ scintillation assessment; bandpass review and exact radiometer optimum in
 `expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
 RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
 2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7, and the long
-H0 run (`runH0.m`, §5.14/§7); see
+H0 run (`runH0.m`, §5.14/§7), and the TOA threshold sweep (design rule SNR ≥ 6–7, baseline
+loss, turns per sub-int, §6/§7/§10); see
 `2026-10-06_phase-e.md`. Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
@@ -668,6 +669,8 @@ correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
 | Detection thresholds | known phase η₀ = Φ⁻¹(1 − P_FA); unknown phase Q(η) + √λ₂/(2π)·e^(−η²/2) = P_FA (3.09 / 4.15 at 1e-3) |
 | Detection probability | P_D = Q(η − SNR) (known phase; unknown phase approx.) |
 | Reduced χ² | Σ (p_j − m_j)²/v_j / (n − 3), ≈ 1 ± √(2/n) for template + noise |
+| Turns per sub-int | N = (SNR_target/SNR_turn)², SNR_turn ≈ ρ·√(B·σ_t·√π)·loss (≈ 373·ρ here); target 6–7 |
+| Baseline-estimation loss | √(1 − (Σs)²/(N_bin·Σs²)) = 0.962 for the 5 % Gaussian template |
 | FFTFIT uncertainty | σ_τ = √(dᵀ·Cov·d)/|C″| |
 
 ---
@@ -829,6 +832,51 @@ shared-noise fluctuation (any remaining few % at high SNR would be in the self-n
 irrelevant for the small-antenna target). Rice follows the measured Tmax tail for η ≳ 2.5
 (below, the approximation exceeds 1; thresholds are at 3.5–4.2).
 
+**TOA threshold sweep (`runSNRSweep.m`, 6 Oct 2026; nReal 20 → 180 sub-ints per point,
+−20…−15 dB in 1 dB steps; phase D/E results kept in `data/mc/snrSweep_phaseDE.mat`):**
+
+| SNR per sub-int (opt) | 3.8 | 4.8 | 6.0 | 7.5 | 9.4 | 11.8 |
+|---|---|---|---|---|---|---|
+| outliers \|z\| > 5, all TOAs | 5.0 % | 1.7 % | 0 (< 1.7 %, 95 %) | 0 | 0 | 0 |
+| good TOAs (yield = P_D unknown phase) | 72 (40 %) | 129 (72 %) | 166 (92 %) | 180 (100 %) | 100 % | 100 % |
+| outliers among good TOAs | 0 | 0 | 0 | 0 | 0 | 0 |
+| rms/pred, good TOAs | 1.20 ± 0.08 | 0.97 | 1.01 | 1.01 | 1.02 | 1.02 |
+| P_D known (theory) | 0.711 (0.759) | 0.883 (0.953) | 0.994 (0.998) | 1 | 1 | 1 |
+| T0 mean / SNR opt | 0.950 | 0.956 | 0.962 | 0.965 | 0.972 | 0.978 |
+
+H0: 0/180 false alarms, T0 std 1.020. Outlier rate close to the rough prediction
+(√λ₂/2π)/√2·e^(−SNR²/4) (~1 % at 4.8, ~0.05 % at 6.0; overestimates ~2× at 3.8).
+
+Conclusions:
+1. **Design rule: SNR per sub-int ≥ 6–7** (was ≥ 10): 92 % usable TOAs at 6, 100 % at 7.5;
+   the detector removes all outliers at any SNR; error bars of good TOAs honest from SNR ≈ 5
+   (slight excess 1.20 at 3.8, where only 40 % survive and selection favours upward noise).
+   10 → ~6.5 allows (10/6.5)² ≈ 2.4× shorter sub-ints.
+2. **Baseline-estimation loss:** T0 ≈ 0.96 × SNRopt. SNRopt assumes a known noise level;
+   the observer estimates the baseline from the same profile (zero-mean template), which
+   discards the template's DC part: loss = √(1 − (Σs)²/(N·Σs²)) = 0.962 for the 5 %
+   Gaussian (grows with pulse width; depends on the real profile). With it the P_D theory
+   agrees (−19 dB known 0.926 vs 0.883, −1.8σ; −18 dB unknown 0.94 vs 0.922, −0.9σ). The
+   sweep's theory curves do not include it yet (optional fix). Real physics: any observer
+   without a known baseline pays it.
+3. pred/opt rises at low SNR (1.03 → 1.19): the predicted σ uses the fitted (noisy)
+   amplitude, E[1/b̂²] > 1/b²; rms/pred stays 1.01–1.02, so the error bars remain honest.
+
+**Turns per sub-int (design).** Weak signal: SNR_sub = SNR_turn·√N →
+N = (SNR_target / SNR_turn)², SNR_turn ≈ ρ·√(B·σ_t·√π)·0.962 ≈ 373·ρ for this pulsar and
+band. Time per TOA ∝ (target/ρ)² (−10 dB in ρ → 100× longer; target 10 → 7 saves 2×):
+
+| ρ | SNR per turn | target 6 | target 7 | target 10 |
+|---|---|---|---|---|
+| −20 dB | 3.7 | 3 turns (30 ms) | 4 turns (40 ms) | 8 turns (80 ms) |
+| −30 dB | 0.37 | 260 (2.6 s) | 350 (3.5 s) | 720 (7.2 s) |
+| −40 dB | 0.037 | 2.6e4 (4.3 min) | 3.5e4 (5.9 min) | 7.2e4 (12 min) |
+| −50 dB | 0.0037 | 2.6e6 (7.2 h) | 3.5e6 (9.8 h) | 7.2e6 (20 h) |
+
+Total precision of an observation does not depend on the sub-int length (more, less
+precise TOAs); shorter sub-ints give more frequent TOAs (motion tracking, outlier
+robustness). Hour-long sub-ints need Doppler inside the phase model.
+
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
 trip ~2e-6; IQ tones ~1.5e-6, burst centroid shift 0.04 ns, power ratio 2.000;
@@ -940,7 +988,7 @@ mixed signal+noise variance formula within 1 %.
    §5.12/§7); ~~**E** noise normalization + NP detector~~ (done 6 Oct: `detectPulsar.m`,
    `flagChi2`, good TOAs, §5.13/§7; long H0 run done: watch item resolved, P_FA validated);
    **F** weighted radiometer-model fit in `estimateTOA` – low priority (only gains at
-   high SNR, §7). Optional: resolve the TOA threshold (−19…−16 dB).
+   high SNR, §7). ~~Resolve the TOA threshold~~ (done 6 Oct, §7: SNR per sub-int ≥ 6–7).
 6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
    (`2026-10-05_fidelity.md`). Outcome: all effects ≤ 1.5 % in the simulation; the
    statistical bandwidth (∫W²)²/∫W⁴ matters mostly for real data (non-flat bandpass,
@@ -969,6 +1017,15 @@ mixed signal+noise variance formula within 1 %.
    (phase E); RFI excision (Block 2); optional percentile colour limits in the checks.
 8. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
    `binTime0` and `'ieee-le'`.
+10. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
+    `pipelineParams` (foldProfile also accepts `'SubintTime'`). Observer-only choice from the
+    data: fold a first chunk or the whole observation, measure its SNR (`toa.total.snr` or
+    `detection.total.T0`), SNR_turn ≈ SNR_total/√N_total, N = (SNR_target/SNR_turn)² with
+    `SNR_target` (~7) as the parameter instead of `subintPeriods`. Adapts to scintillation
+    (flux varies ~100 % over minutes–hours, §9). Helper e.g.
+    `chooseSubintPeriods(...)`. Belongs with the reference scenario / fast simulator (long
+    observations, varying SNR). Optional: include the baseline loss (0.962) in the
+    `runSNRSweep` P_D theory curves.
 9. **[todo] DMs up to ~60 (Jasper, 5 Oct): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
 
@@ -990,14 +1047,16 @@ mixed signal+noise variance formula within 1 %.
 
 **Agreed order after phase E (6 Oct 2026):**
 1. **Close Block 1** (~1 session): ~~long H0 run~~ (done 6 Oct, §5.14/§7: T0 std 1.008,
-   P_FA nominal); resolve the TOA threshold (sweep −19…−16 dB, SNR per
-   sub-int 3.8–11.8 → minimum SNR as a number); `noiseSeed` test of the +3.7 µs
+   P_FA nominal); ~~resolve the TOA threshold~~ (done 6 Oct, §7: SNR per sub-int ≥ 6–7);
+   `noiseSeed` test of the +3.7 µs
    check-function centroid offset; stale `main.m` header status lines. Phase F stays low
    priority (weak-signal target).
 2. **Reference scenario** (open design decision, §11): pulsars (P, DM, flux, profile),
    antenna (gain, T_sys, bandwidth), ground or spacecraft, observation hours. Fixes the
-   realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~7e5 turns ≈ 2 h for one SNR-10 TOA of the
-   current pulsar), whether DM ~60 (item 9) is urgent, and how long observations are.
+   realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~3.5e4 turns ≈ 6 min for one SNR-7 TOA of
+   the current pulsar, table in §7; an earlier "7e5 turns ≈ 2 h" here was a 10× error),
+   whether DM ~60 (item 9) is urgent, and how long observations are. Adaptive sub-int
+   length (item 10) fits here.
 3. **Fast simulator for long observations**: hours cannot be simulated at voltage level
    (~61 GB per second of data). Generate detected power or folded profiles directly from the
    validated statistical model (`expectedPowerModel`: mean and variance incl. tapers and
@@ -1021,8 +1080,8 @@ per ~10 %; `*.asv` git-ignored.
 - TOA quality flag (red. χ² ≫ 1 → invalid; RFI-locked TOAs have small error bars)
   [validated: `flagChi2`, good TOAs, 6 Oct]
 - Noise normalization (baseline, variance → SNR units) [validated: `detectPulsar`]
-- Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20) [confirmed by
-  phase D/E: ≥ ~10, exact threshold open]
+- Sub-integration length as a design parameter [validated 6 Oct: SNR per sub-int ≥ 6–7,
+  N = (SNR_target/SNR_turn)²; adaptive choice from the data: §10 item 10]
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
   [validated: `detectPulsar`; P_FA nominal down to 1e-2…1e-3, `runH0.m`]
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit

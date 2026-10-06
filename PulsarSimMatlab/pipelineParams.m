@@ -54,7 +54,9 @@ if ~rfiOn || isinf(snrDB), rfi = struct([]); end
 refFreq       = fHigh;  % [Hz] dedispersion reference frequency (same as generation)
 f_out         = 1e6;    % [Hz] detected-power bin rate
 nBin          = 2048;   % phase bins in the fold
-subintPeriods = 1;     % turns per sub-integration (aim for >~10 SNR per sub-int)
+subintPeriods = 1;     % turns per sub-integration; aim for SNR >= 6-7 per sub-int
+                       % (threshold sweep 6 Oct: 92 % / 100 % usable TOAs at SNR 6 / 7.5;
+                       % turns needed N = (7 / SNR per turn)^2, SNR per turn ~ 373*rho here)
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre
