@@ -733,7 +733,13 @@ BnoiseTotal = nChan·BnoiseChan (391.6 MHz, as the full band), bulkDelayRef.
    segments, inter-channel delays and phase exact.
 3. End to end (seed 43, −5 dB; per-channel `detectPower` at fs/4 = 1.0417 MHz, channel
    powers summed, fold, TOAs): 8 TOAs, channelized − full band mean +0.19 µs, rms
-   0.51 µs (0.18 σ); median SNR 91.79 vs 93.36 (ratio 0.983, expected 0.979: in the
+   0.51 µs (0.18 σ). Expected: the paths keep slightly different parts of the same
+   noise (channel-edge tapers vs the full-band taper), detected-power noise correlation
+   ρ = ∫(W_i·W_ch)²/√(∫W_i⁴·∫W_ch⁴) = 0.979 → each difference scatters with
+   σ·√(2(1−ρ)) = 0.205 σ. Test: χ² of the normalized differences 5.98 for 8 (99.8 %
+   range 0.86–26.1), mean +0.32 (limit ±1.16) → consistent; a processing error would
+   show as an offset many standard errors large (or in test 2). Median SNR 91.79 vs
+   93.36 (ratio 0.983, expected 0.979: in the
    *simulation* the pulsar also passed the forward-dispersion 8 MHz taper, which overlaps
    the full-band dedispersion taper, so the channel tapers cost 2.1 % of the signal; on
    real data both paths collect the same 390.0 MHz); fold noise ratio 0.955 vs 0.990

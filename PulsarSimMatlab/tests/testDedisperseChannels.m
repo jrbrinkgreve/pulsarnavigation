@@ -17,7 +17,12 @@ temporary files to tempdir. Takes ~1-2 min.
      full-band path's 8 MHz edge taper, so only interior channels are tested.
   3. End to end: per-channel detectPower, channel powers summed, fold, TOAs
      and detection; compared with the full-band chain on the same data
-     (same noise): TOA differences; SNR against the expected loss from the
+     (same noise): TOA differences against their predicted scatter (the two
+     paths keep slightly different parts of the noise: channel-edge tapers vs
+     the full-band taper; detected-power noise correlation
+     rho = int (Wi*Wch)^2 / sqrt(int Wi^4 * int Wch^4), so each difference
+     scatters with sigma*sqrt(2*(1 - rho)); chi^2 and mean tested);
+     SNR against the expected loss from the
      channel-edge tapers (simulation only: the simulated pulsar also passed
      the forward-dispersion taper, which overlaps the full-band dedispersion
      taper; on real data both paths collect the same int W^2 = 390.0 MHz);
@@ -140,19 +145,30 @@ snrExp = taperedPower(fLow, fHigh, info_disp.edgeWidth, dF, info_dc.edgeWidth) /
          taperedPower(fLow, fHigh, info_disp.edgeWidth, fHigh - fLow, info_ref.edgeWidth);
 nOff = 0.9 * nBin;                                   % ~off-pulse bins in the noise check
 sigNR = sqrt(2 / nOff);                              % scatter of a variance estimate
+% Predicted scatter of the TOA differences (receiver-noise dominated; the pulsar
+% part sees the same two filters, times W_f, nearly flat except at the band edges)
+rhoP = pathCorrelation(fLow, fHigh, info_ref.edgeWidth, dF, info_dc.edgeWidth);
+sR2  = sR(iR);                                       % sigma of each common TOA (full band)
+z    = dT ./ (sR2 * sqrt(2*(1 - rhoP)));             % ~N(0,1) if the paths agree
+nT   = numel(z);
+chi2 = sum(z.^2);
+chi2Lo = 2*gammaincinv(0.001, nT/2); chi2Hi = 2*gammaincinv(0.999, nT/2);   % chi2inv, base MATLAB
 fprintf(['3. end to end (%d common TOAs; bins %.4g us vs %.4g us): median SNR %.2f vs %.2f ' ...
          '(ratio %.4f, expected from tapers %.4f); median sigma %.3f vs %.3f us\n'], ...
     numel(tr), detC.binDt*1e6, detR.binDt*1e6, median(toaC.snr(toaC.valid)), ...
     median(toaR.snr(toaR.valid)), snrRatio, snrExp, median(toaC.toaErr(toaC.valid))*1e6, ...
     median(sR)*1e6);
 fprintf(['   TOA difference channelized - full band: mean %+.3f us, rms %.3f us ' ...
-         '(%.3f of sigma); total fold offset %+.3f vs %+.3f us\n'], mean(dT)*1e6, ...
-    rms(dT)*1e6, rms(dT)/median(sR), toaC.total.timeOffset*1e6, toaR.total.timeOffset*1e6);
+         '(%.3f of sigma; predicted %.3f from rho = %.4f); total fold offset %+.3f vs %+.3f us\n'], ...
+    mean(dT)*1e6, rms(dT)*1e6, rms(dT)/median(sR), sqrt(2*(1 - rhoP)), rhoP, ...
+    toaC.total.timeOffset*1e6, toaR.total.timeOffset*1e6);
+fprintf(['   normalized differences: chi2 = %.2f for %d TOAs (99.8%% range %.2f..%.2f), ' ...
+         'mean %+.3f (limit +-%.3f)\n'], chi2, nT, chi2Lo, chi2Hi, mean(z), 3.29/sqrt(nT));
 fprintf(['   fold noise ratio (off-pulse var / radiometer): %.4f vs %.4f (1-sigma ~%.3f each); ' ...
          'Bnoise %.4g vs %.4g MHz\n'], detnC.total.noiseRatio, detnR.total.noiseRatio, sigNR, ...
     info_dc.BnoiseTotal/1e6, BnR/1e6);
-pass = numel(tr) >= 5 && abs(snrRatio/snrExp - 1) < 0.015 && rms(dT) < 0.2*median(sR) && ...
-       abs(mean(dT)) < 0.3e-6 && abs(detnC.total.noiseRatio - 1) < 3*sigNR;
+pass = nT >= 5 && abs(snrRatio/snrExp - 1) < 0.015 && chi2 > chi2Lo && chi2 < chi2Hi && ...
+       abs(mean(z)) < 3.29/sqrt(nT) && abs(detnC.total.noiseRatio - 1) < 3*sigNR;
 fprintf('   end-to-end checks: %s\n', passStr(pass));
 if ~pass, fails{end+1} = 'end-to-end'; end
 
@@ -196,10 +212,26 @@ function P = taperedPower(fLow, fHigh, edgeF, chanW, edgeC)
 % W_c sin^2 edges (width edgeC) at the edges of every chanW-wide channel.
 f  = linspace(fLow, fHigh, 4000001);
 W  = sin2Taper(f, fLow, fHigh, edgeF);
+Wc = channelTaper(f, fLow, fHigh, chanW, edgeC);
+P  = trapz(f, W.^2 .* Wc.^2);
+end
+
+function rho = pathCorrelation(fLow, fHigh, edgeFull, chanW, edgeC)
+%PATHCORRELATION  Correlation of the detected-power noise of the full-band path
+% (taper Wi: edges edgeFull at the band edges) and the channelized path (taper Wc:
+% edges edgeC at every channel edge), for the same input noise (B*T >> 1):
+% rho = int (Wi*Wc)^2 / sqrt(int Wi^4 * int Wc^4).
+f   = linspace(fLow, fHigh, 4000001);
+Wi  = sin2Taper(f, fLow, fHigh, edgeFull);
+Wc  = channelTaper(f, fLow, fHigh, chanW, edgeC);
+rho = trapz(f, (Wi.*Wc).^2) / sqrt(trapz(f, Wi.^4) * trapz(f, Wc.^4));
+end
+
+function Wc = channelTaper(f, fLow, fHigh, chanW, edgeC)
+%CHANNELTAPER  sin^2 edges of width edgeC at the edges of every chanW-wide channel.
 fc = fLow + floor((f - fLow) / chanW) * chanW;              % channel start of each f
 fc(f >= fHigh) = fHigh - chanW;
 Wc = sin2Taper(f - fc, 0, chanW, edgeC);
-P  = trapz(f, W.^2 .* Wc.^2);
 end
 
 function W = sin2Taper(f, a, b, e)
