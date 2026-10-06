@@ -35,6 +35,7 @@ here). Files go to data/mc with a sweep_ prefix and are overwritten.
 Cost at L = 0.1 s: about nReal * (7 s + (numel(snrList) + 1) * 8 s).
 %}
 
+
 nReal   = 10;                                    % pulsar + noise realizations
 snrList = [-25 -20 -15 -10 -5 0 10 20];          % [dB] S_peak/SEFD
 replotOnly = false;    % true: only redraw the figure from data/mc/snrSweep.mat
