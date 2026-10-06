@@ -986,7 +986,7 @@ mixed signal+noise variance formula within 1 %.
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
   (e.g. DM ≈ 71 → ~90 ms sweep); channelized (filterbank) dedispersion needed.
-  Target DMs go up to ~100 → see §10 item 3 (memory-efficient FFT / alternatives).
+  Target DMs go up to ~100 → see §10 item 5 (memory-efficient FFT / alternatives).
 
 ---
 
@@ -995,25 +995,71 @@ mixed signal+noise variance formula within 1 %.
 *(Tidied 6 Oct 2026: open items first, then deferred, then a short done list with
 pointers; details of finished work are in §7 and the session logs.)*
 
-**Agreed order (6 Oct 2026; Block 1 closed, reference scenario §11 answered):**
-1. **Fast simulator for long observations** (next). Hours cannot be simulated at voltage
-   level (~61 GB per second of data). Generate detected power or folded profiles directly
-   from the validated statistical model (`expectedPowerModel`: mean and variance incl.
-   tapers and self-noise; bin-bin correlation as measured by `runH0`); validate against the
-   voltage chain at overlapping settings (e.g. 0.1 s, −20 dB). Requirements from §11:
-   worst-case design point (SEFD 7.4e5 Jy, ρ ≈ −54 dB), n_pol = 2, T_sky per direction,
-   passes with gaps (TOA from several days), detection and TOA fit on the profile combined
-   across sub-ints/passes. The adaptive sub-int length (item 4) fits here.
-2. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
+**Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
+Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
+not realistic. Physics: (a) at −54 dB one radar pulse ≈ 80,000 pulsar pulses (5 Oct: one
+radar pulse ≈ one pulsar pulse at −5 dB) → even 99.9 % suppression leaves more than the
+pulsar → excision must **blank** (weight 0), not subtract; (b) excision acts on voltages
+before dedispersion (radar = 2 µs blip there; smeared over the 6–126 ms sweep after) →
+the fast simulator (profile level) can only reproduce its *effects*, which must come from
+a real excision stage; (c) blanking needs a data weight per time bin and channel → the
+fold data product changes (today `fold.weight` is assignment-only and the same for all
+channels) → fix the interface before writing a simulator that emulates it.
+Decisions (Jasper): excision first; **channelized front end** (current full-band path
+stays as validated reference); generic L-band RFI scenario until site measurements exist.
+1. **Front-end architecture + data product** (next; design first, notes, for Jasper's
+   OK). Channelized coherent dedispersion as separate functions: channelizer (polyphase
+   filterbank of the IQ stream, ~3 MHz channels) → RFI detection and blanking per channel
+   (spectral kurtosis + robust power threshold; whole-channel flags for persistent
+   narrowband) → per-channel coherent dedispersion (short kernels: intra-channel sweep ~ms
+   at DM 100 → solves the processing side of item 5) → inter-channel delay alignment →
+   `detectPower` / `foldProfile` carry a data-weight stream w(t, chan); `fold.weight`,
+   `weight2`, `weightX` become [NBin × nSub × nChan]; `detectPulsar` / `estimateTOA`
+   combine channels with these weights; nChan = 1 must reproduce today's results exactly.
+   Also enables sub-band TOAs (DM check, Block 2).
+2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
+   type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
+   clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
+   no-excision table (§7). Include a harmonic-PRF radar (400 Hz, folds coherently) and an
+   extended generic L-band scenario: ATC radar with antenna rotation (new gating option in
+   `rfiSource`), GNSS L1/L2/E6, Inmarsat, LTE (frequencies from memory → verify).
+3. **Fast simulator for long observations** (`simulateFold`). Hours cannot be simulated
+   at voltage level (~61 GB per second of data). Draws the fold struct directly (same
+   fields as `foldProfile`, so `detectPulsar` / `estimateTOA` run unchanged), plus a
+   separate `truth` struct. Design draft (6 Oct):
+   - Units: SEFD units, baseline 1, pulse S(φ)/SEFD; SEFD = 2k(T_rx + T_sky)/A_eff.
+   - Mean of bin j: 1 + (S_mean/SEFD)·⟨f(φ − Δφ)⟩, f = true shape with mean 1 over a turn
+     (S_mean = catalogue flux, no W_eq rule); ⟨⟩ over the linear-assignment triangle
+     kernel and the drift of Δφ(t) = φ_true(t) − φ_ephem(t) within the sub-int (hook for
+     step 4).
+   - Noise: per time bin σ² = m²/(n_pol·B·binDt) (dual pol = factor n_pol; observer
+     passes Bnoise = n_pol·noiseBandwidth); per phase bin var σ²·W2/W², neighbour
+     covariance σ_jσ_{j+1}·WX/(W_j W_{j+1}); drawn with the Cholesky factor of the circular
+     tridiagonal correlation matrix; optional exact taper coefficients [css csn cnn].
+   - Weights: 'asymptotic' W = n, W2 = 2n/3, WX = n/6 (lag-1 correlation 0.25, as `runH0`
+     measured), n = sub-int time/(NBin·binDt), binDt bookkeeping only (default 1 µs); or
+     copied from a voltage-chain fold (validation).
+   - Time: `obs.passes` [N × 2] start/end, `obs.subintTime` ~60 s (whole turns);
+     turnFirst/Last/Ref, tRef, fRef from the observer's ephemeris as in `foldProfile`.
+   - Inputs: psr (shape, S_mean, true phase model or φ_true(t), optional FluxScale(t) for
+     scintillation), rx (T_rx, T_sky, A_eff, B, n_pol), obs, ephem.
+   - Validation: reproduce §7 numbers with weights copied from a voltage fold (H0 T0 std
+     1.008, lag-1 0.2484; −20 dB P_D 0.711 / 0.433, TOA rms/pred 1.12; −5 dB SNR 93.4,
+     σ 2.880 µs).
+   - Added by the reorder: RFI/excision-effects model calibrated from step 2 (per-channel /
+     time weight loss, excess noise, corrupted-sub-int rate, topocentric periodic RFI that
+     smears under the barycentric fold); writes the per-channel fold struct of step 1.
+   The adaptive sub-int length (item 6) fits here.
+4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
    orbital speed); Earth rotation; station position as input.
-In parallel / later: high DM (item 3); Block 2 (RFI excision, DM check from sub-band
-TOAs, clock jitter); Block 3 further (multiple pulsars from the §11 table, barycentric
-corrections, navigation solution).
+In parallel / later: generator-side DM memory (item 5); rest of Block 2 (DM check from
+sub-band TOAs, clock jitter); Block 3 further (multiple pulsars from the §11 table,
+barycentric corrections, navigation solution).
 
 **Open items**
-3. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
+5. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
    and margin): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
 
@@ -1032,23 +1078,26 @@ corrections, navigation solution).
    works on disk-backed chunks, real-to-complex and single-precision transforms).
    Alternatives to weigh: forward dispersion at complex baseband (5× fewer samples than
    at 4 GHz RF); channelized (sub-band) dispersion and dedispersion with short per-channel
-   kernels (standard in pulsar software). **Decision still open** (was "before the
-   reference scenario"); only affects the voltage chain, not the fast simulator.
-4. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
+   kernels (standard in pulsar software). **Processing side decided (6 Oct): channelized
+   front end** (agreed order item 1; per-channel kernels ~1e4 samples instead of ~1e8).
+   **Generator side still open** (forward dispersion ~94 GB at DM 100): memory-efficient
+   FFT, dispersion at complex baseband, or per-channel generation; only a simulation
+   problem.
+6. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
    `pipelineParams` (foldProfile also accepts `'SubintTime'`). Observer-only choice from the
    data: fold a first chunk or the whole observation, measure its SNR (`toa.total.snr` or
    `detection.total.T0`), SNR_turn ≈ SNR_total/√N_total, N = (SNR_target/SNR_turn)² with
    `SNR_target` (~7) as the parameter instead of `subintPeriods`. Adapts to scintillation
    (flux varies ~100 % over minutes–hours, §9). Helper e.g.
-   `chooseSubintPeriods(...)`. Belongs with the fast simulator (item 1: long
+   `chooseSubintPeriods(...)`. Belongs with the fast simulator (item 3: long
    observations, varying SNR). Optional: include the baseline loss (0.962) in the
    `runSNRSweep` P_D theory curves.
-5. **[todo] Factor the receiver/processing chain into one function.** The same stage
+7. **[todo] Factor the receiver/processing chain into one function.** The same stage
    calls appear in `main`, `runMonteCarlo`, `runSNRSweep` and `runH0` (noted 6 Oct).
-6. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
+8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
-   (item 1) covers it statistically first.
-7. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
+   (item 3) covers it statistically first.
+9. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
    or update to `binTime0` and `'ieee-le'`.
 
 **Deferred / low priority**
@@ -1095,7 +1144,7 @@ per ~10 %; `*.asv` git-ignored.
   [validated: `flagChi2`, good TOAs, 6 Oct]
 - Noise normalization (baseline, variance → SNR units) [validated: `detectPulsar`]
 - Sub-integration length as a design parameter [validated 6 Oct: SNR per sub-int ≥ 6–7,
-  N = (SNR_target/SNR_turn)²; adaptive choice from the data: §10 item 4]
+  N = (SNR_target/SNR_turn)²; adaptive choice from the data: §10 item 6]
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
   [validated: `detectPulsar`; P_FA nominal down to 1e-2…1e-3, `runH0.m`]
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
@@ -1106,7 +1155,10 @@ per ~10 %; `*.asv` git-ignored.
 - DM check: sub-band TOAs (`NChan`), fit vs 1/f² → DM correction ± error
 - Convention assertions: dedispersion takes `info_IQ` (fLO, fs, mapping, fRef)
 - RFI excision before dedispersion (e.g. spectral kurtosis, time-frequency blanking of the
-  radar); test harmonic-PRF radar. Baseline without excision: §7 RFI test
+  radar); test harmonic-PRF radar. Baseline without excision: §7 RFI test.
+  **Moved ahead (6 Oct 2026)**: now §10 agreed order items 1–2, with a channelized front
+  end (filterbank → blanking per channel → per-channel coherent dedispersion → data
+  weights per time bin and channel through the fold), before the fast simulator.
 - Clock jitter in the generator and its TOA effect
 
 **Block 3 – navigation physics**
@@ -1121,8 +1173,9 @@ per ~10 %; `*.asv` git-ignored.
 - 3×3 array: element signals with geometric delays; beamforming at IQ level before
   dedispersion
 - Scattering, DM variations; polarisation
-- High DM (target up to ~100): memory-efficient FFT or channelized dispersion /
-  dedispersion (§10 item 3; needed before realistic pulsars)
+- High DM (target up to ~100): processing side solved by the channelized front end
+  (§10 agreed order item 1); generator side (forward dispersion) still open (§10 item 5;
+  needed before realistic pulsars)
 - Performance of generation for long simulations; optional fold-in-detection fusion for
   millisecond pulsars
 
@@ -1167,12 +1220,12 @@ Bright but DM far too high for now: J1644−4559 (DM 479), J0738−4042 (161), J
 *Figure of merit for navigation* = σ_TOA·√t (µs·√h, smaller is better; σ after time T
 is this/√T). Worst case: J0437 55, **Vela 80**, B0329+54 1160, B1749−28 5550, B0950+08
 6040, B1642−03 5440. **Vela is as good as J0437** (bright: TOA in ~20 min; wider pulse) —
-but DM 67.8 (now within the DM ≤ 100 target, §10 item 3) and glitches / timing noise
+but DM 67.8 (now within the DM ≤ 100 target, §10 item 5) and glitches / timing noise
 (ephemeris must be recent). Both are southern (visible < ~25° N); for northern sites
 **B0329+54** is the only source with TOAs within a pass (~70 km per day of observation).
 *Decided (Jasper, 6 Oct 2026):*
 - **High-DM target 100** (was 60): includes Vela (67.8), B1937+21 (71.0), B0740−28 (73.8)
-  and margin; needs the memory-aware FFT anyway (§10 item 3: sweep 126 ms at DM 100).
+  and margin; needs the memory-aware FFT anyway (§10 item 5: sweep 126 ms at DM 100).
 - **Sky temperature in T_sys**: T_sys = T_rx (60–80 K, assumed to exclude sky) +
   T_sky(direction). The array beam is wide (~λ/D ≈ 0.21/0.8 m ≈ 15°) → T_sky is the
   beam-averaged sky: ~3–5 K off the Galactic plane (CMB 2.7 K + Galactic), ~5–20 K for
@@ -1190,13 +1243,13 @@ per day).
 1. A 3-D fix needs ≥ 4 pulsars (position + clock); with one MSP not directly possible →
    options: (a) J0437 + bright normal pulsars, (b) known ground position (demonstrate the
    timing chain), (c) more collecting area (10× area → 100× shorter integrations).
-2. The fast simulator (§10 agreed order item 1) becomes essential (hour-long sub-ints).
-3. Motion (§10 agreed order item 2) becomes urgent: within a 4 h sub-int, Earth rotation
+2. The fast simulator (§10 agreed order item 3) becomes essential (hour-long sub-ints).
+3. Motion (§10 agreed order item 4) becomes urgent: within a 4 h sub-int, Earth rotation
    (~0.3 km/s at mid-latitudes) and orbit (30 km/s) shift the phase far beyond the pulse
    width → full barycentric phase prediction (TEMPO2-like) from the start.
 4. Scintillation: J0437 (low DM) has scintles of hundreds of MHz and ~100 % flux
    variation over minutes–hours → SNR budget risk and opportunity (integrate longer when
-   bright) → adaptive sub-int length (§10 item 4).
+   bright) → adaptive sub-int length (§10 item 6).
 5. DM ≤ 100 (decided below) covers J0437, Vela and all feasible candidates; the bright
    pulsars above it (DM 147–479) stay out.
 6. The simulation is single-polarization; dual pol gives √2 in SNR (2× in time). The
@@ -1229,7 +1282,7 @@ per day).
 *Consequences of the worst-case design point.*
 - A 20 h TOA is longer than one J0437 pass → **fold across passes with gaps** (TOA from
   several days of data). The fold phase must stay coherent over days → barycentric phase
-  prediction (§10 agreed order item 2) is a hard requirement, not a refinement.
+  prediction (§10 agreed order item 4) is a hard requirement, not a refinement.
 - Sub-ints within a pass (hours) are far below SNR 6–7 → combine folded profiles across
   sub-ints/passes with the phase model before the TOA fit; detection on the combined
   profile.
