@@ -109,7 +109,8 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
   4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [tests pass]
       (excision per channel goes here, step 2)
   5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [tests pass]
-      (next: power per channel and data weights through detectPower / foldProfile)
+  6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [tests pass]
+      (next: foldProfile with per-channel weights and lag covariances, 3c)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -748,6 +749,38 @@ BnoiseTotal = nChan·BnoiseChan (391.6 MHz, as the full band), bulkDelayRef.
    ± 0.005 from the channel spectrum), lag-1 correlation 0.054 (0.052 ± 0.004) → the
    narrow-channel correlation-time effect (§9) is real and modelled exactly.
 
+### 5.17 `powerCovariance(chanWidth, edgeWidth, fs, nPerBin, ...)` + `detectChannels(info_dc, outFile, f_out, ...)` [tests pass (Claude's run, 6 Oct 2026), Jasper's run pending; unit 3b]
+
+**`powerCovariance`: exact noise statistics of detected time bins.** A bin is the mean of
+|y|² over n samples; for Gaussian y with spectrum S (normalized autocorrelation R), relative
+to the radiometer value m²/(B·dt): variance V = C(0)/rad, covariance with bin k+L
+X_L = C(L)/rad, C(L) = (1/n²)Σ_{a,b}|R(a−b+Ln)|², rad = Σ_l|R(l)|²/n. Summed over all lags
+V + 2ΣX_L = 1 exactly → the old "independent bins" model is right for long sums, not bin
+by bin when B·dt is small. S = W² of the per-channel taper (chirp is all-pass, drops out
+without blanking). Lmax = smallest L with V + 2Σ_{≤L}X ≥ 1 − 0.002. Values (3.125 MHz,
+62.5 kHz edges, 4.1667 MHz): n = 4 (0.96 µs): V 0.8877, X 0.0458 / 0.0051 / 0.0020 …,
+Lmax 7 (captured 0.9984; slow 1/L² tail from the sharp channel edges); n = 16: V 0.9625,
+X₁ 0.0173, Lmax 2; full band n = 800: V 0.9986, X₁ 7e-4, Lmax 1. `MaxLag` default from the
+frequency grid (no wrap-around).
+
+**`detectChannels`: detection of all channels into one file.** Validated `detectPower` per
+dedispersed channel (rate fs/round(fs/f_out), one warning if it differs: 1 MHz →
+1.0417 MHz, 4 samples), interleaved block-wise into the existing layout
+float32 [nChan × nBins] (temporaries deleted) → `foldProfile` reads it unchanged.
+Info: detectPower's fields used by the fold (file, nChan, N, binTime0, binDt,
+fullySupportedBins, byteOrder, chanFreqs, …) + chanWidth, chanMeanPower, BnoiseChan,
+BnoiseTotal, `noise` (powerCovariance struct, the same for every channel and bin without
+blanking; per-bin streams from the mask in step 2). 0.1 s, 128 channels: 0.5 s.
+
+**Tests (`tests/testDetectChannels.m`).** (1) powerCovariance vs the statistics of the actual
+dedispersion impulse response of channel 1: V, X identical (max |ΔX| 6e-10). (2) Rows of
+the interleaved file bit-identical to detectPower per channel. (3) foldProfile on the
+128-channel file: channel sum = fold of the summed power (1.2e-8). (4) Measured on the
+seed-43 data, 68,803 off-pulse bins × 128 channels: V 0.8866 (pred 0.8877 ± 0.0006),
+X₁₋₃ 0.0455 / 0.0053 / 0.0018 (pred 0.0458 / 0.0051 / 0.0020 ± 0.0004); variance of 5-bin
+sums (~ one 4.9 µs phase bin) 0.9685 × 5·rad (pred 0.9692 ± 0.0014; the independent-bin
+model says 1).
+
 ---
 
 ## 6. Key formulas (quick reference)
@@ -1179,6 +1212,12 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    weights, `NoiseCoeffs`); 3d `detectPulsar` + `estimateTOA` (per-channel variance sum,
    a_c/b_c, exclusion); 3e `tests/testChannelWeights.m` (synthetic masks: unbiased TOAs,
    honest error bars). Full-band path bit-identical throughout. Then a switch in main.
+   **Revised after 3a (6 Oct, agreed):** no g(w) model (experiment §7: errors up to ±45 %);
+   each time bin carries W (valid fraction), V (variance) and X(L) (lag covariances),
+   relative to m²/(B·dt) — constants from the channel spectrum without blanking (3b),
+   per-bin streams from the mask convolutions with blanking (computed in step 2, where
+   the kernel h and the mask are known; the fold only has to accept them in unit 3).
+   Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins). Next: 3c.
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1507,5 +1546,9 @@ per day).
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Claude's run, 6 Oct) |
 | `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | tests pass (Claude, 6 Oct); Jasper's run pending |
 | `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Claude's run, 6 Oct) |
+| `tests/expBlankingVariance.m` | experiment 3a: detected-power variance after blanking (exact via mask convolutions) | passes (Claude's run, 6 Oct) |
+| `powerCovariance.m` | exact variance / lag covariances of detected time bins from the channel spectrum (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
+| `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
+| `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Claude's run, 6 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
