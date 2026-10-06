@@ -10,7 +10,7 @@ Pipeline (status):
     1. generatePulsarSignal    noise-like pulses, ground truth  [done]
     2. applyDispersionStream   interstellar dispersion          [done]
   Receiver (synthetic)
-    3. addNoiseAndRFI          receiver noise + RFI at RF       [new, to verify]
+    3. addNoiseAndRFI          receiver noise + RFI at RF       [done]
     4. applyIQmodulation       downconversion to baseband       [done]
     -  clock jitter, pulsar-Earth motion, polarisation?,
        3x3 array element signals, multiple pulsars               [todo]
@@ -21,13 +21,14 @@ Pipeline (status):
     7. foldProfile             folding with a phase model       [done]
     8. estimateTOA             FFT template matching (FFTFIT)   [done]
        detectPulsar            noise normalization, NP detector,
-                               TOA quality (good = detected, chi2 ok)  [new]
+                               TOA quality (good = detected, chi2 ok)  [done]
     -  barycentric / timing corrections, residuals               [todo]
     -  navigation solution (multi-pulsar)                        [todo]
   Validation
     - plot/check functions per stage against ground truth        [done]
     9. validateTOA             TOA vs ground truth              [done]
-    - Monte Carlo over seeds / SNR                               [todo]
+    - Monte Carlo: runMonteCarlo (noise seeds), runSNRSweep (SNR,
+      detection, H0), runH0 (long noise-only run)                [done]
 
 Rule: the PROCESSING stages only use what an observer would know
 (ephemeris + receiver settings). Ground truth (info_gen, info_disp,

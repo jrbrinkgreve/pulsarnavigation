@@ -13,7 +13,7 @@ scintillation assessment; bandpass review and exact radiometer optimum in
 RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
 2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7, and the long
 H0 run (`runH0.m`, §5.14/§7), and the TOA threshold sweep (design rule SNR ≥ 6–7, baseline
-loss, turns per sub-int, §6/§7/§10); see
+loss, turns per sub-int, §6/§7/§10), and the centroid-offset test (Block 1 closed); see
 `2026-10-06_phase-e.md`. Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
@@ -704,7 +704,7 @@ correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
 | TOAs | 9/10 fitted (turn 9 partial → rejected), median SNR 93.4, median σ 2.880 µs, median red. χ² 0.963 | SNR 97.9 (flat 400 MHz band), best σ 2.85 µs |
 | validateTOA | mean −0.21 ± 0.96 µs, rms 2.50 vs 2.88 µs (ratio 0.868; ±0.24 for 9 TOAs), χ² 6.8/9 (p = 0.34), \|z\|<1 66.7 % | ratio 1 |
 | Total fold | −0.21 ± 0.96 µs (−0.22σ), SNR 280.8 | 0 |
-| Check-function centroids | per pulse mean +3.7 µs (noise ~6.2 µs each), total +3.68 ± 2.06 µs (1.8σ) | 0; watch in the MC |
+| Check-function centroids | per pulse mean +3.7 µs (noise ~6.2 µs each), total +3.68 ± 2.06 µs (1.8σ) | 0; **resolved 6 Oct: fluctuation of seed 43** (5 seeds, see below) |
 
 Conclusions: noise model and B_noise correct; FFTFIT within ~1 % of the radiometer
 optimum at this SNR (little self-noise); off-centre baseband (fLO 1.3 GHz) mapping
@@ -784,6 +784,22 @@ dynamic-spectrum colour scale is set by the carrier and the residual panel is pu
 off-axis by the baseline offset (cosmetic; percentile colour limits would help).
 Check-function centroid offset again positive (+6.3 µs carrier run, +3.1 µs impulse run;
 same noise seed as the +3.7 µs item).
+
+**Check-function centroid offset: 5 noise seeds (`main.m`, −5 dB, pulsar seed 42, noise
+seeds 43–47, 9 pulses each; 6 Oct 2026):**
+
+| noise seed | 43 | 44 | 45 | 46 | 47 | pooled |
+|---|---|---|---|---|---|---|
+| mean per-pulse centroid offset [µs] | +3.72 | +0.45 | −3.46 | −1.19 | −2.43 | **−0.58 ± 0.93** (45 pulses) |
+| total-fold centroid [µs] | +3.68 | +0.37 | −3.54 | −1.07 | −2.42 | −0.60 ± 0.92 |
+| FFTFIT total fold [µs] | −0.21 | +0.63 | +0.28 | −1.03 | +0.82 | +0.10 ± 0.43 |
+
+No bias: the +3.7 µs was a +1.8σ fluctuation of seed 43, repeated by the carrier and impulse
+runs (same noise). Per-seed means scatter as expected (std 2.8 vs 2.07, 5 values). Centroid
+and FFTFIT disagree per seed (correlation −0.25): different weighting; the centroid is
+dominated by the window wings (lever arm t − c) and is ~2× noisier. Centroid rms over 45
+pulses 5.24 µs vs predicted 6.21 (ratio 0.84 ± 0.11, 1.5σ; noise-free run went the other
+way, 0.301 vs 0.277) → not significant, not pursued.
 
 **Phase E sweep (`runSNRSweep.m` with detection, 6 Oct 2026; same seeds as phase D, TOA
 table identical; P_FA 1e-3, η 3.09 / 4.15; 90 sub-ints per point):**
@@ -981,7 +997,8 @@ mixed signal+noise variance formula within 1 %.
 2. Record the −5 dB / L = 1 s run in §7.
 3. ~~Run `runMonteCarlo.m`~~ (done, §7: ratio 0.950, χ²_red 0.91, 72 % within 1σ).
    Confirm seed 43 matches main (median SNR 93.4, σ 2.880 µs) from the Command Window.
-   Check-function centroid offset (+3.7 µs, 1.8σ): run main with another `noiseSeed`.
+   ~~Check-function centroid offset (+3.7 µs, 1.8σ)~~ (done 6 Oct, §7: 5 seeds, pooled
+   −0.58 ± 0.93 µs, fluctuation of seed 43).
 4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
    std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
 5. Next phases (plan of 1 Oct): ~~**D** SNR sweep~~ (done 5 Oct as `runSNRSweep.m`,
@@ -1048,9 +1065,10 @@ mixed signal+noise variance formula within 1 %.
 **Agreed order after phase E (6 Oct 2026):**
 1. **Close Block 1** (~1 session): ~~long H0 run~~ (done 6 Oct, §5.14/§7: T0 std 1.008,
    P_FA nominal); ~~resolve the TOA threshold~~ (done 6 Oct, §7: SNR per sub-int ≥ 6–7);
-   `noiseSeed` test of the +3.7 µs
-   check-function centroid offset; stale `main.m` header status lines. Phase F stays low
-   priority (weak-signal target).
+   ~~`noiseSeed` test of the +3.7 µs centroid offset~~ (done 6 Oct, §7: fluctuation);
+   ~~stale `main.m` header status lines~~ (done 6 Oct). **Block 1 closed** (6 Oct), apart
+   from phase F (low priority, weak-signal target) and the adaptive sub-int length (item 10,
+   with the reference scenario).
 2. **Reference scenario** (open design decision, §11): pulsars (P, DM, flux, profile),
    antenna (gain, T_sys, bandwidth), ground or spacecraft, observation hours. Fixes the
    realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~3.5e4 turns ≈ 6 min for one SNR-7 TOA of
@@ -1075,7 +1093,7 @@ per ~10 %; `*.asv` git-ignored.
 
 ## 11. Roadmap
 
-**Block 1 – noise and detection (in progress)**
+**Block 1 – noise and detection (closed 6 Oct 2026; phase F and adaptive sub-int length deferred)**
 - Receiver noise + RFI [noise validated at −5 dB (MC); all RFI types validated 5 Oct]
 - TOA quality flag (red. χ² ≫ 1 → invalid; RFI-locked TOAs have small error bars)
   [validated: `flagChi2`, good TOAs, 6 Oct]
