@@ -112,9 +112,9 @@ CHECKS (ground truth, optional via plots.*)
   expectedPowerModel (shared model)
 ```
 \* validated on noise-free data. The receiver stage (3) and the noise-aware check
-functions have been run once (−5 dB, L = 1 s, fLO 1.3 GHz, fs 800 MHz; confirmed by
-Jasper, numbers not yet recorded in §7); the −20 dB reference test and the Monte Carlo
-are still to do.
+functions are validated with noise: reference run −5 dB, L = 0.1 s, fLO 1.3 GHz,
+fs 800 MHz, noise seed 43 (SNR 93.4, σ 2.880 µs), Monte Carlo over noise seeds, SNR and
+TOA threshold sweeps down to −25 dB, long H0 run (all in §7).
 
 **Run control** (`main.m`): `runStage.sky` (generator + dispersion, the slow part),
 `runStage.receiver` (noise/RFI + IQ; rerun alone to change SNR or RFI),
@@ -986,64 +986,34 @@ mixed signal+noise variance formula within 1 %.
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
   (e.g. DM ≈ 71 → ~90 ms sweep); channelized (filterbank) dedispersion needed.
-  Target DMs go up to ~100 → see §10 item 9 (memory-efficient FFT / alternatives).
+  Target DMs go up to ~100 → see §10 item 3 (memory-efficient FFT / alternatives).
 
 ---
 
 ## 10. Open items / immediate next steps
 
-1. Run `main.m` once to confirm the refactor (`pipelineParams`, helpers in
-   `functions/`): TOAs identical to before.
-2. Record the −5 dB / L = 1 s run in §7.
-3. ~~Run `runMonteCarlo.m`~~ (done, §7: ratio 0.950, χ²_red 0.91, 72 % within 1σ).
-   Confirm seed 43 matches main (median SNR 93.4, σ 2.880 µs) from the Command Window.
-   ~~Check-function centroid offset (+3.7 µs, 1.8σ)~~ (done 6 Oct, §7: 5 seeds, pooled
-   −0.58 ± 0.93 µs, fluctuation of seed 43).
-4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
-   std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
-5. Next phases (plan of 1 Oct): ~~**D** SNR sweep~~ (done 5 Oct as `runSNRSweep.m`,
-   §5.12/§7); ~~**E** noise normalization + NP detector~~ (done 6 Oct: `detectPulsar.m`,
-   `flagChi2`, good TOAs, §5.13/§7; long H0 run done: watch item resolved, P_FA validated);
-   **F** weighted radiometer-model fit in `estimateTOA` – low priority (only gains at
-   high SNR, §7). ~~Resolve the TOA threshold~~ (done 6 Oct, §7: SNR per sub-int ≥ 6–7).
-6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
-   (`2026-10-05_fidelity.md`). Outcome: all effects ≤ 1.5 % in the simulation; the
-   statistical bandwidth (∫W²)²/∫W⁴ matters mostly for real data (non-flat bandpass,
-   flagged channels → measure from the off-pulse spectrum or off-pulse var/mean²).
-   Fixed: the flat-band prediction (1.5 % optimistic) → exact optimum in
-   `expectedPowerModel`. Documented, not changed: receiver noise does not pass W_f in the
-   simulation (real noise passes the same analog bandpass as the sky signal); < 1 % in
-   SNR; fix later if needed by making the dispersion band slightly wider than the
-   analysis band. Original review points:
-   - Which filters each component passes. Pulsar: dispersion taper W_f (8 MHz sin²
-     edges) → IQ low-pass (flat to ±~355 MHz around fLO) → dedispersion taper W_i.
-     Receiver noise: white at RF over 0–f_in/2 → IQ low-pass → W_i only. The IQ check
-     figure shows it: before dedispersion the noise extends beyond 1.2–1.6 GHz; W_i
-     removes it.
-   - Why the radiometer bandwidth is (∫W²)²/∫W⁴ and not ∫W² or the nominal B: the
-     variance of an averaged |z|² depends on how correlated the spectrum is.
-   - Which B is used where: `estimateTOA` 'Bnoise' = W_i only (391.6 MHz, observer
-     knowledge); the pulsar actually sees W_f·W_i (389.6 MHz); `predictPerformance` in
-     `addNoiseAndRFI` uses a flat B = 400 MHz (~1–2 % optimistic SNR; part of the
-     93.4 vs 97.9 gap). `expectedPowerModel` handles signal/noise filters separately
-     (Js, Jn, css, csn, cnn).
-   - Real data: the receiver bandpass is not ideal (ripple, slopes) and not known
-     exactly → measure W² from the off-pulse spectrum and multiply it into W.
-7. ~~`rfiOn = true`: observe RFI effects~~ (done 5 Oct, §7: all types verified; radar
-   destroys TOAs with confident error bars). Follow-ups: red. χ² flag in `estimateTOA`
-   (phase E); RFI excision (Block 2); optional percentile colour limits in the checks.
-8. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
-   `binTime0` and `'ieee-le'`.
-10. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
-    `pipelineParams` (foldProfile also accepts `'SubintTime'`). Observer-only choice from the
-    data: fold a first chunk or the whole observation, measure its SNR (`toa.total.snr` or
-    `detection.total.T0`), SNR_turn ≈ SNR_total/√N_total, N = (SNR_target/SNR_turn)² with
-    `SNR_target` (~7) as the parameter instead of `subintPeriods`. Adapts to scintillation
-    (flux varies ~100 % over minutes–hours, §9). Helper e.g.
-    `chooseSubintPeriods(...)`. Belongs with the reference scenario / fast simulator (long
-    observations, varying SNR). Optional: include the baseline loss (0.962) in the
-    `runSNRSweep` P_D theory curves.
-9. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
+*(Tidied 6 Oct 2026: open items first, then deferred, then a short done list with
+pointers; details of finished work are in §7 and the session logs.)*
+
+**Agreed order (6 Oct 2026; Block 1 closed, reference scenario §11 answered):**
+1. **Fast simulator for long observations** (next). Hours cannot be simulated at voltage
+   level (~61 GB per second of data). Generate detected power or folded profiles directly
+   from the validated statistical model (`expectedPowerModel`: mean and variance incl.
+   tapers and self-noise; bin-bin correlation as measured by `runH0`); validate against the
+   voltage chain at overlapping settings (e.g. 0.1 s, −20 dB). Requirements from §11:
+   worst-case design point (SEFD 7.4e5 Jy, ρ ≈ −54 dB), n_pol = 2, T_sky per direction,
+   passes with gaps (TOA from several days), detection and TOA fit on the profile combined
+   across sub-ints/passes. The adaptive sub-int length (item 4) fits here.
+2. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
+   since §11: a TOA is folded across passes, so the phase must stay coherent over days.
+   Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
+   orbital speed); Earth rotation; station position as input.
+In parallel / later: high DM (item 3); Block 2 (RFI excision, DM check from sub-band
+TOAs, clock jitter); Block 3 further (multiple pulsars from the §11 table, barycentric
+corrections, navigation solution).
+
+**Open items**
+3. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
    and margin): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
 
@@ -1062,33 +1032,57 @@ mixed signal+noise variance formula within 1 %.
    works on disk-backed chunks, real-to-complex and single-precision transforms).
    Alternatives to weigh: forward dispersion at complex baseband (5× fewer samples than
    at 4 GHz RF); channelized (sub-band) dispersion and dedispersion with short per-channel
-   kernels (standard in pulsar software). Decide before the reference scenario (§11).
+   kernels (standard in pulsar software). **Decision still open** (was "before the
+   reference scenario"); only affects the voltage chain, not the fast simulator.
+4. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
+   `pipelineParams` (foldProfile also accepts `'SubintTime'`). Observer-only choice from the
+   data: fold a first chunk or the whole observation, measure its SNR (`toa.total.snr` or
+   `detection.total.T0`), SNR_turn ≈ SNR_total/√N_total, N = (SNR_target/SNR_turn)² with
+   `SNR_target` (~7) as the parameter instead of `subintPeriods`. Adapts to scintillation
+   (flux varies ~100 % over minutes–hours, §9). Helper e.g.
+   `chooseSubintPeriods(...)`. Belongs with the fast simulator (item 1: long
+   observations, varying SNR). Optional: include the baseline loss (0.962) in the
+   `runSNRSweep` P_D theory curves.
+5. **[todo] Factor the receiver/processing chain into one function.** The same stage
+   calls appear in `main`, `runMonteCarlo`, `runSNRSweep` and `runH0` (noted 6 Oct).
+6. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
+   independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
+   (item 1) covers it statistically first.
+7. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
+   or update to `binTime0` and `'ieee-le'`.
 
-**Agreed order after phase E (6 Oct 2026):**
-1. **Close Block 1** (~1 session): ~~long H0 run~~ (done 6 Oct, §5.14/§7: T0 std 1.008,
-   P_FA nominal); ~~resolve the TOA threshold~~ (done 6 Oct, §7: SNR per sub-int ≥ 6–7);
-   ~~`noiseSeed` test of the +3.7 µs centroid offset~~ (done 6 Oct, §7: fluctuation);
-   ~~stale `main.m` header status lines~~ (done 6 Oct). **Block 1 closed** (6 Oct), apart
-   from phase F (low priority, weak-signal target) and the adaptive sub-int length (item 10,
-   with the reference scenario).
-2. **Reference scenario** (open design decision; **draft 6 Oct in §11**, 4 open questions): pulsars (P, DM, flux, profile),
-   antenna (gain, T_sys, bandwidth), ground or spacecraft, observation hours. Fixes the
-   realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~3.5e4 turns ≈ 6 min for one SNR-7 TOA of
-   the current pulsar, table in §7; an earlier "7e5 turns ≈ 2 h" here was a 10× error),
-   whether DM ~60 (item 9) is urgent, and how long observations are. Adaptive sub-int
-   length (item 10) fits here.
-3. **Fast simulator for long observations**: hours cannot be simulated at voltage level
-   (~61 GB per second of data). Generate detected power or folded profiles directly from the
-   validated statistical model (`expectedPowerModel`: mean and variance incl. tapers and
-   self-noise); validate against the voltage chain at overlapping settings (e.g. 0.1 s,
-   −20 dB). Makes the weak-signal regime simulatable.
-4. **Relative motion** (Block 3): Doppler in the generator and in the fold phase model
-   (~100 µs/s drift at Earth's orbital speed; folding hours without it smears the pulse).
-In parallel / later: high DM (item 9); Block 2 (RFI excision, DM check from sub-band
-TOAs, clock jitter); Block 3 further (multiple pulsars, barycentric corrections,
-navigation solution).
+**Deferred / low priority**
+- **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
+  (§7), not for the weak-signal target.
+- **Receiver noise does not pass W_f** in the simulation (real noise passes the same
+  analog bandpass as the sky signal); < 1 % in SNR; fix by making the dispersion band
+  slightly wider than the analysis band if needed (`2026-10-05_fidelity.md`).
+- **Real data**: the receiver bandpass is not ideal (ripple, slopes) and not known
+  exactly → measure W² from the off-pulse spectrum (or off-pulse var/mean²) and multiply
+  it into W for the statistical bandwidth (∫W²)²/∫W⁴ (§6).
+- Optional percentile colour limits in the RFI check figures.
 
-Done: `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print
+**Done (details in §7 and the logs)**
+- Phase C refactor (`pipelineParams`, helpers in `functions/`): `main.m` runs; bit-identity
+  vs before not checkable (no earlier numbers kept), the first noisy run after it is the
+  reference (`2026-10-01_session.md`).
+- −5 dB / L = 1 s run (phase B): confirmed by Jasper, numbers never recorded; superseded
+  by the L = 0.1 s reference (seed 43: SNR 93.4, σ 2.880 µs) and the Monte Carlo.
+- `runMonteCarlo.m` (ratio 0.950, χ²_red 0.91, 72 % within 1σ); seed 43 = main
+  (built-in check, §7).
+- −20 dB reference test (`subintPeriods = 10`, L = 1 s): superseded by the phase D/E SNR
+  sweep and the TOA threshold sweep at −20…−15 dB (§7).
+- Phases D (SNR sweep) and E (noise normalization, NP detector, `flagChi2`, good TOAs,
+  long H0 run); TOA threshold (SNR per sub-int ≥ 6–7); centroid offset (fluctuation of
+  seed 43). Block 1 closed 6 Oct.
+- Bandpass filtering / noise bandwidth review (5 Oct, `2026-10-05_fidelity.md`): all
+  effects ≤ 1.5 %; flat-band prediction fixed in `expectedPowerModel`.
+- RFI types observed and validated (5 Oct, §7); red. χ² flag done in phase E; RFI
+  excision moved to Block 2.
+- Reference scenario (6 Oct, §11): questions answered, psrcat table, DM target 100,
+  T_sky in T_sys.
+- `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print per
+  ~10 %; `*.asv` git-ignored.
 per ~10 %; `*.asv` git-ignored.
 
 ---
@@ -1101,7 +1095,7 @@ per ~10 %; `*.asv` git-ignored.
   [validated: `flagChi2`, good TOAs, 6 Oct]
 - Noise normalization (baseline, variance → SNR units) [validated: `detectPulsar`]
 - Sub-integration length as a design parameter [validated 6 Oct: SNR per sub-int ≥ 6–7,
-  N = (SNR_target/SNR_turn)²; adaptive choice from the data: §10 item 10]
+  N = (SNR_target/SNR_turn)²; adaptive choice from the data: §10 item 4]
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
   [validated: `detectPulsar`; P_FA nominal down to 1e-2…1e-3, `runH0.m`]
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
@@ -1128,7 +1122,7 @@ per ~10 %; `*.asv` git-ignored.
   dedispersion
 - Scattering, DM variations; polarisation
 - High DM (target up to ~100): memory-efficient FFT or channelized dispersion /
-  dedispersion (§10 item 9; needed before realistic pulsars)
+  dedispersion (§10 item 3; needed before realistic pulsars)
 - Performance of generation for long simulations; optional fold-in-detection fusion for
   millisecond pulsars
 
@@ -1173,12 +1167,12 @@ Bright but DM far too high for now: J1644−4559 (DM 479), J0738−4042 (161), J
 *Figure of merit for navigation* = σ_TOA·√t (µs·√h, smaller is better; σ after time T
 is this/√T). Worst case: J0437 55, **Vela 80**, B0329+54 1160, B1749−28 5550, B0950+08
 6040, B1642−03 5440. **Vela is as good as J0437** (bright: TOA in ~20 min; wider pulse) —
-but DM 67.8 (now within the DM ≤ 100 target, §10 item 9) and glitches / timing noise
+but DM 67.8 (now within the DM ≤ 100 target, §10 item 3) and glitches / timing noise
 (ephemeris must be recent). Both are southern (visible < ~25° N); for northern sites
 **B0329+54** is the only source with TOAs within a pass (~70 km per day of observation).
 *Decided (Jasper, 6 Oct 2026):*
 - **High-DM target 100** (was 60): includes Vela (67.8), B1937+21 (71.0), B0740−28 (73.8)
-  and margin; needs the memory-aware FFT anyway (§10 item 9: sweep 126 ms at DM 100).
+  and margin; needs the memory-aware FFT anyway (§10 item 3: sweep 126 ms at DM 100).
 - **Sky temperature in T_sys**: T_sys = T_rx (60–80 K, assumed to exclude sky) +
   T_sky(direction). The array beam is wide (~λ/D ≈ 0.21/0.8 m ≈ 15°) → T_sky is the
   beam-averaged sky: ~3–5 K off the Galactic plane (CMB 2.7 K + Galactic), ~5–20 K for
@@ -1196,13 +1190,13 @@ per day).
 1. A 3-D fix needs ≥ 4 pulsars (position + clock); with one MSP not directly possible →
    options: (a) J0437 + bright normal pulsars, (b) known ground position (demonstrate the
    timing chain), (c) more collecting area (10× area → 100× shorter integrations).
-2. The fast simulator (§10 agreed order item 3) becomes essential (hour-long sub-ints).
-3. Motion (item 4) becomes urgent: within a 4 h sub-int, Earth rotation (~0.3 km/s at
-   mid-latitudes) and orbit (30 km/s) shift the phase far beyond the pulse width → full
-   barycentric phase prediction (TEMPO2-like) from the start.
+2. The fast simulator (§10 agreed order item 1) becomes essential (hour-long sub-ints).
+3. Motion (§10 agreed order item 2) becomes urgent: within a 4 h sub-int, Earth rotation
+   (~0.3 km/s at mid-latitudes) and orbit (30 km/s) shift the phase far beyond the pulse
+   width → full barycentric phase prediction (TEMPO2-like) from the start.
 4. Scintillation: J0437 (low DM) has scintles of hundreds of MHz and ~100 % flux
    variation over minutes–hours → SNR budget risk and opportunity (integrate longer when
-   bright) → adaptive sub-int length (§10 item 10).
+   bright) → adaptive sub-int length (§10 item 4).
 5. DM ≤ 100 (decided below) covers J0437, Vela and all feasible candidates; the bright
    pulsars above it (DM 147–479) stay out.
 6. The simulation is single-polarization; dual pol gives √2 in SNR (2× in time). The
@@ -1235,7 +1229,7 @@ per day).
 *Consequences of the worst-case design point.*
 - A 20 h TOA is longer than one J0437 pass → **fold across passes with gaps** (TOA from
   several days of data). The fold phase must stay coherent over days → barycentric phase
-  prediction (agreed order item 4) is a hard requirement, not a refinement.
+  prediction (§10 agreed order item 2) is a hard requirement, not a refinement.
 - Sub-ints within a pass (hours) are far below SNR 6–7 → combine folded profiles across
   sub-ints/passes with the phase model before the TOA fit; detection on the combined
   profile.
