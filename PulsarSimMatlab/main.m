@@ -20,7 +20,8 @@ Pipeline (status):
     6. detectPower             square-law detection             [done]
     7. foldProfile             folding with a phase model       [done]
     8. estimateTOA             FFT template matching (FFTFIT)   [done]
-    -  noise normalization, NP detector                          [todo]
+       detectPulsar            noise normalization, NP detector,
+                               TOA quality (good = detected, chi2 ok)  [new]
     -  barycentric / timing corrections, residuals               [todo]
     -  navigation solution (multi-pulsar)                        [todo]
   Validation
@@ -132,7 +133,20 @@ if runStage.toa
     Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
     [toa, info_toa] = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise);
 
+    % Detection (Neyman-Pearson, P_FA 1e-3 per sub-int) and TOA quality.
+    % Good TOA: fitted, pulsar detected without using the ephemeris phase
+    % (unknown phase), and the fit residuals consistent with the noise (chi^2).
+    [detection, info_detect] = detectPulsar(fold, info_fold, template, 'Bnoise', Bnoise);
+    toa.good = toa.valid & detection.detectedUnknown & ~toa.flagChi2;
+    fprintf('main: %d of %d fitted TOAs good (%d not detected, %d chi2-flagged)\n', ...
+        nnz(toa.good), nnz(toa.valid), nnz(toa.valid & ~detection.detectedUnknown), ...
+        nnz(toa.valid & toa.flagChi2));
+
     val = validateTOA(toa, info_gen, 'Plot', plots.toa);
+    if any(toa.good) && nnz(toa.good) < nnz(toa.valid)
+        toaGood = toa; toaGood.valid = toa.good;          % validate the good TOAs only
+        valGood = validateTOA(toaGood, info_gen, 'Plot', false, 'Label', 'good TOAs');
+    end
     % Best achievable (ground truth, exact band tapers; see expectedPowerModel)
     M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx);
     if M.hasNoise

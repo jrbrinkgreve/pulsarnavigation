@@ -10,7 +10,9 @@ This file tracks the **current state** of the code (started 30 September 2026 as
 `2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
 `expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
-RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Status markers: **[validated]** = run in MATLAB and
+RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
+2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7; see
+`2026-10-06_phase-e.md`. Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -122,6 +124,9 @@ RFI sources; the RFI check since 5 Oct, `isequaln` on `info_rx.rfi.params` vs `r
 (reload `<name>_info.mat`), `gaussianTemplate(nBin, fwhmTurns)` (periodic Gaussian,
 peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
 product of raised-cosine edge tapers). **Local function in main**: `checkConsistency`.
+**Detection** (processing, after `estimateTOA` in main and `runSNRSweep`):
+`detectPulsar` (§5.13); main defines `toa.good = valid & detectedUnknown & ~flagChi2`
+and runs `validateTOA` also on the good TOAs only.
 
 **Disk use** ≈ L·(3·f_in·4 + 2·fs·8 + f_out·4) bytes: for L = 1 s at fs = 500 MHz about
 56 GB (three 16 GB RF files, two 4 GB complex files, 4 MB power); at fs = 800 MHz about
@@ -467,9 +472,17 @@ Receiver noise sees only W_inv, so this is exact for it; when the pulsar dominat
 
 **Outputs** per sub-int: valid, coverage (default `MinCoverage` = 1: complete turns
 only), phase, phaseErr, toa, toaErr, amp, ampErr, baseline, snr (= b/σ_b), redChi2
-(on-pulse bins, model > 1 % of peak), tRef, fRef, turnRef; `toa.total` (whole fold):
-phase, phaseErr, timeOffset (= phase/f0, relative to the ephemeris, **not** an absolute
-TOA), timeOffsetErr, amp, ampErr, snr, redChi2.
+(on-pulse bins, model > 1 % of peak), flagChi2, tRef, fRef, turnRef; `toa.total` (whole
+fold): phase, phaseErr, timeOffset (= phase/f0, relative to the ephemeris, **not** an
+absolute TOA), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2.
+
+**Quality flag** (6 Oct 2026): option `MaxRedChi2` (default 2) → `flagChi2` = redChi2 > 2.
+Red. χ² = Σ (p_j − m_j)²/v_j over the on-pulse bins / (n − 3): normalized residuals
+squared and averaged, ≈ 1 ± √(2/n) (≈ ± 0.09 for ~260 bins) when the profile is template +
+noise; ≫ 1 when something else is in it. The error bar only measures the sharpness of the
+correlation peak and cannot see a wrong peak; χ² checks the fit itself (radar lock: χ²
+939–1625 with σ_TOA 1 µs). Threshold 2 ≫ clean scatter and the known high-SNR excess
+(1.05–1.1); not sensitive to moderate RFI (χ² ~1.3), by choice.
 
 **Optimality note.** FFTFIT weights by the template slope: optimal for white
 (receiver-dominated) noise. With pure self-noise (variance ∝ profile²) a flatter
@@ -574,6 +587,41 @@ every realization and missing from the scatter.
   rms/pred and pred/opt on a linear 0.8–3 axis (off-scale points on the edge, labelled);
   |z| < 1 and outlier fraction vs best SNR per sub-int.
 - Cost: ≈ 7 s sky + ≈ 8 s per SNR value per realization; full run 11.6 min.
+- Phase E additions (6 Oct): `detectPulsar` per (realization, SNR) (`detC`); a true **H0
+  pass** per realization: zero sky (`generatePulsarSignal` with A = 0, made once,
+  `sweep_zero.dat`) + receiver noise (`'NoiseStd'` 1, the realization's noise seed),
+  processing, only `detectPulsar` (`detH0C`, `res.h0`). (A very low SNR such as −50 dB is
+  not H0: it is a real small-antenna operating point.) Second table: T0 mean/std, P_D
+  known/unknown vs theory Q(η − SNRopt), χ² flags, good TOAs, outliers and rms/pred among
+  good TOAs, H0 line. Figure 2×2 with a detection panel (H0 false alarms in its title).
+  Full run 13.0 min.
+
+### 5.13 `detectPulsar(fold, info_fold, template, ...)` [validated, 6 Oct 2026]
+
+**Question.** Is the pulsar there? Neyman–Pearson test of H0 (baseline + noise) against
+H1 (baseline + template-shaped pulse + noise) at a fixed false-alarm probability P_FA
+(default 1e-3 per profile), for every sub-int and the total fold. Observer-only (fold,
+template, B_n, P_FA). Separate from the TOA error bar, which assumes the found peak is the
+pulse; the detector asks whether the best peak stands out more than noise ever would.
+
+**Code / maths.**
+- H0 noise normalization: baseline a = mean(p) (exact under H0), per time bin var
+  a²/(B_n·Δt), per phase bin v_j = that·W2_j/W_j², neighbour covariance from weightX (as
+  `estimateTOA`); `normProfile` = (p − a)/√v.
+- Known phase (`'Phase'`, default 0 = ephemeris): T0 = cᵀ(p − a)/√(cᵀ·Cov·c), c = template
+  at that phase minus its mean. H0: N(0,1) → η₀ = Φ⁻¹(1 − P_FA) = 3.09.
+- Unknown phase: T(τ) for all bin shifts (numerator and variance by FFT correlation),
+  Tmax, phaseMax. Look-elsewhere: Rice, P_FA(η) ≈ Q(η) + √λ₂/(2π)·e^(−η²/2),
+  λ₂ = Σ(2πk)²|S_k|²/Σ|S_k|² (k ≥ 1) → Rice factor 5.51, η = 4.15.
+- Noise check: off-pulse variance (template at phaseMax < 1 % of peak) / radiometer
+  variance with the off-pulse baseline (`noiseRatio`; carrier ~1.65, radar ≫ 1).
+- Output `detection` (not `det`: would shadow `det()`), `info` (PFA, lambda2, riceFactor).
+
+**Validation.** NumPy (20,000 H0 profiles with neighbour correlation): T0 mean 0.014, std
+0.996; P(Tmax > η) 0.0098 at 1e-2, 0.0009 at 1e-3 (Rice slightly conservative far from
+the tail: 0.26 at 0.3). MATLAB −5 dB: 9/9 detected, noise ratio 0.992, T0 114.5 (> SNR
+93.4 by ×1.23: T0 uses the H0 noise and ignores self-noise; irrelevant for detection and
+for the small-antenna regime). Sweep results in §7.
 
 ---
 
@@ -596,6 +644,9 @@ every realization and missing from the scatter.
 | Best achievable, exact tapers | SNR² = ∫Ps²/v dt, 1/σ_TOA² = ∫Ps′²/v dt, v = css·Ps² + 2·csn·Ps·Pn + cnn·Pn² |
 | Power vs statistical bandwidth | ∫W² (mean power: 390.0 / 388.4 MHz) vs (∫W²)²/∫W⁴ (variance: 391.6 / 389.6 MHz); B_n ≥ ∫W² for W ≤ 1 |
 | TOA | tRef + τ/fRef |
+| Detection thresholds | known phase η₀ = Φ⁻¹(1 − P_FA); unknown phase Q(η) + √λ₂/(2π)·e^(−η²/2) = P_FA (3.09 / 4.15 at 1e-3) |
+| Detection probability | P_D = Q(η − SNR) (known phase; unknown phase approx.) |
+| Reduced χ² | Σ (p_j − m_j)²/v_j / (n − 3), ≈ 1 ± √(2/n) for template + noise |
 | FFTFIT uncertainty | σ_τ = √(dᵀ·Cov·d)/|C″| |
 
 ---
@@ -710,6 +761,33 @@ off-axis by the baseline offset (cosmetic; percentile colour limits would help).
 Check-function centroid offset again positive (+6.3 µs carrier run, +3.1 µs impulse run;
 same noise seed as the +3.7 µs item).
 
+**Phase E sweep (`runSNRSweep.m` with detection, 6 Oct 2026; same seeds as phase D, TOA
+table identical; P_FA 1e-3, η 3.09 / 4.15; 90 sub-ints per point):**
+
+| snrDB | SNR opt | T0 mean | T0 std | P_D known (theory) | P_D unknown (theory) | χ² flags | good | \|z\|>5 good | rms/pred good |
+|---|---|---|---|---|---|---|---|---|---|
+| H0 (no pulsar) | 0 | −0.011 | 1.102 | 0/90 false alarms (0.09) | 0/90 (0.09) | – | – | – | – |
+| −25 | 1.21 | 1.15 | 1.11 | 0.022 (0.030) | 0.011 (0.002) | 0 | 1 | 0 | 1.16 (n = 1) |
+| −20 | 3.79 | 3.66 | 1.11 | 0.711 (0.759) | 0.433 (0.358) | 0 | 39 | **0 %** (all: 5.6 %) | 1.12 ± 0.11 |
+| −15 | 11.79 | 11.60 | 1.13 | 1 (1) | 1 (1) | 0 | 90 | 0 | 1.030 |
+| −10…+20 | ≥ 35 | ≥ SNR | 1.16–4.8 | 1 | 1 | 0 | 90 | 0 | = all |
+
+Conclusions:
+1. False alarms 0/90 under a true H0; T0 mean = matched-filter SNR in the weak regime
+   (3.66 vs 3.79, 11.60 vs 11.79); P_D on the theory curves (−20 dB: known −1.1σ, unknown
+   +1.5σ; the unknown-phase theory is approximate and slightly low).
+2. **Good TOAs are outlier-free**: at −20 dB 39 of 90 kept, 0 % outliers (rms 995 → 73 µs,
+   |z| < 2 94.9 %); at ≥ −15 dB nothing rejected; no χ² false flags without RFI.
+3. T0 > SNR at high SNR (self-noise ignored by the H0 normalization; T0 std grows to ~4.8)
+   — expected, irrelevant for the small-antenna target.
+4. **Watch item:** T0 std 1.102 ± 0.075 under H0 (1.4σ), 1.11–1.13 at −25…−15 dB, and the
+   phase D error-bar ratios 1.03–1.06 — all from the same 10 noise realizations, so ≈ one
+   hint that the noise model underestimates the σ of template-weighted sums over many bins
+   by ~5–10 % (per-bin variance is right: noise ratio 0.992, residual std 0.9995 → it would
+   have to be correlation beyond neighbouring bins; no mechanism identified). If real, the
+   effective threshold is ~3.8σ → ~4–5× the nominal P_FA. Test: long H0 run (no pulsar,
+   ~900 sub-ints → T0 std ± 0.024, ~0.9 false alarms expected vs ~4 if real).
+
 **NumPy validations (algorithm ports):** dispersion kernel group delays exact to 1e-4 µs,
 leakage ~1e-12, overlap-add = direct convolution (~1e-7); forward → IQ → inverse round
 trip ~2e-6; IQ tones ~1.5e-6, burst centroid shift 0.04 ns, power ratio 2.000;
@@ -796,11 +874,13 @@ mixed signal+noise variance formula within 1 %.
   `expectedPowerModel` profile, the 1 %-of-peak on-pulse threshold in `estimateTOA`.
 - **Estimator**: FFTFIT not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB;
   §7 phase D); weighted (radiometer-model) fit not implemented. Below SNR ≈ 10 per
-  sub-int TOAs have outliers (no outlier flag or rejection yet).
+  sub-int TOAs have outliers; the good-TOA definition (detected + χ² ok, §5.13) removes
+  them (§7 phase E). Detection P_FA not yet tested in the tail (watch item §7).
 - **Edges**: last ~6.3 ms of each file not fully supported; partial first/last turns
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
   (e.g. DM ≈ 71 → ~90 ms sweep); channelized (filterbank) dedispersion needed.
+  Target DMs go up to ~60 → see §10 item 9 (memory-efficient FFT / alternatives).
 
 ---
 
@@ -815,7 +895,8 @@ mixed signal+noise variance formula within 1 %.
 4. −20 dB reference test (`subintPeriods = 10`, L = 1 s): off-pulse normalized residual
    std ≈ 1.00; 10 TOAs with SNR ≈ 12 and σ ≈ 25 µs; red. χ² ≈ 1.
 5. Next phases (plan of 1 Oct): ~~**D** SNR sweep~~ (done 5 Oct as `runSNRSweep.m`,
-   §5.12/§7); **E** noise normalization + NP detector (`detectPulsar.m`) – next;
+   §5.12/§7); ~~**E** noise normalization + NP detector~~ (done 6 Oct: `detectPulsar.m`,
+   `flagChi2`, good TOAs, §5.13/§7; open: long H0 run for the T0-std watch item);
    **F** weighted radiometer-model fit in `estimateTOA` – low priority (only gains at
    high SNR, §7). Optional: resolve the TOA threshold (−19…−16 dB).
 6. ~~**Review (Jasper): bandpass filtering and noise bandwidth.**~~ Done 5 Oct 2026
@@ -846,6 +927,45 @@ mixed signal+noise variance formula within 1 %.
    (phase E); RFI excision (Block 2); optional percentile colour limits in the checks.
 8. Legacy `envelopeReconstruction` and `plotEnvelope` (now in `old/`): retire or update to
    `binTime0` and `'ieee-le'`.
+9. **[todo] DMs up to ~60 (Jasper, 5 Oct): FFT memory.** The single-FFT dispersion
+   kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
+
+   | DM | sweep | forward dispersion (real, 4 GHz, 44 B/sample) | dedispersion (complex, 800 MHz, 56 B/sample) |
+   |---|---|---|---|
+   | 5 (now) | 6.3 ms | 2^26 → 3 GB (run uses 2^28, 11.8 GB) | 2^24 → 0.9 GB |
+   | 30 | 37.8 ms | 2^29 → 24 GB | 2^26 → 3.8 GB |
+   | 60 | 75.6 ms | 2^30 → **47 GB** (kernel design grid alone ~17 GB) | 2^27 → 7.5 GB (above the 4 GB default `MaxMemoryGB`) |
+
+   → the forward dispersion in `applyDispersionStream` is the blocker on the 24 GB
+   machine; dedispersion is feasible with a raised `MaxMemoryGB`. Also: L must be well
+   above the sweep (L = 0.1 s at DM 60 leaves only ~24 ms fully supported); Jasper: switch
+   to 1–2 s test data when needed (disk ≈ 61 GB per second of data at fs = 800 MHz).
+   Option (Jasper): a **memory-efficient FFT** (e.g. out-of-core / four-step FFT that
+   works on disk-backed chunks, real-to-complex and single-precision transforms).
+   Alternatives to weigh: forward dispersion at complex baseband (5× fewer samples than
+   at 4 GHz RF); channelized (sub-band) dispersion and dedispersion with short per-channel
+   kernels (standard in pulsar software). Decide before the reference scenario (§11).
+
+**Agreed order after phase E (6 Oct 2026):**
+1. **Close Block 1** (~1 session): long H0 run (T0-std watch item, P_FA tail; §7 phase E);
+   resolve the TOA threshold (sweep −19…−16 dB, SNR per
+   sub-int 3.8–11.8 → minimum SNR as a number); `noiseSeed` test of the +3.7 µs
+   check-function centroid offset; stale `main.m` header status lines. Phase F stays low
+   priority (weak-signal target).
+2. **Reference scenario** (open design decision, §11): pulsars (P, DM, flux, profile),
+   antenna (gain, T_sys, bandwidth), ground or spacecraft, observation hours. Fixes the
+   realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~7e5 turns ≈ 2 h for one SNR-10 TOA of the
+   current pulsar), whether DM ~60 (item 9) is urgent, and how long observations are.
+3. **Fast simulator for long observations**: hours cannot be simulated at voltage level
+   (~61 GB per second of data). Generate detected power or folded profiles directly from the
+   validated statistical model (`expectedPowerModel`: mean and variance incl. tapers and
+   self-noise); validate against the voltage chain at overlapping settings (e.g. 0.1 s,
+   −20 dB). Makes the weak-signal regime simulatable.
+4. **Relative motion** (Block 3): Doppler in the generator and in the fold phase model
+   (~100 µs/s drift at Earth's orbital speed; folding hours without it smears the pulse).
+In parallel / later: high DM (item 9); Block 2 (RFI excision, DM check from sub-band
+TOAs, clock jitter); Block 3 further (multiple pulsars, barycentric corrections,
+navigation solution).
 
 Done: `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print
 per ~10 %; `*.asv` git-ignored.
@@ -857,9 +977,12 @@ per ~10 %; `*.asv` git-ignored.
 **Block 1 – noise and detection (in progress)**
 - Receiver noise + RFI [noise validated at −5 dB (MC); all RFI types validated 5 Oct]
 - TOA quality flag (red. χ² ≫ 1 → invalid; RFI-locked TOAs have small error bars)
-- Noise normalization (baseline, variance → SNR units)
-- Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20)
+  [validated: `flagChi2`, good TOAs, 6 Oct]
+- Noise normalization (baseline, variance → SNR units) [validated: `detectPulsar`]
+- Sub-integration length as a design parameter (SNR per sub-int ≳ 10–20) [confirmed by
+  phase D/E: ≥ ~10, exact threshold open]
 - NP detector (matched filter on folded profile, threshold from false-alarm rate)
+  [validated: `detectPulsar`; P_FA tail open]
 - Re-evaluate TOA estimator under noise; weighted radiometer-model fit
 - Monte Carlo harness: over noise seeds [validated: `runMonteCarlo.m`]; TOA error vs SNR
   vs exact optimum, pulsar seed varied [validated: `runSNRSweep.m`, phase D]
@@ -882,7 +1005,9 @@ per ~10 %; `*.asv` git-ignored.
 **Block 4 – later**
 - 3×3 array: element signals with geometric delays; beamforming at IQ level before
   dedispersion
-- Scattering, DM variations; channelized dedispersion for high DM; polarisation
+- Scattering, DM variations; polarisation
+- High DM (target up to ~60): memory-efficient FFT or channelized dispersion /
+  dedispersion (§10 item 9; needed before realistic pulsars)
 - Performance of generation for long simulations; optional fold-in-detection fusion for
   millisecond pulsars
 
@@ -940,6 +1065,7 @@ lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 | `foldProfile.m` | folding with phase model | validated |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free; −5 dB MC) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
+| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA tail open) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

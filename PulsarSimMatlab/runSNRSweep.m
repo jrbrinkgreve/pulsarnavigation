@@ -1,14 +1,24 @@
 %{
-RUNSNRSWEEP - TOA precision and error bars versus SNR (phase D)
+RUNSNRSWEEP - TOA precision, error bars and detection versus SNR (phases D, E)
 
 For each SNR in snrList, nReal independent realizations go through the
 same stages as main.m; the pooled TOAs are compared with the ground truth
 (validateTOA) and with the best achievable TOA error (expectedPowerModel,
-exact band tapers). Two questions:
+exact band tapers). Questions:
   - low SNR: below which SNR per sub-int do the error bars stop being
     valid (wrong correlation peak, outliers)?
   - high SNR: how far does FFTFIT fall behind the optimum once the
     pulsar's own noise (self-noise) dominates?
+  - detection (detectPulsar): false-alarm rate under H0, detection
+    probability vs SNR against theory, and whether the good TOAs
+    (detected, chi^2 not flagged; as in main.m) are free of outliers.
+
+H0 (no pulsar at all): per realization one extra pass on a zero sky (the
+generator with A = 0, made once) plus receiver noise ('NoiseStd' 1; the
+level does not matter, the detection statistics are normalized), with the
+realization's noise seed. Only detectPulsar runs there (no TOAs to
+validate). A very low SNR such as -50 dB is NOT used as H0: it is a real
+operating point (small antennas), only needing long integrations.
 
 Unlike runMonteCarlo.m, the PULSAR realization changes too: at high SNR the
 self-noise would otherwise be identical in every realization and missing
@@ -22,12 +32,13 @@ stay independent across realizations.
 
 Parameters come from pipelineParams.m (snrDB and seed are overridden
 here). Files go to data/mc with a sweep_ prefix and are overwritten.
-Cost at L = 0.1 s: about nReal * (15 s + numel(snrList) * 17 s).
+Cost at L = 0.1 s: about nReal * (7 s + (numel(snrList) + 1) * 8 s).
 %}
 
 nReal   = 10;                                    % pulsar + noise realizations
 snrList = [-25 -20 -15 -10 -5 0 10 20];          % [dB] S_peak/SEFD
 replotOnly = false;    % true: only redraw the figure from data/mc/snrSweep.mat
+
 
 
 % Paths and parameters
@@ -37,6 +48,7 @@ pipelineParams;
 
 mcDir      = fullfile(dataDir, "mc");
 swRaw      = fullfile(mcDir, "sweep_raw.dat");
+swZero     = fullfile(mcDir, "sweep_zero.dat");  % H0 sky: no pulsar
 swDisp     = fullfile(mcDir, "sweep_dispersed.dat");
 swRx       = fullfile(mcDir, "sweep_rx.dat");
 swIQ       = fullfile(mcDir, "sweep_rx_IQ.dat");
@@ -53,6 +65,8 @@ end
 template = gaussianTemplate(nBin, ephem.profileFWHM);
 nSNR = numel(snrList);
 toaC = cell(nReal, nSNR);                        % toa struct per (realization, SNR)
+detC = cell(nReal, nSNR);                        % detectPulsar result per (realization, SNR)
+detH0C = cell(nReal, 1);                         % detectPulsar result of the H0 pass
 genC = cell(nReal, 1);                           % info_gen per realization
 optSigma = nan(1, nSNR);                         % best TOA error per sub-int [s]
 optSNR   = nan(1, nSNR);                         % best SNR per sub-int
@@ -60,6 +74,9 @@ optSNR   = nan(1, nSNR);                         % best SNR per sub-int
 fprintf('runSNRSweep: %d realizations x %d SNR values (%s dB), L = %.3g s, %d turn(s) per sub-int\n', ...
     nReal, nSNR, num2str(snrList), L, subintPeriods);
 tAll = tic;
+% H0 sky: the generator with A = 0 (zeros, same length; dispersion of zeros is zeros)
+info_zero = generatePulsarSignal(swZero, T, f_in, 0, L, dutycycle, ...
+    'Seed', seed, 'EnvelopeMode', genEnvMode, 'Verbose', false);
 for j = 1:nReal
     pulsarSeed = seed + 100*(j - 1);             % j = 1 is main's seed
     noiseSeedJ = pulsarSeed + 1;                 % j = 1 is main's noiseSeed
@@ -93,7 +110,9 @@ for j = 1:nReal
             'SaveFile', false, 'Verbose', false);
         Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
         toa = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise, 'Verbose', false);
+        detection = detectPulsar(fold, info_fold, template, 'Bnoise', Bnoise, 'Verbose', false);
         toaC{j, s} = toa;
+        detC{j, s} = detection;
 
         % Best achievable (ground truth, exact band tapers); same for every j
         if j == 1
@@ -103,20 +122,62 @@ for j = 1:nReal
         end
 
         v = toa.valid;
-        fprintf('    %+4g dB: %d TOAs, median SNR %.1f, median TOA error %.4g us, %.0f s\n', ...
-            snrList(s), nnz(v), median(toa.snr(v)), median(toa.toaErr(v))*1e6, toc(tRun));
+        fprintf(['    %+4g dB: %d TOAs, median SNR %.1f, median TOA error %.4g us, ' ...
+                 'detected %d (unknown phase), chi2-flagged %d, %.0f s\n'], ...
+            snrList(s), nnz(v), median(toa.snr(v)), median(toa.toaErr(v))*1e6, ...
+            nnz(detection.detectedUnknown), nnz(toa.flagChi2), toc(tRun));
     end
+
+    % H0 pass: receiver noise only (no pulsar), same noise seed, same processing
+    tRun = tic;
+    info_rx = addNoiseAndRFI(info_zero.file, swRx, info_zero.actualFsOut, ...
+        'Band', [fLow fHigh], 'NoiseStd', 1, 'RFI', rfi, 'Seed', noiseSeedJ, 'Verbose', false);
+    info_IQ = applyIQmodulation(info_rx.file, swIQ, info_rx.actualFsOut, fs, fLO, ...
+        'FilterOrder', filterOrder, 'Band', [fLow fHigh], 'Verbose', false);
+    info_dedisp = applyInverseDispersion(info_IQ.file, swDedisp, info_IQ.actualFsOut, ...
+        info_IQ.fLO, ephem.DM, fLow, fHigh, 'RefFreq', refFreq, 'Verbose', false);
+    info_det = detectPower(info_dedisp.file, swEnvelope, info_dedisp.fs, info_dedisp.fLO, ...
+        f_out, 'FullySupported', info_dedisp.fullySupported, 'Verbose', false);
+    [info_fold, fold] = foldProfile(info_det, swFold, ephem.f0, ...
+        'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods, ...
+        'SaveFile', false, 'Verbose', false);
+    Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
+    detection = detectPulsar(fold, info_fold, template, 'Bnoise', Bnoise, 'Verbose', false);
+    detH0C{j} = detection;
+    fprintf('       H0: %d sub-ints, T0 mean %+.2f, false alarms %d known / %d unknown phase, %.0f s\n', ...
+        nnz(detection.tested), mean(detection.T0(detection.tested)), ...
+        nnz(detection.detectedKnown), nnz(detection.detectedUnknown), toc(tRun));
 end
 fprintf('runSNRSweep: done in %.1f min\n', toc(tAll)/60);
 
 % Pooled validation per SNR point
+nanS = nan(1, nSNR);
 res = struct('snrDB', snrList, 'optSNR', optSNR, 'optSigma', optSigma, ...
-    'n', zeros(1, nSNR), 'rmsErr', nan(1, nSNR), 'robustErr', nan(1, nSNR), ...
-    'rmsPred', nan(1, nSNR), 'ratio', nan(1, nSNR), 'redChi2', nan(1, nSNR), ...
-    'frac1', nan(1, nSNR), 'fracOut', nan(1, nSNR), 'meanErr', nan(1, nSNR));
+    'n', zeros(1, nSNR), 'rmsErr', nanS, 'robustErr', nanS, ...
+    'rmsPred', nanS, 'ratio', nanS, 'redChi2', nanS, ...
+    'frac1', nanS, 'fracOut', nanS, 'meanErr', nanS, ...
+    'nTested', zeros(1, nSNR), 'T0mean', nanS, 'T0std', nanS, ...
+    'pdKnown', nanS, 'pdUnknown', nanS, 'nFlagChi2', zeros(1, nSNR), ...
+    'nGood', zeros(1, nSNR), 'fracOutGood', nanS, 'ratioGood', nanS, ...
+    'etaKnown', detC{1, 1}.etaKnown, 'etaUnknown', detC{1, 1}.etaUnknown, ...
+    'pfa', 1e-3);                                        % detectPulsar default
 genAll = [genC{:}];
 for s = 1:nSNR
     toaS = [toaC{:, s}];
+    detS = [detC{:, s}];
+
+    % Detection: pooled over realizations (tested = complete turns)
+    tested = vertcat(detS.tested);
+    T0     = vertcat(detS.T0);
+    dK     = vertcat(detS.detectedKnown);
+    dU     = vertcat(detS.detectedUnknown);
+    res.nTested(s)   = nnz(tested);
+    res.T0mean(s)    = mean(T0(tested));
+    res.T0std(s)     = std(T0(tested));
+    res.pdKnown(s)   = mean(dK(tested));
+    res.pdUnknown(s) = mean(dU(tested));
+    res.nFlagChi2(s) = nnz(vertcat(toaS.valid) & vertcat(toaS.flagChi2));
+
     if ~any(vertcat(toaS.valid)), continue; end
     fprintf('\n--- %+g dB ---\n', snrList(s));
     val = validateTOA(toaS, genAll, 'Plot', false);
@@ -129,6 +190,19 @@ for s = 1:nSNR
     res.redChi2(s)   = val.chi2 / val.dof;
     res.frac1(s)     = val.frac1;
     res.fracOut(s)   = mean(abs(val.errNorm) > 5);
+
+    % Good TOAs only (as in main.m): detected (unknown phase) and chi^2 not flagged
+    toaG = toaS;
+    for i = 1:nReal
+        toaG(i).valid = toaS(i).valid & detS(i).detectedUnknown & ~toaS(i).flagChi2;
+    end
+    res.nGood(s) = nnz(vertcat(toaG.valid));
+    if res.nGood(s) > 0
+        fprintf('  good TOAs only:\n');
+        valG = validateTOA(toaG, genAll, 'Plot', false);
+        res.fracOutGood(s) = mean(abs(valG.errNorm) > 5);
+        res.ratioGood(s)   = valG.ratio;
+    end
 end
 
 % Summary table
@@ -142,7 +216,33 @@ for s = 1:nSNR
         res.redChi2(s), 100*res.frac1(s), 100*res.fracOut(s));
 end
 
-save(swResult, 'res', 'toaC', 'genAll', 'snrList', 'nReal', 'subintPeriods', 'L');
+Q = @(x) 0.5 * erfc(x / sqrt(2));                       % 1 - Phi(x)
+fprintf(['\nDetection (P_FA %.3g per sub-int; thresholds %.2f known phase, %.2f unknown ' ...
+         'phase); theory P_D = 1 - Phi(eta - SNRopt), unknown phase approximate\n'], ...
+    res.pfa, res.etaKnown, res.etaUnknown);
+fprintf('  snrDB  SNRopt  tested  T0 mean  T0 std   P_D known (th.)   P_D unknown (th.)  flagged  good  |z|>5 good  rms/pred good\n');
+for s = 1:nSNR
+    fprintf('  %+5g %7.2f %7d %8.2f %7.2f   %6.3f (%6.3f)   %6.3f (%6.3f)   %6d %5d %9.1f%% %12.3f\n', ...
+        snrList(s), optSNR(s), res.nTested(s), res.T0mean(s), res.T0std(s), ...
+        res.pdKnown(s), Q(res.etaKnown - optSNR(s)), res.pdUnknown(s), ...
+        Q(res.etaUnknown - optSNR(s)), res.nFlagChi2(s), res.nGood(s), ...
+        100*res.fracOutGood(s), res.ratioGood(s));
+end
+% H0 (no pulsar): pooled over the H0 passes
+detH0 = [detH0C{:}];
+tH0 = vertcat(detH0.tested);
+T0h = vertcat(detH0.T0);  T0h = T0h(tH0);
+Tmh = vertcat(detH0.Tmax); Tmh = Tmh(tH0);
+nH0 = nnz(tH0);
+res.h0 = struct('n', nH0, 'T0mean', mean(T0h), 'T0std', std(T0h), ...
+    'faKnown', nnz(T0h > res.etaKnown), 'faUnknown', nnz(Tmh > res.etaUnknown), ...
+    'Tmax', Tmh);
+fprintf(['  H0 (no pulsar, %d sub-ints): T0 mean %+.3f, std %.3f (expect 0 +- %.3f, ' ...
+         '1 +- %.3f); false alarms %d known, %d unknown phase (expect %.2g each)\n'], ...
+    nH0, res.h0.T0mean, res.h0.T0std, 1/sqrt(nH0), 1/sqrt(2*nH0), ...
+    res.h0.faKnown, res.h0.faUnknown, res.pfa*nH0);
+
+save(swResult, 'res', 'toaC', 'detC', 'detH0C', 'genAll', 'snrList', 'nReal', 'subintPeriods', 'L');
 fprintf('runSNRSweep: results saved to %s\n', swResult);
 plotSweep(res);
 
@@ -151,13 +251,15 @@ plotSweep(res);
 %  Local functions
 %  ======================================================================
 function plotSweep(res)
-%PLOTSWEEP  TOA error vs SNR, error-bar honesty, FFTFIT efficiency, threshold.
+%PLOTSWEEP  TOA error vs SNR, error-bar honesty, FFTFIT efficiency, threshold,
+% detection (with the H0 false alarms in its title).
+hasDet = isfield(res, 'pdKnown');                      % older results: no detection
 ok  = res.n > 0;
 x   = res.snrDB;
 dr  = 1 ./ sqrt(2 * max(res.n, 1));                    % 1-sigma of an rms ratio
 fig = figure('Name', 'SNR sweep', 'Color', 'w'); %#ok<NASGU>
-tl  = tiledlayout(1, 3, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(tl, 'Phase D: TOA error versus SNR');
+tl  = tiledlayout(2, 2, 'TileSpacing', 'compact', 'Padding', 'compact');
+title(tl, 'Phases D/E: TOA error and detection versus SNR');
 
 ax1 = nexttile(tl);
 errorbar(ax1, x(ok), res.rmsErr(ok)*1e6, dr(ok).*res.rmsErr(ok)*1e6, 'ko-', ...
@@ -190,10 +292,38 @@ ax3 = nexttile(tl);
 semilogx(ax3, res.optSNR(ok), res.frac1(ok), 'ko-', 'MarkerFaceColor', 'k', ...
     'DisplayName', '|z| < 1'); hold(ax3, 'on');
 semilogx(ax3, res.optSNR(ok), res.fracOut(ok), 'rs-', 'DisplayName', '|z| > 5 (outliers)');
+if hasDet
+    semilogx(ax3, res.optSNR(ok), res.fracOutGood(ok), 'bd--', ...
+        'DisplayName', '|z| > 5 among good TOAs');
+end
 yline(ax3, 0.683, 'k--', 'HandleVisibility', 'off'); hold(ax3, 'off');
 ylim(ax3, [0 1]); grid(ax3, 'on');
 xlabel(ax3, 'best SNR per sub-int'); ylabel(ax3, 'fraction of TOAs');
 legend(ax3, 'Location', 'east'); title(ax3, 'Threshold: where error bars fail');
+
+if ~hasDet, return; end
+ax4 = nexttile(tl);
+Q   = @(z) 0.5 * erfc(z / sqrt(2));                    % 1 - Phi(z)
+sg  = logspace(-1, log10(max(res.optSNR)), 300);       % theory curves
+nT  = max(res.nTested, 1);
+okD = res.nTested > 0;
+eK  = sqrt(res.pdKnown .* (1 - res.pdKnown) ./ nT);    % binomial 1-sigma
+eU  = sqrt(res.pdUnknown .* (1 - res.pdUnknown) ./ nT);
+semilogx(ax4, sg, Q(res.etaKnown - sg), 'k-', 'DisplayName', 'theory, known phase'); hold(ax4, 'on');
+semilogx(ax4, sg, Q(res.etaUnknown - sg), 'b-', 'DisplayName', 'theory, unknown phase (approx.)');
+errorbar(ax4, res.optSNR(okD), res.pdKnown(okD), eK(okD), 'ko', 'MarkerFaceColor', 'k', ...
+    'DisplayName', 'measured, known phase');
+errorbar(ax4, res.optSNR(okD), res.pdUnknown(okD), eU(okD), 'bs', 'MarkerFaceColor', 'b', ...
+    'DisplayName', 'measured, unknown phase');
+hold(ax4, 'off'); set(ax4, 'XScale', 'log'); ylim(ax4, [0 1.02]); grid(ax4, 'on');
+xlabel(ax4, 'best SNR per sub-int'); ylabel(ax4, 'detection probability P_D');
+legend(ax4, 'Location', 'southeast');
+tit = sprintf('Detection (P_{FA} %.3g, \\eta = %.2f / %.2f)', res.pfa, res.etaKnown, res.etaUnknown);
+if isfield(res, 'h0')                                  % false alarms without a pulsar
+    tit = sprintf('%s; H0: %d/%d, %d/%d false alarms', tit, ...
+        res.h0.faKnown, res.h0.n, res.h0.faUnknown, res.h0.n);
+end
+title(ax4, tit);
 end
 
 

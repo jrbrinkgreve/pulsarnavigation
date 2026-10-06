@@ -40,15 +40,21 @@ Name-value options:
   'OnPulseFrac' bins with model above this fraction of the peak (above
                 baseline) define on-pulse (chi^2 and off-pulse mask;
                 default 0.01).
+  'MaxRedChi2'  quality flag: toa.flagChi2 = redChi2 > MaxRedChi2
+                (default 2). The reduced chi^2 compares the fit residuals
+                with the noise model; ~1 when the data are template + noise,
+                >> 1 when something else is in the profile (e.g. a radar
+                pulse the fit locked onto, which gives a wrong TOA with a
+                small error bar).
   'Verbose'     print a summary (default true).
 
 Outputs:
   toa   struct, per sub-integration (column vectors, NaN when invalid):
           valid, coverage, phase [turns], phaseErr, toa [s], toaErr [s],
           amp (b), ampErr, baseline (a), snr (= b/ampErr), redChi2,
-          tRef, fRef, turnRef
+          flagChi2 (redChi2 > MaxRedChi2), tRef, fRef, turnRef
         plus toa.total (the whole fold): phase, phaseErr, timeOffset
-        [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2.
+        [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2.
   info  method, noise model, Bnoise, harmonics, template.
 
 Uncertainties:
@@ -79,6 +85,7 @@ arguments
     opts.MaxHarmonic double = []
     opts.Upsample    (1,1) double {mustBeInteger, mustBePositive} = 8
     opts.OnPulseFrac (1,1) double {mustBePositive} = 0.01
+    opts.MaxRedChi2  (1,1) double {mustBePositive} = 2
     opts.Verbose     (1,1) logical = true
 end
 
@@ -115,7 +122,7 @@ cst = struct('N', N, 'k', k, 'S', S, 'Sk', Sk, 'sumS2', sumS2, 'ksg', ksg, ...
 nanv = nan(nSub, 1);
 toa = struct('valid', false(nSub, 1), 'coverage', nanv, 'phase', nanv, ...
     'phaseErr', nanv, 'toa', nanv, 'toaErr', nanv, 'amp', nanv, 'ampErr', nanv, ...
-    'baseline', nanv, 'snr', nanv, 'redChi2', nanv, ...
+    'baseline', nanv, 'snr', nanv, 'redChi2', nanv, 'flagChi2', false(nSub, 1), ...
     'tRef', fold.subint.tRef, 'fRef', fold.subint.fRef, 'turnRef', fold.subint.turnRef);
 
 for s = 1:nSub
@@ -137,6 +144,7 @@ for s = 1:nSub
     toa.baseline(s) = r.a;
     toa.snr(s)      = r.b / r.bErr;
     toa.redChi2(s)  = r.redChi2;
+    toa.flagChi2(s) = r.redChi2 > opts.MaxRedChi2;
 end
 
 % ---- Total fold -------------------------------------------------------------------------
@@ -145,11 +153,12 @@ pt = sum(fold.profTotal, 2);
 rt = fitOne(pt, Wt, sum(fold.weight2, 2), sum(WXall, 2), cst);
 toa.total = struct('phase', rt.tau, 'phaseErr', rt.tauErr, ...
     'timeOffset', rt.tau / info_fold.f0, 'timeOffsetErr', rt.tauErr / info_fold.f0, ...
-    'amp', rt.b, 'ampErr', rt.bErr, 'snr', rt.b / rt.bErr, 'redChi2', rt.redChi2);
+    'amp', rt.b, 'ampErr', rt.bErr, 'snr', rt.b / rt.bErr, 'redChi2', rt.redChi2, ...
+    'flagChi2', rt.redChi2 > opts.MaxRedChi2);
 
 info = struct('method', 'FFTFIT (Fourier-domain template matching), Newton-refined', ...
     'noiseModel', model, 'Bnoise', opts.Bnoise, 'binDt', binDt, 'harmonics', K, ...
-    'upsample', opts.Upsample, 'template', template, 'NBin', N, ...
+    'upsample', opts.Upsample, 'template', template, 'NBin', N, 'maxRedChi2', opts.MaxRedChi2, ...
     'toaConvention', 'TOA = tRef + phase/fRef; time of template phase 0 at the dedispersion reference frequency');
 
 if opts.Verbose
@@ -157,6 +166,10 @@ if opts.Verbose
     fprintf(['estimateTOA: %d/%d sub-int(s) fitted (%s noise), median SNR %.1f, ' ...
              'median TOA error %.3f us, median red. chi2 %.3f\n'], nnz(v), nSub, model, ...
         median(toa.snr(v)), median(toa.toaErr(v))*1e6, median(toa.redChi2(v)));
+    if any(toa.flagChi2)
+        fprintf('  %d sub-int(s) flagged: red. chi2 > %g (profile is not template + noise)\n', ...
+            nnz(toa.flagChi2), opts.MaxRedChi2);
+    end
     fprintf('  total fold: phase offset %+.3e turns = %+.4f +- %.4f us, SNR %.1f\n', ...
         rt.tau, toa.total.timeOffset*1e6, toa.total.timeOffsetErr*1e6, toa.total.snr);
 end
