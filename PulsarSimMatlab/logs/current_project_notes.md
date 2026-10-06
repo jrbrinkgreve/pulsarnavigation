@@ -986,7 +986,7 @@ mixed signal+noise variance formula within 1 %.
   skipped (`MinCoverage` = 1).
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
   (e.g. DM ≈ 71 → ~90 ms sweep); channelized (filterbank) dedispersion needed.
-  Target DMs go up to ~60 → see §10 item 9 (memory-efficient FFT / alternatives).
+  Target DMs go up to ~100 → see §10 item 9 (memory-efficient FFT / alternatives).
 
 ---
 
@@ -1043,7 +1043,8 @@ mixed signal+noise variance formula within 1 %.
     `chooseSubintPeriods(...)`. Belongs with the reference scenario / fast simulator (long
     observations, varying SNR). Optional: include the baseline loss (0.962) in the
     `runSNRSweep` P_D theory curves.
-9. **[todo] DMs up to ~60 (Jasper, 5 Oct): FFT memory.** The single-FFT dispersion
+9. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
+   and margin): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
 
    | DM | sweep | forward dispersion (real, 4 GHz, 44 B/sample) | dedispersion (complex, 800 MHz, 56 B/sample) |
@@ -1051,6 +1052,7 @@ mixed signal+noise variance formula within 1 %.
    | 5 (now) | 6.3 ms | 2^26 → 3 GB (run uses 2^28, 11.8 GB) | 2^24 → 0.9 GB |
    | 30 | 37.8 ms | 2^29 → 24 GB | 2^26 → 3.8 GB |
    | 60 | 75.6 ms | 2^30 → **47 GB** (kernel design grid alone ~17 GB) | 2^27 → 7.5 GB (above the 4 GB default `MaxMemoryGB`) |
+   | 100 | 126 ms | ~2^31 → **~94 GB** (extrapolated ×2) | ~2^28 → ~15 GB (extrapolated) |
 
    → the forward dispersion in `applyDispersionStream` is the blocker on the 24 GB
    machine; dedispersion is feasible with a raised `MaxMemoryGB`. Also: L must be well
@@ -1125,7 +1127,7 @@ per ~10 %; `*.asv` git-ignored.
 - 3×3 array: element signals with geometric delays; beamforming at IQ level before
   dedispersion
 - Scattering, DM variations; polarisation
-- High DM (target up to ~60): memory-efficient FFT or channelized dispersion /
+- High DM (target up to ~100): memory-efficient FFT or channelized dispersion /
   dedispersion (§10 item 9; needed before realistic pulsars)
 - Performance of generation for long simulations; optional fold-in-detection fusion for
   millisecond pulsars
@@ -1135,24 +1137,53 @@ P, DM, flux, profile; receiver: antenna/array gain, T_sys, bandwidth; ground vs
 spacecraft; affordable observation time). It fixes realistic noise levels, sub-int
 lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
 
-**Reference scenario – draft (6 Oct 2026, from Jasper's hardware; open questions below).**
+**Reference scenario – draft (6 Oct 2026, from Jasper's hardware; questions answered below).**
 
 *Receiver.* 3×3 array, **0.61 m²** (effective or physical: open), **T_sys 60–80 K**, band
 **1.2–1.6 GHz** (B = 400 MHz), **ground station**, observation time "as good as possible
 for navigation". SEFD = 2kT_sys/A_eff = 2·1.38e-23·70/0.61 ≈ **3.2e5 Jy** (2.7–3.6e5 for
 60–80 K; Parkes ~30 Jy, 25 m dish ~1000 Jy).
 
-*Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W)/W), target
-SNR 7 from the threshold sweep; fluxes are approximate catalogue values from memory →
-verify with the ATNF catalogue / psrcat):
+*Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W_eq)/W_eq),
+n_pol 2, B 400 MHz, target SNR 7 from the threshold sweep). P, DM, W50, S₁₄₀₀ from the
+**ATNF catalogue v2.6.5** (queried 6 Oct 2026; all pulsars with S₁₄₀₀ > 25 mJy plus MSPs
+> 4 mJy). Rules: **W_eq = 2·W50** (Gaussian matched filter gives 1.5·W50; factor 2 as
+margin for wings/components, e.g. J0437 W10 = 1.02 ms); ρ = S_peak/SEFD_nom with
+S_peak = S·P/W_eq; σ_TOA = √2·(W50/2.355)/7; visible = max. elevation ≥ 20° → station
+latitude within dec ± 70°. Catalogue S₁₄₀₀ are averages; low-DM pulsars scintillate
+(factor ~2 or more either way). Uncertainty of t: ~×2.
 
-| Pulsar | P | DM | S₁₄₀₀ (approx.) | ρ = S_peak/SEFD | t for SNR 7 (dual pol) |
-|---|---|---|---|---|---|
-| **J0437−4715** (brightest MSP) | 5.76 ms | 2.6 | ~150 mJy | ≈ −50 dB | **≈ 4 h** (8 h single pol) |
-| J1713+0747, J2145−0750 | 4.6 / 16 ms | 16 / 9 | ~10 mJy | ≈ −62 dB | ~900 h: not feasible |
-| typical MSP | | | 1–5 mJy | ≲ −65 dB | not feasible |
-| bright normal pulsars (B0329+54, B0950+08, B1929+10) | 0.25–0.7 s | 3–27 | 35–200 mJy | ≈ −45…−55 dB | ~0.5–10 h |
-| Vela (B0833−45) | 89 ms | 68 | ~1 Jy | | minutes, but DM > 60 |
+| Pulsar | dec | P [ms] | DM | W50 [ms] | S₁₄₀₀ [mJy] | ρ [dB] | t nom / **worst** [h] | σ_TOA [µs] (c·σ) | latitudes |
+|---|---|---|---|---|---|---|---|---|---|
+| **J0437−4715** (MSP) | −47 | 5.76 | 2.6 | 0.141 | 150 | −50 | 3.9 / **21** | **12** (3.6 km) | < 23° N |
+| **J0835−4510** (Vela) | −45 | 89.3 | 67.8 | 1.7 | 1050 | −41 | 0.1 / **0.3** | 146 (44 km) | < 25° N |
+| **J0332+5434** (B0329+54) | +55 | 714.5 | 26.8 | 6.6 | 203 | −45 | 0.8 / **4.2** | 566 (170 km) | > 15° S |
+| J0953+0755 (B0950+08) | +8 | 253.1 | 3.0 | 8.6 | 100 | −53 | 12 / 67 | 738 (221 km) | 62° S–78° N |
+| J1752−2806 (B1749−28) | −28 | 562.6 | 50.3 | 6.6 | 48 | −52 | 18 / 96 | 566 (170 km) | < 42° N |
+| J1645−0317 (B1642−03) | −3 | 387.7 | 35.8 | 3.8 | 26 | −54 | 52 / 278 | 326 (98 km) | 73° S–67° N |
+| J1932+1059 (B1929+10) | +11 | 226.5 | 3.2 | 5.6 | 29 | −57 | 106 / 571 | 480 (144 km) | 59° S–81° N |
+| J1939+2134 (B1937+21, MSP) | +22 | 1.56 | 71.0 | ~0.05 | 13.9 | −62 | 670 / 3600 | 5 (1.4 km) | > 48° S |
+| J1713+0747 (MSP) | +8 | 4.57 | 16.0 | 0.30 | 8.3 | −67 | 3700 / 20000 | 26 | |
+| J2145−0750 (MSP) | −8 | 16.05 | 9.0 | 0.40 | 5.5 | −65 | 3000 / 16000 | 34 | |
+
+Bright but DM far too high for now: J1644−4559 (DM 479), J0738−4042 (161), J1935+1616
+(159), J0837−4135 (147). Corrections to the earlier from-memory draft: B1929+10 is
+29 mJy (not ~35–200), normal-pulsar times are 1–100 h nominal (not 0.5–10 h).
+
+*Figure of merit for navigation* = σ_TOA·√t (µs·√h, smaller is better; σ after time T
+is this/√T). Worst case: J0437 55, **Vela 80**, B0329+54 1160, B1749−28 5550, B0950+08
+6040, B1642−03 5440. **Vela is as good as J0437** (bright: TOA in ~20 min; wider pulse) —
+but DM 67.8 (now within the DM ≤ 100 target, §10 item 9) and glitches / timing noise
+(ephemeris must be recent). Both are southern (visible < ~25° N); for northern sites
+**B0329+54** is the only source with TOAs within a pass (~70 km per day of observation).
+*Decided (Jasper, 6 Oct 2026):*
+- **High-DM target 100** (was 60): includes Vela (67.8), B1937+21 (71.0), B0740−28 (73.8)
+  and margin; needs the memory-aware FFT anyway (§10 item 9: sweep 126 ms at DM 100).
+- **Sky temperature in T_sys**: T_sys = T_rx (60–80 K, assumed to exclude sky) +
+  T_sky(direction). The array beam is wide (~λ/D ≈ 0.21/0.8 m ≈ 15°) → T_sky is the
+  beam-averaged sky: ~3–5 K off the Galactic plane (CMB 2.7 K + Galactic), ~5–20 K for
+  plane sources (Vela, B1749−28), more towards the Galactic centre. Per pulsar a T_sky
+  value (from a 1.4 GHz sky map, e.g. Haslam 408 MHz scaled with spectral index ~−2.6).
 
 t ∝ S⁻² (15× fainter → 225× longer) → **J0437 is the only realistic MSP**; it resembles the
 simulated pulsar (P 5.8 ms vs 10 ms, DM 2.6 vs 5) at ρ ≈ −50 dB (deep weak-signal regime).
@@ -1172,13 +1203,44 @@ per day).
 4. Scintillation: J0437 (low DM) has scintles of hundreds of MHz and ~100 % flux
    variation over minutes–hours → SNR budget risk and opportunity (integrate longer when
    bright) → adaptive sub-int length (§10 item 10).
-5. DM ≤ 60 covers J0437 and most candidates (only Vela above).
-6. The simulation is single-polarization; dual pol gives √2 in SNR (2× in time).
+5. DM ≤ 100 (decided below) covers J0437, Vela and all feasible candidates; the bright
+   pulsars above it (DM 147–479) stay out.
+6. The simulation is single-polarization; dual pol gives √2 in SNR (2× in time). The
+   hardware is dual pol (answer 2 below) → add the second polarization.
 
-*Open questions (Jasper).* (1) Is 0.61 m² the effective or the physical area? (physical
-with aperture efficiency 0.6–0.7 → A_eff ~0.4 m², SEFD ~4.8e5 Jy, ~2.3× longer). (2) Dual
-polarization? (3) Latitude of the ground station? J0437 (dec −47°) never rises north of
-~43° N. (4) Are bright normal pulsars acceptable as additional navigation sources?
+*Answers (Jasper, 6 Oct 2026) and design point.*
+1. **Area unknown → design for the noisy case.** Two design points:
+   - *nominal*: A_eff = 0.61 m², T_sys 70 K → SEFD ≈ 3.2e5 Jy (table above);
+   - *worst case (design point)*: 0.61 m² physical × aperture efficiency ~0.5 →
+     A_eff ≈ 0.3 m², T_sys 80 K → SEFD = 2·1.38e-23·80/0.3 ≈ **7.4e5 Jy** (2.3× nominal).
+   t ∝ SEFD² → **5.3× longer**: J0437 ≈ **20 h per TOA** (SNR 7, dual pol),
+   ρ ≈ −54 dB; normal pulsars 4 h (B0329+54) to hundreds of h (table above). σ_TOA per TOA unchanged (fixed SNR 7);
+   per unit time √5.3 = 2.3× worse. The pipeline must work at the worst case; nominal is
+   the bonus.
+2. **Dual polarization on all 9 elements** (confirmed): n_pol = 2 in the radiometer
+   equation (already in the table). Simulator: two independent noise streams per element,
+   beamformed per polarization, total intensity |X|² + |Y|² after detection. Fast
+   detected-power simulator: n_pol = 2 in the noise variance.
+3. **Site-independent ("should work anywhere").** Station position (latitude, longitude,
+   height) is an input parameter, needed anyway for the barycentric correction; no pulsar
+   hard-coded; source list from visibility (elevation mask) at the site. J0437 (dec −47°)
+   is never visible north of ~43° N → from Europe / most of North America **no feasible
+   MSP**. Pipeline generic in P (ms to ~1 s).
+4. **Normal pulsars are needed** (Jasper can advise the project): (a) geometry — one
+   pulsar constrains position along one direction; 3-D position + clock needs ≥ 4 well-
+   separated directions (3 with a known clock); (b) visibility — item 3. Cost: wide pulses
+   → σ_TOA 0.3–0.7 ms at SNR 7 (100–220 km) vs J0437 ~12 µs (~3.6 km), Vela 146 µs;
+   plus timing noise and glitches.
+
+*Consequences of the worst-case design point.*
+- A 20 h TOA is longer than one J0437 pass → **fold across passes with gaps** (TOA from
+  several days of data). The fold phase must stay coherent over days → barycentric phase
+  prediction (agreed order item 4) is a hard requirement, not a refinement.
+- Sub-ints within a pass (hours) are far below SNR 6–7 → combine folded profiles across
+  sub-ints/passes with the phase model before the TOA fit; detection on the combined
+  profile.
+- Scintillation (J0437, B0950+08: low DM) dominates the per-pass SNR → weight passes by
+  measured SNR.
 
 ---
 
