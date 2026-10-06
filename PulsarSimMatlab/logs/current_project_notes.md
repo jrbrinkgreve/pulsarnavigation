@@ -13,7 +13,7 @@ scintillation assessment; bandpass review and exact radiometer optimum in
 RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
 2026: phase E (`detectPulsar`, `flagChi2`, good TOAs), §5.8/§5.12/§5.13/§7, and the long
 H0 run (`runH0.m`, §5.14/§7), and the TOA threshold sweep (design rule SNR ≥ 6–7, baseline
-loss, turns per sub-int, §6/§7/§10), and the centroid-offset test (Block 1 closed); see
+loss, turns per sub-int, §6/§7/§10), and the centroid-offset test (Block 1 closed), reference scenario draft (§11); see
 `2026-10-06_phase-e.md`. Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
@@ -1069,7 +1069,7 @@ mixed signal+noise variance formula within 1 %.
    ~~stale `main.m` header status lines~~ (done 6 Oct). **Block 1 closed** (6 Oct), apart
    from phase F (low priority, weak-signal target) and the adaptive sub-int length (item 10,
    with the reference scenario).
-2. **Reference scenario** (open design decision, §11): pulsars (P, DM, flux, profile),
+2. **Reference scenario** (open design decision; **draft 6 Oct in §11**, 4 open questions): pulsars (P, DM, flux, profile),
    antenna (gain, T_sys, bandwidth), ground or spacecraft, observation hours. Fixes the
    realistic SNR (≈ −25…−50 dB; e.g. −40 dB → ~3.5e4 turns ≈ 6 min for one SNR-7 TOA of
    the current pulsar, table in §7; an earlier "7e5 turns ≈ 2 h" here was a 10× error),
@@ -1134,6 +1134,51 @@ per ~10 %; `*.asv` git-ignored.
 P, DM, flux, profile; receiver: antenna/array gain, T_sys, bandwidth; ground vs
 spacecraft; affordable observation time). It fixes realistic noise levels, sub-int
 lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
+
+**Reference scenario – draft (6 Oct 2026, from Jasper's hardware; open questions below).**
+
+*Receiver.* 3×3 array, **0.61 m²** (effective or physical: open), **T_sys 60–80 K**, band
+**1.2–1.6 GHz** (B = 400 MHz), **ground station**, observation time "as good as possible
+for navigation". SEFD = 2kT_sys/A_eff = 2·1.38e-23·70/0.61 ≈ **3.2e5 Jy** (2.7–3.6e5 for
+60–80 K; Parkes ~30 Jy, 25 m dish ~1000 Jy).
+
+*Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W)/W), target
+SNR 7 from the threshold sweep; fluxes are approximate catalogue values from memory →
+verify with the ATNF catalogue / psrcat):
+
+| Pulsar | P | DM | S₁₄₀₀ (approx.) | ρ = S_peak/SEFD | t for SNR 7 (dual pol) |
+|---|---|---|---|---|---|
+| **J0437−4715** (brightest MSP) | 5.76 ms | 2.6 | ~150 mJy | ≈ −50 dB | **≈ 4 h** (8 h single pol) |
+| J1713+0747, J2145−0750 | 4.6 / 16 ms | 16 / 9 | ~10 mJy | ≈ −62 dB | ~900 h: not feasible |
+| typical MSP | | | 1–5 mJy | ≲ −65 dB | not feasible |
+| bright normal pulsars (B0329+54, B0950+08, B1929+10) | 0.25–0.7 s | 3–27 | 35–200 mJy | ≈ −45…−55 dB | ~0.5–10 h |
+| Vela (B0833−45) | 89 ms | 68 | ~1 Jy | | minutes, but DM > 60 |
+
+t ∝ S⁻² (15× fainter → 225× longer) → **J0437 is the only realistic MSP**; it resembles the
+simulated pulsar (P 5.8 ms vs 10 ms, DM 2.6 vs 5) at ρ ≈ −50 dB (deep weak-signal regime).
+Normal pulsars are brighter but have wider pulses (worse TOA precision) and more timing
+noise (glitches, red noise). J0437 TOA precision: main-peak FWHM ~0.14 ms → σ_t ≈ 60 µs →
+σ_TOA ≈ √2·60/7 ≈ **12 µs per ~4 h TOA** (c·σ ≈ 3.6 km along the line of sight; ~1.5 km
+per day).
+
+*Consequences.*
+1. A 3-D fix needs ≥ 4 pulsars (position + clock); with one MSP not directly possible →
+   options: (a) J0437 + bright normal pulsars, (b) known ground position (demonstrate the
+   timing chain), (c) more collecting area (10× area → 100× shorter integrations).
+2. The fast simulator (§10 agreed order item 3) becomes essential (hour-long sub-ints).
+3. Motion (item 4) becomes urgent: within a 4 h sub-int, Earth rotation (~0.3 km/s at
+   mid-latitudes) and orbit (30 km/s) shift the phase far beyond the pulse width → full
+   barycentric phase prediction (TEMPO2-like) from the start.
+4. Scintillation: J0437 (low DM) has scintles of hundreds of MHz and ~100 % flux
+   variation over minutes–hours → SNR budget risk and opportunity (integrate longer when
+   bright) → adaptive sub-int length (§10 item 10).
+5. DM ≤ 60 covers J0437 and most candidates (only Vela above).
+6. The simulation is single-polarization; dual pol gives √2 in SNR (2× in time).
+
+*Open questions (Jasper).* (1) Is 0.61 m² the effective or the physical area? (physical
+with aperture efficiency 0.6–0.7 → A_eff ~0.4 m², SEFD ~4.8e5 Jy, ~2.3× longer). (2) Dual
+polarization? (3) Latitude of the ground station? J0437 (dec −47°) never rises north of
+~43° N. (4) Are bright normal pulsars acceptable as additional navigation sources?
 
 ---
 
