@@ -1,7 +1,7 @@
 function expBlankingVariance()
 %EXPBLANKINGVARIANCE  Experiment 3a: detected power after blanking + per-channel dedispersion.
 %{
-Run from the PulsarSimMatlab folder: run('tests/expBlankingVariance.m'). ~1 min.
+Run from the PulsarSimMatlab folder: run('tests/expBlankingVariance.m'). ~15 s.
 
 Question (unit 3 design): RFI excision sets input samples of a channel to 0
 before coherent dedispersion. Each dedispersed output sample y(n) =

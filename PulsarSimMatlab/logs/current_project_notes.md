@@ -109,7 +109,7 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
   4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [validated]
       (excision per channel goes here, step 2)
   5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [validated]
-  6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [tests pass]
+  6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [validated]
       (next: foldProfile with per-channel weights and lag covariances, 3c)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
@@ -749,7 +749,7 @@ BnoiseTotal = nChan·BnoiseChan (391.6 MHz, as the full band), bulkDelayRef.
    ± 0.005 from the channel spectrum), lag-1 correlation 0.054 (0.052 ± 0.004) → the
    narrow-channel correlation-time effect (§9) is real and modelled exactly.
 
-### 5.17 `powerCovariance(chanWidth, edgeWidth, fs, nPerBin, ...)` + `detectChannels(info_dc, outFile, f_out, ...)` [tests pass (Claude's run, 6 Oct 2026), Jasper's run pending; unit 3b]
+### 5.17 `powerCovariance(chanWidth, edgeWidth, fs, nPerBin, ...)` + `detectChannels(info_dc, outFile, f_out, ...)` [validated 6 Oct 2026 (Jasper's run); unit 3b]
 
 **`powerCovariance`: exact noise statistics of detected time bins.** A bin is the mean of
 |y|² over n samples; for Gaussian y with spectrum S (normalized autocorrelation R), relative
@@ -1557,8 +1557,8 @@ per day).
 | `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | validated (6 Oct) |
 | `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Jasper's run, 6 Oct) |
 | `tests/expBlankingVariance.m` | experiment 3a: detected-power variance after blanking (exact via mask convolutions) | passes (Jasper's run, 6 Oct) |
-| `powerCovariance.m` | exact variance / lag covariances of detected time bins from the channel spectrum (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
-| `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | tests pass (Claude, 6 Oct); Jasper's run pending |
-| `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Claude's run, 6 Oct) |
+| `powerCovariance.m` | exact variance / lag covariances of detected time bins from the channel spectrum (unit 3b) | validated (6 Oct) |
+| `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | validated (6 Oct) |
+| `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Jasper's run, 6 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

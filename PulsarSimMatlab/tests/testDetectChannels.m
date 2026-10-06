@@ -1,7 +1,8 @@
 function testDetectChannels()
 %TESTDETECTCHANNELS  Unit tests for detectChannels and powerCovariance (unit 3b).
 %{
-Run from the PulsarSimMatlab folder: run('tests/testDetectChannels.m'). ~30 s.
+Run from the PulsarSimMatlab folder: run('tests/testDetectChannels.m'). ~1 s (measured;
++ ~6 s once if the channel files have to be made first).
 Uses the dedispersed channels of tests/testDedisperseChannels.m
 (data/chan/test_dedisp_chan_*); makes them first if they are missing.
 

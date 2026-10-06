@@ -4,7 +4,7 @@ function testDedisperseChannels()
 Run from the PulsarSimMatlab folder: run('tests/testDedisperseChannels.m').
 Needs main.m's receiver files (data/test_rx_IQ.dat, data/test_IQ_dedispersed.dat,
 seed 43 reference). Writes channel files to data/chan/ (~1.3 GB) and
-temporary files to tempdir. Takes ~1-2 min.
+temporary files to tempdir. Takes ~15 s.
 
   1. Regression: applyInverseDispersion with default options (the full-band
      path of main.m) reproduces data/test_IQ_dedispersed.dat bit for bit

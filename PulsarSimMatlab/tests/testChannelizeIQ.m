@@ -1,7 +1,7 @@
 function testChannelizeIQ()
 %TESTCHANNELIZEIQ  Unit tests for channelizeIQ.
 %{
-Run from the PulsarSimMatlab folder: tests/testChannelizeIQ  (or `run`).
+Run from the PulsarSimMatlab folder: run('tests/testChannelizeIQ.m'). ~10 s.
 Synthetic tests write small files to tempdir; test 3 uses the receiver IQ
 file of main.m (data/test_rx_IQ.dat) if it exists.
 
