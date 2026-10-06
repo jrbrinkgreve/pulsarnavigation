@@ -1177,6 +1177,14 @@ channel spectrum where not.
 *(Tidied 6 Oct 2026: open items first, then deferred, then a short done list with
 pointers; details of finished work are in §7 and the session logs.)*
 
+**Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
+A = finish the front end (item 1 below): A1 fold with channels and exact noise (old
+"unit 3c"), A2 detection / TOA fit combining channels (3d), A3 fake-blanking test (3e),
+A4 switch in `main.m`; B = RFI excision (item 2); C = fast simulator (item 3);
+D = barycentric phase prediction (item 4); E = later (several pulsars, navigation
+solution, 3×3 array, second polarization). Done so far in A: channelizeIQ,
+dedisperseChannels, blanking experiment, detectChannels + powerCovariance (validated).
+
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
 not realistic. Physics: (a) at −54 dB one radar pulse ≈ 80,000 pulsar pulses (5 Oct: one
