@@ -111,7 +111,8 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
   5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [validated]
   6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [validated]
   7b. foldProfile + 'NoiseCoeffs' ─► exact phase-bin covariance (A1a)   [validated]
-      (next: A1b per-channel data weights; A2 detection / TOA combining channels)
+      foldProfile + 'DataWeights' ─► weights per channel (A1b)  [validated]
+      (next: A2 detection / TOA combining channels)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -495,6 +496,43 @@ u = (prof/μ − 1)·W/√rad: measured vs new / old model (σ from the channel-
 scatter): variance 3.3402 ± 0.0038 vs new 3.3456 (−1.4σ) / old 3.3903 (−13.1σ); lag 1
 0.8647 ± 0.0029 vs 0.8629 (+0.6σ) / 0.8477 (+5.9σ); lag 2 0.0028 ± 0.0029 vs 0.0030
 (−0.1σ) / 0 (+1.0σ). The old model is clearly rejected, the new one fits.
+
+**Data weights per channel: option `DataWeights` (7 Oct 2026, A1b; validated, Jasper's
+run).** Blanking zeroes voltage samples before dedispersion; a
+detected time bin k of channel c then has mean W_kc·m_c (W = valid fraction), variance
+V_kc·σ_c² and covariance X_kc(L)·σ_c² with bin k+L — exact from the mask (experiment 3a,
+computed later in B). The fold uses them:
+- `weight` = Σ a·W (data weight), so `prof` = Σ a·P / Σ a·W is unbiased even when the
+  blanking depends on pulse phase; `weight2` / `weightX` as in A1a with the per-bin V_k
+  and X_k(L) (X of the earlier bin of a pair).
+- Weight file (float32, same time grid as the power): [nChan × (2+Lmax) × N], per bin
+  W of all channels, then V, then X(1) … X(Lmax). Option value: info struct with `file`,
+  `nChan`, `N`, `Lmax`, `byteOrder`; replaces `NoiseCoeffs` (error if both).
+- Output: `weight`, `weight2` [NBin × nSub × nChan], `weightX` [NBin × nSub × nChan × D];
+  `prof`, `profTotal` per channel with their own weights. Without `DataWeights`
+  dimension 3 stays 1 (bit-identical). `info.dataWeights`, `info.nWeightChan`,
+  `info.validFraction`.
+- One code path: the A1a lines take scalars (no file) or per-bin arrays (file) with the
+  same arithmetic; helper `addTo` (accumarray into the whole array with channel
+  offsets). Chunks limited to 2^25/(nChan·(2+Lmax)) bins with a weight file (memory).
+- Cost: 128-channel fold 1.8 s with weights vs 0.25 s without (0.1 s of data); fine for
+  short voltage data (B), long observations go through the fast simulator (C).
+- **Until A2:** `estimateTOA` / `detectPulsar` assume one weight for all channels
+  (`fold.weight(:, s)` would silently take channel 1 of a per-channel fold) → do not
+  pass a `DataWeights` fold to them yet.
+
+**Tests 4–6 (`tests/testFoldWeights.m`, run by Claude and Jasper 7 Oct 2026; whole test ~7 s).**
+(4) Constant weight file (W = 1, V/X as float32) = `NoiseCoeffs` fold in every channel,
+bit for bit (same chunks). (5) Random streams (3 channels, W ∈ [0, 1] with 10 % zeros,
+random V, X(1..7)), geometry of test 2: weight = AᵀW to 3e-16, weight2/weightX = AᵀCA
+per sub-int and channel to 7e-16 (linear) / 0 (nearest). (6) Fake blanking of whole
+detected time bins in the 128-channel data (15 % random per channel + every other bin at
+phase 0.30–0.36; valid fraction 0.825; exact streams W = keep, V·keep, X·keep_k·keep_k+L):
+mean level vs the unblanked fold −0.0019 ± 0.0009 in the window, +0.0001 ± 0.0001 outside
+(naive fold ignoring blanking −0.574 / −0.150, as expected 1 − 0.425 / 1 − 0.85);
+noise all off-pulse: variance −1.8σ, lag 1 −0.0σ, lag 2 −0.1σ; window alone: variance
+−0.8σ, lag 1 +0.6σ. (Tests 3 and 6 use the same noise realization, so their slightly
+negative variance offsets are correlated, not independent.)
 
 ### 5.8 `estimateTOA(fold, info_fold, template, ...)` [validated noise-free]
 
@@ -1229,7 +1267,8 @@ solution, 3×3 array, second polarization). Done so far in A: channelizeIQ,
 dedisperseChannels, blanking experiment, detectChannels + powerCovariance (validated);
 A1 split (7 Oct) into **A1a** exact noise covariance in the fold (`NoiseCoeffs`, §5.7;
 validated, Jasper's run) and **A1b** per-channel data weights
-(weight file with W, V, X(L) per time bin and channel) ← next.
+(`DataWeights`: weight file with W, V, X(L) per time bin and channel, §5.7; validated,
+Jasper's run). Next: A2.
 
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
@@ -1282,7 +1321,8 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    per-bin streams from the mask convolutions with blanking (computed in step 2, where
    the kernel h and the mask are known; the fold only has to accept them in unit 3).
    Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins), 3c part 1 = A1a
-   done 7 Oct (§5.7 `NoiseCoeffs`). Next: A1b (per-channel data weights).
+   done 7 Oct (§5.7 `NoiseCoeffs`), part 2 = A1b validated 7 Oct (§5.7 `DataWeights`).
+   Next: A2 (3d).
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1601,7 +1641,7 @@ per day).
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
-| `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct) | validated (A1a: 7 Oct) |
+| `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct) | validated (A1a, A1b: 7 Oct) |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free; −5 dB MC) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
@@ -1616,6 +1656,6 @@ per day).
 | `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | validated (6 Oct) |
 | `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Jasper's run, 6 Oct) |
 | `tests/makeFoldReference.m` | saves the pre-A1 reference folds (`data/mc/foldRef_pre3c.mat`) | run 6 Oct |
-| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise | passes (Jasper's run, 7 Oct) |
+| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking | passes (Jasper's run, 7 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

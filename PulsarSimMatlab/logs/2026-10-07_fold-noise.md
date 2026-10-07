@@ -54,12 +54,35 @@
 - Covariance between consecutive sub-int profiles is not stored (only boundary bins at
   phase 0.5, negligible; notes §9).
 
-Jasper ran `tests/testFoldWeights.m`: passed → **A1a validated**; committed.
+Jasper ran `tests/testFoldWeights.m`: passed → **A1a validated**; committed (994ca4f).
+
+## Later: A1b – data weights per channel
+
+- Design agreed (Jasper: "go ahead"): blanking before dedispersion → per time bin and
+  channel W (valid fraction, mean W·m), V, X(L) (exact from the mask, computed later in
+  B). Fold: weight = Σ a·W (unbiased profile even for phase-correlated blanking),
+  weight2/weightX from the per-bin V, X; per channel.
+- `functions/foldProfile.m`: option `DataWeights` (info struct: file, nChan, N, Lmax,
+  byteOrder; float32 [nChan × (2+Lmax) × N]); replaces `NoiseCoeffs` (error if both);
+  weights [NBin × nSub × nW], weightX [NBin × nSub × nW × D], nW = nChan with weights
+  else 1; one code path for scalars and per-bin arrays (helper `addTo`); `addLagPairs`
+  takes per-bin X (tail carries it across chunks); chunks limited with a weight file;
+  `info.dataWeights`, `nWeightChan`, `validFraction`.
+- `tests/testFoldWeights.m`: tests 4–6 (constant stream = A1a fold bit for bit; random
+  streams vs AᵀW and AᵀCA; fake blanking of whole detected bins in the 128-channel data:
+  mean unbiased, noise as predicted). Temporary files (~0.5 GB) deleted at the end.
+- Results (Claude's run, ~7 s, all PASS; numbers in notes §5.7): 4 bit-identical; 5
+  errors ≤ 7e-16; 6 mean −0.0019 ± 0.0009 (window) / +0.0001 ± 0.0001 (rest) vs naive
+  −0.574 / −0.150; noise all off-pulse −1.8σ / −0.0σ / −0.1σ (variance / lag 1 / lag 2),
+  window −0.8σ / +0.6σ. Same noise realization as test 3 → the slightly negative variance
+  offsets are correlated. Fold with weights 1.8 s vs 0.25 s.
+- Noted (§5.7): `estimateTOA` / `detectPulsar` must not get a per-channel fold before A2
+  (`fold.weight(:, s)` would take channel 1).
 
 ## Open items / next steps
 
-1. (done) Jasper's run of `tests/testFoldWeights.m`.
-2. **A1b**: per-channel data weights: weight file with W (valid fraction), V, X(L) per
-   time bin and channel → `weight`, `weight2`, `weightX` per channel. Design note first.
-3. Then A2 (`estimateTOA` / `detectPulsar`: all lags, per-channel variance, combining
-   channels), A3, A4; B, C, D.
+1. (done) Jasper's run of `tests/testFoldWeights.m` (A1a).
+2. (done) Jasper ran `tests/testFoldWeights.m` (tests 1–6): passed → **A1b validated**.
+3. **A2**: `estimateTOA` / `detectPulsar`: all lags d ≤ D, per-channel weights and
+   variance, own baseline a_c per channel, exclusion of partially covered channels.
+   Design note first. Then A3, A4; B, C, D.
