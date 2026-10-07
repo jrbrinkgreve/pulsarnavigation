@@ -47,7 +47,11 @@ Name-value options:
                    the variance V, then the covariances X(1) ... X(Lmax) with
                    the following time bins (V, X relative to sigma^2 of that
                    channel without blanking, as NoiseCoeffs). The weights are
-                   then kept per channel. Replaces NoiseCoeffs. Default: none
+                   then kept per channel. A time bin with W = 0 holds no data:
+                   its power is not added either (whatever is left in it,
+                   e.g. filter tails below blankingWeights' MinWeight, would
+                   otherwise bias phase bins that have almost no weight).
+                   Replaces NoiseCoeffs. Default: none
                    (W = 1 and the constants of NoiseCoeffs, shared by all
                    channels).
   'UseSupportedOnly' fold only info_det.fullySupportedBins (default true).
@@ -285,6 +289,7 @@ while kPos <= k2
         Vk = Y(:, :, 2);
         Xk = Y(:, :, 3:end);                         % n x nChan x Lmax
         sumW = sumW + sum(Wk, 'all');
+        X(Wk.' == 0) = 0;                            % empty bins add no power
     else                                             % the same constants for every bin
         Wk = 1;
         Vk = V;

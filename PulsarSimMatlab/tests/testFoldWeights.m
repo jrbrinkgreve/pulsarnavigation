@@ -28,7 +28,8 @@ data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
      per-channel weights bit-identical to the NoiseCoeffs fold in every
      channel (same chunks).
   5. Data weights, random streams (3 channels, W in [0, 1] with 10 % zeros,
-     random V and X(1..7)) on the geometry of test 2: weight = A' * W and
+     random V and X(1..7)) on the geometry of test 2: weight = A' * W,
+     sum = A' * (P where W > 0) (empty bins add no power) and
      weight2 / weightX = A' * C * A per sub-int and channel (C from the
      per-bin V and X); prof = sum ./ weight per channel.
   6. Fake blanking of the 128-channel data: whole detected time bins zeroed
@@ -216,7 +217,8 @@ Wst = double(reshape(Y5(:, 1, :), nC5, N2));        % what the fold reads
 Vst = double(reshape(Y5(:, 2, :), nC5, N2));
 Xst = double(Y5(:, 3:end, :));
 det5 = det2; det5.nChan = nC5; det5.chanFreqs = zeros(nC5, 1); det5.file = fullfile(tmp, 'p5.dat');
-writeF32(det5.file, rand(nC5, N2));
+P5 = double(single(rand(nC5, N2)));                % power, also in bins with W = 0
+writeF32(det5.file, P5);
 infoW5 = struct('file', fullfile(tmp, 'w5.dat'), 'nChan', nC5, 'N', N2, 'Lmax', Lm5, ...
     'byteOrder', 'ieee-le');
 writeWeightBlocks(infoW5.file, N2, @(kk) Y5(:, :, kk));
@@ -229,11 +231,13 @@ for asg = ["linear", "nearest"]
         cols = mod(round(x), nb2) + 1;  vals = ones(size(x));
     end
     D = ifo5.covLags;
-    errQ = 0; errW = 0; outside = 0;
+    errQ = 0; errW = 0; errS = 0; outside = 0;
     for s = 1:ifo5.nSub
         rr = find(sb == s); ns = numel(rr); kk = k(rr);
         A  = sparse(repmat((1:ns).', 1, size(cols, 2)), cols(rr, :), vals(rr, :), ns, nb2);
         for c = 1:nC5
+            sE = A.' * (P5(c, kk).' .* (Wst(c, kk).' > 0));   % empty bins add no power
+            errS = max(errS, max(abs(sE - f5.sum(:, s, c))) / max(sE));
             I = (1:ns).'; Jc = I; Cv = Vst(c, kk).';
             for L = 1:Lm5
                 i1 = (1:ns-L).';
@@ -256,11 +260,12 @@ for asg = ["linear", "nearest"]
         end
     end
     profOk = isequaln(f5.prof, f5.sum ./ f5.weight .* nanWhere(f5.weight == 0));
-    pass = errQ < 1e-12 && errW < 1e-12 && outside == 0 && profOk && ...
+    pass = errQ < 1e-12 && errW < 1e-12 && errS < 1e-12 && outside == 0 && profOk && ...
         isequal(size(f5.weight), [nb2, ifo5.nSub, nC5]);
     fprintf(['5. random data weights, %s, %d chan x %d sub-ints, D = %d: weight vs A''W %.1e, ' ...
-             'weight2/weightX vs A''CA %.1e, beyond lag D %g, prof per channel %d: %s\n'], asg, ...
-        nC5, ifo5.nSub, D, errW, errQ, outside, profOk, passStr(pass));
+             'sum vs A''(P where W > 0) %.1e, weight2/weightX vs A''CA %.1e, beyond lag D %g, ' ...
+             'prof per channel %d: %s\n'], asg, nC5, ifo5.nSub, D, errW, errS, errQ, outside, ...
+        profOk, passStr(pass));
     if ~pass, fails{end+1} = char("random data weights " + asg); end %#ok<AGROW>
 end
 

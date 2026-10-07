@@ -124,12 +124,90 @@ Jasper ran `tests/testFoldWeights.m`: passed → **A1a validated**; committed (9
   1.0049 ± 0.0067), summed path 0.9842, ratio 1.0133 (fold level 1.0134); same phase and
   detections.
 
+## Later: A3a (blankingWeights) and a fold bug found with it
+
+- A2b committed (d5afbab). A3 design agreed (interval mask, exact W/V/X from the mask
+  and the channel filter, white-noise approximation stated; A3b multi-seed MC optional);
+  Jasper: "go ahead. test thoroughly".
+- New `functions/blankingWeights.m` (§5.18): h per channel via an impulse through
+  `applyInverseDispersion` (same Nfft), one FFT convolution of the mask per sample lag,
+  bin sums for V and X(1..Lmax), MinWeight 1e-6, unblanked channels from their own h.
+  Two indexing errors fixed before the first run (3-D shape for the unblanked
+  constants; empty-partner mask shifted the wrong way). Smoke run 2.3 s.
+- New `tests/testBlankingWeights.m` (exactness vs direct covariance matrix, consistency,
+  end to end with voltage blanking before dedispersion). First run stopped on a test bug
+  (row vs column → 7×7 broadcast); then ALL PASSED, but two hints were followed up:
+  - noise ratio 0.987 (blanked) vs 0.997 (unblanked): diagnosis per sub-int — the
+    unblanked fold with the same 121 channels gives 0.991; blanking itself −0.003 ±
+    0.0025 → statistics of this realization; test now has the paired comparison.
+  - off-pulse mean +2.3σ: grouped by blanking type → channels 110–115 (100 µs blanks
+    every 1.1 ms) +4.9e-3 ± 0.7e-3 (7σ), hidden in the all-channel average. Detected
+    level: E[P] = W·m holds for W ≥ 0.1; nearly empty bins (W 1e-6…1e-2) ~4 % low (the
+    white-noise approximation, as expected). Fold level: phase bins with valid fraction
+    < 0.001 at +285 % → cause: bins set to W = 0 by MinWeight still added their leftover
+    power (effective W 3.9e-7) to the fold sum. Confirmed by refolding with that power
+    removed: −1.6e-4 ± 0.9e-4 (all channels −0.8e-5 ± 1.9e-5).
+- Fix (Jasper OK): `foldProfile` with DataWeights: X(W == 0) = 0 before accumulating
+  (header note); `testFoldWeights` test 5 checks sum = Aᵀ·(P where W > 0) (exact).
+  `testBlankingWeights`: means per blanking type and per valid-fraction group,
+  inverse-variance weighted; noise deviations as a fraction of the variance; paired
+  noise ratio. All three tests in one session: ALL PASSED (53 s).
+- Note: the TOAs of this test were not affected by the bug (channels 110–115 were
+  excluded in every sub-int anyway); with longer sub-ints they would have been.
+- Jasper asked to fix the other two findings too. They are model limits, not code
+  bugs → explained with options (notes §9): (1) white-noise approximation — weak-signal
+  requirement (phase-dependent mean errors ≪ 4e-6 of the baseline); exact mean with the
+  true channel spectrum possible; (2) exclusion rule / equal channel weights → weighted
+  multi-channel fit. Waiting for Jasper's choice.
+
+## Later: the two A3a findings — (1) exact mean with the true channel spectrum
+
+- Jasper: "go ahead with (1) and (2)". (1) first; (2) gets a design note first (core
+  change to two validated functions).
+- Channel spectrum from `info_chan.prototype` (|response|² aliased at the channel rate):
+  flat ±1.6e-4 in the band, 0.5 at Nyquist; R_x significant to lag ~19 (< 1e-8 beyond).
+- `blankingWeights`: new first input `info_chan`; local `channelAutocorr`; mean
+  E|y|² = Σ_d R_x(d)(q_d ∗ keep·keep_d), normalized by the unblanked value (reuses the q
+  FFTs of the lag loop, one extra FFT per d); option `InputSpectrum` 'channelizer' /
+  'white'; `info.Rx`. V, X stay white (error bars only).
+- `tests/testBlankingWeights.m`: new signature; test 1 W via u'·R·u (independent matrix
+  form); new 2e (prototype autocorrelation vs measured on raw channel samples: 7e-4,
+  white off by 0.05); (a0) per W group with the white-input W for contrast. ALL PASSED,
+  66 s.
+- Correction: the true spectrum changes W of nearly empty bins by ~1 % only; the
+  earlier "~4 % deficit" was over-stated — with the honest channel-scatter σ it is
+  −4 ± 4 % (bins inside a blank share their data; the bin-based σ of the diagnosis was
+  too small). Notes §5.18 / §9 corrected.
+
+## Later: (2) A2c-1 — weighted multi-channel TOA fit
+
+- Jasper: "losing track … re-evaluate it once more, and if everything is right, go
+  ahead". Re-evaluated: design holds (known gains s_c instead of free b_c per channel —
+  weak signal; diagonal weights 1/var with exact sandwich error bars; 'equal' stays
+  default); refinements: iterate weights to convergence; equivalence check via the
+  'offpulse' model (uniform weights); bounded search + Newton polish.
+- `functions/estimateTOA.m`: options `Weighting` ('equal' | 'optimal'), `ChannelGain`,
+  `MaxIterations`; output `chanBaseline`; local `fitOptimal`, `wlsFit`, `objective`,
+  `slope`, `chanNoise`, `quadForm`; 'equal' path untouched (bit-identical).
+- First smoke run: 'offpulse' equivalence only to 1e-10 turns (search on values) → Newton
+  polish on the analytic slope → 1.7e-16.
+- New `tests/testOptimalTOA.m`: ALL PASSED (127 s); numbers in notes §5.8. Monte Carlo
+  with the exact covariance of 64 fake-blanked channels: unbiased, pulls 1.006 (SNR 40) /
+  1.04 (SNR 10, both estimators — known low-SNR effect), scatter optimal/equal 0.955–0.963
+  as predicted by the error bars; on the blanked data all 128 channels used.
+- Memory: MEMORY.md had been changed outside the session (overview reminder removed,
+  report time 06:30) — taken as current.
+
+## Later: reminder, Jasper's test runs, commit
+
+- Jasper asked for a reminder tomorrow → one-time scheduled task
+  `pulsarnav-continue-reminder` (8 Oct 09:00) + a memory note for the next session.
+- Jasper ran `testFoldWeights`, `testChannelTOA`, `testBlankingWeights`, `testOptimalTOA`:
+  all passed → **A3a (blankingWeights, exact mean), the fold rule (W = 0 adds no power) and
+  A2c-1 (estimateTOA 'optimal') validated**; committed.
+
 ## Open items / next steps
 
-1. (done) Jasper's runs of `tests/testFoldWeights.m` (A1a, A1b) and
-   `tests/testChannelTOA.m` (A2a).
-2. (done) Jasper ran `tests/testChannelTOA.m` (tests 1–6): passed → **A2b validated**; committed.
-3. **A3**: exact W/V/X streams from a voltage-level blanking mask (promote the mask
-   convolutions of `tests/expBlankingVariance.m` to a function), blank voltages before
-   per-channel dedispersion, end to end over several noise seeds: TOAs unbiased, error
-   bars honest. Design note first. Then A4; B, C, D.
+1. A2c-2: `detectPulsar` with the weighted matched filter (same quantities N, Dn; H0
+   noise with the exact covariance). Design note first.
+2. A4 (switch in main.m: channel path, 'optimal'); A3b multi-seed MC optional; B, C, D.

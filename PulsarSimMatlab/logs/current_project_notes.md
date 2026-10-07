@@ -113,8 +113,10 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
   7b. foldProfile + 'NoiseCoeffs' ─► exact phase-bin covariance (A1a)   [validated]
       foldProfile + 'DataWeights' ─► weights per channel (A1b)  [validated]
   8b. estimateTOA combining channels (A2a)                   [validated]
+      estimateTOA 'Weighting','optimal' (A2c-1)               [validated]
       detectPulsar combining channels (A2b)                    [validated]
-      (next: A3 fake blanking end to end, A4 switch in main.m)
+  5c. blankingWeights: mask -> exact W, V, X(L) weight file (A3a) [validated]
+      (next: A3 remaining items, A4 switch in main.m)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -519,6 +521,8 @@ computed later in B). The fold uses them:
   offsets). Chunks limited to 2^25/(nChan·(2+Lmax)) bins with a weight file (memory).
 - Cost: 128-channel fold 1.8 s with weights vs 0.25 s without (0.1 s of data); fine for
   short voltage data (B), long observations go through the fast simulator (C).
+- A time bin with W = 0 adds no power to the sum either (7 Oct, found in A3a, §5.18;
+  `testFoldWeights` test 5 checks sum = Aᵀ·(P where W > 0)).
 - Consumers: `estimateTOA` (A2a, §5.8) and `detectPulsar` (A2b, §5.13) combine the
   channels with these weights (helper `combineChannels`).
 
@@ -628,6 +632,37 @@ sub-ints lose 10 of 128 channels). The rms difference (1.33 µs) is above the
 nested-estimator guess √(σ_b² − σ_u²) ≈ 0.8 µs, which only holds for an optimal
 estimator (equal channel weights and FFTFIT under self-noise are not); 8 TOAs only → A3
 tests error-bar honesty over many seeds.
+
+**Optimal weighting: A2c-1 (7 Oct 2026; validated, Jasper's run).**
+Option `'Weighting'`: 'equal' (default, unchanged) or 'optimal' — all channels fitted at
+once, prof_cj = a_c + b·s_c·T(φ_j − τ) + noise: baseline a_c per channel, one amplitude b
+times the known relative gain s_c (`'ChannelGain'`, default 1; observer knowledge:
+pulsar spectrum × bandpass), one τ. Why not a free b_c per channel: at −54 dB each
+channel's pulse has SNR ≪ 1 per sub-int, 128 free amplitudes would fit noise. Weights
+1/variance per bin and channel (radiometer model with the current fit, or per-channel
+off-pulse residuals), iterated to convergence (|Δτ| < 1e-12, ≤ `'MaxIterations'` 10).
+For fixed τ, a_c and b by weighted least squares; τ maximizes N(τ)/√Dn(τ) (the weighted
+matched filter): FFT correlations on the Upsample grid, bounded search (`fminbnd`), then
+Newton on the analytic slope (a search on values alone stops at ~1e-10 turns). Error
+bars: sandwich Cov = A⁻¹BA⁻¹, A = JᵀWJ, B = JᵀWΣWJ with the full covariance of every
+channel (all lags); the weights ignore neighbour covariances (correlation ~0.26; small
+loss), the error bars do not. Empty bins weigh nothing → no exclusion rule, no dips;
+`nChanUsed` = channels with data; new output `chanBaseline` (a_c). 'amp'/'ampErr' =
+b·Σs_c (as the summed pulse), 'baseline' = Σa_c. Local functions `fitOptimal`, `wlsFit`,
+`chanNoise`, `quadForm`, `objective`, `slope`.
+
+**Tests (`tests/testOptimalTOA.m`, run by Claude and Jasper 7 Oct 2026, ~127 s).** (1) default =
+pre-A2 bit for bit. (2) one channel, 'offpulse' (uniform weights): τ = FFTFIT to 1.7e-16
+turns, amplitude 6e-14, baseline 1e-14; error bars 1.011 ± 0.004 × FFTFIT's (model vs
+data curvature, second order). (3) 128 channels, unblanked and fake-blanked (channels
+with empty phase bins): from the outputs, τ is a maximum of N/√Dn, b and a_c = WLS (5e-15),
+phaseErr / ampErr = sandwich with explicit sparse covariance matrices (≤ 8e-14). (4) Monte
+Carlo, 800 profiles per level drawn with the exact covariance of 64 fake-blanked channels
+(5 with empty phase bins): SNR 10 — bias −0.8σ (optimal) / −1.1σ (equal), pull std 1.037 /
+1.041 ± 0.025; SNR 40 — +1.2σ / +1.0σ, pull std 1.006 / 1.006; scatter optimal/equal 0.963
+(predicted from the error bars 0.968) and 0.955 (0.955). (5) fake-blanked data: optimal
+uses all 128 channels (equal 118/128), TOAs equal within −0.006 ± 0.352 µs, errors 3.008
+vs 3.037 µs.
 
 ### 5.9 `validateTOA(toa, info_gen, ...)` [validated]
 
@@ -903,6 +938,61 @@ seed-43 data, 68,803 off-pulse bins × 128 channels: V 0.8866 (pred 0.8877 ± 0.
 X₁₋₃ 0.0455 / 0.0053 / 0.0018 (pred 0.0458 / 0.0051 / 0.0020 ± 0.0004); variance of 5-bin
 sums (~ one 4.9 µs phase bin) 0.9685 × 5·rad (pred 0.9692 ± 0.0014; the independent-bin
 model says 1).
+
+### 5.18 `blankingWeights(info_chan, info_dc, info_det, mask, outFile, ...)` [A3a, validated 7 Oct 2026 (Jasper's run)]
+
+**Idea.** Excision zeroes channel samples before per-channel dedispersion; the fold needs
+per detected bin the valid fraction W, variance V and lag covariances X(L) (A1b
+`DataWeights`). For Gaussian input they follow exactly from the mask and the channel's
+filter h (experiment 3a, generalized to lags): C(a, a+τ) = Σ_l h(l)h*(l+τ)·keep(a−l), one
+FFT convolution of the mask per sample lag τ = 0…(Lmax+1)n−1 (32 for Lmax 7, n 4);
+W = mean of C(a,a)/m0, V and X(L) = (1/n²)·Σ|C|²/m0² over the sample pairs of bins k, k+L,
+divided by `info_det.noise.radiometer`.
+**Code.** Mask = rows [channel, first, last] (1-based channel samples; clipped,
+overlaps allowed). h per channel: an impulse through `applyInverseDispersion` with the
+channel's settings and its `Nfft` (checked: same nPast/nFuture as `dedisperseChannels`).
+Unblanked channels: W = 1 and the unblanked V0, X0 from their own h (= spectrum
+constants to 5e-9). `MinWeight` (default 1e-6): W below it → W = V = X = 0 (and X with
+an empty partner bin). Weight array held in memory (`MaxMemoryGB`; ~0.5 GB for 0.1 s of
+128 channels). ~0.3 s per blanked channel + 2 s for the 128 filters.
+**Fold rule found with it (7 Oct):** a time bin with W = 0 must not add its power either
+(`foldProfile`, §5.7): the leftover power of such bins (effective W ~4e-7, filter tails)
+biased phase bins with almost no weight by up to +285 % (channels with 100 µs blanks:
++4.9e-3 ± 0.7e-3 of the folded mean, 7σ; after the fix −1.6e-4 ± 0.9e-4).
+**Mean with the true channel spectrum (7 Oct, Jasper's decision):** the channel samples
+are not white (channelizer output flat to ±1.6e-4 in the useful band, 0.5 at Nyquist,
+mean 0.951 over the sample band; autocorrelation R_x significant to lag ~19). Blanking
+mixes the roll-off region into the band, so W uses the true R_x:
+E|y(a)|² = Σ_d R_x(d)·(q_d ∗ keep·keep_d)(a) (d ≥ 0, counted twice for d > 0), normalized by
+the unblanked value; one extra FFT of the mask product per lag d (~20). R_x from
+`info_chan.prototype` (|response|² aliased at the channel rate; `channelAutocorr`). New
+first input `info_chan`; option `InputSpectrum` 'channelizer' (default) / 'white'.
+Effect on W: ~1 % for nearly empty bins (W < 1e-2), ≤ 0.07 % for W ≥ 0.1. V and X keep
+the white form (error bars only; within 1–2 % in heavily blanked bins, §9).
+
+**Tests (`tests/testBlankingWeights.m`, run by Claude and Jasper 7 Oct 2026, ~66 s).** (1) W (with
+R_x, as u'·R·u), V, X(1..7) (white) vs the direct sample covariance matrix
+C = H·diag(keep)·H' for 221 bins in channels 1, 64, 128 (blanks 1–3001 samples): max
+diff 3e-8 (float32 file). (2) unblanked V0, X0 = spectrum constants (5e-9); empty mask →
+fold = NoiseCoeffs fold (weight, prof bit-identical, weight2 1e-8); far bins = V0, X0;
+messy mask = clean mask; (2e) channel autocorrelation from the prototype vs measured on
+raw channel samples (8 channels, 19 lags): max diff 7e-4 (≤ 2.3σ); white would be off by
+up to 0.05. (3) end to end
+on seed-43 data, voltages blanked before dedispersion (10,342 mask rows, 2.7 % of
+samples: random 20 µs, broadband 1 µs impulses, radar 373 Hz and 400 Hz (phase-locked),
+30 µs on the pulse in channels 90–100, 100 µs every 1.1 ms in 110–115, 30 ms gap in 64,
+channel 10 dead): detected power E[P_b] = W·E[P_u] to −0.2e-5 ± 1.4e-5, and per W group
+down to W = 1e-6 within ≤ 1σ (σ from the channel scatter: 4 % for W < 1e-4, 0.2 % for
+0.1–0.5, 0.01 % above 0.9; white-input W differs by ~1 % at W < 1e-2 — not resolvable
+here; the exactness rests on (1) + (2e)); folded mean
+unbiased off-pulse (−0.8e-5 ± 1.9e-5), per blanking type and per valid-fraction group
+(≤ 2σ), and on the pulse in the pulse-blanked channels (−0.0009 ± 0.0014 of the pulse
+height; naive fold −0.221); noise in valid-fraction groups within ≤ 1.6σ (precision
+0.1–1.8 % of the variance), w² model off by up to +55 %, w model −6 %; channel use as the
+rule says (10 never; 64 left out in sub-ints 3–6; 110–115 left out everywhere, their
+100 µs blanks leave empty phase bins in 1-turn sub-ints); TOAs consistent (−0.25 ± 0.35 µs,
+errors 3.05 vs 2.93 µs); noise ratio 0.987 ± 0.005, paired with the unblanked fold on
+the same channels −0.0075 ± 0.0060.
 
 ---
 
@@ -1295,6 +1385,27 @@ channel spectrum where not.
   noise matches).** `estimateTOA` (A2a, §5.8) and `detectPulsar`
   (A2b, §5.13) done 7 Oct: all lags, channels combined; the H0 noise ratio on the channel
   path is 0.997 ± 0.006 (old summed path 0.984).
+- **Blanking: channel-input spectrum (7 Oct 2026, A3a, §5.18).** The mean W uses the
+  true channel spectrum (fixed 7 Oct: the white-input form is off by ~1 % for nearly
+  empty bins, ≤ 0.07 % for W ≥ 0.1). V and X still use white input (error bars only;
+  within 1–2 % in heavily blanked bins; exact V, X would need ~20× the FFTs). An earlier
+  note of a "~4 % deficit" at W < 1e-2 was over-stated: with the honest channel-scatter
+  σ the measured value is −4 ± 4 % (bins inside a blank share their data, so bin-based
+  errors were too small). Weak-signal context: the pulsar is ~4e-6 of the baseline
+  (−54 dB), so any PHASE-DEPENDENT mean error from blanking must be ≪ 4e-6 of the
+  baseline; phase-uniform errors only shift the baseline (harmless). Blanking is
+  phase-dependent only if locked to the pulsar's barycentric phase (topocentric RFI
+  drifts against it with Doppler). Remaining known limits of the mean: R_x cut at
+  |R| < 1e-9; Gaussian, stationary input (the pulse modulates the power on 0.5 ms).
+- **Exclusion rule drops whole channels; equal channel weights (7 Oct 2026, A3a).** A
+  channel with one empty phase bin in a sub-int is left out of it (no dips): with 1-turn
+  sub-ints the 100 µs blanks in channels 110–115 removed them everywhere (more data lost
+  than blanked). FFTFIT weights all bins and channels equally, so nearly empty bins
+  (valid fraction ≪ 1, huge variance) add much noise (error bars honest, estimator not
+  optimal). **Addressed 7 Oct (A2c-1, §5.8): `'Weighting', 'optimal'`** (weighted
+  multi-channel fit, own a_c, common b·s_c and τ, weights 1/var; no exclusion; Monte
+  Carlo: unbiased, honest, scatter 0.955–0.963 of 'equal' with light blanking).
+  `detectPulsar` still equal-weight (A2c-2).
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1321,7 +1432,11 @@ validated, Jasper's run) and **A1b** per-channel data weights
 (`DataWeights`: weight file with W, V, X(L) per time bin and channel, §5.7; validated,
 Jasper's run). A2a `estimateTOA` combining channels (§5.8; validated, Jasper's
 run). A2b `detectPulsar` combining channels (§5.13; validated, Jasper's run).
-Next: A3.
+A3a `blankingWeights` (§5.18) + fold rule "W = 0 adds no power" (§5.7) + mean with the
+true channel spectrum: validated 7 Oct (Jasper's run). Open
+from A3a (§9): exclusion rule drops whole channels / equal channel weights → A2c
+weighted multi-channel fit (agreed 7 Oct): A2c-1 `estimateTOA` 'optimal' validated
+(§5.8; Jasper's run); next A2c-2 `detectPulsar`.
 
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
@@ -1376,7 +1491,7 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins), 3c part 1 = A1a
    done 7 Oct (§5.7 `NoiseCoeffs`), part 2 = A1b validated 7 Oct (§5.7 `DataWeights`).
    A2a (`estimateTOA`) validated 7 Oct (§5.8); A2b (`detectPulsar`) validated 7 Oct
-   (§5.13). Next: A3 (3e).
+   (§5.13). A3a (`blankingWeights`, 3e) written 7 Oct (§5.18).
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1696,10 +1811,11 @@ per day).
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
 | `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct) | validated (A1a, A1b: 7 Oct) |
-| `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct) | validated (noise-free; −5 dB MC; A2a 7 Oct) |
+| `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct); 'Weighting','optimal' weighted multi-channel fit (A2c-1, 7 Oct) | validated (noise-free; −5 dB MC; A2a, A2c-1 7 Oct) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check; channels combined, all lags (A2b, 7 Oct) | validated (6 Oct; P_FA via `runH0.m`; A2b 7 Oct) |
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
+| `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
@@ -1714,5 +1830,7 @@ per day).
 | `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking | passes (Jasper's run, 7 Oct) |
 | `tests/makeToaReference.m` | saves pre-A2 estimateTOA / detectPulsar outputs (`data/mc/toaRef_preA2.mat`) | run 7 Oct |
 | `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio | passes (Jasper's run, 7 Oct) |
+| `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs) | passes (Jasper's run, 7 Oct) |
+| `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data | passes (Jasper's run, 7 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
