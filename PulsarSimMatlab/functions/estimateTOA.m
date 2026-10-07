@@ -17,21 +17,31 @@ template peaking at bin 1), at the dedispersion reference frequency.
   [toa, info] = estimateTOA(fold, info_fold, template, 'Bnoise', Bn)
 
 Inputs:
-  fold, info_fold  from foldProfile (channels are summed)
+  fold, info_fold  from foldProfile. Several channels are combined into one
+                   profile p = sum of the channel profiles (equal weights);
+                   a channel with no data in some phase bins of a profile,
+                   where other channels have data, is left out of that
+                   profile (its absence would leave a dip). Channels with
+                   partial data (0 < weight) stay in.
   template         [NBin x 1] profile shape, phase 0 at bin 1 (the value at
                    bin j is the template at phase (j-1)/NBin). Normalized
                    here to peak 1, so b is the peak height above baseline.
 
 Name-value options:
   'NoiseModel'  'radiometer' (default): per time bin, var = m^2/(Bnoise*binDt)
-                with m = a + b*template the fitted power model. Exact for
-                Gaussian signal + Gaussian receiver noise (self-noise and
-                system noise alike); needs 'Bnoise'.
-                'offpulse': variance and lag-1 covariance estimated from the
+                with m = a + b*template the fitted power model, per channel
+                (a_c, b_c: the same Fourier projection as a, b, with tau
+                fixed); the fold weights carry the rest (time-bin
+                correlations, blanking). Exact for Gaussian signal +
+                Gaussian receiver noise (self-noise and system noise alike);
+                needs 'Bnoise'.
+                'offpulse': variance and lag covariances estimated from the
                 residuals in off-pulse bins (classic approach; needs
                 off-pulse noise, i.e. receiver noise in the data).
-  'Bnoise'      [Hz] noise-equivalent bandwidth of the detected band,
-                (int W^2)^2 / int W^4 for the bandpass W.
+  'Bnoise'      [Hz] noise-equivalent bandwidth of ONE channel of the fold,
+                (int W^2)^2 / int W^4 for its bandpass W: scalar (same for
+                all channels) or one value per channel. Single-channel
+                (full-band) fold: the band's noise bandwidth.
   'MinCoverage' fraction of phase bins that must have data (default 1:
                 only complete turns). Missing bins are filled by circular
                 linear interpolation and get zero weight in the noise.
@@ -52,9 +62,11 @@ Outputs:
   toa   struct, per sub-integration (column vectors, NaN when invalid):
           valid, coverage, phase [turns], phaseErr, toa [s], toaErr [s],
           amp (b), ampErr, baseline (a), snr (= b/ampErr), redChi2,
-          flagChi2 (redChi2 > MaxRedChi2), tRef, fRef, turnRef
+          flagChi2 (redChi2 > MaxRedChi2), tRef, fRef, turnRef,
+          nChanUsed (channels combined)
         plus toa.total (the whole fold): phase, phaseErr, timeOffset
-        [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2.
+        [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2,
+        nChanUsed.
   info  method, noise model, Bnoise, harmonics, template.
 
 Uncertainties:
@@ -64,6 +76,10 @@ Uncertainties:
   with Cov(p) from the noise model, INCLUDING the covariance of
   neighbouring phase bins created by linear assignment in the fold
   (fold.weightX). Ignoring it underestimates var by ~1.5x for 'linear'.
+  Channels are independent, so Cov(p) is the sum of the channel
+  covariances: var(p_j) = sum_c s_cj^2 W2_cj / W_cj^2 and, for every lag
+  d = 1..D of weightX, cov(p_j, p_j+d) = sum_c s_cj s_c,j+d WX_cjd /
+  (W_cj W_c,j+d), with s_cj = m_c(phi_j) / sqrt(Bnoise_c * binDt).
   Verified by Monte Carlo on the self-noise case (predicted 0.469 us vs
   empirical 0.46-0.47 us).
 
@@ -113,26 +129,36 @@ Sk = S(k + 1);
 sumS2 = sum(abs(Sk).^2);
 ksg = [0:ceil(N/2)-1, -floor(N/2):-1].';               % signed harmonic numbers
 
+% Weights: [NBin x nSub x nW (x nLag)], nW = nChan (per channel) or 1 (shared)
+nChan = size(fold.prof, 3);
 if isfield(fold, 'weightX'), WXall = fold.weightX; else, WXall = zeros(N, nSub); end
+nW   = size(fold.weight, 3);
+nLag = size(WXall, 4);
+if ~isempty(opts.Bnoise) && ~any(numel(opts.Bnoise) == [1 nChan])
+    error('estimateTOA:bnoise', 'Bnoise must be a scalar or one value per channel (%d).', nChan);
+end
+Bc = reshape(opts.Bnoise, 1, []);                       % per channel, or scalar
 cst = struct('N', N, 'k', k, 'S', S, 'Sk', Sk, 'sumS2', sumS2, 'ksg', ksg, ...
-    'model', model, 'binDt', binDt, 'Bnoise', opts.Bnoise, 'M', opts.Upsample * N, ...
-    'onFrac', opts.OnPulseFrac);
+    'model', model, 'binDt', binDt, 'M', opts.Upsample * N, 'onFrac', opts.OnPulseFrac);
 
 % ---- Per sub-integration -------------------------------------------------------------
 nanv = nan(nSub, 1);
 toa = struct('valid', false(nSub, 1), 'coverage', nanv, 'phase', nanv, ...
     'phaseErr', nanv, 'toa', nanv, 'toaErr', nanv, 'amp', nanv, 'ampErr', nanv, ...
     'baseline', nanv, 'snr', nanv, 'redChi2', nanv, 'flagChi2', false(nSub, 1), ...
-    'tRef', fold.subint.tRef, 'fRef', fold.subint.fRef, 'turnRef', fold.subint.turnRef);
+    'tRef', fold.subint.tRef, 'fRef', fold.subint.fRef, 'turnRef', fold.subint.turnRef, ...
+    'nChanUsed', zeros(nSub, 1));
 
 for s = 1:nSub
-    p  = sum(fold.prof(:, s, :), 3);
-    W  = fold.weight(:, s);
-    toa.coverage(s) = mean(W > 0);
+    ch = combineChannels(reshape(fold.prof(:, s, :), N, nChan), ...
+        reshape(fold.weight(:, s, :), N, nW), reshape(fold.weight2(:, s, :), N, nW), ...
+        reshape(WXall(:, s, :, :), N, nW, nLag), Bc);
+    toa.coverage(s)  = ch.coverage;
+    toa.nChanUsed(s) = ch.nUsed;
     if toa.coverage(s) < opts.MinCoverage || toa.coverage(s) == 0
         continue
     end
-    r = fitOne(p, W, fold.weight2(:, s), WXall(:, s), cst);
+    r = fitOne(ch, cst);
     if ~r.ok, continue; end
     toa.valid(s)    = true;
     toa.phase(s)    = r.tau;
@@ -148,13 +174,13 @@ for s = 1:nSub
 end
 
 % ---- Total fold -------------------------------------------------------------------------
-Wt = sum(fold.weight, 2);
-pt = sum(fold.profTotal, 2);
-rt = fitOne(pt, Wt, sum(fold.weight2, 2), sum(WXall, 2), cst);
+cht = combineChannels(fold.profTotal, reshape(sum(fold.weight, 2), N, nW), ...
+    reshape(sum(fold.weight2, 2), N, nW), reshape(sum(WXall, 2), N, nW, nLag), Bc);
+rt = fitOne(cht, cst);
 toa.total = struct('phase', rt.tau, 'phaseErr', rt.tauErr, ...
     'timeOffset', rt.tau / info_fold.f0, 'timeOffsetErr', rt.tauErr / info_fold.f0, ...
     'amp', rt.b, 'ampErr', rt.bErr, 'snr', rt.b / rt.bErr, 'redChi2', rt.redChi2, ...
-    'flagChi2', rt.redChi2 > opts.MaxRedChi2);
+    'flagChi2', rt.redChi2 > opts.MaxRedChi2, 'nChanUsed', cht.nUsed);
 
 info = struct('method', 'FFTFIT (Fourier-domain template matching), Newton-refined', ...
     'noiseModel', model, 'Bnoise', opts.Bnoise, 'binDt', binDt, 'harmonics', K, ...
@@ -178,18 +204,23 @@ end
 
 
 % =====================================================================================
-function r = fitOne(p, W, W2, WX, c)
-%FITONE  FFTFIT of one profile; see the header of estimateTOA.
+function r = fitOne(ch, c)
+%FITONE  FFTFIT of one (channel-combined) profile; see the header of estimateTOA.
+% ch from combineChannels: p (sum), Pc (channel profiles), W, W2, WX, B, have.
 N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
+p = ch.p; Pc = ch.Pc; W = ch.W; W2 = ch.W2; WX = ch.WX; have = ch.have;
+nLag = size(WX, 3);
         r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, ...
                    'a', NaN, 'redChi2', NaN);
-        have = W > 0;
         if ~any(have), return; end
         if ~all(have)                                       % fill gaps circularly
             idx = find(have);
             xi  = [idx - N; idx; idx + N];
             yi  = repmat(p(idx), 3, 1);
             p(~have) = interp1(xi, yi, find(~have), 'linear');
+            if size(Pc, 2) > 1                              % the channels likewise
+                Pc(~have, :) = interp1(xi, repmat(Pc(idx, :), 3, 1), find(~have), 'linear');
+            end
         end
         P = fft(p);
         X = P(k + 1) .* conj(Sk);
@@ -221,40 +252,64 @@ N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
         a  = (real(P(1)) - b * real(S(1))) / N;
         tau = mod(tau + 0.5, 1) - 0.5;
 
-        % Fitted model on the phase grid
-        m = a + b * real(ifft(S .* exp(-2i*pi*ksg*tau)));
+        % Fitted model on the phase grid (sum and, for the noise, per channel:
+        % a_c, b_c by the same projection, tau fixed; they add up to a, b)
+        shape = real(ifft(S .* exp(-2i*pi*ksg*tau)));
+        m = a + b * shape;
         onP = (m - a) > c.onFrac * max(m - a);
+        if size(Pc, 2) == 1
+            mC = m;
+        else
+            PC = fft(Pc);
+            bC = real(sum(PC(k + 1, :) .* conj(Sk) .* e, 1)) / sumS2;
+            aC = (real(PC(1, :)) - bC * real(S(1))) / N;
+            mC = aC + bC .* shape;                          % [N x nChan used]
+        end
 
-        % Noise model: per-time-bin std and neighbour covariance of profile bins
-        Wn = circshift(W, -1);
+        % Noise model: variance of each profile bin and covariance with bin j+d,
+        % summed over the (independent) channels, lags d = 1..nLag
         if strcmp(c.model, 'radiometer')
-            sTB = abs(m) / sqrt(c.Bnoise * c.binDt);
-            v   = sTB.^2 .* W2 ./ W.^2;
-            cv  = sTB .* circshift(sTB, -1) .* WX ./ (W .* Wn);
+            sTB = abs(mC) ./ sqrt(ch.B * c.binDt);          % per time bin, per channel
+            v   = sum(sTB.^2 .* W2 ./ W.^2, 2);
+            cv  = zeros(N, nLag);
+            for lg = 1:nLag
+                cv(:, lg) = sum(sTB .* circshift(sTB, -lg) .* WX(:, :, lg) ./ ...
+                    (W .* circshift(W, -lg)), 2);
+            end
         else
             res = p - m;
             off = ~onP & have;
-            offN = off & circshift(off, -1);
             if nnz(off) < 10, return; end
             v0 = mean(res(off).^2);
-            resN = circshift(res, -1);
-            c0 = mean(res(offN) .* resN(offN));
             v  = v0 * ones(N, 1);
-            cv = c0 * ones(N, 1);
+            cv = zeros(N, nLag);
+            for lg = 1:nLag
+                offN = off & circshift(off, -lg);
+                resN = circshift(res, -lg);
+                cv(:, lg) = mean(res(offN) .* resN(offN)) * ones(N, 1);
+            end
         end
         v(~have | ~isfinite(v)) = 0;
-        cv(~have | ~circshift(have, -1) | ~isfinite(cv)) = 0;
+        for lg = 1:nLag
+            cl = cv(:, lg);
+            cl(~have | ~circshift(have, -lg) | ~isfinite(cl)) = 0;
+            cv(:, lg) = cl;
+        end
 
         % tau: C'(tau) = sum_j d_j p_j
         D = zeros(N, 1);
         D(k + 1) = 1i * w1 .* conj(Sk) .* exp(1i * w1 * tau);
         dvec = real(fft(D));
-        varC1 = sum(dvec.^2 .* v) + 2*sum(dvec .* circshift(dvec, -1) .* cv);
+        varC1 = sum(dvec.^2 .* v);
         % b: C(tau) = sum_j c_j p_j
         Cv = zeros(N, 1);
         Cv(k + 1) = conj(Sk) .* exp(1i * w1 * tau);
         cvec = real(fft(Cv));
-        varC0 = sum(cvec.^2 .* v) + 2*sum(cvec .* circshift(cvec, -1) .* cv);
+        varC0 = sum(cvec.^2 .* v);
+        for lg = 1:nLag
+            varC1 = varC1 + 2*sum(dvec .* circshift(dvec, -lg) .* cv(:, lg));
+            varC0 = varC0 + 2*sum(cvec .* circshift(cvec, -lg) .* cv(:, lg));
+        end
 
         use = onP & have & v > 0;
         r.ok      = true;
@@ -265,3 +320,27 @@ N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
         r.a       = a;
         r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
     end
+
+
+% =====================================================================================
+function ch = combineChannels(prof, W, W2, WX, B)
+%COMBINECHANNELS  Channels used for one profile, their sum and their weights.
+% prof [N x nChan] channel profiles; W, W2 [N x nW], WX [N x nW x nLag] their
+% fold weights (nW = nChan, or 1 when all channels share them); B = Bnoise,
+% scalar or [1 x nChan]. Exclusion rule: a channel is used only if it has data
+% (W > 0) in every phase bin where any channel has data, so every bin of the
+% sum holds the same channels (a missing channel would leave a dip).
+nChan = size(prof, 2);
+have  = any(W > 0, 2);
+if size(W, 2) == 1
+    use = true(1, nChan);
+else
+    use = all(W(have, :) > 0, 1);
+    W = W(:, use); W2 = W2(:, use); WX = WX(:, use, :);
+end
+if numel(B) > 1, B = B(use); end
+Pc = prof(:, use);
+ok = any(use) && any(have);
+ch = struct('p', sum(Pc, 2), 'Pc', Pc, 'W', W, 'W2', W2, 'WX', WX, 'B', B, ...
+    'have', have & ok, 'nUsed', nnz(use) * ok, 'coverage', mean(have) * ok);
+end

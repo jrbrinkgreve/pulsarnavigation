@@ -79,10 +79,41 @@ Jasper ran `tests/testFoldWeights.m`: passed → **A1a validated**; committed (9
 - Noted (§5.7): `estimateTOA` / `detectPulsar` must not get a per-channel fold before A2
   (`fold.weight(:, s)` would take channel 1).
 
+## Later: questions, A1b committed, A2a (estimateTOA combines channels)
+
+- Jasper asked again what A1–A4 and A–E mean → answered in plain terms (A1 fold, A2
+  detection + TOA fit with channels, A3 end-to-end blanking test, A4 switch in main;
+  A front end, B excision, C fast simulator, D Earth's motion, E later). Asked whether B
+  can be finished today: no — ~11–13 units left (A2 2, A3 2, A4 1, B ~6–8), about a week
+  of sessions at today's pace; today realistic: A2.
+- A1b committed (918cae3).
+- A2 design agreed: p = Σ_c prof_c (equal weights); noise summed over independent
+  channels, all lags d ≤ D, per-channel level m_c = a_c + b_c·template (same Fourier
+  projection, τ fixed); exclusion rule; `Bnoise` = noise bandwidth of one channel of the
+  fold; two units A2a `estimateTOA`, A2b `detectPulsar`. All current callers use
+  single-channel folds (testDedisperseChannels sums the channel power first) → nothing
+  existing changes.
+- `tests/makeToaReference.m` (new, run before the edit): pre-A2 outputs of estimateTOA /
+  detectPulsar on the frozen folds of `foldRef_pre3c.mat` → `data/mc/toaRef_preA2.mat`
+  (A 2.880 µs as known). MinCoverage case set to 0.3 (the partial last sub-int has 37 %
+  coverage; 0.5 did not exercise the gap filling).
+- `functions/estimateTOA.m`: helper `combineChannels` (exclusion rule, sum, weights),
+  `fitOne(ch, c)` with per-channel a_c, b_c, noise summed over channels and lags,
+  'offpulse' lags 1..D, `nChanUsed`; header updated (Bnoise per channel).
+- `tests/testChannelTOA.m` (new): Claude's run ALL PASSED, ~4 s (numbers in notes §5.8):
+  full band bit-identical (5 cases); error bars = explicit covariance to 4e-16 (128
+  channels with NoiseCoeffs; fake blanking with exclusion: 118 / 128 channels in odd /
+  even sub-ints); per-channel vs summed power: TOAs equal to 5.7e-7 σ, error ratio 0.9996,
+  red. χ² 0.983 vs 0.971; blanked vs unblanked: mean −0.20 ± 0.50 µs, error ratio 1.041.
+  Observation: rms difference 1.33 µs > nested-estimator guess 0.8 µs (not exact for a
+  non-optimal estimator; 8 TOAs) → A3.
+- Tolerance choice: per-channel vs summed TOAs pass at < 1e-4 σ because the float32
+  summed file alone moves TOAs by ~1e-6 σ (measured 5.7e-7).
+
 ## Open items / next steps
 
-1. (done) Jasper's run of `tests/testFoldWeights.m` (A1a).
-2. (done) Jasper ran `tests/testFoldWeights.m` (tests 1–6): passed → **A1b validated**.
-3. **A2**: `estimateTOA` / `detectPulsar`: all lags d ≤ D, per-channel weights and
-   variance, own baseline a_c per channel, exclusion of partially covered channels.
-   Design note first. Then A3, A4; B, C, D.
+1. (done) Jasper's runs of `tests/testFoldWeights.m` (A1a, A1b).
+2. (done) Jasper ran `tests/testChannelTOA.m`: passed → **A2a validated**; committed.
+3. **A2b** `detectPulsar`: the same channel combination under H0 (m_c = a_c), all lags in
+   T0, Tmax (FFT correlation per lag) and normProfile; regression vs `toaRef_preA2.mat`
+   (det cases). Then A3, A4; B, C, D.
