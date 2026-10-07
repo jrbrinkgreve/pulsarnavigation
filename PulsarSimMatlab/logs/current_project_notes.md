@@ -110,7 +110,8 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
       (excision per channel goes here, step 2)
   5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [validated]
   6b. detectChannels        ─► *_power.dat [128 × nBins], 0.96 µs bins + noise stats [validated]
-      (next: foldProfile with per-channel weights and lag covariances, 3c)
+  7b. foldProfile + 'NoiseCoeffs' ─► exact phase-bin covariance (A1a)   [validated]
+      (next: A1b per-channel data weights; A2 detection / TOA combining channels)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -460,6 +461,40 @@ true pulse centre (T/2) and Phi0 = 0, every true pulse peak is at an integer pha
 σ²/14.7 variance per turn (instead of σ²/9.77) because it shares data with its
 neighbours; ignoring the positive covariance underestimates the variance of any sum over
 bins by ~1.5× (fold check predicted 0.226 µs instead of the correct 0.277 µs until fixed).
+
+**Correlated time bins: option `NoiseCoeffs` (7 Oct 2026, A1a; validated, Jasper's
+run).** In a narrow channel neighbouring detected time bins are
+correlated (§5.17: var V, covariance X(L) at L bins apart, relative to σ² = m²/(B·dt)).
+A phase-bin sum S_j = Σ_k a_kj P_k then has
+cov(S_j, S_j+d) = σ²·Σ_k Σ_k′ a_kj a_k′,j+d c(k′ − k), c(0) = V, c(±L) = X(L).
+- `'NoiseCoeffs'` = [V X(1..Lmax)] (from `detectChannels` info.noise); default 1 =
+  independent bins (full band) → everything as before, bit for bit.
+- `weight2` = var(S_j)/σ²; `weightX` = cov(S_j, S_j+d)/σ² for d = 1..D, now
+  [NBin × nSub × 1 × D] (dimension 3 kept for per-channel weights, A1b). D =
+  ceil(Lmax·binDt·f·NBin) + 1: 1 without lags (same shape as before), 3 for the channel
+  data (10 ms / 2048 bins, Lmax 7). `info.noiseCoeffs`, `info.covLags`.
+- L = 0 terms are the old w² and w_j·w_j+1 sums times V; for L ≥ 1 every pair of time
+  bins L apart in the same sub-int adds X(L)·a·a′ to its pair of phase bins (circular,
+  both orders); the last Lmax time bins of a chunk are kept for pairs with the next
+  chunk (local function `addLagPairs`).
+- Not stored: covariance between consecutive sub-int profiles (pairs across a sub-int
+  boundary, at phase 0.5, off-pulse), §9.
+- Channel data at 10 ms / 2048 bins: phase-bin variance 0.987 of the old model, lag-1
+  correlation 0.258 instead of 0.250, lag 2 0.0009, lag 3 5e-6. Fold time 0.26 s vs
+  0.18 s (128 channels).
+
+**Tests (`tests/testFoldWeights.m`, run by Claude and Jasper 7 Oct 2026; ~1.5 s).** (1) Without
+`NoiseCoeffs` the four pre-A1 reference folds (`tests/makeFoldReference.m` →
+`data/mc/foldRef_pre3c.mat`: full band linear / nearest / 3 turns per sub-int, 128
+channels) are reproduced bit for bit. (2) Algebra: synthetic 0.96 µs bins, f0 100.3 Hz,
+F1 −0.5 Hz/s, 4096 bins (D = 4), chunks of 1000 bins, 3 turns per sub-int, exaggerated
+coefficients: weight2/weightX = Aᵀ·C·A per sub-int to 6e-16 (linear) / 3e-16
+(nearest), nothing beyond lag D; zero lag coefficients = default bit for bit.
+(3) 128-channel seed-43 fold, 13,524 off-pulse bins × 128 channels, normalized
+u = (prof/μ − 1)·W/√rad: measured vs new / old model (σ from the channel-to-channel
+scatter): variance 3.3402 ± 0.0038 vs new 3.3456 (−1.4σ) / old 3.3903 (−13.1σ); lag 1
+0.8647 ± 0.0029 vs 0.8629 (+0.6σ) / 0.8477 (+5.9σ); lag 2 0.0028 ± 0.0029 vs 0.0030
+(−0.1σ) / 0 (+1.0σ). The old model is clearly rejected, the new one fits.
 
 ### 5.8 `estimateTOA(fold, info_fold, template, ...)` [validated noise-free]
 
@@ -1168,7 +1203,15 @@ channel spectrum where not.
   shorter phase bins, e.g. J0437 at 2.8 µs). Full band: B·dt ≈ 400, no effect. Effect:
   error bars and P_FA slightly conservative. Fix with the weight plumbing (§10 item 1):
   include the time-bin autocovariance (known from the channel spectrum) in the fold
-  noise model.
+  noise model. **Fold part done 7 Oct 2026 (A1a, §5.7 `NoiseCoeffs`; measured fold
+  noise matches).** Still open (A2): `estimateTOA` / `detectPulsar` use only `weight2`
+  and the first lag of `weightX` and do not combine channels yet.
+- **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
+  correlated time bins (narrow channels) the last time bins of one sub-int correlate
+  with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
+  off-pulse) are affected, by ~1–4 % of their variance; consumers treat sub-ints as
+  independent, and the total fold (sum over sub-ints) misses the same small terms.
+  Negligible for TOAs (template derivative ≈ 0 there) and χ² / detection (~1e-5).
 
 ---
 
@@ -1183,7 +1226,10 @@ A = finish the front end (item 1 below): A1 fold with channels and exact noise (
 A4 switch in `main.m`; B = RFI excision (item 2); C = fast simulator (item 3);
 D = barycentric phase prediction (item 4); E = later (several pulsars, navigation
 solution, 3×3 array, second polarization). Done so far in A: channelizeIQ,
-dedisperseChannels, blanking experiment, detectChannels + powerCovariance (validated).
+dedisperseChannels, blanking experiment, detectChannels + powerCovariance (validated);
+A1 split (7 Oct) into **A1a** exact noise covariance in the fold (`NoiseCoeffs`, §5.7;
+validated, Jasper's run) and **A1b** per-channel data weights
+(weight file with W, V, X(L) per time bin and channel) ← next.
 
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
@@ -1235,7 +1281,8 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    relative to m²/(B·dt) — constants from the channel spectrum without blanking (3b),
    per-bin streams from the mask convolutions with blanking (computed in step 2, where
    the kernel h and the mask are known; the fold only has to accept them in unit 3).
-   Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins). Next: 3c.
+   Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins), 3c part 1 = A1a
+   done 7 Oct (§5.7 `NoiseCoeffs`). Next: A1b (per-channel data weights).
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1554,7 +1601,7 @@ per day).
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
-| `foldProfile.m` | folding with phase model | validated |
+| `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct) | validated (A1a: 7 Oct) |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties | validated (noise-free; −5 dB MC) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
@@ -1568,5 +1615,7 @@ per day).
 | `powerCovariance.m` | exact variance / lag covariances of detected time bins from the channel spectrum (unit 3b) | validated (6 Oct) |
 | `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | validated (6 Oct) |
 | `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Jasper's run, 6 Oct) |
+| `tests/makeFoldReference.m` | saves the pre-A1 reference folds (`data/mc/foldRef_pre3c.mat`) | run 6 Oct |
+| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise | passes (Jasper's run, 7 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

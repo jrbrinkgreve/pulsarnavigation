@@ -33,6 +33,13 @@ Name-value options:
                    'nearest': whole time bin to the nearest phase bin
                    (half the work; bias up to ~binDt/2 depending on how the
                    time grid falls on the phase grid).
+  'NoiseCoeffs'    [V X(1) ... X(Lmax)]: noise of the detected time bins
+                   relative to sigma^2 = m^2/(Bnoise*binDt) (m = mean power):
+                   variance V, covariance of time bins L apart X(L)
+                   (powerCovariance; detectChannels stores it in info.noise).
+                   Default 1: independent time bins, right for the full band
+                   (Bnoise*binDt >> 1). In a 3.125 MHz channel with 0.96 us
+                   bins V = 0.888, X(1) = 0.046, Lmax = 7.
   'UseSupportedOnly' fold only info_det.fullySupportedBins (default true).
   'ChunkBins'      time bins read per chunk (default 2^22).
   'MaxMemoryGB'    limit for the fold arrays (default 2).
@@ -43,14 +50,25 @@ Outputs:
   fold  struct:
     .sum     [NBin x nSub x nChan] sum of w * power
     .weight  [NBin x nSub]         sum of w (same for every channel)
-    .weight2 [NBin x nSub]         sum of w^2 (for noise: the variance of a
-                                   phase bin is sigma_timebin^2 * weight2 / weight^2)
-    .weightX [NBin x nSub]         sum of w_j*w_(j+1) over time bins split between
-                                   bin j and bin j+1 (circular); covariance of
-                                   neighbouring phase bins is
-                                   sigma_j*sigma_j+1 * weightX_j / (weight_j*weight_j+1).
-                                   Zero for 'nearest'. Needed for correct
-                                   uncertainties of anything that sums over bins.
+    .weight2 [NBin x nSub]         noise of a phase-bin sum: var(sum_j) =
+                                   sigma^2 * weight2_j, sigma^2 = m^2/(Bnoise*binDt)
+                                   (see NoiseCoeffs); the variance of a phase bin
+                                   of prof is sigma^2 * weight2 / weight^2. For
+                                   NoiseCoeffs = 1 this is the sum of w^2.
+    .weightX [NBin x nSub x 1 x D] covariance of phase bins d = 1..D apart
+                                   (circular): cov(sum_j, sum_j+d) = sigma^2 *
+                                   weightX(j, :, 1, d), so for prof bins
+                                   sigma_j*sigma_j+d * weightX / (weight_j*weight_j+d).
+                                   For NoiseCoeffs = 1, D = 1 and weightX is
+                                   [NBin x nSub]: the sum of w_j*w_(j+1) over time
+                                   bins split between bin j and bin j+1 (zero for
+                                   'nearest'). D > 1 when correlated time bins
+                                   reach beyond the next phase bin. Dimension 3 is
+                                   kept for per-channel weights (size 1 now).
+                                   Needed for correct uncertainties of anything
+                                   that sums over bins. Not stored: covariance
+                                   between consecutive sub-integrations (time bins
+                                   close to a sub-int boundary, at phase 0.5).
     .prof    [NBin x nSub x nChan] sum ./ weight (NaN where weight = 0)
     .profTotal [NBin x nChan]      all sub-integrations combined
     .phase   [1 x NBin]            phase of each bin centre, turns in [0,1)
@@ -72,6 +90,12 @@ Method:
   Bin index from frac*NBin; accumulation with accumarray into
   (phase bin, sub-integration). Everything is vectorized; one pass over the
   (small) detected-power file.
+  Noise: var(sum_j) and cov(sum_j, sum_j+d) are sums over pairs of time
+  bins (k, k') of a_kj * a_k',j+d * c(k' - k), with a the assignment weights
+  and c(0) = V, c(+-L) = X(L). L = 0 gives the w^2 and w_j*w_j+1 terms
+  (times V). For L = 1..Lmax every pair of time bins L apart in the same
+  sub-integration adds X(L)*a*a' to its pair of phase bins; the last Lmax
+  time bins of a chunk are kept for the pairs with the next chunk.
 %}
 
 arguments
@@ -85,6 +109,7 @@ arguments
     opts.SubintPeriods    (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.SubintTime             double = []
     opts.Assign                 {mustBeTextScalar} = 'linear'
+    opts.NoiseCoeffs      (1,:) double {mustBeNonempty, mustBeFinite} = 1
     opts.UseSupportedOnly (1,1) logical = true
     opts.ChunkBins        (1,1) double {mustBePositive} = 2^22
     opts.MaxMemoryGB      (1,1) double {mustBePositive} = 2
@@ -98,6 +123,12 @@ assign = lower(char(opts.Assign));
 if ~any(strcmp(assign, {'linear', 'nearest'}))
     error('foldProfile:assign', 'Assign must be ''linear'' or ''nearest''.');
 end
+if opts.NoiseCoeffs(1) <= 0
+    error('foldProfile:noise', 'NoiseCoeffs(1) (the time-bin variance V) must be positive.');
+end
+V     = opts.NoiseCoeffs(1);
+Xc    = opts.NoiseCoeffs(2:end);                    % X(1..Lmax)
+Lmax  = numel(Xc);
 Nbin  = opts.NBin;
 nChan = info_det.nChan;
 dt    = info_det.binDt;
@@ -133,7 +164,17 @@ turnFirst = round(phiOf(tFirst));
 turnLast  = round(phiOf(tLast));
 nSub = floor((turnLast - turnFirst) / nPer) + 1;
 
-memGB = Nbin * nSub * (2*nChan + 2) * 8 / 1e9;
+% ---- Phase-bin lags of the noise covariance ---------------------------------------------
+% Time bins Lmax apart are at most Lmax*dt*fMax*NBin phase bins apart; the
+% linear split adds one more. D = 1 without correlated time bins.
+fMax = max(f0 + F1*(tFirst - TRef), f0 + F1*(tLast - TRef));
+D = ceil(Lmax * dt * fMax * Nbin * (1 + 1e-9)) + 1;
+if Lmax > 0 && 2*D >= Nbin
+    error('foldProfile:lags', ['Correlated time bins span %d of %d phase bins; ' ...
+        'use fewer lags or fewer phase bins.'], D, Nbin);
+end
+
+memGB = Nbin * nSub * (2*nChan + 2 + D) * 8 / 1e9;
 if memGB > opts.MaxMemoryGB
     error('foldProfile:memory', ...
         ['Fold arrays need ~%.2f GB (%d bins x %d sub-integrations x %d chan). ' ...
@@ -145,6 +186,10 @@ if opts.Verbose
     fprintf(['foldProfile: bins %d..%d (%.4g s), f0 = %.10g Hz, F1 = %.3g Hz/s, ' ...
              'NBin = %d (%.3g us), %d sub-int(s) of %d turn(s), %s assignment\n'], ...
         k1, k2, tLast - tFirst + dt, f0, F1, Nbin, 1e6/(f0*Nbin), nSub, nPer, assign);
+    if Lmax > 0
+        fprintf(['foldProfile: correlated time bins (V %.4f, X(1) %.4f, Lmax %d) -> ' ...
+                 'phase-bin covariance over %d lag(s)\n'], V, Xc(1), Lmax, D);
+    end
 end
 
 % ---- Accumulate ------------------------------------------------------------------------
@@ -152,7 +197,9 @@ nCell   = Nbin * nSub;
 S       = zeros(nCell, nChan);
 Wt      = zeros(nCell, 1);
 W2      = zeros(nCell, 1);
-WX      = zeros(nCell, 1);
+WX      = zeros(nCell, D);
+nA      = 1 + strcmp(assign, 'linear');             % phase bins per time bin
+tail    = struct('jA', zeros(0, nA), 'wA', zeros(0, nA), 'sub', zeros(0, 1));
 tSum    = zeros(nSub, 1);
 nTB     = zeros(nSub, 1);
 
@@ -186,7 +233,7 @@ while kPos <= k2
     if strcmp(assign, 'nearest')
         L = mod(round(x), Nbin) + 1 + base;
         Wt = Wt + accumarray(L, 1, [nCell 1]);
-        W2 = W2 + accumarray(L, 1, [nCell 1]);
+        W2 = W2 + accumarray(L, V, [nCell 1]);
         for c = 1:nChan
             S(:, c) = S(:, c) + accumarray(L, X(c, :).', [nCell 1]);
         end
@@ -196,12 +243,20 @@ while kPos <= k2
         L  = [mod(j0, Nbin) + 1 + base; mod(j0 + 1, Nbin) + 1 + base];
         w  = [1 - a; a];
         Wt = Wt + accumarray(L, w,    [nCell 1]);
-        W2 = W2 + accumarray(L, w.^2, [nCell 1]);
-        WX = WX + accumarray(mod(j0, Nbin) + 1 + base, (1 - a) .* a, [nCell 1]);
+        W2 = W2 + accumarray(L, V * w.^2, [nCell 1]);
+        WX(:, 1) = WX(:, 1) + accumarray(mod(j0, Nbin) + 1 + base, V * (1 - a) .* a, [nCell 1]);
         for c = 1:nChan
             v = X(c, :).';
             S(:, c) = S(:, c) + accumarray(L, w .* [v; v], [nCell 1]);
         end
+    end
+    if Lmax > 0                                      % correlated time bins: lag pairs
+        if nA == 1
+            jA = mod(round(x), Nbin);  wA = ones(n, 1);
+        else
+            jA = [mod(j0, Nbin), mod(j0 + 1, Nbin)];  wA = [1 - a, a];
+        end
+        [W2, WX, tail] = addLagPairs(W2, WX, tail, jA, wA, sub, Xc, Nbin);
     end
     kPos = kPos + n;
 end
@@ -211,7 +266,7 @@ fold = struct();
 fold.sum     = reshape(S,  Nbin, nSub, nChan);
 fold.weight  = reshape(Wt, Nbin, nSub);
 fold.weight2 = reshape(W2, Nbin, nSub);
-fold.weightX = reshape(WX, Nbin, nSub);
+fold.weightX = reshape(WX, Nbin, nSub, 1, D);
 wFull = repmat(fold.weight, 1, 1, nChan);
 fold.prof = fold.sum ./ wFull;
 fold.prof(wFull == 0) = NaN;
@@ -247,6 +302,10 @@ info.subintPeriods = nPer;
 info.nChan        = nChan;
 info.chanFreqs    = info_det.chanFreqs;
 info.assign       = assign;
+info.noiseCoeffs  = opts.NoiseCoeffs;               % [V X(1..Lmax)] of the time bins
+info.covLags      = D;                              % phase-bin lags in weightX
+info.noiseModel   = ['var(sum_j) = sigma^2*weight2, cov(sum_j, sum_j+d) = ' ...
+                     'sigma^2*weightX(:,:,1,d), sigma^2 = m^2/(Bnoise*binDt)'];
 info.binDt        = dt;                             % time-bin length of the input
 info.binsFolded   = [k1, k2];
 info.units        = 'power as in detectPower (mean per input sample)';
@@ -263,4 +322,46 @@ if opts.Verbose
     fprintf('foldProfile: folded %d time bins into %d x %d x %d in %.2f s\n', ...
         k2 - k1 + 1, Nbin, nSub, nChan, info.elapsed);
 end
+end
+
+
+% =========================================================================================
+function [W2, WX, tail] = addLagPairs(W2, WX, tail, jA, wA, sub, Xc, Nbin)
+%ADDLAGPAIRS  Add the covariance of time bins 1..Lmax apart to weight2 and weightX.
+% jA [n x nA] phase bins (0-based) and wA [n x nA] assignment weights of the
+% chunk's time bins, sub [n x 1] their sub-integration. tail holds the last
+% Lmax time bins of the previous chunk, so every pair (k, k+L) is counted
+% once, in the chunk that contains k+L. Pairs in different sub-integrations
+% are skipped (covariance between sub-int profiles is not stored).
+[nCell, D] = size(WX);
+nT = size(tail.jA, 1);
+J  = [tail.jA; jA];
+Wa = [tail.wA; wA];
+Sb = [tail.sub; sub];
+m  = size(J, 1);
+nA = size(J, 2);
+for lag = 1:numel(Xc)
+    i1 = (max(1, nT - lag + 1) : m - lag).';
+    i1 = i1(Sb(i1) == Sb(i1 + lag));                 % same sub-integration only
+    i2 = i1 + lag;
+    base = Nbin * (Sb(i1) - 1);
+    for p = 1:nA
+        for q = 1:nA
+            jp = J(i1, p);  jq = J(i2, q);
+            c  = Xc(lag) * Wa(i1, p) .* Wa(i2, q);
+            d  = mod(jq - jp, Nbin);                 % phase-bin lag, circular
+            s0 = d == 0;                             % same phase bin: (k, k+L) and (k+L, k)
+            fw = d >= 1 & d <= D;                    % k+L in a later phase bin
+            bw = d >= Nbin - D;                      % k+L in an earlier one (phase wrap / split)
+            if ~all(s0 | fw | bw)
+                error('foldProfile:lags', 'Correlated time bins reach beyond %d phase bins.', D);
+            end
+            W2 = W2 + accumarray(jp(s0) + 1 + base(s0), 2*c(s0), [nCell 1]);
+            cellX = [jp(fw) + 1 + base(fw), d(fw); jq(bw) + 1 + base(bw), Nbin - d(bw)];
+            WX = WX + accumarray(cellX, [c(fw); c(bw)], [nCell D]);
+        end
+    end
+end
+keep = max(1, m - numel(Xc) + 1) : m;
+tail = struct('jA', J(keep, :), 'wA', Wa(keep, :), 'sub', Sb(keep));
 end
