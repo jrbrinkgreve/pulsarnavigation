@@ -1,7 +1,7 @@
 function testChannelTOA()
-%TESTCHANNELTOA  Unit tests for estimateTOA on channelized folds (A2a).
+%TESTCHANNELTOA  Unit tests for estimateTOA (A2a) and detectPulsar (A2b) on channelized folds.
 %{
-Run from the PulsarSimMatlab folder: run('tests/testChannelTOA.m'). ~4 s (measured).
+Run from the PulsarSimMatlab folder: run('tests/testChannelTOA.m'). ~5 s (measured).
 Needs data/mc/toaRef_preA2.mat (tests/makeToaReference.m), the frozen folds
 of data/mc/foldRef_pre3c.mat and the 128-channel power file
 data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
@@ -28,6 +28,17 @@ data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
      (b) blanked vs unblanked: TOA differences consistent with zero (from
          their own scatter); error bars and channels used reported.
      Honest error bars over many noise realizations: A3.
+  4. detectPulsar regression: single-channel folds bit-identical to the pre-A2
+     outputs (linear, known phase 0.01, MinCoverage 0.3, nearest, 3 turns).
+  5. detectPulsar algebra: T0 (known phase), normProfile and Tmax (at the best
+     phase) equal the explicit formulas with the full H0 covariance matrix of
+     the combined profile (each channel at its baseline a_c), for the folds of
+     test 2.
+  6. Physics: the H0 noise model per bin is honest on the channel path:
+     noiseRatio (off-pulse variance / model) = 1 within 4 sigma (sigma from
+     the scatter between sub-ints), unblanked and blanked; per-channel vs
+     summed power: same best phase and detections (noise ratio of the old
+     path ~1.3 % lower, as the fold level showed).
 Errors at the end if any check fails. Writes ~0.5 GB of temporary files to
 tempdir (deleted at the end).
 %}
@@ -145,6 +156,69 @@ fprintf(['3b. blanked (valid fraction %.3f) vs unblanked: %d TOAs, difference me
 if ~okb, fails{end+1} = 'blanked TOAs'; end
 
 % ---------------------------------------------------------------------------------
+% 4. detectPulsar: regression on single-channel folds
+% ---------------------------------------------------------------------------------
+dcs = {'A', fr.A, {}; 'Aph', fr.A, {'Phase', 0.01}; 'Acov', fr.A, {'MinCoverage', 0.3}; ...
+       'B', fr.B, {}; 'C', fr.C, {}};
+for i = 1:size(dcs, 1)
+    [d1, di1] = detectPulsar(dcs{i, 2}.fold, dcs{i, 2}.info, template, 'Bnoise', tr.Bnoise, ...
+        'Verbose', false, dcs{i, 3}{:});
+    same = sameFields(d1, tr.det.(dcs{i, 1})) && sameFields(di1, tr.detInfo.(dcs{i, 1}));
+    used = all(d1.nChanUsed(d1.tested) == 1) && d1.total.nChanUsed == 1;
+    fprintf('4. detectPulsar regression %-4s (%d tested): bit-identical %d, nChanUsed 1 %d: %s\n', ...
+        dcs{i, 1}, nnz(d1.tested), same, used, passStr(same && used));
+    if ~(same && used), fails{end+1} = ['detect regression ' dcs{i, 1}]; end %#ok<AGROW>
+end
+
+% ---------------------------------------------------------------------------------
+% 5. detectPulsar vs the explicit H0 covariance matrix of the combined profile
+% ---------------------------------------------------------------------------------
+detC = detectPulsar(foldC, ifC, template, q{:});
+detB = detectPulsar(foldB, ifB, template, q{:});
+dcases = {'128 chan, NoiseCoeffs', foldC, ifC, detC; '128 chan, blanked', foldB, ifB, detB};
+for i = 1:2
+    [fo, ifo, de] = dcases{i, 2:4};
+    e0 = 0; eZ = 0; eM = 0; usedOk = true; nT = 0;
+    for s = find(de.tested & de.coverage == 1).'
+        im = mod(round(de.phaseMax(s) * nBin), nBin) + 1;
+        [T0e, ze, Tme, use] = explicitDetect(fo, s, Bc * ones(1, nCh), ifo.binDt, template, im);
+        e0 = max(e0, abs(T0e - de.T0(s)) / abs(de.T0(s)));
+        eZ = max(eZ, max(abs(ze - de.normProfile(:, s))) / max(abs(ze)));
+        eM = max(eM, abs(Tme - de.Tmax(s)) / abs(de.Tmax(s)));
+        usedOk = usedOk && de.nChanUsed(s) == nnz(use);
+        nT = nT + 1;
+    end
+    pass = e0 < 1e-9 && eZ < 1e-9 && eM < 1e-9 && usedOk;
+    fprintf(['5. %-22s %d sub-ints: T0 vs explicit max rel %.1e, normProfile %.1e, ' ...
+             'Tmax %.1e; channels used = rule %d: %s\n'], dcases{i, 1}, nT, e0, eZ, eM, usedOk, ...
+        passStr(pass));
+    if ~pass, fails{end+1} = ['explicit detection: ' dcases{i, 1}]; end %#ok<AGROW>
+end
+
+% ---------------------------------------------------------------------------------
+% 6. H0 noise model per bin honest (noiseRatio = 1); channel path vs summed power
+% ---------------------------------------------------------------------------------
+detS = detectPulsar(foldS, ifS, template, 'Bnoise', detD.BnoiseTotal, 'Verbose', false);
+for i = 1:2
+    de = dcases{i, 4};
+    nr = de.noiseRatio(de.tested);
+    m = mean(nr); sg = std(nr) / sqrt(numel(nr));
+    ok6 = abs(m - 1) < 4*sg;
+    fprintf('6. noise ratio, %-22s mean over %d sub-ints %.4f +- %.4f (total fold %.4f): %s\n', ...
+        dcases{i, 1}, numel(nr), m, sg, de.total.noiseRatio, passStr(ok6));
+    if ~ok6, fails{end+1} = ['noise ratio: ' dcases{i, 1}]; end %#ok<AGROW>
+end
+v = detC.tested & detS.tested;
+samePh = all(abs(detC.phaseMax(v) - detS.phaseMax(v)) < 0.5/nBin) && ...
+    isequal(detC.detectedKnown(v), detS.detectedKnown(v)) && ...
+    isequal(detC.detectedUnknown(v), detS.detectedUnknown(v));
+fprintf(['   per-channel vs summed power (%d sub-ints): same phaseMax and detections %d; T0 ratio ' ...
+         'median %.4f; noise ratio %.4f vs %.4f (ratio %.4f; fold level A1a: 1.0134): %s\n'], ...
+    nnz(v), samePh, median(detC.T0(v) ./ detS.T0(v)), mean(detC.noiseRatio(v)), ...
+    mean(detS.noiseRatio(v)), mean(detC.noiseRatio(v) ./ detS.noiseRatio(v)), passStr(samePh));
+if ~samePh, fails{end+1} = 'detection per-channel vs summed'; end
+
+% ---------------------------------------------------------------------------------
 if isempty(fails)
     fprintf('testChannelTOA: ALL PASSED\n');
 else
@@ -202,6 +276,44 @@ Dv = zeros(N, 1); Dv(T.kk + 1) = 1i * T.w1 .* conj(T.Sk) .* e; dvec = real(fft(D
 Cv = zeros(N, 1); Cv(T.kk + 1) = conj(T.Sk) .* e;              cvec = real(fft(Cv));
 eTau = sqrt(dvec.' * Sig * dvec) / abs(c2);
 eAmp = sqrt(cvec.' * Sig * cvec) / T.sumS2;
+end
+
+function [T0e, ze, Tme, use] = explicitDetect(fold, s, B, binDt, template, im)
+% detectPulsar's statistics of sub-int s from the full H0 covariance matrix of
+% the combined profile (each channel at its own baseline a_c). im: index of the
+% best phase shift (template shifted by im-1 bins).
+t = template(:) / max(template); N = numel(t); c = t - mean(t);
+nChan = size(fold.prof, 3);
+W  = reshape(fold.weight(:, s, :), N, []);
+W2 = reshape(fold.weight2(:, s, :), N, []);
+WX = reshape(fold.weightX(:, s, :, :), N, size(W, 2), []);
+if size(W, 2) == 1
+    W = repmat(W, 1, nChan); W2 = repmat(W2, 1, nChan); WX = repmat(WX, 1, nChan, 1);
+end
+use = all(W > 0, 1);
+Pc = reshape(fold.prof(:, s, :), N, nChan);
+Pc = Pc(:, use);
+p  = sum(Pc, 2);
+a  = mean(p);
+aC = mean(Pc, 1);
+j = (1:N).';
+Sig = sparse(N, N);
+cs = find(use);
+for ic = 1:numel(cs)
+    k = cs(ic);
+    Q = sparse(j, j, W2(:, k), N, N);
+    for d = 1:size(WX, 3)
+        jd = mod(j - 1 + d, N) + 1;
+        Q = Q + sparse([j; jd], [jd; j], [WX(:, k, d); WX(:, k, d)], N, N);
+    end
+    Dg = sparse(j, j, aC(ic) / sqrt(B(k) * binDt) ./ W(:, k), N, N);
+    Sig = Sig + Dg * Q * Dg;
+end
+dd  = p - a;
+T0e = (c.' * dd) / sqrt(c.' * Sig * c);              % known phase 0
+ze  = dd ./ sqrt(full(diag(Sig)));
+cm  = circshift(c, im - 1);
+Tme = (cm.' * dd) / sqrt(cm.' * Sig * cm);
 end
 
 function ok = sameFields(new, old)

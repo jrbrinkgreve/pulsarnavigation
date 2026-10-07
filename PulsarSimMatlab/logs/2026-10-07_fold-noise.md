@@ -110,10 +110,26 @@ Jasper ran `tests/testFoldWeights.m`: passed → **A1a validated**; committed (9
 - Tolerance choice: per-channel vs summed TOAs pass at < 1e-4 σ because the float32
   summed file alone moves TOAs by ~1e-6 σ (measured 5.7e-7).
 
+## Later: A2b (detectPulsar combines channels)
+
+- A2a committed (ce9babb). A2b note agreed: H0 level per channel = its baseline a_c;
+  all lags in T0 and Tmax; `combineChannels` moved to its own file (shared).
+- `functions/combineChannels.m` (new, moved out of `estimateTOA.m` unchanged; tests 1–3
+  still pass identically). `functions/detectPulsar.m`: `testOne(ch, c)` with
+  per-channel H0 noise, lag loops in T0 / Tmax (template products per lag precomputed),
+  `Bnoise` per channel, `nChanUsed`; header updated.
+- `tests/testChannelTOA.m` tests 4–6 (Claude's run, ALL PASSED, ~5 s; numbers in notes
+  §5.13): detection regression bit-identical (5 cases); T0 / normProfile / Tmax =
+  explicit H0 covariance to ≤ 4e-16; noise ratio channel path 0.9973 ± 0.0061 (blanked
+  1.0049 ± 0.0067), summed path 0.9842, ratio 1.0133 (fold level 1.0134); same phase and
+  detections.
+
 ## Open items / next steps
 
-1. (done) Jasper's runs of `tests/testFoldWeights.m` (A1a, A1b).
-2. (done) Jasper ran `tests/testChannelTOA.m`: passed → **A2a validated**; committed.
-3. **A2b** `detectPulsar`: the same channel combination under H0 (m_c = a_c), all lags in
-   T0, Tmax (FFT correlation per lag) and normProfile; regression vs `toaRef_preA2.mat`
-   (det cases). Then A3, A4; B, C, D.
+1. (done) Jasper's runs of `tests/testFoldWeights.m` (A1a, A1b) and
+   `tests/testChannelTOA.m` (A2a).
+2. (done) Jasper ran `tests/testChannelTOA.m` (tests 1–6): passed → **A2b validated**; committed.
+3. **A3**: exact W/V/X streams from a voltage-level blanking mask (promote the mask
+   convolutions of `tests/expBlankingVariance.m` to a function), blank voltages before
+   per-channel dedispersion, end to end over several noise seeds: TOAs unbiased, error
+   bars honest. Design note first. Then A4; B, C, D.

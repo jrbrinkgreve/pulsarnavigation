@@ -113,7 +113,8 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
   7b. foldProfile + 'NoiseCoeffs' ─► exact phase-bin covariance (A1a)   [validated]
       foldProfile + 'DataWeights' ─► weights per channel (A1b)  [validated]
   8b. estimateTOA combining channels (A2a)                   [validated]
-      (next: A2b detectPulsar combining channels)
+      detectPulsar combining channels (A2b)                    [validated]
+      (next: A3 fake blanking end to end, A4 switch in main.m)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -518,9 +519,8 @@ computed later in B). The fold uses them:
   offsets). Chunks limited to 2^25/(nChan·(2+Lmax)) bins with a weight file (memory).
 - Cost: 128-channel fold 1.8 s with weights vs 0.25 s without (0.1 s of data); fine for
   short voltage data (B), long observations go through the fast simulator (C).
-- **Until A2b:** `detectPulsar` assumes one weight for all channels
-  (`fold.weight(:, s)` would silently take channel 1 of a per-channel fold) → do not
-  pass a `DataWeights` fold to it yet (`estimateTOA` handles it since A2a, §5.8).
+- Consumers: `estimateTOA` (A2a, §5.8) and `detectPulsar` (A2b, §5.13) combine the
+  channels with these weights (helper `combineChannels`).
 
 **Tests 4–6 (`tests/testFoldWeights.m`, run by Claude and Jasper 7 Oct 2026; whole test ~7 s).**
 (4) Constant weight file (W = 1, V/X as float32) = `NoiseCoeffs` fold in every channel,
@@ -607,7 +607,7 @@ s_cj = m_c(φ_j)/√(B_c·binDt), m_c = a_c + b_c·template(φ − τ) with a_c,
 Fourier projection as a, b (τ fixed; Σ a_c = a). `'Bnoise'` = noise bandwidth of one
 channel of the fold (scalar or per channel; full-band fold: the band). `'offpulse'`
 model: lags 1..D from the residuals. New outputs `toa.nChanUsed`,
-`toa.total.nChanUsed`. Local helper `combineChannels`. Single-channel folds: same
+`toa.total.nChanUsed`. Helper `combineChannels` (own file since A2b). Single-channel folds: same
 arithmetic as before, bit-identical. Equal channel weights are not optimal when
 channels differ in noise (heavily blanked channels); inverse-variance weighting later.
 
@@ -749,6 +749,23 @@ the tail: 0.26 at 0.3). MATLAB −5 dB: 9/9 detected, noise ratio 0.992, T0 114.
 93.4 by ×1.23: T0 uses the H0 noise and ignores self-noise; irrelevant for detection and
 for the small-antenna regime). Sweep results in §7. Long H0 run (§5.14): T0 std 1.008 ±
 0.024, false alarms at the nominal rates down to 1e-2…1e-3.
+
+**Channels combined: A2b (7 Oct 2026; validated, Jasper's run).**
+As `estimateTOA` (§5.8): profile = sum of the channel profiles with the exclusion rule
+(shared helper `functions/combineChannels.m`, moved out of `estimateTOA`); H0 noise per
+channel at its own baseline a_c (mean of its profile): var(p_j) = Σ_c a_c²/(B_c·binDt)·
+W2_cj/W_cj², covariances for all lags d; T0 denominator and the FFT noise correlation of
+Tmax with one term per lag; `'Bnoise'` per channel of the fold; `detection.nChanUsed`,
+`detection.total.nChanUsed`. Single-channel folds bit-identical.
+
+**Tests 4–6 (`tests/testChannelTOA.m`, run by Claude and Jasper 7 Oct 2026; whole test ~5 s).**
+(4) Full band bit-identical to `toaRef_preA2.mat` (linear, Phase 0.01, MinCoverage 0.3,
+nearest, 3 turns). (5) T0, normProfile and Tmax = explicit formulas with the full H0
+covariance matrix of the combined profile: max rel. diff ≤ 4e-16 (128 channels with
+NoiseCoeffs; blanked with exclusion). (6) Noise ratio (off-pulse variance / H0 model)
+on the channel path 0.9973 ± 0.0061 (unblanked) and 1.0049 ± 0.0067 (blanked), mean over
+8 sub-ints → the per-bin H0 model is honest; old summed-power path 0.9842, ratio 1.0133
+(fold level, A1a: 1.0134); same best phase and detections; T0 ratio 1.0008.
 
 ### 5.14 `runH0.m` [validated, 6 Oct 2026]
 
@@ -1275,9 +1292,9 @@ channel spectrum where not.
   error bars and P_FA slightly conservative. Fix with the weight plumbing (§10 item 1):
   include the time-bin autocovariance (known from the channel spectrum) in the fold
   noise model. **Fold part done 7 Oct 2026 (A1a, §5.7 `NoiseCoeffs`; measured fold
-  noise matches).** `estimateTOA` done 7 Oct (A2a, §5.8). Still open (A2b):
-  `detectPulsar` uses only `weight2` and the first lag of `weightX` and does not combine
-  channels yet.
+  noise matches).** `estimateTOA` (A2a, §5.8) and `detectPulsar`
+  (A2b, §5.13) done 7 Oct: all lags, channels combined; the H0 noise ratio on the channel
+  path is 0.997 ± 0.006 (old summed path 0.984).
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1303,7 +1320,8 @@ A1 split (7 Oct) into **A1a** exact noise covariance in the fold (`NoiseCoeffs`,
 validated, Jasper's run) and **A1b** per-channel data weights
 (`DataWeights`: weight file with W, V, X(L) per time bin and channel, §5.7; validated,
 Jasper's run). A2a `estimateTOA` combining channels (§5.8; validated, Jasper's
-run). Next: A2b `detectPulsar`.
+run). A2b `detectPulsar` combining channels (§5.13; validated, Jasper's run).
+Next: A3.
 
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
@@ -1357,7 +1375,8 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    the kernel h and the mask are known; the fold only has to accept them in unit 3).
    Progress: 3a done (§7), 3b done (§5.17, Lmax 7 at 0.96 µs bins), 3c part 1 = A1a
    done 7 Oct (§5.7 `NoiseCoeffs`), part 2 = A1b validated 7 Oct (§5.7 `DataWeights`).
-   A2a (`estimateTOA`) validated 7 Oct (§5.8). Next: A2b (`detectPulsar`).
+   A2a (`estimateTOA`) validated 7 Oct (§5.8); A2b (`detectPulsar`) validated 7 Oct
+   (§5.13). Next: A3 (3e).
 2. **RFI excision on short voltage data**, one function at a time. Characterize per RFI
    type: flagged fraction, residual noise ratio, TOA ratio and χ², false-flag rate on
    clean noise (the pulsar at weak SNR must never trigger flags); compare with the 5 Oct
@@ -1679,7 +1698,8 @@ per day).
 | `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct) | validated (A1a, A1b: 7 Oct) |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct) | validated (noise-free; −5 dB MC; A2a 7 Oct) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
-| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check | validated (6 Oct; P_FA via `runH0.m`) |
+| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check; channels combined, all lags (A2b, 7 Oct) | validated (6 Oct; P_FA via `runH0.m`; A2b 7 Oct) |
+| `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
@@ -1693,6 +1713,6 @@ per day).
 | `tests/makeFoldReference.m` | saves the pre-A1 reference folds (`data/mc/foldRef_pre3c.mat`) | run 6 Oct |
 | `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking | passes (Jasper's run, 7 Oct) |
 | `tests/makeToaReference.m` | saves pre-A2 estimateTOA / detectPulsar outputs (`data/mc/toaRef_preA2.mat`) | run 7 Oct |
-| `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs | passes (Jasper's run, 7 Oct) |
+| `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio | passes (Jasper's run, 7 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

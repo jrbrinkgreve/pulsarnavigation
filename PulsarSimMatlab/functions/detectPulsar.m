@@ -12,8 +12,11 @@ observer knows: the fold, the template, the noise bandwidth and P_FA.
 Noise normalization (H0 model):
   baseline a = mean of the profile (exact under H0; slightly high when a
   pulse is present). Per time bin var = a^2/(Bnoise*binDt) (radiometer);
-  per phase bin j var v_j = that * W2_j/W_j^2, covariance with bin j+1 from
-  fold.weightX (linear assignment), as in estimateTOA.
+  per phase bin j var v_j = that * W2_j/W_j^2, covariances with bins j+d
+  from fold.weightX (all lags d), as in estimateTOA. Several channels:
+  combined as in estimateTOA (combineChannels: sum of the channel profiles,
+  exclusion rule), each channel with its own baseline a_c, and the channel
+  variances and covariances add up.
   detection.normProfile = (p - a)./sqrt(v): the profile in units of its noise.
 
 Known phase ('Phase', in turns, default 0 = ephemeris prediction):
@@ -38,11 +41,12 @@ Noise check: detection.noiseRatio = measured variance of the off-pulse bins
 About 1 for clean data; > 1 flags RFI or a wrong noise model.
 
 Inputs:
-  fold, info_fold  from foldProfile (channels are summed)
+  fold, info_fold  from foldProfile (channels combined as in estimateTOA)
   template         [NBin x 1], phase 0 at bin 1 (as for estimateTOA)
 
 Name-value options:
-  'Bnoise'       [Hz] noise-equivalent bandwidth (required), as estimateTOA
+  'Bnoise'       [Hz] noise-equivalent bandwidth of one channel of the fold
+                 (required; scalar or one value per channel), as estimateTOA
   'PFA'          false-alarm probability per profile (default 1e-3)
   'Phase'        [turns] known (predicted) pulse phase (default 0)
   'MinCoverage'  fraction of phase bins with data (default 1, as estimateTOA)
@@ -53,7 +57,7 @@ Outputs:
   detection  per sub-integration (column vectors, NaN / false when not tested):
                tested, coverage, baseline, T0, Tmax, phaseMax [turns],
                detectedKnown (T0 > etaKnown), detectedUnknown (Tmax > etaUnknown),
-               noiseRatio; normProfile [NBin x nSub];
+               noiseRatio, nChanUsed; normProfile [NBin x nSub];
              etaKnown, etaUnknown; total (same fields for the whole fold).
              (Not named 'det': that would shadow MATLAB's det().)
   info       PFA, phaseKnown, Bnoise, lambda2, riceFactor (= sqrt(lambda2)/2pi), method.
@@ -97,21 +101,37 @@ Q = @(x) 0.5 * erfc(x / sqrt(2));                     % 1 - Phi(x)
 etaKnown   = sqrt(2) * erfcinv(2 * opts.PFA);
 etaUnknown = fzero(@(e) Q(e) + riceFactor*exp(-e^2/2) - opts.PFA, [0 40]);
 
+% Weights: [NBin x nSub x nW (x nLag)], nW = nChan (per channel) or 1 (shared)
+nChan = size(fold.prof, 3);
+if isfield(fold, 'weightX'), WXall = fold.weightX; else, WXall = zeros(N, nSub); end
+nW   = size(fold.weight, 3);
+nLag = size(WXall, 4);
+if ~any(numel(opts.Bnoise) == [1 nChan])
+    error('detectPulsar:bnoise', 'Bnoise must be a scalar or one value per channel (%d).', nChan);
+end
+Bc = reshape(opts.Bnoise, 1, []);                     % per channel, or scalar
+tmplCC = zeros(N, nLag);                              % template products at lags 1..nLag
+for lg = 1:nLag
+    tmplCC(:, lg) = fft(c .* circshift(c, -lg));
+end
+
 cst = struct('N', N, 'c', c, 'C', C, 'c0', c0, 'tmplC2', fft(c.^2), ...
-    'tmplCC', fft(c .* circshift(c, -1)), 'shapeOn', template, ...
-    'onFrac', opts.OnPulseFrac, 'sTB2', 1 / (opts.Bnoise * info_fold.binDt));
+    'tmplCC', tmplCC, 'shapeOn', template, ...
+    'onFrac', opts.OnPulseFrac, 'binDt', info_fold.binDt);
 
 % ---- Per sub-integration -------------------------------------------------------------------
-if isfield(fold, 'weightX'), WXall = fold.weightX; else, WXall = zeros(N, nSub); end
 nanv = nan(nSub, 1); falv = false(nSub, 1);
 detection = struct('tested', falv, 'coverage', nanv, 'baseline', nanv, 'T0', nanv, ...
     'Tmax', nanv, 'phaseMax', nanv, 'detectedKnown', falv, 'detectedUnknown', falv, ...
-    'noiseRatio', nanv, 'normProfile', nan(N, nSub));
+    'noiseRatio', nanv, 'normProfile', nan(N, nSub), 'nChanUsed', zeros(nSub, 1));
 for s = 1:nSub
-    W = fold.weight(:, s);
-    detection.coverage(s) = mean(W > 0);
+    ch = combineChannels(reshape(fold.prof(:, s, :), N, nChan), ...
+        reshape(fold.weight(:, s, :), N, nW), reshape(fold.weight2(:, s, :), N, nW), ...
+        reshape(WXall(:, s, :, :), N, nW, nLag), Bc);
+    detection.coverage(s)  = ch.coverage;
+    detection.nChanUsed(s) = ch.nUsed;
     if detection.coverage(s) < opts.MinCoverage || detection.coverage(s) == 0, continue; end
-    r = testOne(sum(fold.prof(:, s, :), 3), W, fold.weight2(:, s), WXall(:, s), cst);
+    r = testOne(ch, cst);
     detection.tested(s)          = true;
     detection.baseline(s)        = r.a;
     detection.T0(s)              = r.T0;
@@ -126,12 +146,13 @@ detection.etaKnown   = etaKnown;
 detection.etaUnknown = etaUnknown;
 
 % ---- Total fold -----------------------------------------------------------------------------
-rt = testOne(sum(fold.profTotal, 2), sum(fold.weight, 2), sum(fold.weight2, 2), ...
-    sum(WXall, 2), cst);
+cht = combineChannels(fold.profTotal, reshape(sum(fold.weight, 2), N, nW), ...
+    reshape(sum(fold.weight2, 2), N, nW), reshape(sum(WXall, 2), N, nW, nLag), Bc);
+rt = testOne(cht, cst);
 detection.total = struct('baseline', rt.a, 'T0', rt.T0, 'Tmax', rt.Tmax, ...
     'phaseMax', rt.phaseMax, 'detectedKnown', rt.T0 > etaKnown, ...
     'detectedUnknown', rt.Tmax > etaUnknown, 'noiseRatio', rt.noiseRatio, ...
-    'normProfile', rt.z);
+    'normProfile', rt.z, 'nChanUsed', cht.nUsed);
 
 info = struct('method', 'Neyman-Pearson matched filter (known phase) and max over phase (Rice threshold)', ...
     'PFA', opts.PFA, 'phaseKnown', opts.Phase, 'Bnoise', opts.Bnoise, ...
@@ -152,26 +173,48 @@ end
 
 
 % =====================================================================================
-function r = testOne(p, W, W2, WX, c)
-%TESTONE  Noise normalization and detection statistics of one profile.
+function r = testOne(ch, c)
+%TESTONE  Noise normalization and detection statistics of one (channel-combined)
+% profile; ch from combineChannels.
 N = c.N;
-have = W > 0;
+p = ch.p; W = ch.W; W2 = ch.W2; WX = ch.WX; have = ch.have;
+nLag = size(WX, 3);
 a = mean(p(have));
 
-% H0 noise model: variance per bin and covariance with the next bin
-Wn = circshift(W, -1);
-v  = c.sTB2 * a^2 * W2 ./ W.^2;
-cv = c.sTB2 * a^2 * WX ./ (W .* Wn);
+% H0 noise model: variance per bin and covariances with bins j+d, summed over the
+% (independent) channels; per time bin var = level^2/(Bnoise*binDt), level = the
+% channel's baseline
+if size(ch.Pc, 2) == 1                                % one channel (full band)
+    s2 = 1 / (ch.B * c.binDt) * a^2;
+else
+    s2 = 1 ./ (ch.B * c.binDt) .* mean(ch.Pc(have, :), 1).^2;
+end
+v  = sum(s2 .* W2 ./ W.^2, 2);
+cv = zeros(N, nLag);
+for lg = 1:nLag
+    cv(:, lg) = sum(s2 .* WX(:, :, lg) ./ (W .* circshift(W, -lg)), 2);
+end
 v(~have | ~isfinite(v)) = 0;
-cv(~have | ~circshift(have, -1) | ~isfinite(cv)) = 0;
+for lg = 1:nLag
+    cl = cv(:, lg);
+    cl(~have | ~circshift(have, -lg) | ~isfinite(cl)) = 0;
+    cv(:, lg) = cl;
+end
 d = p - a; d(~have) = 0;
 
 % Known phase: matched filter with the template at the predicted phase
-T0 = (c.c0.' * d) / sqrt(sum(c.c0.^2 .* v) + 2*sum(c.c0 .* circshift(c.c0, -1) .* cv));
+den0 = sum(c.c0.^2 .* v);
+for lg = 1:nLag
+    den0 = den0 + 2*sum(c.c0 .* circshift(c.c0, -lg) .* cv(:, lg));
+end
+T0 = (c.c0.' * d) / sqrt(den0);
 
 % Unknown phase: all bin shifts at once; element m+1 = template shifted by m bins
 num = real(ifft(fft(d) .* conj(c.C)));
-den = real(ifft(fft(v) .* conj(c.tmplC2))) + 2*real(ifft(fft(cv) .* conj(c.tmplCC)));
+den = real(ifft(fft(v) .* conj(c.tmplC2)));
+for lg = 1:nLag
+    den = den + 2*real(ifft(fft(cv(:, lg)) .* conj(c.tmplCC(:, lg))));
+end
 T = num ./ sqrt(max(den, realmin));
 [Tmax, im] = max(T);
 phaseMax = mod((im - 1)/N + 0.5, 1) - 0.5;

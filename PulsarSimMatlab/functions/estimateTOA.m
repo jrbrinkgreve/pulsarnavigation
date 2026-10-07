@@ -320,27 +320,3 @@ nLag = size(WX, 3);
         r.a       = a;
         r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
     end
-
-
-% =====================================================================================
-function ch = combineChannels(prof, W, W2, WX, B)
-%COMBINECHANNELS  Channels used for one profile, their sum and their weights.
-% prof [N x nChan] channel profiles; W, W2 [N x nW], WX [N x nW x nLag] their
-% fold weights (nW = nChan, or 1 when all channels share them); B = Bnoise,
-% scalar or [1 x nChan]. Exclusion rule: a channel is used only if it has data
-% (W > 0) in every phase bin where any channel has data, so every bin of the
-% sum holds the same channels (a missing channel would leave a dip).
-nChan = size(prof, 2);
-have  = any(W > 0, 2);
-if size(W, 2) == 1
-    use = true(1, nChan);
-else
-    use = all(W(have, :) > 0, 1);
-    W = W(:, use); W2 = W2(:, use); WX = WX(:, use, :);
-end
-if numel(B) > 1, B = B(use); end
-Pc = prof(:, use);
-ok = any(use) && any(have);
-ch = struct('p', sum(Pc, 2), 'Pc', Pc, 'W', W, 'W2', W2, 'WX', WX, 'B', B, ...
-    'have', have & ok, 'nUsed', nnz(use) * ok, 'coverage', mean(have) * ok);
-end
