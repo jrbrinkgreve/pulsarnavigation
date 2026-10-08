@@ -53,8 +53,10 @@ SNR definition (receiver end):
   from expectedPowerModel (snrPulse, toaErrPulse), as printed by main.m.
 
 RFI power: see rfiSource ('INRdB' relative to the receiver-noise power in
-the band). Continuous and chip-level phases are computed from the absolute
-sample index, and random parts come from counter-based substreams, so the
+the band; radar pulses with raised-cosine edges of 'RiseTime', default
+0.1 us since 8 Oct 2026, 0 = instant edges as before). Continuous and
+chip-level phases are computed from the absolute sample index, and random
+parts come from counter-based substreams, so the
 result does not depend on the block size.
 %}
 
@@ -291,13 +293,26 @@ switch d.type
 
     case 'pulsed'
         pri = 1 / d.prf;
-        tin = mod(t - d.startTime, pri);                 % time since pulse start
-        on  = find(tin < d.pulseWidth);
+        tr  = 0;
+        if isfield(d, 'riseTime'), tr = d.riseTime; end  % raised-cosine edges (rfiSource)
+        % time since the nominal pulse start (50 % point of the rising edge); the
+        % rising ramp begins tr/2 earlier, the falling one ends tr/2 after PulseWidth
+        tin = mod(t - d.startTime + tr/2, pri) - tr/2;
+        on  = find(tin < d.pulseWidth + tr/2);
         x = zeros(1, n);
         if ~isempty(on)
             k   = d.chirpBW / d.pulseWidth;              % chirp rate [Hz/s]
             cyc = mod(nAbs(on) * e.r, 1) + 0.5 * k * (tin(on) - d.pulseWidth/2).^2;
             x(on) = e.amp * cos(2*pi*cyc);
+            if tr > 0                                    % tr = 0: instant edges, as before
+                u   = tin(on);
+                env = ones(size(u));
+                up  = u < tr/2;
+                dn  = u > d.pulseWidth - tr/2;
+                env(up) = 0.5 * (1 - cos(pi * (u(up) + tr/2) / tr));
+                env(dn) = 0.5 * (1 + cos(pi * (u(dn) - d.pulseWidth + tr/2) / tr));
+                x(on) = x(on) .* env;
+            end
         end
 
     case 'impulse'

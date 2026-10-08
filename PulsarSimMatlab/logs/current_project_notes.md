@@ -325,7 +325,11 @@ receiver-noise power in the analysis band (0 dB = as much as the whole in-band n
 - `'cw'`: carrier, `Freq`, `Drift` [Hz/s], `Phase`.
 - `'bpsk'`: GNSS-like spread spectrum, `Freq`, `ChipRate`; random ±1 rectangular chips.
 - `'pulsed'`: radar, `Freq`, `PulseWidth`, `PRF`, `ChirpBW` (linear chirp in the pulse),
-  `StartTime`.
+  `StartTime`, `RiseTime` (B5a, 8 Oct: raised-cosine edges of this duration centred on
+  the nominal edges, so `PulseWidth` = 50 % width; energy (PW − RiseTime/4)·power;
+  **default 0.1 µs** = the realistic radar (Jasper); 0 = instant edges, the behaviour
+  before 8 Oct, bit for bit). Spectrum: instant edges ~1/f² over tens of MHz;
+  raised-cosine edges ~1/f⁶ beyond ~1/(2·RiseTime) = 5 MHz.
 - `'impulse'`: broadband white bursts, Poisson `Rate`, `Duration`.
 Amplitudes: carrier types a = √(2·INR·P_nb) (power a²/2); impulse σ = √INR·σ_n;
 P_nb = σ_n²·B/(fs/2). Phases from absolute sample index; chips from `mrg32k3a`
@@ -1081,7 +1085,15 @@ get m up to 1/ln 2 too high → they flag less (intended: not excised; little we
 samples, (3853 − 1)/2/192 → 10), merged. Windows only up to 16 samples (decision 8 Oct):
 at −5 dB the pulse raises the power by 32 % and 256-sample windows blank 14 % of the
 on-pulse data; from −20 dB down no window is triggered by the pulsar (≤ 2.3e-6).
-Options `Scales`, `PFA`, `Guard`, `BaselineTime`, `Passes`, `KeepWindows`, `MaxMemoryGB`.
+**Frequency guard (B5b-2, 8 Oct).** A strong event (peak sample power ≥ `FreqGuardMin`
+= 100 × baseline, +20 dB) is also blanked, same samples, in `FreqGuard` channels on each
+side (**default 7**, Jasper, from the B5b sweep: 1 µs locked-radar bias only below −51 dB,
+~0.004 % of the data per guard channel): its spectral sidelobes there are below the noise
+per sample but add up coherently in the fold if the RFI is locked to the pulsar (B5b, §7). Weak flags (noise,
+the pulsar) never reach 100× and do not spread. info: `ownFlaggedSamples`, `nStrong`,
+`flaggedSamples` (final mask incl. guard).
+Options `Scales`, `PFA`, `Guard`, `FreqGuard`, `FreqGuardMin`, `BaselineTime`, `Passes`,
+`KeepWindows`, `MaxMemoryGB`.
 Uses only the channel data + channelizer settings. ~3 s for 0.1 s of 128 channels.
 **Tests (`tests/testDetectRFI.m`, ~33 s, Claude and Jasper 8 Oct;** own 0.05 s noise-only and
 noise + RFI channel files through addNoiseAndRFI → applyIQmodulation → channelizeIQ with
@@ -1094,8 +1106,15 @@ band-edge taper where the simulated pulse is weaker): flagged windows on / off t
 off-pulse 4.5e-5 (windows 1–16), 13.9 % on-pulse with windows to 256. (3) RFI: radar all
 19 pulses blanked in channels 32–33, energy removed in 31–34 1 − 8e-8; over all channels
 1.3 % of the radar energy is in sidelobes outside 32–33 (sharp-edged pulse, flagged in
-channels 27–39) and 0.18 % remains; impulses (1000/s) 98.65 % removed (expected ~98 %);
-carrier / GNSS channels no flags of their own (baseline 47× / 7× / 14×).
+channels 27–39) and 0.18 % remains (this included ~0.02 % of always-on GNSS L1 sidelobes
+in the radar windows — BPSK, 1/f² over tens of MHz; since 8 Oct each channel's steady RFI
+level is subtracted first: ≈ 0.16 %); impulses (1000/s) 98.65 % removed (expected ~98 %);
+carrier / GNSS channels no flags of their own (baseline 47× / 7× / 14×). (3d, with the
+frequency guard ±7) mask = own detections + every strong event copied to ±7 channels
+(independent coverage check); no strong events on noise or from the −5 dB pulsar; radar
+energy left over all channels (steady level subtracted) zero within ~1e-6 (1.0e-4
+without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 % removed
+(98.65 %), blanked 0.81 % (0.65 %).
 
 ---
 
@@ -1395,7 +1414,12 @@ brightest on-pulse samples; symmetric, no TOA shift; absent at weak SNR.
 
 **B4 — each RFI type on the channel path (`runRFITest.m`, 8 Oct; −5 dB, noise seed 43 in
 every case, 'optimal'; ratio = rms / predicted TOA error, ±25 % with 8 TOAs, 0.84 for
-this noise realization).**
+this noise realization). Radar with instant edges here; with the realistic default
+(B5a, 0.1 µs edges, rerun the same day): radar without excision 4/8 good, ratio 4.71,
+χ² 33.8; with excision 0.034 % blanked, 8/8, ratio 0.81, χ² 1.01, +0.05 ± 0.98 µs; all
+five with excision 0.077 % blanked, 8/8, ratio 0.76, +0.28 ± 1.01 µs (other rows
+unchanged). With the frequency guard ±7 (B5b-2, rerun): blanked radar 0.085 %, impulses
+0.054 %, all five 0.134 %; TOAs, SNR, ratios, χ² unchanged (radar 0.81, all five 0.76).**
 
 | case | excision | blanked | good | SNR | err [µs] | ratio | red. χ² | offset [µs] |
 |---|---|---|---|---|---|---|---|---|
@@ -1416,6 +1440,64 @@ radar still breaks the channel path without excision (ratio 5, χ² 34; full ban
 1625: the weighting suppresses channels 32–33 but not the sidelobes in 27–39); with
 excision fully restored. Impulses harmless either way. All five with excision: 8/8 good,
 χ² 1.01, SNR −3 % (narrowband channels' lost weight + 0.1 % blanked).
+
+**B5a — radar edges (`tests/testRadarEdges.m`, 8 Oct, ~5 s).** (1) `RiseTime` 0: all five
+RFI types = the pre-B5a output (`data/mc/rfiRef_preB5a.mat`, `tests/makeRfiReference.m`,
+code of f4181f5) bit for bit. (2) defaults: 'pulsed' 0.1 µs, others 0; RiseTime >
+PulseWidth refused. (3) radar alone (noise + radar − noise, same seed) = an independent
+formula to 1e-7 of the amplitude; envelope 0.500 at the nominal edge; energy / (amp²/2·
+(PW − RiseTime/4)) = 1.00000. (4) energy farther than 10 / 25 / 50 MHz from the carrier:
+instant edges 5.1e-3 / 2.0e-3 / 1.0e-3 (predicted 1/(π²F·PW): identical); 0.1 µs edges
+7.4e-5 / 3.1e-7 / 1.1e-8 (predicted from two step edges smoothed by the half-sine kernel
+H = cos(πfT)/(1 − 4f²T²): 6.8e-5 / 3.1e-7 / 1.1e-8; the chirp adds ~7 % at 10 MHz;
+MATLAB's `integral` to ∞ failed on the oscillating cos², a 10 kHz grid works).
+Downstream (`testDetectRFI` with the default radar): radar flagged in channels 30–35
+(was 27–39), energy outside channels 32–33 0.6 % (was 1.3 %; mostly within ±5 MHz where
+even smooth edges give 1/f²), left after excision 1.0e-4 (instant edges ≈ 1.6e-3) once each
+channel's steady RFI level is subtracted (first printed as 3.3e-4 / 1.8e-3: these included
+a ~2.2e-4 floor of always-on GNSS L1 sidelobes in the radar windows).
+
+**B5b — radar locked to the pulsar (`runLockedRadar.m`, 8 Oct, ~7 min with the guard
+sweep; it also plots the leftover profiles).** Radar 1300 MHz, 2 µs, +20 dB, PRF 400 Hz = 4 f0, one
+pulse per turn on the pulse flank (+212 µs = +1σ after the 4.17 ms dedispersion shift of
+its channels); −5 dB pulsar, noise seed 43. Reference (no radar) and radar runs with the
+same noise; radar alone = difference per channel; all three processed with the same mask
+and weights. Leftover L = folded radar power / noise baseline (independent of the pulsar);
+TOA bias at weak SNR from noise-free folds ρ·template + L with the 'optimal' estimator.
+
+| radar | excision | blanked | L max | bias −5 dB meas / pred | bias at −20 / −30 / −40 / −54 dB | 1 µs at |
+|---|---|---|---|---|---|---|
+| 0.1 µs edges | off | – | 9.2 | 18.9 / 19.0 µs | 172 / 208 / 212 / −2288 µs (locks on the radar) | brighter than −5 dB |
+| 0.1 µs edges | on | 0.036 % | 4.9e-4 | 0.010 / 0.016 µs | 0.41 / 3.9 / 31 / 147 µs | −24 dB |
+| instant edges | off | – | 9.2 | 20.0 / 20.1 µs | 174 / 208 / 211 / −2288 µs | brighter than −5 dB |
+| instant edges | on | 0.057 % | 8.6e-4 | −0.18 / −0.19 µs | −5.5 / −64 / +662 / +1453 µs | −12.6 dB |
+| 0.1 µs edges, freq. guard 3 | on | 0.055 % | 4.6e-6 | −0.002 / −0.000 µs | −0.02 / −0.18 / −1.8 / −41 µs | −37.4 dB |
+| 0.1 µs edges, freq. guard 5 | on | 0.073 % | 1.2e-6 | −0.000 / −0.000 µs | −0.003 / −0.025 / −0.25 / −6.4 µs | −46.0 dB |
+| 0.1 µs edges, freq. guard 7 | on | 0.090 % | 3.7e-7 | −0.000 / −0.000 µs | −0.001 / −0.008 / −0.08 / −2.0 µs | −51.1 dB |
+| instant edges, freq. guard 5 | on | 0.074 % | 7.0e-4 | −0.14 / −0.18 µs | −5.2 / −63 / −362 / +817 µs | −12.8 dB |
+
+Measured = predicted (reference + leftover) at −5 dB: cross terms negligible, the method
+holds. Excision cuts the locked-radar bias ~2000× at −5 dB, but it scales as 1/ρ: with
+realistic edges 1 µs at −24 dB, ~150 µs (saturating at the radar's offset) at −54 dB —
+the leftover (4.9e-4 of the baseline) is ~120× the −54 dB pulsar peak (4e-6).
+Where the leftover lives (the script's figure): each channel is dedispersed with its own delay, so
+radar energy in a channel k channels away lands k × 59 µs (0.006 turns) from the radar's
+phase — the phase axis of the fold is a channel axis for undispersed RFI. Realistic edges:
+the flagged channels (30–35) are clean to 1e-13; the bumps of ~1e-4 at ±0.018 turns are
+the channels ~3 away whose sidelobe energy per channel is just below the threshold.
+Instant edges: far-channel splatter (1/f²) forms a ~1e-4 plateau at all phases, incl. the
+pulse peak → worse at weak SNR. Options: a frequency guard (blank the same samples in
+neighbouring channels of a strong detection), a periodic mask once a radar period is
+known (B6), and Doppler decorrelation (D: an exact lock cannot persist over long folds;
+a near-commensurate PRF drifts through the profile).
+**Frequency guard (rows "freq. guard", detectRFI `FreqGuard`, rerun the same day):** every
+2 extra channels widen the clean notch around the radar's phase by ±0.012 turns and cut
+the bias ~3–4× (energy beyond offset F ∝ F⁻⁵ for 1/f⁶ sidelobes); data cost ~0.004 % per
+channel for this radar (duty 0.08 %). Guard 5: 1 µs at −46 dB, 6.4 µs at −54 dB; guard 7:
+1 µs at −51 dB, 2 µs at −54 dB (exact lock, worst placement, +38 dB per channel) → default
+7 (Jasper). Instant
+edges: no help (the 1/f² plateau comes from far channels) → periodic mask (B6) or a much
+wider guard for such emitters.
 
 ---
 
@@ -1544,15 +1626,20 @@ excision fully restored. Impulses harmless either way. All five with excision: 8
   multi-channel fit, own a_c, common b·s_c and τ, weights 1/var; no exclusion; Monte
   Carlo: unbiased, honest, scatter 0.955–0.963 of 'equal' with light blanking).
   `detectPulsar` 'optimal' too (A2c-2, 8 Oct, §5.13).
-- **RFI excision limits (8 Oct 2026, B2–B4, §5.20).** (a) Blanking is data-dependent:
+- **RFI excision limits (8 Oct 2026, B2–B5, §5.20).** (a) Blanking is data-dependent:
   it removes the highest samples, so the kept noise is slightly truncated; with ~1e-4 of
   clean data flagged this is phase-uniform and negligible at weak SNR, but at −5 dB the
   pulsar triggers flags on-pulse (9e-4 vs 4.5e-5) → pulse amplitude −0.4 % (symmetric, no
-  TOA shift). (b) The simulated radar switches on/off instantly → sinc sidelobes over tens
-  of MHz; 0.18 % of its energy stays (far channels, below threshold). Unlocked: phase-
-  uniform noise. Locked to the pulsar at −54 dB: ~140 pulsar pulses' worth per radar
-  pulse could fold in place → B5 test; real radars have finite rise times (option to add
-  in `rfiSource`); Doppler (D) or a periodic mask. (c) In channels dominated by a carrier
+  TOA shift). (b) Radar leftover after excision (energy, all channels): ≈ 0.16 % with
+  instant edges (sinc sidelobes over tens of MHz), 0.010 % with the realistic 0.1 µs edges
+  (default since B5a; within ±5 MHz, below threshold per channel), ~0 (< 1e-6) with the
+  frequency guard ±7 (default since B5b-2). Unlocked: phase-uniform noise. Locked to the
+  pulsar (B5b, §7): per-sample threshold excision alone leaves 1 µs bias at −24 dB,
+  ~150 µs at −54 dB (below-threshold sidelobes in channels a few away); with the frequency
+  guard ±7 1 µs at −51 dB, 2 µs at −54 dB (±5: −46 dB, 6.4 µs). Fixed-width guard, not scaled with the event's strength (sidelobe
+  reach ∝ S^(1/6) for 1/f⁶); no help for instant-edge emitters (far-channel plateau).
+  Remaining remedies: periodic mask (B6), Doppler decorrelation (D). The 0.1 µs rise
+  time is an assumption (check against ITU masks). (c) In channels dominated by a carrier
   or GNSS signal the baseline is 7–47× the noise, so impulses there are not caught (those
   channels have little weight). (d) Windows ≤ 16 samples (3.8 µs): weak bursts longer
   than that are found only if they exceed the 16-sample threshold (2.69×); no spectral
@@ -1579,9 +1666,16 @@ channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview
 `blankChannels` (§5.19) and B2 `detectRFI` (§5.20) validated (Jasper's runs); B3 excision
 in `main.m` (default `excision = true`, Jasper) validated (Jasper's main run identical);
 B4 `runRFITest.m` (§7: constant-envelope RFI harmless on the channel path; radar breaks
-it without excision, fully restored with). **Next: B5** realistic L-band scenario
-(rise-time and rotating-antenna options in `rfiSource`, radar locked to the pulsar at
-400 Hz, GNSS E6 / Inmarsat / LTE with verified frequencies); B6 (spectral kurtosis,
+it without excision, fully restored with). **B5** realistic L-band scenario (design 8 Oct;
+frequencies verified online: GPS L2 1227.6, GLONASS G2 ~1246, BeiDou B3 1268.52, Galileo E6
+1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32
+1452–1492/1496 (EU SDL), Inmarsat downlink 1525–1559, BeiDou B1 1561.1, GPS L1 1575.42,
+GLONASS G1 ~1598–1606 MHz; 1400–1427 MHz protected). **B5a radar rise time done**
+(`RiseTime`, realistic 0.1 µs default; §5.3, §7). **B5b** locked radar done (`runLockedRadar.m`, §7:
+excision leaves 1 µs bias at −24 dB, ~150 µs at −54 dB; leftover in channels ~3 away from
+the flagged ones). **B5b-2** frequency guard in `detectRFI` done (`FreqGuard`
+default 7 (Jasper), `FreqGuardMin` 100; §5.20, §7: 1 µs only below −51 dB). Then B5c rotating-antenna gating, B5d `'noise'` type (LTE), B5e the realistic
+scenario as a second list in `pipelineParams`; B6 (spectral kurtosis,
 whole-channel flags) only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
 
 **Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
@@ -1971,6 +2065,7 @@ per day).
 | `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct) | current; A4, B3 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`) | run 8 Oct (§7) |
+| `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
@@ -1979,7 +2074,9 @@ per day).
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
 | `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
-| `rfiSource.m` | RFI source definitions | validated (5 Oct) |
+| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs) | validated (5 Oct; B5a 8 Oct, Claude's run) |
+| `tests/makeRfiReference.m` | saves the pre-B5a addNoiseAndRFI output (`data/mc/rfiRef_preB5a.mat`) | run 8 Oct |
+| `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Claude's run, 8 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
@@ -1990,9 +2087,9 @@ per day).
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
-| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2) | validated (8 Oct) |
+| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2) | validated (8 Oct); B5b-2 Claude's run |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
-| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal | passes (Jasper's run, 8 Oct) |
+| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; 3d Claude's run) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |

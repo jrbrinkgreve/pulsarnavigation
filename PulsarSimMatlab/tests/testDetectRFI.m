@@ -32,9 +32,10 @@ no RFI) for test 2.
      RFI-only signal:
      (a) radar: every pulse's samples in channels 32-33 blanked; fraction of
          the radar energy removed (channels 31-34, +-20 us) > 0.9999. Shown:
-         the same over all channels: the pulse switches on and off
-         instantly, so its spectrum has sinc sidelobes (~1/f^2) over tens of
-         MHz; the detector finds them where they stand out per channel;
+         the same over all channels: the pulse's spectrum has sidelobes
+         (~1/f^2 near the carrier; with the default 0.1 us edges ~1/f^6
+         beyond ~5 MHz, with instant edges 1/f^2 over tens of MHz); the
+         detector finds them where they stand out per channel;
      (b) impulses: fraction of their energy removed (other channels, +-15
          samples, away from the radar pulses) > 0.95. Expected ~0.98: per channel a burst carries ~80
          times a sample's noise energy, but ~exponentially distributed, so
@@ -42,7 +43,14 @@ no RFI) for test 2.
      (c) constant-envelope RFI is not flagged: in the carrier and GNSS
          channels (49, 120, 121) no more flags away from the impulses than
          noise would give; their baseline vs noise only shown.
-     Shown: channels flagged at >= half of the radar pulses.
+     (d) frequency guard: the mask equals the own detections plus every
+         strong event (peak >= FreqGuardMin x baseline) copied to +-FreqGuard
+         channels at the same samples (recomputed independently from
+         coverage); no strong events on noise or from the -5 dB pulsar.
+     Shown: channels flagged at >= half of the radar pulses, and the radar
+     energy left over all channels with and without the frequency guard
+     (each channel's steady RFI level, mainly the far-reaching GNSS
+     sidelobes, subtracted first).
 Errors at the end if any check fails.
 %}
 
@@ -200,6 +208,10 @@ fprintf('    (test 2: %.0f s)\n', toc(t2));
 % 3. RFI, scored with the RFI-only signal
 % ---------------------------------------------------------------------------------
 [mask3, d3] = detectRFI(chan1, 'KeepWindows', true, 'Verbose', false);
+[mask30, d30] = detectRFI(chan1, 'FreqGuard', 0, 'Verbose', false);   % for 3d
+blk3 = blockIndex(d30.blockEdges);
+cov0 = false(nCh, Nc); cov5 = cov0; strongCov = cov0;
+eA0k = 0;
 radar = info_rx1.rfi(1).params;
 sOf = @(t) round((t - chan1.t0) * fsC) + 1;          % time -> channel sample (1-based)
 tR = radar.startTime + (0 : floor(Nc / fsC * radar.prf)).' / radar.prf;   % pulse starts
@@ -212,8 +224,19 @@ hitR = zeros(1, nCh);
 inI = false(1, Nc);
 for i = 1:numel(sI), inI(max(1, sI(i) - 15) : min(Nc, sI(i) + 15)) = true; end
 for j = 1:nCh
-    Pr = abs(readIQ(chan1.chanFiles(j)) - readIQ(chan0.chanFiles(j))).^2;
+    x1 = readIQ(chan1.chanFiles(j));
+    Pr = abs(x1 - readIQ(chan0.chanFiles(j))).^2;
     cv = coveredOf(mask3, j, Nc);
+    cov5(j, :) = cv;
+    cov0(j, :) = coveredOf(mask30, j, Nc);
+    % strong events of the unguarded mask: peak power / baseline >= FreqGuardMin
+    p1 = abs(x1).^2;
+    r0 = mask30(mask30(:, 1) == j, 2:3);
+    for i = 1:size(r0, 1)
+        if max(p1(r0(i, 1):r0(i, 2))) / d30.baseline(j, blk3(r0(i, 1))) >= d3.freqGuardMin
+            strongCov(j, r0(i, 1):r0(i, 2)) = true;
+        end
+    end
     inR = false(1, Nc);
     for k = 1:numel(tR)
         core = max(1, sOf(tR(k))) : sOf(tR(k) + radar.pulseWidth);
@@ -223,8 +246,11 @@ for j = 1:nCh
     end
     rR = inR & ~inI; rI = inI & ~inR;               % radar / impulse cells, kept apart
     if ~any(j == skipCE)                             % (carrier, GNSS: always on, not scored)
-        eA = eA + sum(Pr(rR)); eAk = eAk + sum(Pr(rR & cv));
-        if ~any(j == [32 33]), eS = eS + sum(Pr(rR)); end
+        % the steady RFI level of this channel (GNSS sinc^2 sidelobes reach far, 1/f^2)
+        % is subtracted, so the all-channel numbers measure the radar alone
+        Pq = Pr - mean(Pr(~inR & ~inI));
+        eA = eA + sum(Pq(rR)); eAk = eAk + sum(Pq(rR & cv)); eA0k = eA0k + sum(Pq(rR & cov0(j, :)));
+        if ~any(j == [32 33]), eS = eS + sum(Pq(rR)); end
     end
     if any(j == radarCh)
         eR = eR + sum(Pr(rR)); eRk = eRk + sum(Pr(rR & cv));
@@ -232,13 +258,14 @@ for j = 1:nCh
         eI = eI + sum(Pr(rI)); eIk = eIk + sum(Pr(rI & cv));
     end
 end
-fR = eRk / eR; fA = eAk / eA; fI = eIk / eI;
+fR = eRk / eR; fA = eAk / eA; fA0 = eA0k / eA; fI = eIk / eI;
 pass = allPulses && fR > 1 - 1e-4;
 fprintf(['3a. radar: %d pulses, all blanked in channels 32-33 %d; energy removed in channels ' ...
          '31-34 %.6f (1 - %.1e): %s\n'], numel(tR), allPulses, fR, 1 - fR, passStr(pass));
-fprintf(['    all channels: %.2e of the radar energy outside channels 32-33 (sidelobes of the ' ...
-         'sharp-edged pulse), removed %.5f (1 - %.1e); channels flagged at >= half the pulses %s\n'], ...
-    eS / eA, fA, 1 - fA, mat2str(find(hitR >= 0.5)));
+fprintf(['    all channels: %.2e of the radar energy outside channels 32-33 (spectral sidelobes ' ...
+         'of the pulse); left after excision %+.1e (without the frequency guard %+.1e; precision ' ...
+         '~1e-6 from the level subtraction); channels flagged at >= half the pulses %s\n'], ...
+    eS / eA, 1 - fA, 1 - fA0, mat2str(find(hitR >= 0.5)));
 if ~pass, fails{end+1} = 'radar'; end
 pass = fI > 0.95;
 fprintf('3b. impulses: %d bursts, energy removed %.4f (expected ~0.98): %s\n', numel(sI), fI, passStr(pass));
@@ -258,6 +285,23 @@ fprintf(['3c. constant-envelope channels %s: %d flagged windows away from impuls
     flagsCE, expCE, mat2str(round(lvl, 2)), mat2str(round(100 * d3.flaggedFraction(ceCh).', 3)), ...
     100 * median(d3.flaggedFraction(setdiff(1:nCh, [radarCh, ceCh]))), passStr(pass));
 if ~pass, fails{end+1} = 'constant envelope'; end
+
+% 3d. frequency guard: the mask = own detections + the strong ones (peak >= FreqGuardMin x
+% baseline) in +-FreqGuard channels, same samples; none on noise or from the pulsar
+G = d3.freqGuard;
+covE = cov0;
+for j = 1:nCh
+    nb = setdiff(max(1, j - G) : min(nCh, j + G), j);
+    covE(j, :) = covE(j, :) | any(strongCov(nb, :), 1);
+end
+okG = isequal(covE, cov5);
+nsN = sum(dD.nStrong); nsP = sum(runs{1}.nStrong);
+pass = okG && nsN == 0 && nsP == 0 && sum(d3.nStrong) > 0;
+fprintf(['3d. frequency guard +-%d channels: mask = own + strong events copied (independent ' ...
+         'coverage check) %d; strong events: RFI data %d, noise-only %d, -5 dB pulsar %d; blanked ' ...
+         '%.4f %% (without the guard %.4f %%): %s\n'], G, okG, sum(d3.nStrong), nsN, nsP, ...
+    100 * mean(d3.flaggedFraction), 100 * mean(d30.flaggedFraction), passStr(pass));
+if ~pass, fails{end+1} = 'frequency guard'; end
 
 % ---------------------------------------------------------------------------------
 if isempty(fails)

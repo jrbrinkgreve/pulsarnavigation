@@ -64,6 +64,19 @@ Every flagged window [i, i+n-1] is widened by 'Guard' samples on each side
 rounded = 10 for the current channelizer: a short RF pulse reaches that far
 into its neighbouring channel samples), then merged into intervals.
 
+Frequency guard (8 Oct 2026, B5b): a strong event also has spectral
+sidelobes in the neighbouring channels, at the same time, too weak to be
+seen per sample there (a radar at +38 dB leaves ~0.3x the noise per sample
+3 channels away). For RFI locked to the pulsar period even such sub-noise
+leftovers add up coherently in the fold (B5b: 1 us TOA bias at -24 dB, ~150
+us at -54 dB). So every flagged interval whose peak sample power is at
+least 'FreqGuardMin' x baseline (default 100, +20 dB) is blanked in the same
+time interval in 'FreqGuard' channels on each side. Weak flags (noise false
+flags peak at ~14x, a bright pulsar too) do not spread. Default 7 (Jasper,
+8 Oct): a locked +38 dB radar with 0.1 us edges then biases TOAs by 1 us
+only below -51 dB (2 us at -54 dB; 5 channels: -46 dB / 6.4 us), for ~0.004 %
+of the data per guard channel (runLockedRadar.m).
+
 Uses only the channel data and the channelizer settings (no ground truth).
 
 Inputs:
@@ -78,6 +91,10 @@ Name-value options:
                   (default [] = prototype half-length, 10).
   'BaselineTime'  [s] block length of the baseline (default 16e-3).
   'Passes'        1 or more (default 2), see Baseline.
+  'FreqGuard'     channels blanked on each side of a strong event, same
+                  time interval (default 7; 0 = off).
+  'FreqGuardMin'  peak sample power / baseline that makes an event strong
+                  (default 100).
   'KeepWindows'   store the start samples of the flagged windows (final
                   pass) per channel and scale in info.flaggedWindows
                   (default false; for tests).
@@ -95,8 +112,11 @@ Outputs:
         blockEdges(b)+1 .. blockEdges(b+1)), baseline [nChan x nBlocks],
         rho (lags 0..), nWindows (per scale, per channel), nFlaggedWindows
         [nChan x nScales], expectedFalse (per scale, all channels: nChan *
-        nWindows * PFA, Gaussian noise), flaggedSamples / flaggedFraction
-        (per channel), nIntervals, flaggedWindows (if KeepWindows), elapsed.
+        nWindows * PFA, Gaussian noise), ownFlaggedSamples (per channel,
+        own detections), nStrong (strong events per channel), freqGuard,
+        freqGuardMin, flaggedSamples / flaggedFraction (per channel, the
+        final mask incl. the frequency guard), nIntervals, flaggedWindows
+        (if KeepWindows), elapsed.
 %}
 
 arguments
@@ -106,6 +126,8 @@ arguments
     opts.Guard               double = []
     opts.BaselineTime  (1,1) double {mustBePositive} = 16e-3
     opts.Passes        (1,1) double {mustBeInteger, mustBePositive} = 2
+    opts.FreqGuard     (1,1) double {mustBeInteger, mustBeNonnegative} = 7
+    opts.FreqGuardMin  (1,1) double {mustBePositive} = 100
     opts.KeepWindows   (1,1) logical = false
     opts.MaxMemoryGB   (1,1) double {mustBePositive} = 4
     opts.Verbose       (1,1) logical = true
@@ -161,7 +183,9 @@ minUse = 1000;                                      % samples needed for a media
 
 baseline = zeros(nChan, nBlk);
 nFlagged = zeros(nChan, nS);
-flaggedSamples = zeros(nChan, 1);
+ownFlagged = zeros(nChan, 1);
+nStrong  = zeros(nChan, 1);
+strong   = cell(nChan, 1);                          % strong intervals [first last] per channel
 rows = cell(nChan, 1);
 if opts.KeepWindows, flaggedWindows = cell(nChan, nS); end
 
@@ -204,16 +228,32 @@ for j = 1:nChan
         nFlagged(j, s) = numel(starts{s});
         if opts.KeepWindows, flaggedWindows{j, s} = starts{s}; end
     end
-    flaggedSamples(j) = nnz(covered);
+    ownFlagged(j) = nnz(covered);
     dcv  = diff([false, covered, false]);
     first = find(dcv == 1); last = find(dcv == -1) - 1;
     rows{j} = [j * ones(numel(first), 1), first.', last.'];
+    % strong events: peak sample power / baseline of their block >= FreqGuardMin
+    pk = zeros(numel(first), 1);
+    for i = 1:numel(first)
+        pk(i) = max(p(first(i):last(i))) / mb(blkOf(first(i)));
+    end
+    isS = pk >= opts.FreqGuardMin;
+    strong{j} = [first(isS).', last(isS).'];
+    nStrong(j) = nnz(isS);
     if opts.Verbose && (j == nChan || mod(j, 32) == 0)
         fprintf('  detectRFI: %d/%d channels\n', j, nChan);
     end
 end
-mask = vertcat(rows{:});
-if isempty(mask), mask = zeros(0, 3); end
+% frequency guard: the strong intervals also in FreqGuard channels on each side
+gRows = cell(nChan, 1);
+for j = 1:nChan
+    if isempty(strong{j}) || opts.FreqGuard == 0, continue; end
+    nb = setdiff(max(1, j - opts.FreqGuard) : min(nChan, j + opts.FreqGuard), j);
+    m  = size(strong{j}, 1);
+    gRows{j} = [kron(nb(:), ones(m, 1)), repmat(strong{j}, numel(nb), 1)];
+end
+mask = normalizeMask([vertcat(rows{:}); vertcat(gRows{:})], nChan, Nc);
+flaggedSamples = accumarray(mask(:, 1), mask(:, 3) - mask(:, 2) + 1, [nChan, 1]);
 
 info = struct();
 info.scales          = scales;
@@ -232,6 +272,10 @@ info.rho             = rho;
 info.nWindows        = nWin;                        % per channel
 info.nFlaggedWindows = nFlagged;
 info.expectedFalse   = nChan * nWin * opts.PFA;     % all channels, Gaussian noise
+info.ownFlaggedSamples = ownFlagged;
+info.nStrong         = nStrong;
+info.freqGuard       = opts.FreqGuard;
+info.freqGuardMin    = opts.FreqGuardMin;
 info.flaggedSamples  = flaggedSamples;
 info.flaggedFraction = flaggedSamples / Nc;
 info.nIntervals      = size(mask, 1);
@@ -242,9 +286,10 @@ info.elapsed         = toc(tStart);
 if opts.Verbose
     fprintf(['detectRFI: %d channels, windows %s samples, PFA %.1e (thresholds %s x baseline), ' ...
              'guard %d\n'], nChan, mat2str(scales), opts.PFA, mat2str(round(eta, 3)), g);
-    fprintf(['  flagged windows per scale %s (Gaussian noise would give %s); %d intervals, ' ...
-             '%.4f %% of samples in %d channels; %.1f s\n'], mat2str(sum(nFlagged, 1)), ...
-        mat2str(round(info.expectedFalse, 1)), info.nIntervals, 100*mean(info.flaggedFraction), ...
+    fprintf(['  flagged windows per scale %s (Gaussian noise would give %s); %d strong events ' ...
+             '(frequency guard +-%d channels); %d intervals, %.4f %% of samples in %d channels; ' ...
+             '%.1f s\n'], mat2str(sum(nFlagged, 1)), mat2str(round(info.expectedFalse, 1)), ...
+        sum(nStrong), opts.FreqGuard, info.nIntervals, 100*mean(info.flaggedFraction), ...
         nnz(flaggedSamples), info.elapsed);
 end
 end
@@ -263,6 +308,24 @@ for d = 0:nL
     rho(d + 1) = sum(h(1:end - d*D) .* h(1 + d*D:end));
 end
 rho = rho / rho(1);
+end
+
+function mask = normalizeMask(rows, nChan, Nc)
+%NORMALIZEMASK  Rows [channel, first, last] -> per channel clipped to 1..Nc, sorted,
+% merged where they overlap or touch (as blankChannels does), channel by channel.
+out = cell(nChan, 1);
+for j = unique(rows(:, 1)).'
+    r = rows(rows(:, 1) == j, 2:3);
+    r = [max(r(:, 1), 1), min(r(:, 2), Nc)];
+    r = sortrows(r(r(:, 1) <= r(:, 2), :));
+    if isempty(r), continue; end
+    endMax = cummax(r(:, 2));
+    newRun = [true; r(2:end, 1) > endMax(1:end-1) + 1];
+    lastRow = [find(newRun(2:end)); size(r, 1)];
+    out{j} = [j * ones(nnz(newRun), 1), r(newRun, 1), endMax(lastRow)];
+end
+mask = vertcat(out{:});
+if isempty(mask), mask = zeros(0, 3); end
 end
 
 function P = sumExpSurvival(lam, x)

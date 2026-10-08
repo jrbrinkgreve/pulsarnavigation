@@ -16,10 +16,23 @@ Types and their parameters:
              random +-1 chips, rectangular; main lobe +-ChipRate around Freq
   'pulsed'   radar pulses                  Freq [Hz], PulseWidth [s], PRF [Hz],
                                            ChirpBW [Hz] (linear chirp within the
-                                           pulse, 0 = plain carrier), StartTime [s]
+                                           pulse, 0 = plain carrier), StartTime [s],
+                                           RiseTime [s] (default 0.1e-6, see below)
   'impulse'  broadband bursts              Rate [1/s] (Poisson), Duration [s];
              white noise bursts over the whole sampled band
   'Label'    free text for logs/plots
+
+Radar edges ('pulsed', 'RiseTime'): a real transmitter ramps its pulse up
+and down. The envelope rises and falls as a raised cosine of duration
+RiseTime (0 -> 100 %; the 10-90 % rise time is 0.59 x RiseTime), centred on
+the nominal edges, so PulseWidth stays the width between the 50 % points
+(the usual radar definition) and the energy is (PulseWidth - RiseTime/4)
+x the power while on. Spectrum: with instant edges (RiseTime 0, the
+behaviour before 8 Oct 2026) the power falls only as 1/f^2 away from the
+carrier, sidelobes over tens of MHz; with raised-cosine edges it falls as
+1/f^6 beyond ~1/(2*RiseTime) (5 MHz for 0.1 us). Default 0.1e-6: an
+assumed realistic value for a solid-state L-band surveillance radar (to be
+checked against ITU emission masks); RiseTime <= PulseWidth.
 %}
 
 arguments
@@ -34,6 +47,7 @@ arguments
     opts.PRF        (1,1) double = NaN
     opts.ChirpBW    (1,1) double = 0
     opts.StartTime  (1,1) double = 0
+    opts.RiseTime   (1,1) double = NaN
     opts.Rate       (1,1) double = NaN
     opts.Duration   (1,1) double = NaN
 end
@@ -51,8 +65,16 @@ for f = need.(type)
         error('rfiSource:param', 'RFI type "%s" needs a positive ''%s''.', type, f{1});
     end
 end
-if strcmp(type, 'pulsed') && opts.PulseWidth * opts.PRF >= 1
-    error('rfiSource:duty', 'PulseWidth * PRF must be < 1.');
+riseTime = 0;                                       % only 'pulsed' has edges
+if strcmp(type, 'pulsed')
+    riseTime = opts.RiseTime;
+    if isnan(riseTime), riseTime = 0.1e-6; end      % realistic default (8 Oct 2026)
+    if riseTime < 0 || riseTime > opts.PulseWidth
+        error('rfiSource:rise', 'RiseTime must lie in [0, PulseWidth].');
+    end
+    if (opts.PulseWidth + riseTime) * opts.PRF >= 1
+        error('rfiSource:duty', '(PulseWidth + RiseTime) * PRF must be < 1.');
+    end
 end
 
 label = char(opts.Label);
@@ -60,5 +82,6 @@ if isempty(label), label = type; end
 src = struct('type', type, 'label', label, 'freq', opts.Freq, 'INRdB', opts.INRdB, ...
     'phase', opts.Phase, 'drift', opts.Drift, 'chipRate', opts.ChipRate, ...
     'pulseWidth', opts.PulseWidth, 'prf', opts.PRF, 'chirpBW', opts.ChirpBW, ...
-    'startTime', opts.StartTime, 'rate', opts.Rate, 'duration', opts.Duration);
+    'startTime', opts.StartTime, 'riseTime', riseTime, 'rate', opts.Rate, ...
+    'duration', opts.Duration);
 end
