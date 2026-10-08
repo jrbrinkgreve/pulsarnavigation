@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Detection and Good TOAs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Detection and good TOAs: <code>detectPulsar</code> <span class="badge validated">validated</span></h1>
+<p class="lede">A TOA fit always finds a peak, even in pure noise. <code>detectPulsar</code> asks the separate question
+"is the pulsar there?" at a fixed false-alarm probability. Together with the χ² flag it decides which TOAs are good.</p>
+<div class="sig">[detection, info] = detectPulsar(fold, info_fold, template, 'Bnoise', Bnoise, 'Weighting', weighting)</div>
+<p class="meta"><a href="api.html#detectpulsar">Full interface and help text of <code>detectPulsar</code> →</a></p>
+
+<h2>The question</h2>
+<p>Neyman–Pearson test of <b>H0</b> (baseline + noise) against <b>H1</b> (baseline + template-shaped pulse + noise) at a fixed false-alarm
+probability <var>P</var><sub>FA</sub> (default 10⁻³ per profile), for every sub-int and for the total fold. Observer-only inputs: fold, template,
+<var>B</var><sub>noise</sub>, <var>P</var><sub>FA</sub>.</p>
+
+<h2>H0 noise normalization</h2>
+<p>Under H0 the profile is flat at the baseline <var>a</var> = mean(<var>p</var>) (exact under H0). Per time bin var = <var>a</var>²/(<var>B</var><sub>n</sub>·Δ<var>t</var>); per phase bin
+<var>v</var><sub>j</sub> = that·<code>weight2</code><sub>j</sub>/<code>weight</code><sub>j</sub>², neighbour covariances from <code>weightX</code>, as in <code>estimateTOA</code>.
+<code>normProfile</code> = (<var>p</var> − <var>a</var>)/√<var>v</var>: the profile in noise units.</p>
+
+<h2 id="known">Known phase: T0</h2>
+<div class="eq"><var>T</var><sub>0</sub> = <var>c</var>ᵀ(<var>p</var> − <var>a</var>) / √(<var>c</var>ᵀ·Cov·<var>c</var>), &nbsp; <var>c</var> = template at the predicted phase minus its mean</div>
+<p>A weighted sum of Gaussian bins divided by its exact standard deviation: under H0 exactly N(0, 1), so</p>
+<div class="eq">η<sub>0</sub> = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for 10⁻³, &nbsp; <var>P</var><sub>D</sub> = 1 − Φ(η − SNR)</div>
+<p>The predicted phase is the ephemeris phase (<code>'Phase'</code>, default 0). This is the <b>tracking</b> case: you know your position and
+clock well enough to predict where the pulse is, so one test suffices.</p>
+
+<h2 id="unknown">Unknown phase: Tmax and Rice's formula</h2>
+<p><b>Acquisition / cold start:</b> the position is uncertain by more than a pulse width (1 ms of timing is 300 km; one J0437 turn is
+~1700 km), so the pulse could be anywhere. <var>T</var>(τ) is computed for every bin shift by FFT correlation (numerator and variance), and
+<var>T</var><sub>max</sub> = max <var>T</var>(τ) at <code>phaseMax</code>. More chances for noise need a higher threshold.</p>
+<p>Neighbouring shifts are nearly identical (a smooth template moved by one bin), so "number of bins × <var>Q</var>(η)" would be far too
+pessimistic. Rice (1944) gives the expected number of upcrossings of level η by a smooth stationary Gaussian process; the maximum
+exceeds η if <var>T</var> starts above it or crosses it:</p>
+<div class="eq"><var>P</var>(<var>T</var><sub>max</sub> &gt; η) ≈ <var>Q</var>(η) + (√λ₂/2π)·e<sup>−η²/2</sup>, &nbsp; λ₂ = Σ(2π<var>k</var>)²|<var>S</var><sub>k</sub>|² / Σ|<var>S</var><sub>k</sub>|² (<var>k</var> ≥ 1)</div>
+<p>For the 5 % Gaussian template √λ₂/2π = 5.51 (the "Rice factor", roughly the number of independent phase trials per turn), and
+η = 4.15 at <var>P</var><sub>FA</sub> = 10⁻³ (solved with <code>fzero</code>). In the tail, crossings are rare, so the approximation is tight.</p>
+
+<h2 id="t0tmax">T0 vs Tmax, and detection vs χ²</h2>
+<ul>
+<li><b>T0</b> is the matched-filter value at the predicted phase: one test, N(0,1) under H0.</li>
+<li><b>Tmax</b> is the largest value over all shifts: under H0 typically 1.5–2 even with no pulsar.</li>
+<li>With a pulsar and a correct ephemeris, T0 ≈ Tmax ≈ SNR and <code>phaseMax</code> ≈ the pulse phase.</li>
+</ul>
+<div class="table-wrap"><table>
+<tr><th>Situation</th><th>Detection (T)</th><th>χ²</th><th>Verdict</th></tr>
+<tr><td>noise only</td><td>small → not detected</td><td>≈ 1</td><td>rejected by detection</td></tr>
+<tr><td>real pulse</td><td>large</td><td>≈ 1</td><td>good</td></tr>
+<tr><td>radar spike in the profile</td><td>large (it correlates)</td><td>≫ 1</td><td>rejected by χ²</td></tr>
+<tr><td>pulse + carrier</td><td>large</td><td>~1.3</td><td>kept (by design)</td></tr>
+</table></div>
+<p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there".</p>
+
+<h2 id="good">Good TOAs (in <code>main.m</code>)</h2>
+<div class="eq">toa.good = toa.valid ∧ detection.detectedUnknown ∧ ¬toa.flagChi2</div>
+<div class="callout why"><span class="ttl">Why the unknown-phase detection</span>
+<p>FFTFIT itself searches all phases for the highest peak, so the fair question is "is the best peak anywhere real?", which is the
+unknown-phase test. Using the known-phase test would accept TOAs whose fitted peak is a noise peak elsewhere.</p></div>
+<p>Result (threshold sweep, 6 Oct): good TOAs are outlier-free at every SNR tested; at SNR 3.8 per sub-int 40 % survive, at 6.0 92 %, at
+7.5 100 %. This is where the design rule SNR ≥ 6–7 per sub-int comes from.</p>
+
+<h2>Noise check</h2>
+<p><code>noiseRatio</code> = off-pulse variance (template at <code>phaseMax</code> &lt; 1 % of peak) / the radiometer variance with the off-pulse baseline.
+≈ 1 when the noise model is right; a carrier gives ~1.65 on the full band, a radar ≫ 1. Measured 0.992 at −5 dB, median 0.996 over 900
+noise-only profiles.</p>
+
+<h2>Channels</h2>
+<p><b>Equal weighting (A2b, 7 Oct):</b> as in <code>estimateTOA</code>, the sum of channel profiles with the exclusion rule
+(<code>combineChannels</code>); H0 noise per channel at its own baseline <var>a</var><sub>c</sub>; all lags.</p>
+<p><b>Optimal weighting (A2c-2, 8 Oct; used by <code>main.m</code>):</b> the weighted matched filter over channels,</p>
+<div class="eq"><var>N</var>(τ) = Σ<sub>c</sub> <var>s</var><sub>c</sub> Σ<sub>j</sub> <var>w</var><sub>cj</sub>(<var>p</var><sub>cj</sub> − <var>p̄</var><sub>c</sub>)·<var>T</var>(φ<sub>j</sub> − τ), &nbsp; <var>w</var> = 1/var under H0</div>
+<p>normalized by its exact H0 standard deviation including all lags of <code>weightX</code>, so T0 and <var>T</var>(τ) stay N(0,1) under H0 and the
+thresholds (3.09 / 4.15) are unchanged. All shifts at once with one FFT batch per lag. No exclusion rule.</p>
+<div class="callout note"><span class="ttl">A subtlety</span>
+<p>Rice's formula assumes a stationary process; with blanking the weights vary slightly with phase. The Monte Carlo below measured the
+false-alarm rate as designed anyway.</p></div>
+
+<h2>Options and outputs</h2>
+<dl class="facts">
+<dt>Options</dt><dd><code>Bnoise</code>, <code>PFA</code> (1e-3), <code>Phase</code> (0), <code>Weighting</code> (<code>'equal'</code>; main passes <code>'optimal'</code> on the channel path), <code>ChannelGain</code>, <code>MinCoverage</code> (1), <code>OnPulseFrac</code> (0.01), <code>Verbose</code></dd>
+<dt>Output</dt><dd><code>detection</code> (not <code>det</code>, which would shadow MATLAB's <code>det()</code>): tested, coverage, baseline, T0, Tmax, phaseMax, etaKnown, etaUnknown, detectedKnown, detectedUnknown, normProfile, noiseRatio, nChanUsed, <code>total</code>; <code>info</code>: method, PFA, phaseKnown, Bnoise, lambda2, riceFactor, channelGain</dd>
+</dl>
+
+<h2>Validation</h2>
+<ul>
+<li>NumPy, 20,000 H0 profiles with neighbour correlation: T0 mean 0.014, std 0.996; <var>P</var>(<var>T</var><sub>max</sub> &gt; η) 0.0098 at 10⁻² and 0.0009 at 10⁻³.</li>
+<li>Long H0 run (<code>runH0.m</code>, 900 noise-only profiles): T0 std 1.008 ± 0.024; exceedances at <var>P</var><sub>FA</sub> 10⁻¹/10⁻²/10⁻³: T0 96/7/3,
+Tmax 88/13/1 (expected 90/9/0.9).</li>
+<li>Phase E sweep: 0/90 false alarms under a true H0; T0 mean = matched-filter SNR in the weak regime; <var>P</var><sub>D</sub> on the theory curves.</li>
+<li><code>tests/testChannelTOA.m</code> 4–6 and <code>tests/testOptimalTOA.m</code> 6–10: bit-identical defaults; T0, Tmax, normProfile = explicit full
+H0 covariance formulas to ≤ 10⁻¹⁵; H0 Monte Carlo false alarms 0.054 known / 0.051 unknown (design 0.05 ± 0.008); H1 detected fraction
+0.914 vs theory 0.910; optimal/equal detection SNR 1.041.</li>
+</ul>
+<div class="callout note"><span class="ttl">Baseline-estimation loss</span>
+<p>T0 ≈ 0.96 × the theoretical SNR. The theory assumes a known noise level; the observer estimates the baseline from the same profile,
+which discards the template's DC part: loss = √(1 − (Σ<var>s</var>)²/(<var>N</var>·Σ<var>s</var>²)) = 0.962 for the 5 % Gaussian. Real physics: any observer
+without a known baseline pays it.</p></div>
+<div class="callout warn"><span class="ttl">Limits</span>
+<p><var>P</var><sub>FA</sub> is validated down to 10⁻²…10⁻³. Smaller values (e.g. 10⁻⁶ for navigation) rely on extrapolating the Gaussian and
+Rice tails. At high SNR T0 exceeds the SNR (self-noise is ignored in the H0 normalization); irrelevant for weak signals.</p></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Limitations</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Limitations and modelling gaps</h1>
+<p class="lede">What the simulation leaves out, what the processing assumes without checking, and how big each effect
+is. Each item says whether it matters for the weak-signal target (−54 dB, J0437 on a 0.61 m² array).</p>
+
+<h2>Processing assumptions not checked</h2>
+<ul>
+<li><b>DM correctness:</b> a wrong DM leaves a residual sweep. A DM check from sub-band TOAs is planned (block 2).</li>
+<li><b>Reference-frequency convention</b> vs the TOA definition: a constant offset if the forward and inverse references differ.</li>
+<li><b>Receiver frequency mapping:</b> no spectral inversion assumed (<var>f</var><sub>RF</sub> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub>); the off-centre LO makes a mirror error visible in simulation, but real hardware must be checked.</li>
+<li><b>True sample rate:</b> trusted via the info chain.</li>
+</ul>
+
+<h2>Propagation</h2>
+<div class="table-wrap"><table>
+<tr><th>Effect</th><th>Size</th><th>Matters for</th><th>Plan</th></tr>
+<tr><td><b>Ionosphere</b> (noted 8 Oct, Jasper)</td><td>dispersive delay 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz; TEC 5–100 TECU → ~3–70 ns, time-variable. Also Faraday rotation (with one linear polarization the received fraction changes), ionospheric scintillation (equatorial and high latitudes), refraction.</td><td>ns-level navigation (1 ns ≈ 30 cm); small against today's µs TOAs</td><td>size for target site and hardware; sub-band TOAs or GNSS TEC maps (IGS) could correct it; likely block D or later</td></tr>
+<tr><td><b>DM variations</b></td><td>δDM = 10⁻³ pc cm⁻³ → ≈ 2.1 µs at 1.4 GHz</td><td>long-term timing, more for Vela</td><td>sub-band TOAs → DM fit (block 2)</td></tr>
+<tr><td><b>Scintillation</b> (low DM)</td><td>scintles 0.1–1 GHz wide at DM 5 → ~100 % band-averaged flux fading over minutes–hours</td><td>SNR budget (fading margin, missed TOAs), not timing</td><td>fast simulator <code>FluxScale(t)</code>; adaptive sub-int length</td></tr>
+<tr><td><b>Scattering</b></td><td>τ<sub>d</sub> ≈ 0.4 ns at DM 5; µs at DM ≳ 100</td><td>timing noise at high DM</td><td>block 4</td></tr>
+<tr><td>Higher-order frequency terms</td><td>–</td><td>–</td><td>not planned</td></tr>
+</table></div>
+<div class="callout note"><span class="ttl">How scintillation would be modelled</span>
+<p>Within a ≤ 1 s voltage simulation, diffractive scintillation is static: a random frequency gain <var>g</var>(<var>f</var>) with correlation bandwidth
+Δν<sub>d</sub> multiplied into the forward filter, plus optionally a multipath tail. Long-term fading, Doppler and DM(<var>t</var>) belong at the TOA / SNR level of a
+later mission simulation. With a scintillated spectrum, optimal detection weights channels by pulsar S/N (<code>ChannelGain</code> in the optimal fit).</p></div>
+
+<h2>Signal and receiver</h2>
+<ul>
+<li><b>Realistic SNR regime.</b> −5 dB is a bright pulsar on a large dish. A small antenna (SEFD ~10⁵ Jy) gives ρ ≈ −27 dB (Vela) to ≲ −50 dB (typical
+millisecond pulsars): per-pulse SNR ≪ 1, TOAs need minutes to hours of folding, where motion, DM(<var>t</var>) and scintillation matter.</li>
+<li><b>Spectrum:</b> the generator is white; real pulsars have <var>S</var> ∝ <var>f</var><sup>α</sup>, α ≈ −1.6 (factor 1.6 across 1.2–1.6 GHz). Equal-weight loss ~1 %;
+with profile evolution and a DM error it biases wideband TOAs.</li>
+<li><b>Receiver:</b> ideal linear filters, infinite dynamic range. No amplifier compression, ADC quantization or clipping (2-bit costs ≈ 12 % SNR),
+intermodulation, bandpass ripple, gain drift. Single polarization (dual pol gives √2 in SNR; the hardware is dual pol).</li>
+<li><b>Receiver noise does not pass the dispersion taper</b> in the simulation: &lt; 1 % in SNR.</li>
+<li><b>Real bandpass</b> is not ideal and not known exactly: measure <var>W</var>² from the off-pulse spectrum and use it in (∫<var>W</var>²)²/∫<var>W</var>⁴; can be 10–30 % on real data.</li>
+</ul>
+
+<h2>Timing and pulse</h2>
+<ul>
+<li><b>No clock jitter or drift.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, ~6× the J0437 TOA precision. A constant rate can be fitted; random
+wander cannot. Belongs in the phase predictor (D); "what oscillator does the hardware have?" is an open question.</li>
+<li><b>No relative motion.</b> Earth's orbital v/c ≈ 10⁻⁴ → ≈ 100 µs per second of phase drift at 100 Hz. That drift is the navigation signal; it needs
+Doppler terms in the fold phase model (block D, a hard requirement for multi-day folds).</li>
+<li><b>Single pulsar.</b></li>
+<li><b>Stable Gaussian profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization. Places to revisit for real profiles:
+<code>ephem.profileFWHM</code> (→ a template per pulsar), the generator and <code>expectedPowerModel</code> profile, the 1 %-of-peak on-pulse threshold in
+<code>estimateTOA</code>.</li>
+</ul>
+
+<h2>Estimation and detection</h2>
+<ul>
+<li>FFTFIT is not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB); irrelevant at weak signal.</li>
+<li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
+<li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
+<li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
+<li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).</li>
+</ul>
+
+<h2>RFI excision</h2>
+<p>See <a href="excision.html#limits">RFI excision: limits</a>: data-dependent truncation (−0.4 % pulse amplitude at −5 dB), residual bias from
+an exactly locked radar (2 µs at −54 dB with the frequency guard), missed weak sidelobe pulses of rotating radars (→ B6), carrier/GNSS channels
+with high baselines, windows ≤ 16 samples, noise-like RFI undetectable, assumed 0.1 µs radar rise time.</p>
+
+<h2>Edges and scale</h2>
+<ul>
+<li>The last ~6.3 ms of each file are not fully supported; partial first and last turns are skipped (<code>MinCoverage</code> = 1).</li>
+<li><b>High DM in the generator:</b> forward dispersion needs ~47 GB at DM 60 and ~94 GB at DM 100 (24 GB machine). The processing side is solved by the
+channelized front end; the generator side is open (<a href="roadmap.html#dm">roadmap</a>).</li>
+<li>Disk: ~61 GB per second of simulated data. Hours of data need the fast simulator (block C).</li>
+</ul>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

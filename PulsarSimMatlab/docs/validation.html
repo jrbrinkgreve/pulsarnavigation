@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation and Checks</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stage 9 · Validation and check functions</h1>
+<p class="lede">The functions that compare the pipeline with the simulation's ground truth. They are the only
+processing-side code allowed to read <code>info_gen</code>, <code>info_disp</code> and <code>info_rx</code>, and they are never used to
+make a result, only to check one.</p>
+
+<h2>How a result counts as validated</h2>
+<p>Three kinds of check run throughout the project, and most tests use all three:</p>
+<ul>
+<li><b>Regression:</b> a changed function reproduces old outputs <b>bit for bit</b> where nothing should change.</li>
+<li><b>Algebra:</b> the code equals the formula computed independently (often a slow explicit matrix), to machine precision (~10⁻¹⁵).</li>
+<li><b>Physics / statistics:</b> measured noisy quantities match predictions within <var>n</var>·σ, with σ <em>predicted</em>, not guessed.</li>
+</ul>
+<p>A result is marked <span class="badge validated">validated</span> only after Jasper's own MATLAB run.</p>
+
+<h2 id="validate"><code>validateTOA</code> <span class="badge validated">validated</span></h2>
+<div class="sig">val = validateTOA(toa, info_gen, 'Plot', true, 'Label', '')</div>
+<p class="meta"><a href="api.html#validatetoa">Full interface and help text of <code>validateTOA</code> →</a></p>
+<p>Matches each valid TOA to the nearest true pulse centre (<code>info_gen.pulseCenters</code>) and reports:</p>
+<ul>
+<li>errors and normalized errors <var>z</var> = error / <code>toaErr</code>;</li>
+<li>mean ± its expected scatter; rms vs the rms of the predicted errors (the <b>ratio</b>, should be 1);</li>
+<li>χ² of <var>z</var> with both tail probabilities (<code>gammainc</code>);</li>
+<li>fractions |<var>z</var>| &lt; 1 and &lt; 2 (expected 68.3 % and 95.4 %);</li>
+<li>the total-fold offset in σ.</li>
+</ul>
+<p>Figure: errors with ±1σ bars, histogram vs N(0,1), Q-Q plot, amplitude and SNR per sub-int. For Monte Carlo, pass struct arrays
+<code>[toa1 toa2 …]</code> and <code>[info_gen1 …]</code>: all TOAs are pooled.</p>
+<div class="callout note"><span class="ttl">Reading the numbers</span>
+<ul>
+<li><b>Ratio = rms of actual errors / rms of stated errors.</b> 1 = honest error bars; &lt; 1 pessimistic; &gt; 1 optimistic. With <var>n</var> TOAs its own
+uncertainty is about 1/√(2<var>n</var>): ±0.075 for 90 TOAs, ±25 % for 8.</li>
+<li><b>Q-Q plot:</b> sorted <var>z</var> against the N(0,1) quantiles Φ⁻¹((<var>k</var>−½)/<var>n</var>). On the line y = x: correct. Steeper: error bars too small.
+Shifted: bias. S-shaped tails: outliers. It uses no binning and shows the tails, where outliers live.</li>
+</ul></div>
+<p>In <code>main.m</code> it runs on all valid TOAs and again on the good TOAs only, if some were rejected.</p>
+
+<h2 id="epm"><code>expectedPowerModel</code> <span class="badge written">written</span></h2>
+<div class="sig">M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx)</div>
+<p class="meta"><a href="api.html#expectedpowermodel">Full interface and help text of <code>expectedPowerModel</code> →</a></p>
+<p>The ground-truth mean and variance of the detected power, shared by the plot checks, and the best achievable precision.</p>
+<h3>How it works</h3>
+<ol>
+<li>A frequency grid across the band (200,001 points) with the simulator's dispersion taper <var>W</var><sub>f</sub> and the observer's dedispersion
+taper <var>W</var><sub>i</sub>.</li>
+<li>The baseband power spectral density is <var>S</var> = <var>s</var><sub>s</sub>·<var>p</var>(<var>t</var>)·<var>W</var><sub>f</sub>²<var>W</var><sub>i</sub>² + <var>s</var><sub>n</sub>·<var>W</var><sub>i</sub>²: the pulsar passed both tapers, the receiver noise only
+<var>W</var><sub>i</sub> (it was added after dispersion).</li>
+<li>Five integrals: <var>J</var><sub>s</sub> = ∫(<var>W</var><sub>f</sub><var>W</var><sub>i</sub>)², <var>J</var><sub>n</sub> = ∫<var>W</var><sub>i</sub>² for the mean powers, and ∫(<var>W</var><sub>f</sub><var>W</var><sub>i</sub>)⁴, ∫<var>W</var><sub>f</sub>²<var>W</var><sub>i</sub>⁴,
+∫<var>W</var><sub>i</sub>⁴ for the variance.</li>
+<li>Mean powers <var>P</var><sub>s</sub>(<var>t</var>) = sigScale·<var>p</var>(<var>t</var>), <var>P</var><sub>n</sub>; variance of a bin of length d<var>t</var>:</li>
+</ol>
+<div class="eq">var = (<var>c</var><sub>ss</sub>·<var>P</var><sub>s</sub>² + 2·<var>c</var><sub>sn</sub>·<var>P</var><sub>s</sub><var>P</var><sub>n</sub> + <var>c</var><sub>nn</sub>·<var>P</var><sub>n</sub>²) / d<var>t</var></div>
+<p>(Isserlis with <var>S</var> = pulsar + noise: squaring the sum gives self-noise, cross and noise terms. Flat band: all <var>c</var> = 1/<var>B</var>, var =
+(<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>).) Verified numerically within 1 % for 0 ≤ ρ ≤ 100.</p>
+<h3>Best achievable (added 5 Oct)</h3>
+<p>The Fisher information with that variance <var>v</var>: SNR² = ∫<var>P</var><sub>s</sub>²/<var>v</var> d<var>t</var>, 1/σ<sub>TOA</sub>² = ∫<var>P</var><sub>s</sub>′²/<var>v</var> d<var>t</var> →
+<code>M.snrPulse</code>, <code>M.toaErrPulse</code> (NaN without noise: the integrals diverge in the tails). At −5 dB: 96.5 and 2.892 µs, also checked
+against a Python port. RFI is not in the model; it shows up as excess in the checks.</p>
+<div class="callout why"><span class="ttl">Why compute the exact optimum</span>
+<p>Without it you cannot tell whether FFTFIT is 2 % or 0.5 % from optimal (it is 0.5 % at −5 dB). The integrals ∫<var>W</var>² for the mean and
+(∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance are also the prototype of the narrow-channel and blanking noise models. On real data with ripple,
+slopes and notches the difference can be 10–30 %.</p></div>
+<p>Status <span class="badge written">written</span> in the notes' file list: it is used and cross-checked, but not formally validated as a stage.</p>
+
+<h2>Plot checks</h2>
+<div class="table-wrap"><table>
+<tr><th>Function</th><th>Shows</th><th>Status</th></tr>
+<tr><td><a href="api.html#plotdispersioncheck"><code>plotDispersionCheck</code></a></td><td>raw vs dispersed dynamic spectra with the expected sweep; band-integrated power</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td><a href="api.html#plotiqcheck"><code>plotIQCheck</code></a></td><td>dynamic spectra of dispersed and dedispersed IQ with the expected sweep, power vs expected, mean spectra, raw I/Q zoom, per-pulse centroid/energy</td><td><span class="badge validated">noise-free</span>; patched for noise</td></tr>
+<tr><td><a href="api.html#plotdetectedpower"><code>plotDetectedPower</code></a></td><td>overview, optional channel waterfall, zoom vs expected, normalized residual; per-pulse centroid offsets on (P − off-pulse baseline); <code>DisplayAverage</code> for display only</td><td><span class="badge validated">noise-free</span>; noise version written</td></tr>
+<tr><td><a href="api.html#plotfoldcheck"><code>plotFoldCheck</code></a></td><td>total profile vs expected (kernel-averaged: boxcar + assignment), zoom, normalized residual, sub-int stack, per-sub-int centroid offsets with covariance-correct errors</td><td><span class="badge validated">noise-free</span>; noise version written</td></tr>
+</table></div>
+<p>Each function's options (time windows, display averaging, truth inputs) are listed with its help text in the <a href="api.html">function reference</a>. The IQ, detected and fold checks run on the full-band path only (<code>main.m</code> prints a note on the channel path).</p>
+<div class="callout note"><span class="ttl">The centroid cross-check, and the +3.7 µs that was not a bias</span>
+<p>The plot checks estimate the pulse position independently with a centroid c = Σ<var>t</var>·<var>Q</var>/Σ<var>Q</var> over ±4σ (<var>Q</var> = power minus baseline). A
+noise blip far from the centre moves it more (the "lever arm"), and the window wings hold almost no pulse but full noise, so the
+centroid is ~2× noisier than FFTFIT, which weights by the slope. With noise seed 43 it came out +3.7 µs; five seeds gave −0.58 ± 0.93 µs:
+a 1.8σ fluctuation of one seed, closed on 6 Oct.</p></div>
+
+<h2>Helpers</h2>
+<dl class="facts">
+<dt><a href="api.html#loadinfo"><code>loadInfo</code></a></dt><dd>reload <code>&lt;name&gt;_info.mat</code> of a stage that was skipped</dd>
+<dt><a href="api.html#gaussiantemplate"><code>gaussianTemplate</code></a></dt><dd>periodic Gaussian template, peak 1 at bin 1 (<a href="toa.html#template">TOA</a>)</dd>
+<dt><a href="api.html#noisebandwidth"><code>noiseBandwidth</code></a></dt><dd>(∫<var>W</var>²)²/∫<var>W</var>⁴ for products of raised-cosine edge tapers: 391.6 MHz for one 8 MHz taper in 400 MHz, 389.6 MHz for two</dd>
+<dt><a href="api.html#combinechannels"><code>combineChannels</code></a></dt><dd>channels used for a profile (exclusion rule), their sum and weights; shared by <code>estimateTOA</code> and <code>detectPulsar</code></dd>
+</dl>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

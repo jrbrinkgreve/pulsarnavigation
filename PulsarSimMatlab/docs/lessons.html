@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bugs and Lessons</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Bugs and lessons</h1>
+<p class="lede">Bugs found and fixed so far, and what each one taught. Many conventions on
+<a href="conventions.html">Conventions and why</a> exist because of one of these.</p>
+
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Bug</th><th>Fix</th><th>Lesson</th></tr>
+<tr><td>1</td><td><b>Old dispersion kernel had the wrong sign</b>: τ(<var>f</var>) went into the phase, giving group delay −τ(<var>f</var>) (low frequencies
+arrived <em>earlier</em>), plus wrap-around inside the kernel. Hidden because the old inverse conjugated the same kernel, so the round trip
+still worked.</td><td>Standard chirp with the sign checked by group delay.</td><td>A round-trip test cannot catch an error that the forward and inverse
+share. Check each direction against the physics.</td></tr>
+<tr><td>2</td><td><b>fftshift offset</b>: the old causal mode added a bulk delay of <var>N</var><sub>fft</sub>/2 samples (8.4 ms) that depended on kernel length; the
+"centered" mode was off by one sample.</td><td>Explicit zero-lag index <var>s</var><sub>0</sub>, removed when writing.</td><td>Know exactly where lag 0 is.</td></tr>
+<tr><td>3</td><td><b>Hann window on the chirp</b> attenuated the low end of the band (in a chirp, time maps to frequency).</td><td>Band-limit in
+frequency with raised-cosine edges, no time window.</td><td>Windowing a chirp in time is filtering it in frequency.</td></tr>
+<tr><td>4</td><td><b>Out-of-band content</b> received the dispersive phase and wrapped in time.</td><td><var>H</var> = 0 outside the band.</td><td>Only apply
+a physical model where it is defined.</td></tr>
+<tr><td>5</td><td><b>IQ low-pass group delay</b> (256 ns) was not removed.</td><td>Odd-length filter, delay removed exactly.</td><td>Every filter
+delay is a TOA offset unless removed.</td></tr>
+<tr><td>6</td><td><b>IQ amplitude halved</b> (no factor 2).</td><td>Complex-envelope convention.</td><td>Harmless for SNR, but absolute checks need a defined convention.</td></tr>
+<tr><td>7</td><td><b>Oversized blocks</b> (10⁸–10⁹ samples, 10–30 GB).</td><td>Automatic block sizing within a memory budget.</td><td>Memory must be bounded by
+design, not by luck.</td></tr>
+<tr><td>8</td><td><b>Missing covariance</b> of neighbouring phase bins (linear assignment) in fold uncertainties: variances of sums ~1.5× too small.</td>
+<td><code>weightX</code>.</td><td>Shared data means correlated noise; any sum over bins needs the covariances.</td></tr>
+<tr><td>9</td><td>Main script: <code>generate_new_data = false</code> crashed (info structs missing); <code>mode</code> shadowed MATLAB's <code>mode()</code>; <code>run</code> shadowed
+<code>run()</code>; <code>fs = 500e9</code> typo.</td><td><code>loadInfo</code>; renamed to <code>detMode</code>, <code>runStage</code>; 500e6.</td><td>Never name variables after
+built-ins (also why the detector output is <code>detection</code>, not <code>det</code>).</td></tr>
+<tr><td>10</td><td><b>GNSS (<code>'bpsk'</code>) RFI crashed on first use</b> (5 Oct): <code>vals(sub2ind(...))</code> returns a column when <code>vals</code> has one column
+(one 65,536-chip chunk per block, the normal case), so <code>chips .* cos(...)</code> expanded to 4·10⁶ × 4·10⁶.</td><td><code>reshape(..., size(nAbs))</code>.</td>
+<td>Code marked "written" is untested; NumPy ports cannot catch MATLAB indexing-shape bugs; test every branch once.</td></tr>
+<tr><td>11</td><td><b>Test scripts leaked state through the base workspace</b> (6 Oct): an <code>onCleanup</code> object was destroyed by the next test's assignment,
+its cleanup ran at once and changed the folder → "Unrecognized function 'pipelineParams'". Claude's runs used a fresh MATLAB per test and never saw it.</td>
+<td>All tests are functions.</td><td>Run tests the way Jasper does (several in one session); never run two test sessions at once (they share
+<code>data/chan/</code>; an overlapping run gave noise 72× the radiometer value).</td></tr>
+</table></div>
+
+<h2>Findings that changed the design</h2>
+<p>Not bugs, but results that changed a plan:</p>
+<ul>
+<li><b>Narrow-channel noise (6 Oct).</b> The radiometer model assumes independent time bins; in 3.125 MHz channels bins are correlated.
+→ exact <var>V</var>, <var>X</var>(<var>L</var>) through the fold (<a href="channels.html#powcov"><code>powerCovariance</code></a>, A1a).</li>
+<li><b>No simple variance rule after blanking (experiment 3a).</b> Errors up to ±45 % for <var>W</var>² and <var>W</var> models. → exact per-bin weights
+(<a href="excision.html#weights"><code>blankingWeights</code></a>).</li>
+<li><b>W = 0 bins still had power (A3a).</b> Filter-tail leftovers biased nearly empty phase bins by up to +285 %. → the fold drops their power.</li>
+<li><b>White-input assumption for blanking (A3a).</b> Channel samples are not white; ~1 % error in <var>W</var> for nearly empty bins. → the mean uses the true channel spectrum.</li>
+<li><b>Exclusion rule lost data (A3a).</b> Whole channels dropped from sub-ints with any empty phase bin. → optimal weighting (A2c).</li>
+<li><b>Gamma threshold tail too thin (B2).</b> 1.1× the intended false flags at 10⁻⁶. → exact phase-type thresholds.</li>
+<li><b>Long detection windows blanked the bright pulse (B2).</b> 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
+<li><b>Radar sidelobes survive per-sample excision (B5b).</b> Locked radar → 150 µs bias at −54 dB. → frequency guard ±7.</li>
+<li><b>Rotating-radar sidelobe pulses are missed one by one (B5c).</b> → periodic mask (B6, in progress).</li>
+</ul>
+
+<h2>Statistical lessons</h2>
+<ul>
+<li><b>Shared realizations make "independent" checks correlated.</b> The phase D ratios (1.03–1.06) and the phase E T0 std (1.10) looked like a
+5–10 % hole in the noise model; they came from the same 10 noise realizations. A long independent H0 run settled it (T0 std 1.008).</li>
+<li><b>One seed can mislead.</b> The +3.7 µs centroid offset was a 1.8σ fluctuation of seed 43, repeated by every run that used the same noise.</li>
+<li><b>Quote the uncertainty of a check.</b> With 8 TOAs a ratio of 0.84 is consistent with 1 (±25 %); with 90 TOAs ±0.075.</li>
+</ul>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

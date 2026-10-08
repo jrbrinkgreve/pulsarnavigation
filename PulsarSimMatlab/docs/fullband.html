@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full-Band Front End</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stages 5–6 · Full-band front end</h1>
+<p class="lede">The original processing path: one coherent dedispersion filter over the whole 400 MHz band, then
+square-law detection into 1 µs bins. It is simple, exact, and the validated reference that the channelized path is
+compared against.</p>
+<p class="meta">Selected with <code>frontEnd = 'fullband'</code> in <code>pipelineParams.m</code>. Default since 8 Oct 2026 is
+<code>'channels'</code> (<a href="channels.html">channelized front end</a>).</p>
+
+<h2 id="dedisp">5 · <code>applyInverseDispersion</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, 'RefFreq', refFreq)</div>
+<p class="meta"><a href="api.html#applyinversedispersion">Full interface and help text of <code>applyInverseDispersion</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Remove interstellar dispersion from complex baseband data, exactly: the inverse of
+<a href="sky.html#disp"><code>applyDispersionStream</code></a>, using only the catalogue DM and the receiver settings.</p>
+
+<h3>Physics</h3>
+<p>For every FFT bin with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band:</p>
+<div class="eq"><var>H</var><sub>inv</sub>(<var>f</var>) = <var>W</var>(<var>f</var>) · exp(−<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)² / (<var>f</var>·<var>f</var><sub>ref</sub>²)), &nbsp; 0 outside the band</div>
+<p>Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies are <em>advanced</em> by up to 6.3 ms, so the filter is
+non-causal (it needs future samples). Because it acts on voltages, it removes dispersion exactly at every frequency.</p>
+<div class="callout why"><span class="ttl">Why the same <var>W</var> and <var>f</var><sub>ref</sub> as the forward stage</span>
+<p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a
+constant shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>): harmless for relative timing, but a TOA definition. The taper
+<var>W</var> (8 MHz raised-cosine edges) keeps the filter's impulse response short, so the guard and the leakage check work.</p></div>
+
+<h3>Algorithm</h3>
+<ul>
+<li><b>Checks:</b> band strictly inside <var>f</var><sub>LO</sub> ± <var>f</var><sub>s</sub>/2; <var>f</var><sub>ref</sub> in the band (unless <code>AllowRefOutsideBand</code>).</li>
+<li><b>Overlap:</b> <code>nFuture</code> = ⌈(τ(<var>f</var><sub>Low</sub>) − τ(<var>f</var><sub>ref</sub>))·<var>f</var><sub>s</sub>⌉ + <var>g</var> and <code>nPast</code> = ⌈(τ(<var>f</var><sub>ref</sub>) − τ(<var>f</var><sub>High</sub>))·<var>f</var><sub>s</sub>⌉ + <var>g</var>,
+guard <var>g</var> = 2.5 µs·<var>f</var><sub>s</sub>. Reference run at 500 MHz: 3,152,472 and 1250 samples.</li>
+<li><b>Filter on the FFT grid:</b> written directly for the in-band signed bins (in chunks, phase in double). Complex data,
+so no Hermitian symmetry.</li>
+<li><b>Leakage check:</b> one inverse FFT of <var>H</var>; the energy outside lags [−<code>nFuture</code>, +<code>nPast</code>] must be tiny
+(reference run 0; warning above 10⁻⁶). This proves the overlap is long enough.</li>
+<li><b>FFT size:</b> candidates from 2<sup>nextpow2(2·overlap)</sup> up to the whole file, cost <var>n</var><sub>blocks</sub>·<var>N</var><sub>fft</sub>·log₂<var>N</var><sub>fft</sub>,
+56 bytes per sample, within <code>MaxMemoryGB</code> (4). Reference run: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s for 1 s of data.</li>
+<li><b>Overlap-save</b> with one preallocated buffer [past | outputs | future], shifted each block; zeros before the start and
+after the end of the file.</li>
+<li><code>fullySupported</code> = [<code>nPast</code> + 1, N − <code>nFuture</code>]: the outputs that saw their complete sweep. The last ~6.3 ms
+did not (the forward stage dropped that energy past the file end); the fold uses only fully supported data.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why overlap-save here and overlap-add in the forward stage</span>
+<p>Both are exact. Overlap-save suits a non-causal filter with very asymmetric reach (6.3 ms future, a few µs past): one
+buffer holds past, output and future, and each block keeps only the outputs that saw a complete window.</p></div>
+
+<h3 id="refoutside"><code>AllowRefOutsideBand</code> (6 Oct 2026)</h3>
+<p>Added for the channelized front end. Default false: <var>f</var><sub>ref</sub> must lie in [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]. True: any
+<var>f</var><sub>ref</sub> &gt; 0, so every 3.125 MHz channel can be referenced to the top of the <em>whole</em> band. The filter formula is
+exact for any <var>f</var><sub>ref</sub> (its phase splits into the 1/<var>f</var> dispersion term, a linear term = pure delay, and a
+constant); a reference above the band only adds a pure advance, so all the overlap moves to the future side.
+<code>nFuture</code>/<code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, unchanged inside the band. Regression: the full-band path reproduces
+<code>test_IQ_dedispersed.dat</code> bit for bit.</p>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>RefFreq</code> (<var>f</var><sub>High</sub>), <code>AllowRefOutsideBand</code> (false), <code>EdgeFrac</code> (0.02), <code>GuardTime</code>, <code>Nfft</code>, <code>MaxMemoryGB</code> (4), <code>CheckLeakage</code> (true), <code>MaxLeakage</code> (1e-6), <code>SaveInfo</code>, <code>Verbose</code></dd>
+<dt>Info</dt><dd>dedispersion parameters, refFreq, edgeWidth, nPast, nFuture, Nfft, leakage, <b>fullySupported</b>, refOutsideBand, …</dd>
+</dl>
+<div class="callout warn"><span class="ttl">Not checked internally</span>
+<p>The stage trusts its inputs: the DM (a wrong DM leaves a residual sweep), the reference-frequency convention vs the TOA
+definition, the receiver's frequency mapping (no spectral inversion assumed) and the true sample rate (passed through the
+info chain). See <a href="limits.html">limitations</a>.</p></div>
+
+<h2 id="detect">6 · <code>detectPower</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = detectPower(inFile, outFile, fs, fLO, f_out, 'FullySupported', info_dedisp.fullySupported)</div>
+<p class="meta"><a href="api.html#detectpower">Full interface and help text of <code>detectPower</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Square-law detection: |<var>z</var>|² averaged over time bins of 1/<var>f</var><sub>out</sub> (1 µs). This is where the data rate collapses
+(800 M complex samples/s → 1 M power values/s), so everything downstream is cheap.</p>
+
+<h3>Physics</h3>
+<p>After dedispersion the pulse is still noise; only its variance carries the signal. |<var>z</var>|² = I² + Q² estimates the variance,
+and a profile-weighted sum of |<var>z</var>|² is the optimal (Neyman–Pearson) statistic for variance-modulated Gaussian noise.
+So square-law detection, then folding, then matched filtering is the optimal order. Per 1 µs bin the noise is
+1/√(<var>B</var><sub>n</sub>·Δ<var>t</var>) ≈ 1/√390 ≈ 5.1 % of the mean.</p>
+
+<h3>Algorithm</h3>
+<ul>
+<li><code>binLen</code> = round(<var>f</var><sub>s</sub>/<var>f</var><sub>out</sub>) samples per bin (500 at 500 MHz, 800 at 800 MHz).</li>
+<li><b>Fast path</b> (one channel, no band): I² + Q² straight from the raw read, no complex arrays, no square root, sums in double.</li>
+<li><b>Channelized path</b> (<code>NChan</code> &gt; 1 with <code>Band</code>): rectangular non-overlapping FFT frames whose length divides
+<code>binLen</code> (≥ 8 FFT bins per channel), |<var>Z</var>|² summed into channels by one matrix (Parseval normalization), so
+channels of a full-baseband band sum exactly to the total. Up to ~32 clean channels at 1 µs bins. (The 128-channel front end
+uses <code>channelizeIQ</code> instead.)</li>
+<li><b>Timing:</b> bin <var>k</var> (1-based) is stamped at the centroid of its samples,
+<var>t</var><sub>k</sub> = <var>T</var><sub>0</sub> + ((<var>k</var>−1)·<code>binLen</code> + (<code>binLen</code>−1)/2)/<var>f</var><sub>s</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.
+The boxcar is symmetric, so it does not bias arrival times. A trailing partial bin is dropped.</li>
+<li><code>fullySupportedBins</code>: the bins whose samples are all fully supported.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why the bin is stamped at its centroid, not its start</span>
+<p>Stamping at the start would delay every TOA by half a bin (0.5 µs). The centroid of a symmetric boxcar is the unbiased
+time; with linear phase assignment in the fold (<a href="fold.html#assign">fold</a>) it carries through to the TOA.</p></div>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>NChan</code> (1), <code>Band</code>, <code>FineBinsPerChan</code> (8), <code>T0</code> (0), <code>FullySupported</code>, <code>BlockSamples</code> (2²²), <code>SaveInfo</code>, <code>Verbose</code></dd>
+<dt>File</dt><dd>float32 [nChan × nBins], column-major; value = mean power per input sample in the bin</dd>
+<dt>Info</dt><dd>layout, nChan, N (bins), fs = actualFout, fsIn, binLen, binDt, binTime0, chanFreqs, chanEdges, chanFftBins, frameLen, chanMeanPower, samplesDropped, fullySupportedBins</dd>
+</dl>
+
+<h3>Validation</h3>
+<ul>
+<li>Noise-free, <var>L</var> = 1 s: normalized residual of 127,512 on-pulse bins mean −0.0016, std 1.0015 (expected 0 ± 0.0028, 1 ± 0.0020);
+per-pulse centroid offsets rms 0.301 µs vs 0.277 µs expected.</li>
+<li>−5 dB: noise baseline 1.232 vs 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
+<li>Run time 1.2 s per second of data (I/O bound).</li>
+</ul>
+<p>Details in the <a href="results.html">validation record</a>.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs Maintenance</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Docs maintenance</h1>
+<p class="lede">How this site is built, how it stays in step with the code, and what changed when.</p>
+
+<h2>How the site is built</h2>
+<ul>
+<li>Plain HTML files in <code>PulsarSimMatlab/docs/</code>, one shared <code>style.css</code> and one <code>nav.js</code>. No build step, no server, no
+internet: open <code>docs/index.html</code> in a browser.</li>
+<li><code>nav.js</code> holds the page list (<code>PAGES</code>) and draws the sidebar, the previous/next links and the light/dark toggle.
+<b>Adding a page = one line in <code>PAGES</code></b> plus the HTML file (copy the head and the closing <code>&lt;script src="nav.js"&gt;</code> from any page).</li>
+<li><code>api.html</code> (function reference) is <b>generated</b> by <code>docs/tools/make_api.py</code> from the committed code (git HEAD):
+signatures, every argument with its default, full help texts, script headers, legacy files. Never edit it by hand. Run
+<code>python3 docs/tools/make_api.py</code> after each commit that touches <code>functions/</code> or a script (<code>--worktree</code> reads uncommitted files instead).</li>
+<li>Formulas are plain text with HTML sub/superscripts. Figures are inline SVG that use the theme colours.</li>
+<li>Components: <code>.callout.why</code> (motivation), <code>.callout.warn</code> (caveats), <code>.callout.note</code>, <code>.badge.validated / .written / .todo</code>,
+<code>.sig</code> (function signature), <code>.eq</code> (formula block).</li>
+</ul>
+
+<h2>Relation to the notes</h2>
+<p><code>logs/current_project_notes.md</code> is the complete reference (every number, every option); the session logs record what changed and why.
+This site explains: the physics, the reasoning behind each design choice, and the key results. When they disagree, the code is the truth,
+then the notes; fix the site.</p>
+
+<h2>Rule: update the docs alongside the code</h2>
+<p>From <code>CLAUDE.md</code> (added 8 Oct 2026): <em>"Update docs/ alongside the code."</em> When a function, option, default, status or result changes:</p>
+<ol>
+<li>Regenerate the function reference: <code>python3 docs/tools/make_api.py</code>.</li>
+<li>Update the stage page of that function (options, defaults, outputs, and the "why" if the reasoning changed).</li>
+<li>Update status badges: <span class="badge validated">validated</span> only after Jasper's own run.</li>
+<li>Add new results to <a href="results.html">validation record</a> (or the stage page) and new tests to <a href="tests.html">unit tests</a>.</li>
+<li>New or changed parameters: <a href="parameters.html">parameters</a>. New decisions: the decision log in <a href="history.html#decisions">development history</a>.</li>
+<li>Update <a href="roadmap.html">status and roadmap</a> and the status table on the <a href="index.html">home page</a>.</li>
+<li>Update the "checked against commit" line on the home page and add a line to the changelog below.</li>
+<li>Uncommitted work in progress gets at most a short "in progress" note, until it is validated and committed.</li>
+</ol>
+
+<h2>Discrepancies found while writing the docs</h2>
+<div class="table-wrap"><table>
+<tr><th>Date</th><th>Where</th><th>What</th><th>Status</th></tr>
+<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>open: help text to be fixed</td></tr>
+</table></div>
+
+<h2>Changelog</h2>
+<div class="table-wrap"><table>
+<tr><th>Date</th><th>Code state</th><th>Change</th></tr>
+<tr><td>8 Oct 2026</td><td><code>9b959f0</code></td><td>Site created: all pages. Content from the code, <code>current_project_notes.md</code>, the session logs and the 7 Oct Q&amp;A. B5c (rotating antenna)
+included after its commit; B6 <code>periodicRFI</code> noted as in progress.</td></tr>
+<tr><td>8 Oct 2026</td><td><code>9b959f0</code></td><td>Added: parameters page, generated function reference (<code>tools/make_api.py</code>, incl. scripts and legacy files),
+development history with a decision log; signatures on the stage pages link to the reference.</td></tr>
+</table></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

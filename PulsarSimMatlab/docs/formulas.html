@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Formulas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Formulas</h1>
+<p class="lede">The key formulas in one place, each with the page where it is derived or used.</p>
+
+<h2>Signal and propagation</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Formula</th><th>Where</th></tr>
+<tr><td>Pulsar voltage</td><td><var>x</var>(<var>t</var>) = <var>A</var>·√<var>G</var>(<var>t</var>)·<var>n</var>(<var>t</var>), E[<var>x</var>²] = <var>A</var>²<var>G</var>(<var>t</var>)</td><td><a href="sky.html#gen">sky</a></td></tr>
+<tr><td>Pulse width</td><td>FWHM = dutycycle/100·<var>T</var>; σ<sub>t</sub> = FWHM/(2√(2 ln 2)) = 212.3 µs</td><td><a href="sky.html#gen">sky</a></td></tr>
+<tr><td>Phase model</td><td>φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>(<var>t</var> − <var>T</var><sub>ref</sub>) + ½<var>F</var><sub>1</sub>(<var>t</var> − <var>T</var><sub>ref</sub>)²</td><td><a href="fold.html">fold</a></td></tr>
+<tr><td>Dispersion delay</td><td>τ(<var>f</var>) = <var>K</var>·DM/<var>f</var>², <var>K</var> = 4.148808·10³ s·MHz²·pc⁻¹·cm³</td><td><a href="physics.html#dispersion">physics</a></td></tr>
+<tr><td>Forward chirp</td><td>exp(+<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)²/(<var>f</var>·<var>f</var><sub>ref</sub>²))</td><td><a href="sky.html#disp">sky</a></td></tr>
+<tr><td>Inverse chirp</td><td>exp(−<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)²/(<var>f</var>·<var>f</var><sub>ref</sub>²))</td><td><a href="fullband.html#dedisp">full band</a></td></tr>
+<tr><td>Group delay</td><td>τ<sub>g</sub> = −(1/2π)·dφ/d<var>f</var></td><td><a href="sky.html#disp">sky</a></td></tr>
+<tr><td>Ionospheric delay</td><td>Δ<var>t</var> = 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz</td><td><a href="limits.html">limits</a></td></tr>
+</table></div>
+
+<h2>Receiver</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Formula</th><th>Where</th></tr>
+<tr><td>SNR definition</td><td>ρ = <var>S</var><sub>peak</sub>/<var>N</var> = <var>A</var>²/σ<sub>n</sub>², σ<sub>n</sub> = <var>A</var>/√(10<sup>snrDB/10</sup>)</td><td><a href="receiver.html#noise">receiver</a></td></tr>
+<tr><td>SEFD</td><td>2<var>k</var>T<sub>sys</sub>/A<sub>eff</sub></td><td><a href="scenario.html">scenario</a></td></tr>
+<tr><td>Noise power in band</td><td><var>P</var><sub>nb</sub> = σ<sub>n</sub>²·<var>B</var>/(<var>f</var><sub>s</sub>/2)</td><td><a href="receiver.html#rfi">receiver</a></td></tr>
+<tr><td>RFI amplitudes</td><td>carrier types <var>a</var> = √(2·INR·<var>P</var><sub>nb</sub>); impulses σ = √INR·σ<sub>n</sub></td><td><a href="receiver.html#rfi">receiver</a></td></tr>
+<tr><td>Radar energy per pulse</td><td>(PW − RiseTime/4) × power while on</td><td><a href="receiver.html#risetime">receiver</a></td></tr>
+<tr><td>Antenna gain (rotation)</td><td><var>g</var>(<var>t</var>) = max(exp(−4 ln2 (d<var>t</var>/BeamWidth)²), 10<sup>SidelobeDB/10</sup>)</td><td><a href="receiver.html#rotation">receiver</a></td></tr>
+<tr><td>Complex envelope</td><td><var>z</var> = LPF{2·<var>x</var>·e<sup>−<var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}, <var>f</var><sub>bb</sub> = <var>f</var><sub>RF</sub> − <var>f</var><sub>LO</sub></td><td><a href="receiver.html#iq">receiver</a></td></tr>
+<tr><td>Power bookkeeping</td><td>generator 1 → after dispersion ≈ 0.195 (in band) → after IQ ≈ 0.388 (<var>A</var> = 1)</td><td><a href="validation.html#epm">validation</a></td></tr>
+</table></div>
+
+<h2>Detection and noise</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Formula</th><th>Where</th></tr>
+<tr><td>Radiometer equation</td><td>σ<sub>P</sub>/P = 1/√(<var>B</var><sub>n</sub>·Δ<var>t</var>)</td><td><a href="physics.html#detection">physics</a></td></tr>
+<tr><td>Noise bandwidth</td><td><var>B</var><sub>n</sub> = (∫<var>W</var>²)²/∫<var>W</var>⁴ (391.6 MHz one taper, 389.6 MHz both); mean power uses ∫<var>W</var>² (390.0 / 388.4 MHz)</td><td><a href="validation.html">helpers</a></td></tr>
+<tr><td>Isserlis</td><td>cov(|<var>z</var><sub>a</sub>|², |<var>z</var><sub>b</sub>|²) = |<var>R</var>(<var>a</var> − <var>b</var>)|²</td><td><a href="physics.html#isserlis">physics</a></td></tr>
+<tr><td>Narrow-channel bin noise</td><td><var>C</var>(<var>L</var>) = (1/<var>n</var>²)Σ<sub>a,b</sub>|<var>R</var>(<var>a</var> − <var>b</var> + <var>Ln</var>)|²; <var>V</var> = <var>C</var>(0)/rad, <var>X</var><sub>L</sub> = <var>C</var>(<var>L</var>)/rad; <var>V</var> + 2Σ<var>X</var> = 1</td><td><a href="channels.html#powcov">channels</a></td></tr>
+<tr><td>Blanking covariance</td><td><var>C</var>(<var>a</var>, <var>a</var>+τ) = Σ<sub>l</sub> <var>h</var>(<var>l</var>)<var>h</var>*(<var>l</var>+τ)·keep(<var>a</var>−<var>l</var>)</td><td><a href="excision.html#weights">excision</a></td></tr>
+<tr><td>Expected variance (exact tapers)</td><td>(<var>c</var><sub>ss</sub><var>P</var><sub>s</sub>² + 2<var>c</var><sub>sn</sub><var>P</var><sub>s</sub><var>P</var><sub>n</sub> + <var>c</var><sub>nn</sub><var>P</var><sub>n</sub>²)/d<var>t</var></td><td><a href="validation.html#epm">validation</a></td></tr>
+<tr><td>RFI window statistic</td><td>Σ<sub>n</sub><var>p</var>/<var>m</var> = Σλ<sub>k</sub><var>E</var><sub>k</sub>, λ = eig(toeplitz(ρ)); <var>P</var>(&gt; <var>x</var>) = [1 0…0]·expm(<var>Qx</var>)·1</td><td><a href="excision.html#detect">excision</a></td></tr>
+<tr><td>Robust baseline</td><td><var>m</var> = median(|<var>x</var>|²)/ln 2</td><td><a href="excision.html#detect">excision</a></td></tr>
+</table></div>
+
+<h2>Folding and TOAs</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Formula</th><th>Where</th></tr>
+<tr><td>Weighted-mean variance</td><td>σ²·Σ<var>w</var>²/(Σ<var>w</var>)²</td><td><a href="fold.html#weights">fold</a></td></tr>
+<tr><td>Phase-bin variance / covariance</td><td>var = σ²·<code>weight2</code>/<code>weight</code>²; cov(<var>j</var>, <var>j</var>+<var>d</var>) = σ²·<code>weightX</code>/(<code>weight</code><sub>j</sub><code>weight</code><sub>j+d</sub>)</td><td><a href="fold.html#weights">fold</a></td></tr>
+<tr><td>Asymptotic weights</td><td><var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6 → neighbour correlation 0.25</td><td><a href="fold.html#weights">fold</a></td></tr>
+<tr><td>Binning loss</td><td>σ<sub>eff</sub>² ≈ σ<sub>t</sub>² + Δ²/12; NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub></td><td><a href="fold.html">fold</a></td></tr>
+<tr><td>TOA</td><td><var>t</var><sub>ref</sub> + τ/<var>f</var><sub>ref</sub></td><td><a href="toa.html#model">TOA</a></td></tr>
+<tr><td>FFTFIT correlation</td><td><var>C</var>(τ) = Re Σ<sub>k</sub> <var>P</var><sub>k</sub><var>S</var><sub>k</sub>*·e<sup><var>i</var>2π<var>k</var>τ</sup></td><td><a href="toa.html#fftfit">TOA</a></td></tr>
+<tr><td>FFTFIT uncertainty</td><td>σ<sub>τ</sub> = √(<var>d</var>ᵀ·Cov·<var>d</var>)/|<var>C</var>″|</td><td><a href="toa.html#err">TOA</a></td></tr>
+<tr><td>Sandwich covariance</td><td><var>A</var>⁻¹<var>BA</var>⁻¹, <var>A</var> = <var>J</var>ᵀ<var>WJ</var>, <var>B</var> = <var>J</var>ᵀ<var>W</var>Σ<var>WJ</var></td><td><a href="toa.html#optimal">TOA</a></td></tr>
+<tr><td>Reduced χ²</td><td>Σ(<var>p</var><sub>j</sub> − <var>m</var><sub>j</sub>)²/<var>v</var><sub>j</sub> / (<var>n</var> − 3) ≈ 1 ± √(2/<var>n</var>)</td><td><a href="toa.html#chi2">TOA</a></td></tr>
+<tr><td>Best SNR (Fisher)</td><td>SNR² = <var>B</var>∫(ρ<var>p</var>)²/(1 + ρ<var>p</var>)² d<var>t</var>; weak: ρ√(<var>B</var>σ<sub>t</sub>√π) ≈ 388ρ</td><td><a href="physics.html#toa">physics</a></td></tr>
+<tr><td>Best TOA error (Cramér–Rao)</td><td>1/σ<sub>TOA</sub>² = <var>B</var>∫(ρ<var>p</var>′)²/(1 + ρ<var>p</var>)² d<var>t</var>; weak: σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR</td><td><a href="physics.html#toa">physics</a></td></tr>
+<tr><td>Turns per sub-int</td><td><var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)², SNR<sub>turn</sub> ≈ 373·ρ; target 6–7</td><td><a href="results.html#threshold">results</a></td></tr>
+<tr><td>Baseline-estimation loss</td><td>√(1 − (Σ<var>s</var>)²/(<var>N</var><sub>bin</sub>Σ<var>s</var>²)) = 0.962</td><td><a href="detection.html">detection</a></td></tr>
+</table></div>
+
+<h2>Detection</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Formula</th><th>Where</th></tr>
+<tr><td>Known-phase statistic</td><td><var>T</var><sub>0</sub> = <var>c</var>ᵀ(<var>p</var> − <var>a</var>)/√(<var>c</var>ᵀ·Cov·<var>c</var>)</td><td><a href="detection.html#known">detection</a></td></tr>
+<tr><td>Known-phase threshold</td><td>η<sub>0</sub> = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 at 10⁻³</td><td><a href="detection.html#known">detection</a></td></tr>
+<tr><td>Unknown phase (Rice)</td><td><var>Q</var>(η) + (√λ₂/2π)·e<sup>−η²/2</sup> = <var>P</var><sub>FA</sub>; λ₂ = Σ(2π<var>k</var>)²|<var>S</var><sub>k</sub>|²/Σ|<var>S</var><sub>k</sub>|²; η = 4.15 at 10⁻³</td><td><a href="detection.html#unknown">detection</a></td></tr>
+<tr><td>Detection probability</td><td><var>P</var><sub>D</sub> = <var>Q</var>(η − SNR)</td><td><a href="detection.html">detection</a></td></tr>
+<tr><td>Outlier rate (rough)</td><td>(√λ₂/2π)/√2·e<sup>−SNR²/4</sup></td><td><a href="results.html#threshold">results</a></td></tr>
+</table></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

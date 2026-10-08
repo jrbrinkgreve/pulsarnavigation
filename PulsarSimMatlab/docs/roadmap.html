@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status and Roadmap</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Status and roadmap</h1>
+<p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
+<p class="meta">Status as of 8 October 2026 (commit <code>9b959f0</code>). Session-by-session history: <code>logs/</code>.</p>
+
+<h2>Timeline so far</h2>
+<div class="table-wrap"><table>
+<tr><th>Date</th><th>Work</th></tr>
+<tr><td>29 Sep – 1 Oct</td><td>Full-band chain rebuilt and validated noise-free; receiver noise, −5 dB reference run, Monte Carlo; <code>pipelineParams</code> refactor.</td></tr>
+<tr><td>5 Oct</td><td>Bandpass and noise-bandwidth review, exact optimum in <code>expectedPowerModel</code>; SNR sweep (phase D); all RFI types without excision.</td></tr>
+<tr><td>6 Oct</td><td>Phase E: detector, χ² flag, good TOAs; long H0 run; threshold sweep (SNR ≥ 6–7); centroid offset closed → <b>Block 1 closed</b>. Reference
+scenario; decision: excision and a channelized front end before the fast simulator. <code>channelizeIQ</code>, <code>dedisperseChannels</code>, experiment 3a,
+<code>detectChannels</code> + <code>powerCovariance</code>.</td></tr>
+<tr><td>7 Oct</td><td>A1a, A1b (fold noise and data weights), A2a, A2b (channels in TOA and detection), A3a (<code>blankingWeights</code>), A2c-1 (optimal TOA weighting).</td></tr>
+<tr><td>8 Oct</td><td>A2c-2, A4 (channel path default) → <b>block A complete</b>. B1–B4 (excision, default on). B5a (radar edges), B5b (locked radar, frequency guard),
+B5c (rotating radar). B6 (periodic mask) in progress.</td></tr>
+</table></div>
+
+<h2>The labels</h2>
+<div class="table-wrap"><table>
+<tr><th>Label</th><th>Content</th><th>Status</th></tr>
+<tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span> (A3b, a multi-seed Monte Carlo with blanking, optional)</td></tr>
+<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>B1–B5c <span class="badge validated">done</span>; B6 <span class="badge written">in progress</span>; B5d–e <span class="badge todo">todo</span></td></tr>
+<tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
+</table></div>
+
+<h2>Why this order</h2>
+<div class="callout why"><span class="ttl">Excision before the fast simulator (decided 6 Oct)</span>
+<p>Jasper's reason: real data contains RFI, excision is mandatory, and simulations without RFI are not realistic. The physics:</p>
+<ol>
+<li>At −54 dB one radar pulse ≈ 80,000 pulsar pulses, so excision must <b>blank</b> (weight 0), not subtract.</li>
+<li>Excision acts on voltages before dedispersion (a radar pulse is a 2 µs blip there). A fast simulator at profile level can only reproduce its
+<em>effects</em>, and those must come from a real excision stage.</li>
+<li>Blanking needs a data weight per time bin and channel, which changes the fold's data product. Fix the interface before writing a simulator that emulates it.</li>
+</ol></div>
+<div class="callout why"><span class="ttl">The fast simulator before motion</span>
+<p>At the worst-case design point a J0437 TOA takes ~20 h, longer than one pass. Hours cannot be simulated at voltage level (~61 GB per second).
+The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so <code>detectPulsar</code> and <code>estimateTOA</code>
+run unchanged on it. Motion (D) is then a hard requirement: folding across passes needs a phase that stays coherent over days.</p></div>
+
+<h2>Block B: what remains</h2>
+<ul>
+<li><b>B6 periodic mask</b> (in progress): find periodic emitters (radars) from their detections and blank every predicted pulse, including sidelobe
+pulses too weak to see. Motivated by B5c.</li>
+<li><b>B5d</b> a <code>'noise'</code> RFI type (LTE / OFDM): undetectable, should be handled by the optimal weighting; to be shown.</li>
+<li><b>B5e</b> the realistic L-band scenario as a second list in <code>pipelineParams</code>. Frequencies verified online on 8 Oct: GPS L2 1227.6, GLONASS G2
+~1246, BeiDou B3 1268.52, Galileo E6 1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32 1452–1496 (EU),
+Inmarsat downlink 1525–1559, BeiDou B1 1561.1, GPS L1 1575.42, GLONASS G1 ~1598–1606 MHz; 1400–1427 MHz is protected for radio astronomy.</li>
+<li>Spectral kurtosis, whole-channel flags: only if needed.</li>
+</ul>
+
+<h2>Block C: fast simulator (design draft, 6 Oct)</h2>
+<ul>
+<li>Draws the fold struct directly (same fields as <code>foldProfile</code>), plus a separate <code>truth</code> struct.</li>
+<li>Units: SEFD; baseline 1, pulse <var>S</var>(φ)/SEFD. Mean of bin <var>j</var>: 1 + (<var>S</var><sub>mean</sub>/SEFD)·⟨<var>f</var>(φ − Δφ)⟩, smoothed by the assignment kernel and the
+drift of Δφ(<var>t</var>) = φ<sub>true</sub> − φ<sub>ephem</sub> within the sub-int (the hook for D).</li>
+<li>Noise: σ² = <var>m</var>²/(<var>n</var><sub>pol</sub>·<var>B</var>·binDt) per time bin, phase-bin covariance from the weights, drawn with the Cholesky factor of the banded
+circular correlation matrix.</li>
+<li>Weights: asymptotic (<var>W</var> = <var>n</var>, <var>W</var><sub>2</sub> = 2<var>n</var>/3, <var>W</var><sub>X</sub> = <var>n</var>/6) or copied from a voltage fold (validation).</li>
+<li>RFI and excision effects calibrated from block B: mask statistics per RFI type, weight loss, excess noise, corrupted-sub-int rate.</li>
+<li>Validation: reproduce the block 1 numbers with weights copied from a voltage fold.</li>
+</ul>
+
+<h2>Block D: motion and barycentric phase</h2>
+<p>Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's orbital speed), Earth rotation, station position as input,
+clock model. A hard requirement since the reference scenario: a TOA is folded across passes.</p>
+
+<h2>Open items</h2>
+<div class="table-wrap"><table>
+<tr><th>Item</th><th>Note</th></tr>
+<tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html">limitations</a>).</td></tr>
+<tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
+<tr><td><span class="badge todo">todo</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
+<tr><td><span class="badge todo">todo</span> Factor the chain into one function</td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code>.</td></tr>
+<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
+<tr><td><span class="badge todo">todo</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: retire or update.</td></tr>
+<tr><td>Deferred: phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR.</td></tr>
+</table></div>
+
+<h3>FFT memory versus DM</h3>
+<div class="table-wrap"><table>
+<tr><th>DM</th><th>Sweep</th><th>Forward dispersion (real, 4 GHz)</th><th>Full-band dedispersion (complex, 800 MHz)</th></tr>
+<tr><td>5 (now)</td><td>6.3 ms</td><td>2²⁶ → 3 GB (run uses 2²⁸, 11.8 GB)</td><td>2²⁴ → 0.9 GB</td></tr>
+<tr><td>30</td><td>37.8 ms</td><td>2²⁹ → 24 GB</td><td>2²⁶ → 3.8 GB</td></tr>
+<tr><td>60</td><td>75.6 ms</td><td>2³⁰ → <b>47 GB</b></td><td>2²⁷ → 7.5 GB</td></tr>
+<tr><td>100</td><td>126 ms</td><td>~2³¹ → <b>~94 GB</b></td><td>~2²⁸ → ~15 GB</td></tr>
+</table></div>
+<p>Options for the generator: a memory-efficient (out-of-core) FFT, forward dispersion at complex baseband (5× fewer samples), or per-channel generation.
+It is only a simulation problem. <var>L</var> must also be well above the sweep (1–2 s test data at high DM).</p>
+
+<h2>Longer-term roadmap</h2>
+<ul>
+<li><b>Block 2 – robustness:</b> DM check from sub-band TOAs; convention assertions; clock jitter.</li>
+<li><b>Block 3 – navigation physics:</b> relative motion and acceleration search; multiple pulsars (≥ 4); barycentric corrections (Roemer, Shapiro,
+Einstein), clock corrections, infinite-frequency conversion (<code>bulkDelayRef</code>); residuals vs timing model; navigation solution (least squares → Kalman).</li>
+<li><b>Block 4 – later:</b> 3×3 array with geometric delays and beamforming at IQ level; scattering, DM variations, polarization; generator at high DM.</li>
+</ul>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

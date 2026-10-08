@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parameters</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Parameters: <code>pipelineParams.m</code></h1>
+<p class="lede">Every parameter of the pipeline, its value, what it means, why it has that value, and which stage
+uses it. <code>pipelineParams.m</code> is a script: <code>main.m</code> and every <code>run*.m</code> call it, so they all use the same
+values.</p>
+<p class="meta">Values as committed in <code>9b959f0</code>. Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
+uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
+
+<div class="callout note"><span class="ttl">In progress (uncommitted): B6 switches</span>
+<p><code>periodicMask = true</code> (with excision, also blank every predicted pulse of periodic RFI found by <code>periodicRFI</code>) and
+<code>periodicArgs = {}</code>. To be added to the table when B6 is validated and committed.</p></div>
+
+<div class="toc"><b>Groups</b><ol>
+<li><a href="#pulsar">Pulsar (truth)</a></li>
+<li><a href="#sim">Simulation (truth)</a></li>
+<li><a href="#rx">Receiver (observer)</a></li>
+<li><a href="#noise">Noise and interference (truth)</a></li>
+<li><a href="#proc">Processing (observer)</a></li>
+<li><a href="#ephem">Ephemeris (observer)</a></li>
+<li><a href="#files">Files</a></li>
+<li><a href="#derived">Derived quantities</a></li>
+<li><a href="#main">Run control in <code>main.m</code></a></li>
+<li><a href="#defaults">Where main overrides function defaults</a></li>
+</ol></div>
+
+<h2 id="pulsar">1. Pulsar (ground truth for generation)</h2>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
+<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>10 pulses per 0.1 s test file; close to J0437 (5.76 ms), the target millisecond pulsar.</td><td>generator; <code>ephem.f0</code></td></tr>
+<tr><td><code>A</code></td><td>1</td><td>pulsar noise std at the pulse peak (signal scale)</td><td>Sets the scale only; the receiver noise is set relative to it through <code>snrDB</code>.</td><td>generator; <code>addNoiseAndRFI</code> via <code>info_gen</code></td></tr>
+<tr><td><code>dutycycle</code></td><td>5 %</td><td>pulse FWHM as a percentage of <var>T</var> → 0.5 ms, σ<sub>t</sub> = 212.3 µs</td><td>Typical of real pulsars (a few percent).</td><td>generator; <code>ephem.profileFWHM</code></td></tr>
+<tr><td><code>genEnvMode</code></td><td><code>'power'</code></td><td>the FWHM refers to the power profile</td><td>The processing detects power; see <a href="sky.html#gen">sky</a>.</td><td>generator</td></tr>
+<tr><td><code>DM</code></td><td>5 pc cm⁻³</td><td>dispersion measure</td><td>Low (J0437 has 2.6), so the forward dispersion fits in memory. The target is up to 100 (<a href="roadmap.html#dm">roadmap</a>).</td><td>dispersion; <code>ephem.DM</code></td></tr>
+</table></div>
+
+<h2 id="sim">2. Simulation</h2>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
+<tr><td><code>f_in</code></td><td>4 GHz</td><td>real RF sample rate of the sky and receiver files</td><td>Nyquist 2 GHz covers the 1.6 GHz band edge with room for the IQ filter; 4 GHz / 800 MHz is an integer decimation (5).</td><td>generator, dispersion, noise, IQ</td></tr>
+<tr><td><code>L</code></td><td>0.1 s</td><td>signal length</td><td>About 6 GB of files and ~1 min per run; enough for 9 complete turns. The reference runs of 29 Sep–1 Oct used 1 s (~61 GB).</td><td>generator</td></tr>
+<tr><td><code>seed</code></td><td>42</td><td>pulsar random stream</td><td>Fixed, so every run shares one pulsar realization; Monte Carlo scripts vary it explicitly.</td><td>generator</td></tr>
+</table></div>
+
+<h2 id="rx">3. Receiver (known to the observer)</h2>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
+<tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 3×3 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
+<tr><td><code>fLO</code></td><td>1.3 GHz</td><td>local oscillator</td><td><b>Off-centre on purpose</b>: puts the band at −100…+300 MHz so a mirrored frequency mapping would fail visibly (<a href="receiver.html#lo">receiver</a>). The original reference was 1.4 GHz.</td><td>IQ; dedispersion and channelizer via <code>info_IQ</code></td></tr>
+<tr><td><code>fs</code></td><td>800 MHz</td><td>complex IQ sample rate</td><td>Needed for the off-centre band: +300 MHz must fit in the flat passband (cutoff 0.9·400 = 360 MHz). The original reference was 500 MHz.</td><td>IQ; everything after via <code>info_IQ</code></td></tr>
+<tr><td><code>filterOrder</code></td><td>2048</td><td>IQ low-pass order (2049 taps)</td><td>Transition ≈ 9.8 MHz at 80 dB, so the band sits well inside the flat passband; odd length → integer delay, removed exactly.</td><td>IQ</td></tr>
+</table></div>
+
+<h2 id="noise">4. Receiver noise and interference</h2>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
+<tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.1 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>noiseSeed</code></td><td>seed + 1 = 43</td><td>receiver-noise random stream</td><td>Different from the pulsar seed; "seed 43" is the reference realization in every comparison.</td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>rfiOn</code></td><td>false</td><td>switch the RFI scenario on</td><td>Noise-only is the reference; RFI is studied on purpose (<code>runRFITest</code>).</td><td>main</td></tr>
+<tr><td><code>rfiSelect</code></td><td>[]</td><td>which sources of the list (1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses); [] = all</td><td>Test one source at a time.</td><td>main</td></tr>
+<tr><td><code>rfi</code></td><td>5 <code>rfiSource</code> structs</td><td>the illustrative L-band scenario (table on <a href="receiver.html#rfi">receiver</a>)</td><td>Radar PRF 373 Hz (not a pulsar harmonic); carrier 1351.3 MHz (not a channel edge).</td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>rfiScenario</code></td><td>= the full list</td><td>kept before <code>rfiSelect</code> / <code>rfiOn</code> are applied</td><td><code>runRFITest</code> picks cases from it.</td><td><code>runRFITest</code></td></tr>
+</table></div>
+
+<h2 id="proc">5. Processing (observer)</h2>
+<div class="table-wrap"><table>
+<tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
+<tr><td><code>refFreq</code></td><td><code>fHigh</code> = 1.6 GHz</td><td>dedispersion reference frequency; TOAs are referred to it</td><td>The same as the generator, so the round trip is exact; the top of the band keeps its time.</td><td>dispersion, dedispersion</td></tr>
+<tr><td><code>f_out</code></td><td>1 MHz</td><td>detected-power bin rate (1 µs bins; channel path 0.96 µs)</td><td>Far finer than the 0.5 ms pulse, coarse enough to make detection cheap; the channel path rounds to 4 channel samples per bin.</td><td><code>detectPower</code>, <code>detectChannels</code></td></tr>
+<tr><td><code>nBin</code></td><td>2048</td><td>phase bins (4.88 µs at 10 ms)</td><td>~5× more than needed even for J0437; the cost grows with nBin (<a href="fold.html">fold</a>).</td><td>fold, template</td></tr>
+<tr><td><code>subintPeriods</code></td><td>1</td><td>turns per sub-integration</td><td>At −5 dB one turn has SNR ~93, far above the 6–7 rule; many TOAs per run for statistics. At weak SNR use <var>N</var> = (7/SNR<sub>turn</sub>)².</td><td>fold</td></tr>
+<tr><td><code>frontEnd</code></td><td><code>'channels'</code></td><td><code>'channels'</code> (channelized) or <code>'fullband'</code> (reference)</td><td>Default since 8 Oct (Jasper): excision needs the channel path.</td><td>main</td></tr>
+<tr><td><code>weighting</code></td><td><code>'optimal'</code></td><td>channel path: how TOA fit and detection combine channels</td><td>Inverse-variance weights, no exclusion rule; a built-in notch for narrowband RFI (<a href="toa.html#optimal">TOA</a>).</td><td><code>estimateTOA</code>, <code>detectPulsar</code></td></tr>
+<tr><td><code>chanWidth</code></td><td>3.125 MHz</td><td>channel width → 128 channels</td><td>Narrow enough that a radar or GNSS signal occupies a few channels, wide enough that the bins stay short; divides 800 MHz into 256 slots.</td><td><code>channelizeIQ</code></td></tr>
+<tr><td><code>excision</code></td><td>true</td><td>channel path: RFI excision before dedispersion</td><td>Default since 8 Oct (Jasper); costs 0.0125 % of clean data, no TOA change (<a href="excision.html#results">B3</a>).</td><td>main</td></tr>
+<tr><td><code>excisionArgs</code></td><td>{}</td><td>name-value options for <code>detectRFI</code></td><td>Its defaults are the validated ones (windows 1–16, P<sub>FA</sub> 10⁻⁶, guard 10, frequency guard 7).</td><td><code>detectRFI</code></td></tr>
+</table></div>
+
+<h2 id="ephem">6. Ephemeris (<code>ephem</code>, observer)</h2>
+<p>In real use these come from a pulsar catalogue. Here they are set from the truth so the timing model is exact; a deliberate error can be
+put in to test robustness.</p>
+<div class="table-wrap"><table>
+<tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
+<tr><td><code>ephem.f0</code></td><td>1/<code>T</code> = 100 Hz</td><td>spin frequency</td></tr>
+<tr><td><code>ephem.F1</code></td><td>0</td><td>spin-frequency derivative</td></tr>
+<tr><td><code>ephem.TRef</code></td><td>0.5·<code>T</code> = 5 ms</td><td>phase-0 epoch = first true pulse centre, so every true pulse is at an integer phase</td></tr>
+<tr><td><code>ephem.DM</code></td><td><code>DM</code></td><td>dispersion measure for dedispersion</td></tr>
+<tr><td><code>ephem.profileFWHM</code></td><td>0.05 turns</td><td>template FWHM (power profile; <code>'amplitude'</code> mode would need /√2)</td></tr>
+</table></div>
+
+<h2 id="files">7. Files</h2>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>Path</th><th>Written by</th></tr>
+<tr><td><code>fileRaw</code></td><td><code>data/test.dat</code></td><td><code>generatePulsarSignal</code> (can be deleted after dispersion; only <code>plotDispersionCheck</code> reads it)</td></tr>
+<tr><td><code>fileDispersed</code></td><td><code>data/test_dispersed.dat</code></td><td><code>applyDispersionStream</code></td></tr>
+<tr><td><code>fileRx</code></td><td><code>data/test_rx.dat</code></td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>fileIQ</code></td><td><code>data/test_rx_IQ.dat</code></td><td><code>applyIQmodulation</code></td></tr>
+<tr><td><code>fileDedisp</code></td><td><code>data/test_IQ_dedispersed.dat</code></td><td><code>applyInverseDispersion</code> (full band)</td></tr>
+<tr><td><code>fileEnvelope</code></td><td><code>data/test_envelope.dat</code></td><td><code>detectPower</code> (full band)</td></tr>
+<tr><td><code>fileFold</code></td><td><code>data/test_fold.mat</code></td><td><code>foldProfile</code> (full band)</td></tr>
+<tr><td><code>fileChanIQ</code></td><td><code>data/chan/test_rx_IQ_chan</code> (base)</td><td><code>channelizeIQ</code></td></tr>
+<tr><td><code>fileChanDedisp</code>, <code>fileChanPower</code></td><td><code>data/chan/test_dedisp_chan</code>, <code>…_power.dat</code></td><td>channel path without excision (also the unit tests' reference)</td></tr>
+<tr><td><code>fileChanBlank</code></td><td><code>data/chan/test_rx_IQ_chan_blanked</code> (base)</td><td><code>blankChannels</code></td></tr>
+<tr><td><code>fileChanDedispB</code>, <code>fileChanPowerB</code></td><td><code>data/chan/test_dedispB_chan</code>, <code>…_power.dat</code></td><td>channel path with excision</td></tr>
+<tr><td><code>fileChanWeight</code></td><td><code>data/chan/test_dedispB_chan_weights.dat</code></td><td><code>blankingWeights</code></td></tr>
+<tr><td><code>fileFoldChan</code></td><td><code>data/test_fold_chan.mat</code></td><td><code>foldProfile</code> (channels)</td></tr>
+</table></div>
+<div class="callout why"><span class="ttl">Why excision writes its own files</span>
+<p>The unblanked channel files are the reference for the unit tests and for with/without comparisons; switching <code>excision</code> never
+overwrites them.</p></div>
+
+<h2 id="derived">8. Derived quantities (current settings)</h2>
+<div class="table-wrap"><table>
+<tr><th>Quantity</th><th>Value</th><th>From</th></tr>
+<tr><td>IQ decimation <var>D</var></td><td>5</td><td>round(<code>f_in</code>/<code>fs</code>)</td></tr>
+<tr><td>Baseband band</td><td>−100…+300 MHz</td><td><code>fLow</code>/<code>fHigh</code> − <code>fLO</code></td></tr>
+<tr><td>Dispersion smear across the band</td><td>6.302 ms</td><td>τ(1.2 GHz) − τ(1.6 GHz) at DM 5</td></tr>
+<tr><td>Forward dispersion kernel</td><td>25,229,772 taps</td><td><a href="sky.html#disp">sky</a></td></tr>
+<tr><td>Channels</td><td>128 × 3.125 MHz, slots <var>K</var> = 256, decimation 192, rate 4.17 MHz</td><td><code>chanWidth</code>, oversampling 4/3</td></tr>
+<tr><td>Detected bin</td><td>1 µs (full band, 800 samples); 0.96 µs (channels, 4 samples)</td><td><code>f_out</code></td></tr>
+<tr><td>Noise bandwidth</td><td>391.6 MHz (full band); 3.0596 MHz per channel</td><td>8 MHz / 2 % edge tapers</td></tr>
+<tr><td>Expected SNR per pulse at −5 dB</td><td>96.5 (exact tapers); measured median 93.4</td><td><a href="validation.html#epm"><code>expectedPowerModel</code></a></td></tr>
+<tr><td>Best TOA error per pulse at −5 dB</td><td>2.892 µs; measured median σ 2.880 µs</td><td>same</td></tr>
+<tr><td>Complete turns in 0.1 s</td><td>9 full band, 8 channel path</td><td>fully-supported range</td></tr>
+<tr><td>Disk</td><td>~6 GB (full band) + channel and excision files</td><td>printed by <code>main.m</code></td></tr>
+</table></div>
+
+<h2 id="main">9. Run control in <code>main.m</code></h2>
+<div class="table-wrap"><table>
+<tr><th>Switch</th><th>Committed value</th><th>Effect</th></tr>
+<tr><td><code>runStage.sky</code></td><td>false</td><td>generator + dispersion (slow; set true once, or after changing pulsar/simulation/band)</td></tr>
+<tr><td><code>runStage.receiver</code></td><td>true</td><td>noise/RFI + IQ</td></tr>
+<tr><td><code>runStage.process</code></td><td>true</td><td>dedispersion + detection (channel path: channelizer, excision, weights)</td></tr>
+<tr><td><code>runStage.fold</code></td><td>true</td><td>folding</td></tr>
+<tr><td><code>runStage.toa</code></td><td>true</td><td>TOAs, detection, validation</td></tr>
+<tr><td><code>plots.dispersion</code>, <code>plots.iq</code></td><td>false</td><td>these read the big RF / IQ files (slow)</td></tr>
+<tr><td><code>plots.detected</code>, <code>plots.fold</code>, <code>plots.toa</code></td><td>true</td><td>check figures (detected and fold: full band only)</td></tr>
+<tr><td><code>closeFigures</code></td><td>true</td><td><code>close all</code> at the start</td></tr>
+</table></div>
+
+<h2 id="defaults">10. Where <code>main.m</code> overrides function defaults</h2>
+<p>The function defaults are generic; <code>main.m</code> passes the project's choices. Worth knowing when calling a function by hand.</p>
+<div class="table-wrap"><table>
+<tr><th>Function</th><th>Option</th><th>Function default</th><th><code>main.m</code> passes</th></tr>
+<tr><td><code>foldProfile</code></td><td><code>NBin</code></td><td>1024</td><td><code>nBin</code> = 2048</td></tr>
+<tr><td><code>foldProfile</code></td><td><code>TRef</code></td><td>0</td><td><code>ephem.TRef</code> = 5 ms</td></tr>
+<tr><td><code>estimateTOA</code>, <code>detectPulsar</code></td><td><code>Weighting</code></td><td><code>'equal'</code></td><td><code>weighting</code> = <code>'optimal'</code> (channel path)</td></tr>
+<tr><td><code>estimateTOA</code>, <code>detectPulsar</code></td><td><code>Bnoise</code></td><td>[] (none)</td><td>391.6 MHz (full band) or <code>info_det.noise.Bnoise</code> (channel)</td></tr>
+<tr><td><code>addNoiseAndRFI</code></td><td><code>Seed</code></td><td>1</td><td><code>noiseSeed</code> = 43</td></tr>
+<tr><td><code>detectChannels</code></td><td><code>f_out</code></td><td>(required)</td><td><var>f</var><sub>s,chan</sub>/round(<var>f</var><sub>s,chan</sub>/<code>f_out</code>) = 1.0417 MHz</td></tr>
+<tr><td><code>channelizeIQ</code></td><td><code>T0</code></td><td>0</td><td><code>info_IQ.t0</code></td></tr>
+</table></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference Scenario</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Reference scenario</h1>
+<p class="lede">The real hardware and pulsars the pipeline is designed for. This is where the numbers "−54 dB" and "20 hours
+per TOA" come from, and why the project targets weak signals.</p>
+<p class="meta">Drafted 6 October 2026 from Jasper's hardware; questions answered the same day. Pulsar data from the ATNF catalogue v2.6.5.</p>
+
+<h2>Receiver</h2>
+<ul>
+<li>3×3 array, <b>0.61 m²</b>, <b>dual polarization</b> on all 9 elements, band <b>1.2–1.6 GHz</b>, ground station, <b>T<sub>sys</sub> 60–80 K</b>.</li>
+<li>Site-independent: "should work anywhere". The station position is an input parameter; no pulsar is hard-coded; sources are chosen by visibility.</li>
+</ul>
+<div class="table-wrap"><table>
+<tr><th>Design point</th><th>A<sub>eff</sub></th><th>T<sub>sys</sub></th><th>SEFD = 2<var>k</var>T<sub>sys</sub>/A<sub>eff</sub></th></tr>
+<tr><td>nominal</td><td>0.61 m²</td><td>70 K</td><td>≈ 3.2·10⁵ Jy</td></tr>
+<tr><td><b>worst case (design point)</b></td><td>0.61 m² × aperture efficiency ~0.5 ≈ 0.3 m²</td><td>80 K</td><td><b>≈ 7.4·10⁵ Jy</b> (2.3× nominal)</td></tr>
+</table></div>
+<p>For comparison: Parkes ~30 Jy, a 25 m dish ~1000 Jy. The array beam is wide (~15°), so T<sub>sys</sub> also includes the beam-averaged sky temperature:
+~3–5 K off the Galactic plane, ~5–20 K for plane sources such as Vela.</p>
+<div class="callout why"><span class="ttl">Why design for the worst case</span>
+<p>The area is not known precisely. Time per TOA scales as SEFD², so the worst case takes 5.3× longer. The pipeline must work there; nominal
+performance is the bonus. That is why the project targets the weak-signal regime and why, for example, high-SNR estimator improvements are
+low priority.</p></div>
+
+<h2>Time per TOA</h2>
+<p>Radiometer equation for a folded profile, dual polarization, 400 MHz, target SNR 7 (from the <a href="results.html#threshold">threshold sweep</a>):</p>
+<div class="eq">SNR = (<var>S</var><sub>mean</sub>/SEFD)·√(<var>n</var><sub>pol</sub>·<var>B</var>·<var>t</var>)·√((<var>P</var> − <var>W</var><sub>eq</sub>)/<var>W</var><sub>eq</sub>)</div>
+<p>with <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub> (margin for wings and components), ρ = <var>S</var><sub>peak</sub>/SEFD, σ<sub>TOA</sub> = √2·(<var>W</var><sub>50</sub>/2.355)/7. Catalogue
+fluxes are averages; low-DM pulsars scintillate by a factor ~2 or more either way.</p>
+<div class="table-wrap"><table>
+<tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nom / worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
+<tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9 / <b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
+<tr><td><b>J0835−4510</b> (Vela)</td><td>−45</td><td>89.3</td><td>67.8</td><td>1.7</td><td>1050</td><td>−41</td><td>0.1 / <b>0.3</b></td><td>146 (44 km)</td><td>&lt; 25° N</td></tr>
+<tr><td><b>J0332+5434</b> (B0329+54)</td><td>+55</td><td>714.5</td><td>26.8</td><td>6.6</td><td>203</td><td>−45</td><td>0.8 / <b>4.2</b></td><td>566 (170 km)</td><td>&gt; 15° S</td></tr>
+<tr><td>J0953+0755 (B0950+08)</td><td>+8</td><td>253.1</td><td>3.0</td><td>8.6</td><td>100</td><td>−53</td><td>12 / 67</td><td>738 (221 km)</td><td>62° S–78° N</td></tr>
+<tr><td>J1752−2806 (B1749−28)</td><td>−28</td><td>562.6</td><td>50.3</td><td>6.6</td><td>48</td><td>−52</td><td>18 / 96</td><td>566 (170 km)</td><td>&lt; 42° N</td></tr>
+<tr><td>J1645−0317 (B1642−03)</td><td>−3</td><td>387.7</td><td>35.8</td><td>3.8</td><td>26</td><td>−54</td><td>52 / 278</td><td>326 (98 km)</td><td>73° S–67° N</td></tr>
+<tr><td>J1932+1059 (B1929+10)</td><td>+11</td><td>226.5</td><td>3.2</td><td>5.6</td><td>29</td><td>−57</td><td>106 / 571</td><td>480 (144 km)</td><td>59° S–81° N</td></tr>
+<tr><td>J1939+2134 (B1937+21, MSP)</td><td>+22</td><td>1.56</td><td>71.0</td><td>~0.05</td><td>13.9</td><td>−62</td><td>670 / 3600</td><td>5 (1.4 km)</td><td>&gt; 48° S</td></tr>
+<tr><td>J1713+0747 (MSP)</td><td>+8</td><td>4.57</td><td>16.0</td><td>0.30</td><td>8.3</td><td>−67</td><td>3700 / 20000</td><td>26</td><td></td></tr>
+<tr><td>J2145−0750 (MSP)</td><td>−8</td><td>16.05</td><td>9.0</td><td>0.40</td><td>5.5</td><td>−65</td><td>3000 / 16000</td><td>34</td><td></td></tr>
+</table></div>
+<p>Bright but DM too high for now: J1644−4559 (DM 479), J0738−4042 (161), J1935+1616 (159), J0837−4135 (147).</p>
+
+<h2>Conclusions</h2>
+<ul>
+<li><b>Figure of merit</b> σ<sub>TOA</sub>·√<var>t</var> (µs·√h, smaller is better), worst case: J0437 55, <b>Vela 80</b>, B0329+54 1160, others 5000+. Vela is as good as
+J0437 (bright, TOA in ~20 min, but a wider pulse, DM 67.8, glitches and timing noise).</li>
+<li><b>J0437 is the only realistic millisecond pulsar</b> (time ∝ <var>S</var>⁻²: 15× fainter → 225× longer). It resembles the simulated pulsar (P 5.8 ms vs 10 ms,
+DM 2.6 vs 5) at ρ ≈ −54 dB worst case: ~20 h per TOA, σ<sub>TOA</sub> ≈ 12 µs (3.6 km along the line of sight).</li>
+<li>Both good sources are southern; for northern sites <b>B0329+54</b> is the only source with TOAs within a pass. From Europe and most of North America
+there is no feasible MSP.</li>
+<li><b>Normal pulsars are needed</b> for geometry (≥ 4 well-separated directions for 3-D position + clock) and visibility, at the cost of wide pulses
+(σ<sub>TOA</sub> 0.3–0.7 ms at SNR 7) and timing noise.</li>
+</ul>
+
+<h2>Consequences for the pipeline</h2>
+<div class="callout why"><span class="ttl">What the scenario forced</span>
+<ol>
+<li><b>Weak signal everywhere:</b> ρ ≈ −54 dB, per-pulse SNR ≪ 1. Self-noise is negligible; FFTFIT is optimal; any phase-dependent bias must be
+≪ 4·10⁻⁶ of the baseline.</li>
+<li><b>A 20 h TOA spans several passes</b> → fold across passes with gaps → barycentric phase prediction (D) is a hard requirement.</li>
+<li><b>Hours of data</b> cannot be simulated at voltage level → the fast simulator (C).</li>
+<li><b>DM target 100</b> (Vela 67.8, B1937+21 71.0, B0740−28 73.8, plus margin) → the channelized front end on the processing side.</li>
+<li><b>Dual polarization</b> → √2 in SNR (2× in time); add the second polarization.</li>
+<li><b>Scintillation</b> dominates the per-pass SNR of low-DM pulsars → weight passes by measured SNR; adaptive sub-int length.</li>
+<li><b>RFI is far stronger than the pulsar</b> → excision must blank, before dedispersion (block B).</li>
+</ol></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

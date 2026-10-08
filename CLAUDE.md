@@ -5,3 +5,4 @@
    - I run MATLAB myself; don't run it unless I ask.
    - Ground-truth rule: processing stages use only ephemeris + receiver settings.
    - After each session, add a dated note to logs/.
+   - Update docs/ alongside the code.

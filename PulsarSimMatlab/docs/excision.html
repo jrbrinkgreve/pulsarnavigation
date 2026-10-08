@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RFI Excision</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>RFI excision</h1>
+<p class="lede">Find interference in the raw channel voltages, set those samples to zero, dedisperse, and then tell the
+fold exactly how much valid data and noise every detected bin still contains. Block B, default on since 8 October 2026.</p>
+<p class="meta">Channel path only · <code>excision = true</code> and <code>excisionArgs</code> (options for <code>detectRFI</code>) in
+<code>pipelineParams.m</code> · order in <code>main.m</code>: <code>channelizeIQ</code> → <code>detectRFI</code> → <code>blankChannels</code> →
+<code>dedisperseChannels</code> → <code>detectChannels</code> → <code>blankingWeights</code> → <code>foldProfile('DataWeights', …)</code></p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#why">Why blank, and why here</a></li>
+<li><a href="#detect"><code>detectRFI</code>: finding RFI</a></li>
+<li><a href="#blank"><code>blankChannels</code>: zeroing samples</a></li>
+<li><a href="#weights"><code>blankingWeights</code>: what blanking does to each detected bin</a></li>
+<li><a href="#results">Results: each RFI type with and without excision</a></li>
+<li><a href="#locked">A radar locked to the pulsar, and the frequency guard</a></li>
+<li><a href="#rotating">A rotating radar: the sidelobe problem</a></li>
+<li><a href="#limits">Limits</a></li>
+</ol></div>
+
+<h2 id="why">1. Why blank, and why here</h2>
+<div class="callout why"><span class="ttl">Blank, do not subtract</span>
+<p>At −5 dB one radar pulse carries about the energy of one pulsar pulse; at −54 dB it carries the energy of ~80,000. Any
+subtraction leaves a residual proportional to the RFI; even 99.9 % suppression would leave more radar than pulsar. Zeroed
+samples carry no RFI, no noise and no pulsar: weight 0, nothing left over. Zeroing (rather than deleting) keeps the regular
+time grid that coherent dedispersion needs.</p></div>
+<div class="callout why"><span class="ttl">Before dedispersion, per channel</span>
+<p>In a 3.125 MHz channel before dedispersion, a 2 µs radar pulse is ~8 samples in about 2 channels. After dedispersion it is
+spread over thousands of samples and mixed with good data. So excision works on the raw channel voltages, and the cost of a
+blank is tiny.</p></div>
+<div class="callout why"><span class="ttl">Excision must be honest about what it removed</span>
+<p>Dedispersion spreads every blank over the filter's reach (~130–310 output samples per channel). Each output sample then
+contains only a <em>fraction</em> of valid data. If the fold ignored that, it would see a dip wherever blanking happened, and
+blanking that correlates with pulse phase (a radar locked to the pulsar, or blanks triggered by the pulse itself) would bias
+the TOA. <code>blankingWeights</code> computes the valid fraction and the exact noise of every detected bin, and the fold uses them.</p></div>
+
+<h2 id="detect">2 · <code>detectRFI</code> <span class="badge validated">validated (B2)</span></h2>
+<div class="sig">[mask, info] = detectRFI(info_chan, ...)</div>
+<p class="meta"><a href="api.html#detectrfi">Full interface and help text of <code>detectRFI</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Flag samples in the raw channel files whose power is too high to be noise or pulsar, using only the channel data and the
+channelizer settings (ground-truth rule). Output: a mask of rows [channel, first, last] (1-based channel samples).</p>
+
+<h3>The statistic</h3>
+<p>Per channel, power <var>p</var> = |<var>x</var>|² of the raw channel samples, averaged over windows of <var>n</var> = 1, 2, 4, 8, 16 samples
+(stride max(1, <var>n</var>/2)). A window is flagged if its mean exceeds η<sub>n</sub>·<var>m</var>, with <var>m</var> the channel's baseline. Several
+window lengths catch both short strong bursts and longer weaker ones.</p>
+
+<h3>Exact thresholds</h3>
+<p>For Gaussian noise the window sum is not a simple Gamma variable, because neighbouring channel samples are slightly
+correlated (ρ(1) = 0.05, from the oversampled channelizer). Exactly:</p>
+<div class="eq">Σ<sub>n</sub> <var>p</var> / <var>m</var> = Σ<sub>k</sub> λ<sub>k</sub>·<var>E</var><sub>k</sub>, &nbsp; <var>E</var><sub>k</sub> unit exponentials, &nbsp; λ = eig(toeplitz(ρ(0..<var>n</var>−1)))</div>
+<p>with ρ(<var>d</var>) = Σ<var>h</var>(<var>r</var>)<var>h</var>(<var>r</var> + <var>dD</var>)/Σ<var>h</var>² from the channelizer prototype. Its survival function is a chain of
+exponential stages (a phase-type distribution), [1 0 … 0]·expm(<var>Qx</var>)·1, computed exactly without cancellation. η<sub>n</sub>
+solves it = <code>PFA</code> (default 10⁻⁶): 13.82, 8.39, 5.39, 3.68, 2.69 for <var>n</var> = 1…16.</p>
+<div class="callout why"><span class="ttl">Why exact, not a matched Gamma</span>
+<p>The first version used a Gamma distribution with the right variance. Its tail is thinner than the true one, which gave
+1.02 / 1.04 / 1.08–1.10 × the intended false flags at 10⁻³ / 10⁻⁴ / 10⁻⁶: visible in the first test run. The exact form moves
+the thresholds by less than 0.5 % but makes the false-flag rate what it says.</p></div>
+
+<h3>Baseline</h3>
+<p><var>m</var> per channel and 16 ms block (<code>BaselineTime</code>) = median(<var>p</var>)/ln 2 over fully supported samples: exact for
+exponential power (a Gaussian voltage's power), and RFI in a fraction <var>f</var> of the samples raises it by only ~1.4<var>f</var>.
+A second pass (<code>Passes</code> = 2) recomputes it without the flagged samples.</p>
+<div class="callout note"><span class="ttl">Constant-envelope channels flag less, on purpose</span>
+<p>In a channel dominated by a carrier or a GNSS signal the power is not exponential and the median-based baseline comes out up
+to 1/ln 2 too high, so those channels flag less. That is intended: such RFI is not excised; the optimal channel weighting gives
+those channels little weight instead (see <a href="#results">results</a>).</p></div>
+
+<h3>Mask</h3>
+<p>Flagged windows are widened by <code>Guard</code> samples (default = the prototype's half-length in channel samples,
+(3853 − 1)/2/192 → 10) and merged.</p>
+<div class="callout why"><span class="ttl">Why windows only up to 16 samples (decision 8 Oct)</span>
+<p>The pulsar itself raises the power on-pulse. At −5 dB by 32 %: 256-sample windows blanked 14 % of the on-pulse data. With
+windows ≤ 16 samples (3.8 µs), from −20 dB down no window is triggered by the pulsar (probability ≤ 2.3·10⁻⁶). The target is weak
+signal, where this is safe.</p></div>
+
+<h3 id="freqguard">Frequency guard (B5b-2, 8 Oct)</h3>
+<p>A <b>strong</b> event (peak sample power ≥ <code>FreqGuardMin</code> = 100 × baseline, i.e. +20 dB) is also blanked, on the same samples,
+in <code>FreqGuard</code> channels on each side (default <b>7</b>, Jasper's choice from the locked-radar sweep). Weak flags (noise, the
+pulsar) never reach 100× and do not spread.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>A strong radar's spectral sidelobes in nearby channels are below the noise per sample, so the power test cannot see them. If
+the radar is locked to the pulsar's period, those sidelobes add up coherently in the fold and bias the TOA. Blanking the same
+samples a few channels further costs ~0.004 % of the data per guard channel for this radar. See <a href="#locked">locked radar</a>.</p></div>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>Scales</code> ([1 2 4 8 16]), <code>PFA</code> (1e-6), <code>Guard</code> ([] = prototype half-length), <code>BaselineTime</code> (16 ms), <code>Passes</code> (2), <code>FreqGuard</code> (7), <code>FreqGuardMin</code> (100), <code>KeepWindows</code>, <code>MaxMemoryGB</code> (4), <code>Verbose</code></dd>
+<dt>Info</dt><dd>thresholds, baselines, <code>ownFlaggedSamples</code>, <code>nStrong</code>, <code>flaggedSamples</code> (final mask including the guard), …</dd>
+</dl>
+<p>~3 s for 0.1 s of 128 channels.</p>
+
+<h3>Tests (<code>tests/testDetectRFI.m</code>)</h3>
+<p>Uses its own 0.05 s noise-only and noise + RFI channel files made with the same noise seed, so the difference is the RFI alone.</p>
+<ol>
+<li><b>Noise:</b> baseline / block mean 1.00008 ± 0.00020; false windows / expected at 10⁻³ 0.989–1.004, at 10⁻⁴ 0.989–1.056; defaults blank
+5.4·10⁻⁵ of clean data (bound 6.7·10⁻⁵).</li>
+<li><b>−5 dB pulsar:</b> flagged windows on/off pulse = prediction per window size; blanked on-pulse 9.3·10⁻⁴ vs off-pulse 4.5·10⁻⁵
+(windows 1–16); 13.9 % on-pulse with windows to 256 (why they were dropped).</li>
+<li><b>RFI:</b> radar: all 19 pulses blanked in channels 32–33; impulses (1000/s) 98.65 % removed; carrier and GNSS channels no flags of
+their own. With the frequency guard (3d): mask = own detections + every strong event copied to ±7 channels; radar energy left
+over all channels zero within ~10⁻⁶ (10⁻⁴ without the guard).</li>
+</ol>
+
+<h2 id="blank">3 · <code>blankChannels</code> <span class="badge validated">validated (B1)</span></h2>
+<div class="sig">info_chanB = blankChannels(info_chan, mask, outBase, ...)</div>
+<p class="meta"><a href="api.html#blankchannels">Full interface and help text of <code>blankChannels</code> →</a></p>
+<p>Writes blanked copies <code>&lt;outBase&gt;_ch###.dat</code> of the channel files: masked samples exactly 0, all other samples bit-exact,
+streamed in blocks (result independent of <code>BlockSize</code>). It never overwrites the raw files. The mask may be unsorted, overlapping
+or partly outside the file: it is clipped and normalized per channel (sorted, merged where overlapping or touching).</p>
+<p>The output is <code>info_chan</code> with new <code>file</code> / <code>chanFiles</code>, plus <code>rawFile</code>, <code>mask</code> (normalized), <code>nMaskRows</code>,
+<code>blankedSamples</code>, <code>blankedFraction</code>, <code>blockSize</code>. <code>dedisperseChannels</code> and <code>blankingWeights</code> take it unchanged.</p>
+<div class="callout why"><span class="ttl">Why separate files</span>
+<p>The unblanked channel files are the reference for the unit tests and for with/without comparisons. <code>main.m</code> writes the
+excision chain to its own file names (<code>…_blanked</code>, <code>test_dedispB_*</code>).</p></div>
+<p><b>Tests</b> (<code>tests/testBlankChannels.m</code>): 1727 mask rows (5.2 % blanked) exact; merge/clip cases; block size 4099 = one block;
+empty mask → byte-identical copies; <code>dedisperseChannels</code> on the result: 83 unblanked channels bit-identical to the unblanked run,
+a blanked channel changes only within the filter reach.</p>
+
+<h2 id="weights">4 · <code>blankingWeights</code> <span class="badge validated">validated (A3a)</span></h2>
+<div class="sig">info_w = blankingWeights(info_chan, info_dc, info_det, mask, outFile, ...)</div>
+<p class="meta"><a href="api.html#blankingweights">Full interface and help text of <code>blankingWeights</code> →</a></p>
+
+<h3>The physics: blanking before a filter</h3>
+<p>Dedispersion is a filter <var>h</var> spanning hundreds of channel samples. An output sample <var>y</var>(<var>a</var>) = Σ<var>h</var>(<var>l</var>)·<var>x</var>(<var>a</var>−<var>l</var>)
+mixes blanked and valid inputs. For Gaussian input, the covariance of two output samples is</p>
+<div class="eq"><var>C</var>(<var>a</var>, <var>a</var>+τ) = Σ<sub>l</sub> <var>h</var>(<var>l</var>)·<var>h</var>*(<var>l</var>+τ)·keep(<var>a</var>−<var>l</var>)</div>
+<p>a convolution of the keep-mask with <var>q</var><sub>τ</sub> = <var>h</var>·<var>h</var>*(·+τ): one FFT per sample lag τ = 0…(<var>L</var><sub>max</sub>+1)<var>n</var>−1 (32 lags for
+<var>L</var><sub>max</sub> 7, <var>n</var> 4). From it, for every detected bin <var>k</var> and channel:</p>
+<ul>
+<li><b><var>W</var></b> = valid fraction = mean of <var>C</var>(<var>a</var>,<var>a</var>) over the bin's samples / unblanked value;</li>
+<li><b><var>V</var></b> and <b><var>X</var>(<var>L</var>)</b> = (1/<var>n</var>²)·Σ|<var>C</var>|² over the sample pairs of bins <var>k</var> and <var>k</var>+<var>L</var>, relative to the radiometer
+value (Isserlis again).</li>
+</ul>
+<div class="callout why"><span class="ttl">Why exact streams, not a simple rule g(W)</span>
+<p>The plan was a variance rule between <var>W</var>² and <var>W</var>. Experiment 3a (<code>tests/expBlankingVariance.m</code>) showed neither holds:
+errors up to ±45 %. Physics: in a dispersed channel, lag maps to frequency (it is a chirp), so a blank removes a frequency slice from
+the affected outputs (fewer independent frequencies, towards <var>W</var>), while within a short bin the samples are partly correlated
+(towards <var>W</var>²). Short blanks spread thin only scale the amplitude (<var>W</var>²). No single rule covers all masks, so every bin
+carries its exact <var>W</var>, <var>V</var>, <var>X</var>(<var>L</var>).</p></div>
+
+<h3>Code</h3>
+<ul>
+<li>Mask rows [channel, first, last], clipped, overlaps allowed.</li>
+<li><var>h</var> per channel: an impulse through <code>applyInverseDispersion</code> with that channel's settings and FFT size (checked: same nPast/nFuture
+as <code>dedisperseChannels</code>).</li>
+<li>Unblanked channels: <var>W</var> = 1 and the unblanked <var>V</var><sub>0</sub>, <var>X</var><sub>0</sub> from their own <var>h</var> (equal to the spectrum constants of
+<code>powerCovariance</code> to 5·10⁻⁹).</li>
+<li><code>MinWeight</code> (10⁻⁶): <var>W</var> below it → <var>W</var> = <var>V</var> = <var>X</var> = 0.</li>
+<li>Weight file: float32 [nChan × (2+Lmax) × N] (per bin: <var>W</var> of all channels, then <var>V</var>, then <var>X</var>(1)…<var>X</var>(<var>L</var><sub>max</sub>)), same time grid as
+the power file. ~0.3 s per blanked channel + 2 s for the 128 filters.</li>
+</ul>
+
+<h3>Mean with the true channel spectrum (7 Oct, Jasper's decision)</h3>
+<p>Channel samples are not white: the channelizer's output is flat in the useful band but rolls off to 0.5 at the channel
+Nyquist (mean 0.951), with an autocorrelation significant to lag ~19. Blanking mixes the roll-off region into the band, so
+<var>W</var> uses the true autocorrelation <var>R</var><sub>x</sub> (from the channelizer prototype, one extra FFT of the mask product per lag).
+Effect: ~1 % for nearly empty bins, ≤ 0.07 % for <var>W</var> ≥ 0.1. <var>V</var> and <var>X</var> keep the white form (error bars only; within
+1–2 % in heavily blanked bins). Option <code>InputSpectrum</code> = <code>'channelizer'</code> (default) or <code>'white'</code>.</p>
+<div class="callout why"><span class="ttl">Why the mean must be this exact</span>
+<p>At −54 dB the pulse peak is ~4·10⁻⁶ of the baseline. Any error in <var>W</var> that depends on pulse phase must be far below that.
+Phase-uniform errors only shift the baseline (harmless).</p></div>
+
+<h3>A fold rule found with it</h3>
+<p>A detected bin with <var>W</var> = 0 must not add its power either. Leftover power in such bins (effective <var>W</var> ~4·10⁻⁷, from
+filter tails) biased nearly empty phase bins by up to +285 %. Now <code>foldProfile</code> drops it (see <a href="fold.html#dataweights">fold</a>).</p>
+
+<h3>Tests (<code>tests/testBlankingWeights.m</code>)</h3>
+<ol>
+<li><b>Exactness:</b> <var>W</var>, <var>V</var>, <var>X</var>(1..7) vs the direct covariance matrix <var>H</var>·diag(keep)·<var>H</var>′ for 221 bins in channels 1, 64, 128
+(blanks 1–3001 samples): max difference 3·10⁻⁸.</li>
+<li><b>Consistency:</b> empty mask = the <code>NoiseCoeffs</code> fold; far from blanks = unblanked constants; messy mask = clean mask;
+channel autocorrelation from the prototype = measured (max difference 7·10⁻⁴, ≤ 2.3σ).</li>
+<li><b>End to end</b>, voltages blanked before dedispersion with a zoo of masks (random 20 µs, broadband impulses, radar at 373 Hz and a
+phase-locked 400 Hz, 30 µs on the pulse in channels 90–100, 100 µs every 1.1 ms in 110–115, a 30 ms gap, a dead channel):
+detected power E[<var>P</var>] = <var>W</var>·E[<var>P</var><sub>unblanked</sub>] to −0.2·10⁻⁵ ± 1.4·10⁻⁵; folded mean unbiased off-pulse and on the pulse in
+pulse-blanked channels (−0.0009 ± 0.0014 of the pulse height; a naive fold is off by −0.221); noise within ≤ 1.6σ per valid-fraction group;
+TOAs consistent.</li>
+</ol>
+
+<h2 id="results">5. Results: each RFI type with and without excision (B3, B4)</h2>
+<p><b>No RFI (B3):</b> excision on blanks 0.0125 % of samples (noise ~5.4·10⁻⁵ plus the bright −5 dB pulse on-pulse); 8 TOAs,
+2.956 µs vs 2.943 µs off; per sub-int differences 0.07σ rms. Pulse amplitude 0.4 % lower (the detector removes the brightest
+on-pulse samples at −5 dB; symmetric, no TOA shift; absent at weak SNR).</p>
+<p><b><code>runRFITest.m</code> (B4)</b>, −5 dB, noise seed 43, optimal weighting. Ratio = rms / predicted TOA error (±25 % with 8 TOAs; 0.84
+for this noise realization alone):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Excision</th><th>Blanked</th><th>Good TOAs</th><th>SNR</th><th>Ratio</th><th>Red. χ²</th><th>Offset [µs]</th></tr>
+<tr><td>noise only</td><td>off / on</td><td>– / 0.0125 %</td><td>8/8, 8/8</td><td>92.3 / 91.9</td><td>0.84 / 0.83</td><td>1.01</td><td>+0.12 / +0.06 ± 0.98</td></tr>
+<tr><td>GNSS L1</td><td>off / on</td><td>– / 0.012 %</td><td>8/8, 8/8</td><td>91.4 / 91.0</td><td>0.75 / 0.73</td><td>1.02</td><td>+0.01 / −0.04</td></tr>
+<tr><td>GNSS L2</td><td>off / on</td><td>– / 0.012 %</td><td>8/8, 8/8</td><td>91.1 / 90.8</td><td>0.89 / 0.87</td><td>1.01</td><td>+0.28 / +0.24</td></tr>
+<tr><td>radar</td><td>off</td><td>–</td><td><b>4/8</b></td><td>90.1</td><td><b>4.99</b></td><td><b>33.7</b></td><td>−1.07 ± 0.99</td></tr>
+<tr><td>radar</td><td>on</td><td>0.055 %</td><td>8/8</td><td>91.8</td><td>0.82</td><td>1.01</td><td>+0.03 ± 0.98</td></tr>
+<tr><td>carrier 1351.3 MHz</td><td>off / on</td><td>– / 0.0125 %</td><td>8/8, 8/8</td><td>91.9 / 91.5</td><td>0.80 / 0.78</td><td>1.00</td><td>+0.19 / +0.14</td></tr>
+<tr><td>impulses 50/s</td><td>off / on</td><td>– / 0.048 %</td><td>8/8, 8/8</td><td>92.1 / 91.8</td><td>0.88 / 0.82</td><td>1.01</td><td>+0.09 / +0.10</td></tr>
+<tr><td>all five</td><td>off</td><td>–</td><td><b>4/8</b></td><td>87.0</td><td><b>5.06</b></td><td><b>33.7</b></td><td>−1.20 ± 1.03</td></tr>
+<tr><td>all five</td><td>on</td><td>0.098 %</td><td>8/8</td><td>89.4</td><td>0.78</td><td>1.01</td><td>+0.28 ± 1.01</td></tr>
+</table></div>
+<p>(Radar with instant edges in this table. With the realistic 0.1 µs edges, rerun the same day: radar without excision 4/8 good, ratio
+4.71; with excision 0.034 % blanked, 8/8, ratio 0.81; with the frequency guard ±7 blanked radar 0.085 %, all five 0.134 %, TOAs unchanged.)</p>
+<div class="callout why"><span class="ttl">What this shows</span>
+<ul>
+<li><b>Constant-envelope RFI needs no excision on the channel path.</b> On the full band the carrier cut the SNR to 74.1 (σ × 1.28);
+here 91.9. The optimal fit weights each channel by 1/level², a built-in notch for narrowband RFI.</li>
+<li><b>The radar breaks the channel path without excision</b> (ratio 5, χ² 34: the weighting suppresses its own channels but not its
+sidelobes), and excision fully restores it.</li>
+<li><b>Impulses are harmless either way</b> (coherent dedispersion spreads them over 6.3 ms).</li>
+</ul></div>
+
+<h2 id="locked">6. A radar locked to the pulsar, and the frequency guard (B5b)</h2>
+<p><code>runLockedRadar.m</code>: radar at 1300 MHz, 2 µs, +20 dB, PRF 400 Hz = 4·<var>f</var><sub>0</sub>, so one pulse per turn always lands on the
+pulse flank (+1σ, the worst place for timing). The leftover <var>L</var> = folded radar power / noise baseline is measured from the
+difference of a radar run and a reference run with the same noise; the TOA bias at weaker SNR follows from noise-free folds
+ρ·template + <var>L</var> with the optimal estimator.</p>
+<div class="table-wrap"><table>
+<tr><th>Radar</th><th>Excision</th><th>Blanked</th><th><var>L</var> max</th><th>Bias at −20 / −30 / −40 / −54 dB [µs]</th><th>1 µs bias at</th></tr>
+<tr><td>0.1 µs edges</td><td>off</td><td>–</td><td>9.2</td><td>172 / 208 / 212 / −2288 (locks on the radar)</td><td>brighter than −5 dB</td></tr>
+<tr><td>0.1 µs edges</td><td>on</td><td>0.036 %</td><td>4.9·10⁻⁴</td><td>0.41 / 3.9 / 31 / 147</td><td>−24 dB</td></tr>
+<tr><td>instant edges</td><td>on</td><td>0.057 %</td><td>8.6·10⁻⁴</td><td>−5.5 / −64 / +662 / +1453</td><td>−12.6 dB</td></tr>
+<tr><td>0.1 µs, freq. guard 3</td><td>on</td><td>0.055 %</td><td>4.6·10⁻⁶</td><td>−0.02 / −0.18 / −1.8 / −41</td><td>−37.4 dB</td></tr>
+<tr><td>0.1 µs, freq. guard 5</td><td>on</td><td>0.073 %</td><td>1.2·10⁻⁶</td><td>−0.003 / −0.025 / −0.25 / −6.4</td><td>−46.0 dB</td></tr>
+<tr><td><b>0.1 µs, freq. guard 7</b></td><td>on</td><td>0.090 %</td><td>3.7·10⁻⁷</td><td>−0.001 / −0.008 / −0.08 / −2.0</td><td><b>−51.1 dB</b></td></tr>
+</table></div>
+<ul>
+<li>Measured = predicted at −5 dB, so the method holds. Excision alone cuts the bias ~2000× at −5 dB, but a fixed leftover scales as
+1/ρ: 4.9·10⁻⁴ of the baseline is ~120× the −54 dB pulsar peak.</li>
+<li><b>Where the leftover lives:</b> each channel is dedispersed with its own delay, so radar energy <var>k</var> channels away lands
+<var>k</var> × 59 µs (0.006 turns) from the radar's phase. For undispersed RFI, the fold's phase axis is a channel axis. With realistic
+edges the leftover comes from channels ~3 away whose sidelobes are just below the threshold.</li>
+<li><b>The frequency guard</b> widens the clean notch: every 2 extra channels cut the bias ~3–4×. Guard 7 → 1 µs only below −51 dB,
+2 µs at −54 dB (exact lock, worst placement). Default 7 (Jasper).</li>
+<li>Instant edges: the guard does not help (the 1/<var>f</var>² plateau comes from far channels). Remedies there: a periodic mask (B6),
+and Doppler decorrelation (D: an exact lock cannot persist over long folds).</li>
+</ul>
+
+<h2 id="rotating">7. A rotating radar: the sidelobe problem (B5c)</h2>
+<p><code>runRFITest.m</code> cases 8–11: the scenario radar on a rotating antenna (10 s scan, 39 ms beam; see
+<a href="receiver.html#rotation"><code>rfiSource</code> rotation</a>), −5 dB pulsar, per-pulse ground truth for scoring.</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Excision</th><th>Blanked</th><th>Good</th><th>Ratio</th><th>Red. χ²</th><th>Pulses blanked</th><th>Energy missed</th></tr>
+<tr><td>beam passage (centre of file, −30 dB floor)</td><td>off</td><td>–</td><td>4/8</td><td>5.44</td><td>8.78</td><td>–</td><td>–</td></tr>
+<tr><td>beam passage</td><td>on</td><td>0.077 %</td><td>8/8</td><td>0.81</td><td>1.01</td><td>100 %</td><td>0</td></tr>
+<tr><td>sidelobes only, −25 dB (+13 dB per channel)</td><td>off / on</td><td>– / 0.020 %</td><td>8/8</td><td>0.85 / 0.82</td><td>1.01</td><td>100 %</td><td>0</td></tr>
+<tr><td>sidelobes only, −30 dB (+8 dB)</td><td>off / on</td><td>– / 0.019 %</td><td>8/8</td><td>0.84 / 0.82</td><td>1.01</td><td>100 %</td><td>0</td></tr>
+<tr><td>sidelobes only, −35 dB (+3 dB)</td><td>off / on</td><td>– / 0.015 %</td><td>8/8</td><td>0.84 / 0.82</td><td>1.01</td><td><b>39.5 %</b></td><td><b>61 %</b></td></tr>
+</table></div>
+<div class="callout why"><span class="ttl">What this shows, and why it leads to a periodic mask</span>
+<p>At −5 dB the sidelobe radar is harmless with or without excision. But at −35 dB a 2 µs pulse is only ~2× the noise per sample in its
+channels, so most pulses are missed one by one. Over a scan the sidelobes then dominate what a rotating radar leaves: the main beam
+(excised, ~0 left with the frequency guard) carries ~41 ms × full power per 10 s scan, the −35 dB sidelobes ~3 ms × full power, of which
+~60 % is missed. If locked to the pulsar, that is ~1.8·10⁻³ of the baseline in the fold, ≈ 450× the −54 dB pulsar.</p>
+<p>Per-pulse thresholds cannot fix this. But the main-beam passage (~15–40 pulses at +38 dB) measures the radar's period, pulse phase and
+channels precisely, so its weak sidelobe pulses can be blanked where they are predicted to be. That is B6. Unlocked, the leftover is only
+phase-uniform noise.</p></div>
+<div class="callout note"><span class="ttl">In progress (uncommitted): <code>periodicRFI</code> (B6)</span>
+<p>The working tree has a new <code>functions/periodicRFI.m</code> and <code>tests/testPeriodicRFI.m</code>: group <code>detectRFI</code>'s detections into
+pulses and emitters, find each emitter's period, and add every predicted pulse (also the ones too weak to be seen) to the mask before
+<code>blankChannels</code>. It uses only the detections, no ground truth. This page will describe it once it is validated and committed.</p></div>
+
+<h2 id="limits">8. Limits</h2>
+<div class="callout warn"><span class="ttl">Known limits of excision</span>
+<ul>
+<li><b>Data-dependent:</b> blanking removes the highest samples, so the kept noise is slightly truncated. Negligible at weak SNR; at
+−5 dB it costs 0.4 % of pulse amplitude.</li>
+<li><b>Locked RFI:</b> with the guard, 2 µs bias at −54 dB for an exactly locked radar on the worst phase. The guard width is fixed,
+not scaled with the event's strength.</li>
+<li><b>Carrier / GNSS channels</b> have baselines 7–47× the noise, so impulses there are not caught (those channels carry little weight).</li>
+<li><b>Window length ≤ 16 samples:</b> weak bursts longer than 3.8 µs are found only above the 16-sample threshold (2.69×). Weak repeated pulses (rotating-radar sidelobes at −35 dB) are mostly
+missed one by one; the periodic mask (B6) is being built for them. No spectral kurtosis or whole-channel flags yet.</li>
+<li><b>Noise-like RFI</b> (LTE, OFDM) is undetectable by any power or kurtosis test; it is extra noise in its channels, handled by the
+optimal weighting.</li>
+<li>The 0.1 µs rise time is an assumption, to be checked against ITU masks.</li>
+</ul></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

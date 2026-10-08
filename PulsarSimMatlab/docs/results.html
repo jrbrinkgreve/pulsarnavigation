@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Validation Record</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Validation record</h1>
+<p class="lede">Every major measured result against its prediction, in time order, with what each one established.
+The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#noisefree">Noise-free chain (1 s)</a></li>
+<li><a href="#noise5">With receiver noise, −5 dB</a></li>
+<li><a href="#mc">Monte Carlo over noise seeds</a></li>
+<li><a href="#sweep">SNR sweep, phase D</a></li>
+<li><a href="#rfi5oct">RFI without excision (5 Oct)</a></li>
+<li><a href="#centroid">The centroid offset</a></li>
+<li><a href="#phasee">Detection sweep, phase E</a></li>
+<li><a href="#h0">Long noise-only run</a></li>
+<li><a href="#threshold">TOA threshold sweep and the SNR ≥ 6–7 rule</a></li>
+<li><a href="#blockA">Block A and B results</a></li>
+<li><a href="#other">Algorithm ports and run times</a></li>
+</ol></div>
+
+<h2 id="noisefree">1. Noise-free chain</h2>
+<p><var>L</var> = 1 s, <var>f</var><sub>s</sub> = 500 MHz, 1 µs bins, 1024 phase bins, 1 turn per sub-int. Without receiver noise the only noise is the pulsar's
+own (self-noise), so this tests the signal path and the self-noise model.</p>
+<div class="table-wrap"><table>
+<tr><th>Check</th><th>Result</th><th>Expected</th></tr>
+<tr><td>Detected-power normalized residual (127,512 on-pulse bins)</td><td>mean −0.0016, std 1.0015</td><td>0 ± 0.0028, 1 ± 0.0020</td></tr>
+<tr><td>Per-pulse centroid offsets (99 pulses)</td><td>mean +0.005 µs, rms 0.301 µs</td><td>rms 0.277 µs</td></tr>
+<tr><td>Fold: total centroid, energy ratio</td><td>+0.005 ± 0.028 µs, 0.99999</td><td>0, 1</td></tr>
+<tr><td>TOAs</td><td>99/100 fitted, median SNR 448.7, median σ 0.466 µs, median χ²<sub>red</sub> 1.086</td><td>σ ≈ 0.469 µs (NumPy MC)</td></tr>
+<tr><td><code>validateTOA</code></td><td>mean −0.020 ± 0.047 µs, rms/pred 1.053, χ² 109.9/99 (p = 0.21), |<var>z</var>|&lt;1 63.6 %</td><td>ratio 1, 68.3 % ± 4.7 %</td></tr>
+<tr><td>Reproducibility</td><td>first 9 pulse offsets identical between 0.1 s and 1 s runs</td><td>identical</td></tr>
+</table></div>
+<p>The χ² excess (1.06–1.09) under pure self-noise was reproduced by simulation with a perfect noise model: it comes from low-level tail bins
+and disappears once receiver noise dominates.</p>
+
+<h2 id="noise5">2. With receiver noise, −5 dB (1 Oct)</h2>
+<p><var>L</var> = 0.1 s, <var>f</var><sub>LO</sub> = 1.3 GHz, <var>f</var><sub>s</sub> = 800 MHz, 2048 bins, noise seed 43. This is the <b>reference run</b> for everything after.</p>
+<div class="table-wrap"><table>
+<tr><th>Check</th><th>Result</th><th>Expected</th></tr>
+<tr><td>Noise baseline</td><td>1.232</td><td>1.233</td></tr>
+<tr><td>Normalized residual off-pulse (73,604 bins) / on-pulse</td><td>std 0.9995 / 0.9959</td><td>1 ± 0.0026 / 1 ± 0.0066</td></tr>
+<tr><td>TOAs</td><td>9/10 (turn 9 partial → rejected), median SNR 93.4, <b>median σ 2.880 µs</b>, χ²<sub>red</sub> 0.963</td><td>SNR 97.9 (flat band), best σ 2.85 µs</td></tr>
+<tr><td><code>validateTOA</code></td><td>rms/pred 0.868 (± 0.24 for 9 TOAs), χ² 6.8/9</td><td>1</td></tr>
+</table></div>
+<p>Established: the noise model and <var>B</var><sub>noise</sub> are right; FFTFIT is within ~1 % of the optimum at this SNR; the off-centre LO mapping is right.</p>
+
+<h2 id="mc">3. Monte Carlo over noise seeds (<code>runMonteCarlo</code>, 1 Oct)</h2>
+<p>Same setup, noise seeds 43–52, 90 TOAs.</p>
+<div class="table-wrap"><table>
+<tr><th>Check</th><th>Result</th><th>Expected</th></tr>
+<tr><td>Mean error</td><td>−0.000 µs</td><td>0 ± 0.31 µs</td></tr>
+<tr><td>rms / predicted rms</td><td>2.762 / 2.907 µs = <b>0.950</b></td><td>1 ± 0.075</td></tr>
+<tr><td>χ²<sub>red</sub></td><td>0.91</td><td>1 ± 0.15</td></tr>
+<tr><td>|<var>z</var>| &lt; 1</td><td>72 %</td><td>68.3 ± 4.9 %</td></tr>
+</table></div>
+<p>Established: <code>estimateTOA</code>'s error bars are honest with receiver noise. The mean predicted σ is only 0.5 % above the exact optimum (2.892 µs).</p>
+
+<h2 id="sweep">4. SNR sweep, phase D (<code>runSNRSweep</code>, 5 Oct)</h2>
+<p>10 pulsar + noise realizations × 8 SNRs, 90 TOAs per point, 1 turn per sub-int.</p>
+<div class="table-wrap"><table>
+<tr><th>snrDB</th><th>SNR opt</th><th>rms [µs]</th><th>robust</th><th>pred</th><th>opt</th><th>rms/pred</th><th>pred/opt</th><th>χ²<sub>red</sub></th><th>|z|&gt;5</th></tr>
+<tr><td>−25</td><td>1.2</td><td>2430</td><td>1470</td><td>217</td><td>249</td><td>11.2</td><td>0.87</td><td>561</td><td>57 %</td></tr>
+<tr><td>−20</td><td>3.8</td><td>995</td><td>83.9</td><td>82.2</td><td>79.0</td><td>12.1</td><td>1.04</td><td>116</td><td>5.6 %</td></tr>
+<tr><td>−15</td><td>11.8</td><td>26.3</td><td>27.6</td><td>25.6</td><td>25.3</td><td>1.030</td><td>1.012</td><td>1.07</td><td>0</td></tr>
+<tr><td>−10</td><td>35.4</td><td>8.60</td><td>8.53</td><td>8.28</td><td>8.28</td><td>1.040</td><td>1.000</td><td>1.08</td><td>0</td></tr>
+<tr><td>−5</td><td>96.5</td><td>3.07</td><td>2.80</td><td>2.91</td><td>2.89</td><td>1.053</td><td>1.007</td><td>1.11</td><td>0</td></tr>
+<tr><td>0</td><td>216</td><td>1.30</td><td>1.25</td><td>1.22</td><td>1.17</td><td>1.061</td><td>1.050</td><td>1.12</td><td>0</td></tr>
+<tr><td>+10</td><td>496</td><td>0.561</td><td>0.537</td><td>0.538</td><td>0.358</td><td>1.044</td><td>1.502</td><td>1.09</td><td>0</td></tr>
+<tr><td>+20</td><td>657</td><td>0.489</td><td>0.482</td><td>0.472</td><td>0.198</td><td>1.036</td><td>2.380</td><td>1.07</td><td>0</td></tr>
+</table></div>
+<ol>
+<li><b>Error bars honest for SNR per sub-int ≳ 10</b>, from receiver-noise- to self-noise-dominated: rms/pred 1.03–1.06, no outliers.</li>
+<li><b>Below SNR ≈ 10, outliers</b> appear (the fit locks onto a noise peak, errors up to ±<var>T</var>/2): 5.6 % at SNR 3.8, 57 % at 1.2. The Gaussian
+core stays right (robust 83.9 vs 82.2 µs). Navigation needs outlier rejection → phase E.</li>
+<li><b>FFTFIT is optimal up to −5 dB</b> (≤ 1 %), then saturates at ≈ 0.47 µs (self-noise) while the optimum keeps falling (1.5× at +10 dB,
+2.4× at +20 dB). The target regime (−25…−54 dB) is weak-signal, so a better high-SNR estimator (phase F) is low priority.</li>
+</ol>
+
+<h2 id="rfi5oct">5. RFI without excision, full band (5 Oct)</h2>
+<p>−5 dB, noise seed 43, one source at a time (<code>rfiSelect</code>), then all. Reference: SNR 93.4, σ 2.880 µs.</p>
+<div class="table-wrap"><table>
+<tr><th>Run</th><th>Effect</th><th>TOAs</th></tr>
+<tr><td>Carrier, −5 dB</td><td>baseline 1.632 (predicted 1.633); off-pulse residual std 1.2885 vs 1.285 predicted from the cross term</td><td>SNR 74.1, σ × 1.28; still valid</td></tr>
+<tr><td>Radar, +20 dB</td><td>after dedispersion 4.17 ms earlier, ~20 µs streaks; spikes ~21 in 1 µs bins; energy ≈ one pulsar pulse each</td><td><b>destroyed</b>: rms 2013 µs, ratio 1941, χ² 1625, with confident error bars (σ 0.96 µs)</td></tr>
+<tr><td>Impulses 50/s, +20 dB</td><td>reversed 6.3 ms sweeps after dedispersion; ~0.3 % of baseline per µs</td><td>unaffected (coherent dedispersion spreads them)</td></tr>
+<tr><td>All five</td><td>baseline 1.795 / 1.808 (predicted 1.80)</td><td>destroyed: ratio 1674, χ² 939</td></tr>
+</table></div>
+<p>Established: constant-envelope RFI lowers SNR but keeps TOAs valid; impulses are harmless after coherent dedispersion; the radar is
+catastrophic and only χ² flags it → the χ² flag (phase E) and excision before dedispersion (block B).</p>
+
+<h2 id="centroid">6. The centroid offset (6 Oct)</h2>
+<p>The plot checks' centroid gave +3.7 µs per pulse with noise seed 43. Five noise seeds:</p>
+<div class="table-wrap"><table>
+<tr><th>noise seed</th><th>43</th><th>44</th><th>45</th><th>46</th><th>47</th><th>pooled</th></tr>
+<tr><td>mean per-pulse centroid offset [µs]</td><td>+3.72</td><td>+0.45</td><td>−3.46</td><td>−1.19</td><td>−2.43</td><td><b>−0.58 ± 0.93</b></td></tr>
+<tr><td>FFTFIT total fold [µs]</td><td>−0.21</td><td>+0.63</td><td>+0.28</td><td>−1.03</td><td>+0.82</td><td>+0.10 ± 0.43</td></tr>
+</table></div>
+<p>No bias: a 1.8σ fluctuation of seed 43. The centroid is ~2× noisier than FFTFIT (window wings with long lever arms). Block 1 closed.</p>
+
+<h2 id="phasee">7. Detection sweep, phase E (6 Oct)</h2>
+<p>Same seeds as phase D, <var>P</var><sub>FA</sub> 10⁻³ (η 3.09 / 4.15), 90 sub-ints per point.</p>
+<div class="table-wrap"><table>
+<tr><th>snrDB</th><th>SNR opt</th><th>T0 mean</th><th>T0 std</th><th>P<sub>D</sub> known (theory)</th><th>P<sub>D</sub> unknown (theory)</th><th>good</th><th>|z|&gt;5 among good</th></tr>
+<tr><td>H0</td><td>0</td><td>−0.011</td><td>1.102</td><td>0/90 false alarms</td><td>0/90</td><td>–</td><td>–</td></tr>
+<tr><td>−25</td><td>1.21</td><td>1.15</td><td>1.11</td><td>0.022 (0.030)</td><td>0.011 (0.002)</td><td>1</td><td>0</td></tr>
+<tr><td>−20</td><td>3.79</td><td>3.66</td><td>1.11</td><td>0.711 (0.759)</td><td>0.433 (0.358)</td><td>39</td><td><b>0 %</b> (all: 5.6 %)</td></tr>
+<tr><td>−15</td><td>11.79</td><td>11.60</td><td>1.13</td><td>1 (1)</td><td>1 (1)</td><td>90</td><td>0</td></tr>
+</table></div>
+<p>Established: no false alarms under a true H0; T0 = matched-filter SNR in the weak regime; <b>good TOAs are outlier-free</b>. Watch item:
+T0 std 1.10 under H0 → settled by the long H0 run.</p>
+
+<h2 id="h0">8. Long noise-only run (<code>runH0</code>, 6 Oct)</h2>
+<p>100 passes, 900 noise-only profiles.</p>
+<div class="table-wrap"><table>
+<tr><th>Check</th><th>Measured</th><th>Expected</th></tr>
+<tr><td>T0 std / mean</td><td><b>1.0076</b> / +0.034</td><td>1 ± 0.024 / 0 ± 0.033</td></tr>
+<tr><td>noise ratio</td><td>median 0.996</td><td>1</td></tr>
+<tr><td>normProfile correlation lag 1</td><td><b>0.2484</b></td><td>0.2501 (from <code>weightX</code>)</td></tr>
+<tr><td>lags 2–200</td><td>mean −0.0008, max |r| 0.0026</td><td>0 (noise 0.0007)</td></tr>
+<tr><td>exceedances at P<sub>FA</sub> 10⁻¹ / 10⁻² / 10⁻³</td><td>T0 96 / 7 / 3; Tmax 88 / 13 / 1</td><td>90 / 9 / 0.9</td></tr>
+</table></div>
+<p>Established: the noise covariance model is complete for noise-dominated data (per-bin variance, neighbour covariance, nothing beyond),
+the detector thresholds give the stated <var>P</var><sub>FA</sub> down to 10⁻²…10⁻³, and the TOA error bars are right in the weak-signal regime. The phase E
+hint was a fluctuation of the shared noise realizations.</p>
+
+<h2 id="threshold">9. TOA threshold sweep and the SNR ≥ 6–7 rule (6 Oct)</h2>
+<p><code>runSNRSweep</code> with 20 realizations (180 sub-ints per point), −20…−15 dB in 1 dB steps.</p>
+<div class="table-wrap"><table>
+<tr><th>SNR per sub-int (opt)</th><th>3.8</th><th>4.8</th><th>6.0</th><th>7.5</th><th>9.4</th><th>11.8</th></tr>
+<tr><td>outliers |z| &gt; 5, all TOAs</td><td>5.0 %</td><td>1.7 %</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>good TOAs (yield)</td><td>40 %</td><td>72 %</td><td>92 %</td><td>100 %</td><td>100 %</td><td>100 %</td></tr>
+<tr><td>outliers among good TOAs</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+<tr><td>rms/pred, good TOAs</td><td>1.20 ± 0.08</td><td>0.97</td><td>1.01</td><td>1.01</td><td>1.02</td><td>1.02</td></tr>
+<tr><td>T0 mean / SNR opt</td><td>0.950</td><td>0.956</td><td>0.962</td><td>0.965</td><td>0.972</td><td>0.978</td></tr>
+</table></div>
+<ol>
+<li><b>Design rule: SNR per sub-int ≥ 6–7</b> (was ≥ 10). 92 % usable TOAs at 6, 100 % at 7.5; the detector removes all outliers at any SNR;
+going from 10 to ~6.5 allows (10/6.5)² ≈ 2.4× shorter sub-ints.</li>
+<li><b>Baseline-estimation loss</b> T0 ≈ 0.96 × SNR<sub>opt</sub>: the observer estimates the baseline from the same profile;
+√(1 − (Σ<var>s</var>)²/(<var>N</var>Σ<var>s</var>²)) = 0.962 for this template.</li>
+</ol>
+<h3>Turns per sub-int</h3>
+<p><var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)², SNR<sub>turn</sub> ≈ 373·ρ for this pulsar and band (single polarization, 400 MHz):</p>
+<div class="table-wrap"><table>
+<tr><th>ρ</th><th>SNR per turn</th><th>target 6</th><th>target 7</th><th>target 10</th></tr>
+<tr><td>−20 dB</td><td>3.7</td><td>3 turns (30 ms)</td><td>4 (40 ms)</td><td>8 (80 ms)</td></tr>
+<tr><td>−30 dB</td><td>0.37</td><td>260 (2.6 s)</td><td>350 (3.5 s)</td><td>720 (7.2 s)</td></tr>
+<tr><td>−40 dB</td><td>0.037</td><td>2.6·10⁴ (4.3 min)</td><td>3.5·10⁴ (5.9 min)</td><td>7.2·10⁴ (12 min)</td></tr>
+<tr><td>−50 dB</td><td>0.0037</td><td>2.6·10⁶ (7.2 h)</td><td>3.5·10⁶ (9.8 h)</td><td>7.2·10⁶ (20 h)</td></tr>
+</table></div>
+<p>The total precision of an observation does not depend on the sub-int length; shorter sub-ints give more frequent, less precise TOAs.</p>
+
+<h2 id="blockA">10. Block A and B results</h2>
+<ul>
+<li><b>Experiment 3a</b>, unit tests of A1–A3: <a href="tests.html">unit tests</a>.</li>
+<li><b>A4</b> channel path vs full band, seed 43: <a href="channels.html">channelized front end</a>.</li>
+<li><b>B3, B4</b> excision with no RFI and per RFI type: <a href="excision.html#results">RFI excision</a>.</li>
+<li><b>B5a</b> radar edges (<code>testRadarEdges</code>): <a href="tests.html#edges">tests</a>, and downstream: radar flagged in channels 30–35 (was 27–39),
+energy outside its channels 0.6 % (was 1.3 %), left after excision 1.0·10⁻⁴ (instant edges ≈ 1.6·10⁻³).</li>
+<li><b>B5b</b> locked radar and frequency guard: <a href="excision.html#locked">RFI excision</a>.</li>
+<li><b>B5c</b> rotating radar: <a href="excision.html#rotating">RFI excision</a>.</li>
+</ul>
+
+<h2 id="other">11. Algorithm ports and run times</h2>
+<p><b>NumPy ports</b> (before MATLAB runs): dispersion kernel group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add = direct convolution;
+forward → IQ → inverse round trip ~2·10⁻⁶; IQ tones ~1.5·10⁻⁶; detection channel mapping + Parseval exact; fold indexing and the nearest/linear
+bias; FFTFIT Monte Carlo: bias &lt; 0.1 ps noise-free, σ predicted 0.469 vs empirical 0.46–0.47 µs (0.383 without covariance); mixed signal+noise
+variance formula within 1 %.</p>
+<p><b>Run times</b> (<var>L</var> = 1 s, M-series Mac, 24 GB): dispersion 81.5 s, IQ 46 s, dedispersion 7.4 s, detection 1.2 s, fold 0.05 s; the generator is
+dominated by random-number generation.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

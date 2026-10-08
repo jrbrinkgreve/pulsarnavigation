@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Folding</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stage 7 · Folding: <code>foldProfile</code> <span class="badge validated">validated</span></h1>
+<p class="lede">Average all turns at the same rotational phase, so the pulse adds up and the noise averages down. The
+fold keeps not just the profile but everything needed to know its noise exactly: how much data went into every phase bin,
+and how strongly neighbouring bins share noise.</p>
+<div class="sig">[info, fold] = foldProfile(info_det, outFile, f0, 'F1', F1, 'TRef', TRef, 'NBin', nBin, 'SubintPeriods', n, ...)</div>
+<p class="meta"><a href="api.html#foldprofile">Full interface and help text of <code>foldProfile</code> →</a></p>
+<p class="meta">Used by both front ends. Channel path adds <code>'NoiseCoeffs'</code> (no excision) or <code>'DataWeights'</code> (with excision).</p>
+
+<h2>Idea</h2>
+<p>Phase model from the ephemeris (observer knowledge only):</p>
+<div class="eq">φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>) + ½·<var>F</var><sub>1</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>)²</div>
+<p>With <var>T</var><sub>ref</sub> = first true pulse centre (<var>T</var>/2, from <code>ephem.TRef</code>) and Φ<sub>0</sub> = 0, every true pulse peak is at an
+integer phase. Each detected time bin is assigned to phase bins by its phase; averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
+
+<h2>Algorithm</h2>
+<ol>
+<li>Use only <code>fullySupportedBins</code> (data that saw the complete dedispersion sweep).</li>
+<li>Phase per time bin, in double.</li>
+<li><code>turn</code> = round(φ), <code>frac</code> = φ − <code>turn</code> ∈ [−½, ½]: each turn runs from half a turn before its pulse to half a turn after,
+so cuts fall between pulses.</li>
+<li><code>NBin</code> phase bins; bin <var>j</var> (1-based) is centred at phase (<var>j</var>−1)/<code>NBin</code>; negative phases wrap to the end. Position
+<var>x</var> = <code>frac</code>·<code>NBin</code>.</li>
+<li id="assign"><b>Linear assignment</b> (default): <var>j</var><sub>0</sub> = ⌊<var>x</var>⌋, <var>a</var> = <var>x</var> − <var>j</var><sub>0</sub>; the time bin contributes with weight 1 − <var>a</var> to bin
+<var>j</var><sub>0</sub> and <var>a</var> to bin <var>j</var><sub>0</sub> + 1.</li>
+<li>Accumulate per (phase bin, sub-int, channel): <code>sum</code> Σ<var>w</var>·<var>P</var>, <code>weight</code> Σ<var>w</var>, <code>weight2</code>, <code>weightX</code> (below).</li>
+<li>Sub-integrations of <code>SubintPeriods</code> turns (or <code>SubintTime</code>); <code>prof</code> = sum/weight; <code>profTotal</code> = Σsum/Σweight over all sub-ints.</li>
+<li>Per sub-int: <code>turnRef</code> (the middle turn), <code>tRef</code> = the time where φ = <code>turnRef</code> (stable quadratic root), <code>fRef</code> = spin
+frequency at <code>tRef</code>, <code>tMean</code>, <code>nTimeBins</code>. These define the TOA later.</li>
+<li>Saved to a <code>.mat</code> file (fold + info). Vectorized <code>accumarray</code>, chunked reading.</li>
+</ol>
+
+<figure>
+<svg viewBox="0 0 860 150" role="img" aria-label="Linear assignment of a time bin to two phase bins">
+  <path class="axis" d="M60 100 H800"/>
+  <path class="axis" d="M160 92 V108 M360 92 V108 M560 92 V108 M760 92 V108"/>
+  <text x="160" y="126" text-anchor="middle" font-size="12" class="muted">bin j₀−1</text>
+  <text x="360" y="126" text-anchor="middle" font-size="12">bin j₀</text>
+  <text x="560" y="126" text-anchor="middle" font-size="12">bin j₀+1</text>
+  <text x="760" y="126" text-anchor="middle" font-size="12" class="muted">bin j₀+2</text>
+  <circle cx="420" cy="100" r="7" fill="var(--warn)"/>
+  <text x="420" y="78" text-anchor="middle" font-size="12">time bin at x = j₀ + 0.3</text>
+  <rect class="fillsoft" x="330" y="30" width="60" height="40" rx="3"/>
+  <text x="360" y="55" text-anchor="middle" font-size="13" font-weight="600">0.7</text>
+  <rect class="fillsoft" x="530" y="50" width="60" height="20" rx="3"/>
+  <text x="560" y="64" text-anchor="middle" font-size="13" font-weight="600">0.3</text>
+  <text x="60" y="145" font-size="11" class="muted">phase bin centres (weights shown above the bins that receive them)</text>
+</svg>
+<figcaption>Linear assignment. The two bins share this time bin's noise: that shared noise is what <code>weightX</code> records.</figcaption>
+</figure>
+<div class="callout why"><span class="ttl">Why linear assignment, not nearest bin</span>
+<p>Linear assignment preserves each sample's mean position exactly. <code>'nearest'</code> gave a 0.5 ns bias: the 1 µs time grid and the
+9.765625 µs phase grid repeat identically every turn, so the rounding errors do not average out. The price is that neighbouring
+phase bins share data and their noise is correlated, which the fold tracks explicitly.</p></div>
+
+<h2 id="weights">The weights: what each field is for</h2>
+<p>For phase bin <var>j</var> of one sub-int, sum<sub>j</sub> = Σ<sub>k</sub> <var>a</var><sub>kj</sub>·<var>P</var><sub>k</sub>, with <var>a</var><sub>kj</sub> how much of time bin <var>k</var> went into phase bin <var>j</var>.</p>
+<div class="table-wrap"><table>
+<tr><th>Field</th><th>Formula</th><th>Purpose</th></tr>
+<tr><td><code>weight</code></td><td>Σ<sub>k</sub> <var>a</var><sub>kj</sub> (with data weights: Σ <var>a</var>·<var>W</var>)</td><td>normalizer: how much data is in bin <var>j</var>; <code>prof</code> = sum/weight</td></tr>
+<tr><td><code>weight2</code></td><td>Σ<sub>k</sub> <var>a</var><sub>kj</sub>² (× <var>V</var>, plus lag terms)</td><td>var(prof<sub>j</sub>) = σ²·weight2/weight² (variance of a weighted mean)</td></tr>
+<tr><td><code>weightX(:,:,:,d)</code></td><td>Σ <var>a</var><sub>kj</sub>·<var>a</var><sub>k,j+d</sub> (× correlations)</td><td>cov(prof<sub>j</sub>, prof<sub>j+d</sub>) = σ²·weightX/(weight<sub>j</sub>·weight<sub>j+d</sub>)</td></tr>
+</table></div>
+<p>Example: a time bin 30 % of the way from bin <var>j</var> to <var>j</var>+1 gives 0.7 and 0.3, adds 0.49 and 0.09 to the two <code>weight2</code> values and
+0.21 to <code>weightX</code>. Over many turns the ratios settle at <var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6, a neighbour correlation of 0.25,
+exactly the 0.2484 measured in the long noise-only run.</p>
+<div class="callout why"><span class="ttl">Why <code>weightX</code> matters (a real bug once)</span>
+<p>With linear assignment a phase bin looks like it has variance σ²/14.7 per turn instead of σ²/9.77, because it shares data with its
+neighbours. Ignoring the positive covariance underestimates the variance of any sum over bins (a TOA, a matched filter) by ~1.5×.
+The fold check predicted a centroid scatter of 0.226 µs instead of the correct 0.277 µs until <code>weightX</code> was added
+(<a href="lessons.html">bugs and lessons</a> #8).</p></div>
+<p>σ² itself is <em>not</em> stored in the fold: the consumers (<code>estimateTOA</code>, <code>detectPulsar</code>) compute it from their noise model
+(radiometer equation with the fitted level, or off-pulse residuals). The fold only provides the geometry.</p>
+
+<h2 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code> (A1a, 7 Oct)</h2>
+<p>In a narrow channel neighbouring detected time bins are correlated (variance <var>V</var>, covariance <var>X</var>(<var>L</var>) at <var>L</var> bins apart, relative
+to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>); see <a href="channels.html#powcov"><code>powerCovariance</code></a>). A phase-bin sum then has</p>
+<div class="eq">cov(<var>S</var><sub>j</sub>, <var>S</var><sub>j+d</sub>) = σ²·Σ<sub>k</sub>Σ<sub>k′</sub> <var>a</var><sub>kj</sub>·<var>a</var><sub>k′,j+d</sub>·<var>c</var>(<var>k′</var> − <var>k</var>), &nbsp; <var>c</var>(0) = <var>V</var>, <var>c</var>(±<var>L</var>) = <var>X</var>(<var>L</var>)</div>
+<ul>
+<li><code>'NoiseCoeffs'</code> = [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)]; default 1 = independent bins (full band), bit-identical to before.</li>
+<li><code>weight2</code> = var(<var>S</var><sub>j</sub>)/σ², <code>weightX</code> = cov(<var>S</var><sub>j</sub>, <var>S</var><sub>j+d</sub>)/σ² for phase lags <var>d</var> = 1..<var>D</var>, with
+<var>D</var> = ⌈<var>L</var><sub>max</sub>·binDt·<var>f</var>·NBin⌉ + 1 (3 for the channel data at 10 ms / 2048 bins).</li>
+<li>Every pair of time bins <var>L</var> apart in the same sub-int adds <var>X</var>(<var>L</var>)·<var>a</var>·<var>a</var>′ to its pair of phase bins; the last <var>L</var><sub>max</sub> time
+bins of a chunk are kept for pairs with the next chunk (<code>addLagPairs</code>).</li>
+<li>Effect for the channel data: phase-bin variance 0.987 of the old model, lag-1 correlation 0.258 instead of 0.250.</li>
+</ul>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 1–3): the four pre-A1 reference folds reproduced bit for bit; <code>weight2</code>/<code>weightX</code> =
+<var>A</var>ᵀ·<var>C</var>·<var>A</var> built explicitly to 6·10⁻¹⁶; measured fold noise on 128-channel data vs new / old model: variance −1.4σ / −13.1σ, lag 1
++0.6σ / +5.9σ. The old model is clearly rejected, the new one fits.</p>
+
+<h2 id="dataweights">Data weights per channel: <code>'DataWeights'</code> (A1b, 7 Oct)</h2>
+<p>With excision, detected bin <var>k</var> of channel <var>c</var> has mean <var>W</var><sub>kc</sub>·<var>m</var><sub>c</sub> (valid fraction <var>W</var>), variance <var>V</var><sub>kc</sub>·σ<sub>c</sub>² and
+covariance <var>X</var><sub>kc</sub>(<var>L</var>)·σ<sub>c</sub>² with bin <var>k</var>+<var>L</var>, all exact from <a href="excision.html#weights"><code>blankingWeights</code></a>. The fold uses them:</p>
+<ul>
+<li><code>weight</code> = Σ <var>a</var>·<var>W</var>, so <code>prof</code> = Σ<var>a</var>·<var>P</var> / Σ<var>a</var>·<var>W</var> is <b>unbiased even when blanking depends on pulse phase</b>;</li>
+<li><code>weight2</code> / <code>weightX</code> as in A1a, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>);</li>
+<li><b>a time bin with <var>W</var> = 0 adds no power</b> to the sum either (found in A3a: filter-tail leftovers biased nearly empty bins);</li>
+<li>output arrays get a channel dimension: <code>weight</code>, <code>weight2</code> [NBin × nSub × nChan], <code>weightX</code> [NBin × nSub × nChan × D];
+<code>prof</code>, <code>profTotal</code> per channel with its own weights;</li>
+<li>option value: an info struct with <code>file</code>, <code>nChan</code>, <code>N</code>, <code>Lmax</code>, <code>byteOrder</code>; replaces <code>NoiseCoeffs</code> (error if both).</li>
+</ul>
+<div class="callout why"><span class="ttl">Why divide by Σ<var>a</var>·<var>W</var> instead of Σ<var>a</var></span>
+<p>A bin with <var>W</var> = 0.5 contributes half the power to the numerator and 0.5 to the denominator: it counts as half a sample with the
+right mean. A fully blanked bin contributes nothing. The test with fake blanking at phase 0.30–0.36 shows the difference: the
+weighted fold is unbiased (−0.0019 ± 0.0009), a naive fold is off by −0.574, exactly the predicted 1 − 0.425.</p></div>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 4–6): constant weight file = <code>NoiseCoeffs</code> fold bit for bit; random weight streams =
+<var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶; fake blanking unbiased and noise as modelled. Cost: 1.8 s for 0.1 s of 128 channels with weights
+(0.25 s without).</p>
+
+<h2>Options and outputs</h2>
+<dl class="facts">
+<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
+<dt>Fold</dt><dd><code>sum</code>, <code>weight</code>, <code>weight2</code>, <code>weightX</code>, <code>prof</code>, <code>profTotal</code>, per sub-int <code>turnRef</code>, <code>tRef</code>, <code>fRef</code>, <code>tMean</code>, <code>nTimeBins</code></dd>
+<dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
+</dl>
+
+<h2>Choosing NBin and the sub-int length</h2>
+<div class="callout why"><span class="ttl">NBin = 2048 is more than enough</span>
+<p>Binning only costs information if bins are coarse compared with the pulse: σ<sub>eff</sub>² ≈ σ<sub>t</sub>² + Δ²/12. For the simulated pulsar
+Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. Rule of thumb NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter
+SNR do not depend on NBin once bins are fine. What NBin does change is cost: weights scale as NBin × sub-ints × channels × lags,
+so long observations will likely use fewer bins or sub-bands.</p></div>
+<div class="callout why"><span class="ttl">Sub-int length: SNR ≥ 6–7</span>
+<p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model).
+Sub-ints exist to validate error bars, see drift (phase-model errors, motion, clock, position error) and catch bad data. Below SNR ≈ 6
+per sub-int TOAs start to lock onto noise peaks, so the number of turns per sub-int is
+<var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)², with SNR<sub>turn</sub> ≈ 373·ρ here. See <a href="results.html#threshold">threshold sweep</a>. An adaptive
+choice from the data is on the roadmap.</p></div>
+
+<h2>Limits</h2>
+<div class="callout warn"><span class="ttl">Not stored: covariance between consecutive sub-ints</span>
+<p>With correlated time bins, the last bins of one sub-int correlate with the first of the next. Only the 2–3 phase bins at the
+boundary (phase 0.5, off-pulse) are affected, by ~1–4 % of their variance. Negligible for TOAs (template slope ≈ 0 there) and detection (~10⁻⁵).</p></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

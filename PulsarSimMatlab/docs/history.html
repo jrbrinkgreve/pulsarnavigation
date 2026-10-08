@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development History</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Development history</h1>
+<p class="lede">How the pipeline got to its current form, session by session, and every design decision with the
+reason it was taken. The dated logs in <code>logs/</code> have the full detail.</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#timeline">Session by session</a></li>
+<li><a href="#decisions">Decision log</a></li>
+<li><a href="#logs">The session logs</a></li>
+</ol></div>
+
+<h2 id="timeline">1. Session by session</h2>
+
+<h3>29–30 September — the noise-free pipeline</h3>
+<p>All stages built: generator, dispersion, IQ conversion, coherent dedispersion, power detection, folding, TOA fit (FFTFIT). The old
+dispersion kernel's sign error, an fftshift offset, the Hann-window attenuation, out-of-band wrap-around, the unremoved IQ filter delay and
+the halved IQ amplitude were found and fixed (<a href="lessons.html">bugs #1–7</a>); the missing fold covariance (<code>weightX</code>, #8) too. Project
+notes started.</p>
+
+<h3>1 October — noise in, first validation</h3>
+<ul>
+<li>Receiver stage (<code>addNoiseAndRFI</code>, <code>rfiSource</code>, <code>expectedPowerModel</code>) added to the repo; notes synced to the code.</li>
+<li>Parameters changed by Jasper: <var>f</var><sub>LO</sub> 1.3 GHz, <var>f</var><sub>s</sub> 800 MHz, −5 dB, 1 turn per sub-int, 2048 bins.</li>
+<li>Refactor: <code>pipelineParams.m</code>, helpers moved to <code>functions/</code> (<code>gaussianTemplate</code>, <code>noiseBandwidth</code>, <code>loadInfo</code>);
+<code>runMonteCarlo.m</code>.</li>
+<li>Reference run at −5 dB (seed 43): SNR 93.4, σ 2.880 µs. Monte Carlo over 10 seeds: error bars honest (ratio 0.950).</li>
+<li>Jasper flagged bandpass filtering / noise bandwidth as not yet fully understood → review item.</li>
+</ul>
+
+<h3>2 October — review only</h3>
+<p>Walkthrough of the mathematics behind each stage (generator, chirp, SNR definition and Fisher information, complex envelope, radiometer
+equation via Isserlis and Parseval, fold bookkeeping, FFTFIT errors). No code changes.</p>
+
+<h3>5 October — how realistic is it?</h3>
+<ul>
+<li><b>Physical fidelity:</b> exact for what it models over 0.1–1 s; simplified spectrum, profile and receiver; −5 dB is a big dish; missing
+Doppler, DM variations, clock and scintillation (<a href="limits.html">limitations</a>).</li>
+<li><b>Bandpass review closed:</b> two bandwidths (∫<var>W</var>² for the mean, (∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance), all effects ≤ 1.5 %; the exact
+optimum added to <code>expectedPowerModel</code>.</li>
+<li><b>Phase D SNR sweep</b> (<code>runSNRSweep.m</code>): honest error bars above SNR ≈ 10, outliers below; FFTFIT optimal at weak signal.</li>
+<li><b>RFI test:</b> carriers and GNSS cost SNR, impulses harmless, the radar destroys TOAs with confident error bars. GNSS crash fixed (#10).</li>
+<li><b>Phase E started:</b> <code>detectPulsar</code>, the χ² flag, good TOAs in <code>main.m</code>.</li>
+<li>Jasper: design for the weak-signal regime (small-antenna hardware); −50 dB is an operating point, not H0; target DM up to ~60 (later 100).</li>
+</ul>
+
+<h3>6 October — block 1 closed, scenario, new plan, front end started</h3>
+<ul>
+<li><b>Morning:</b> phase E sweep (good TOAs outlier-free), long H0 run (noise model complete, false alarms as designed), threshold sweep (SNR ≥ 6–7),
+centroid offset closed as a fluctuation → <b>Block 1 closed</b>.</li>
+<li><b>Afternoon — reference scenario:</b> Jasper's 3×3 array; worst case −54 dB; ATNF table; J0437 ~20 h per TOA; normal pulsars needed; DM target 100;
+sky temperature in T<sub>sys</sub>.</li>
+<li><b>Evening — plan changed:</b> excision before the fast simulator, with a channelized front end. Built and validated: <code>channelizeIQ</code>,
+<code>dedisperseChannels</code> (+ <code>AllowRefOutsideBand</code>), experiment 3a, <code>detectChannels</code> + <code>powerCovariance</code>. Tests became functions (#11).
+Labels A–E introduced.</li>
+</ul>
+
+<h3>7 October — block A, the fold and the fit</h3>
+<ul>
+<li>A1a (<code>NoiseCoeffs</code>), A1b (<code>DataWeights</code>), A2a / A2b (channels in TOA fit and detection, <code>combineChannels</code>).</li>
+<li>A3a <code>blankingWeights</code>, with two findings: a <var>W</var> = 0 bin must not add power; the mean needs the true channel spectrum.</li>
+<li>A2c-1: optimal weighting in <code>estimateTOA</code>.</li>
+<li>Q&amp;A on the walkthrough (<code>logs/2026-10-07_qa.md</code>).</li>
+</ul>
+
+<h3>8 October — block A complete, block B</h3>
+<ul>
+<li>A2c-2 (optimal detection), A4 (switch in <code>main.m</code>, channel path default) → <b>block A complete</b>.</li>
+<li>B1 <code>blankChannels</code>, B2 <code>detectRFI</code>, B3 excision in <code>main.m</code> (default on), B4 <code>runRFITest</code>.</li>
+<li>B5a radar rise time (realistic default), B5b locked radar → B5b-2 frequency guard (default 7), B5c rotating antenna. Ionosphere noted as an open item.</li>
+<li>B6 periodic mask started. Documentation site created.</li>
+</ul>
+
+<h2 id="decisions">2. Decision log</h2>
+<p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
+agreed.</p>
+<div class="table-wrap"><table>
+<tr><th>Date</th><th>Decision</th><th>Reason</th></tr>
+<tr><td>30 Sep</td><td>Noise and RFI added at RF after dispersion</td><td>Physical order: they enter at the receiver and are never dispersed; dedispersion must treat them as with real data.</td></tr>
+<tr><td>30 Sep</td><td>Band-limited dispersion kernel with raised-cosine edges</td><td>Delays diverge at <var>f</var> → 0; dispersion is phase-only and commutes with the bandpass, so this is exact in band. A time window would attenuate the band's low end.</td></tr>
+<tr><td>30 Sep</td><td><var>f</var><sub>ref</sub> = top of the band</td><td>The top keeps its time, lower frequencies arrive later (as observed); the bulk delay is recorded for later infinite-frequency conversion.</td></tr>
+<tr><td>30 Sep</td><td>Linear phase assignment, with <code>weightX</code></td><td>Nearest-bin assignment had a 0.5 ns bias; linear is unbiased, its neighbour covariance is tracked exactly.</td></tr>
+<tr><td>1 Oct</td><td>Off-centre LO (1.3 GHz), 800 MHz (Jasper)</td><td>A symmetric LO hides a spectral inversion; off-centre it fails visibly.</td></tr>
+<tr><td>1 Oct</td><td>One parameter file; Monte Carlo files in <code>data/mc/</code></td><td>Main and experiments cannot drift apart; main never picks up a Monte Carlo realization.</td></tr>
+<tr><td>1 Oct</td><td>Observer's <var>B</var><sub>noise</sub> = own dedispersion taper only</td><td>Ground-truth rule: the observer does not know the simulator's dispersion taper.</td></tr>
+<tr><td>1 Oct</td><td>At most one new function per step; explain first, wait for OK</td><td>Working style: a codebase Jasper fully understands.</td></tr>
+<tr><td>5 Oct</td><td>Compare with the exact optimum, not the flat-band prediction</td><td>The flat band is 1.5 % optimistic; the comparison must resolve ~1 %.</td></tr>
+<tr><td>5 Oct</td><td>Vary the pulsar realization in the SNR sweep</td><td>At high SNR the self-noise would otherwise be identical in every run and missing from the scatter.</td></tr>
+<tr><td>5 Oct</td><td>Scintillation not added to the voltage simulator now</td><td>Within ≤ 1 s it is a static gain; its real effect (fading over hours) belongs at TOA/SNR level.</td></tr>
+<tr><td>5 Oct</td><td>Phase F (high-SNR estimator) low priority</td><td>FFTFIT is optimal at weak signal, the target regime.</td></tr>
+<tr><td>5 Oct</td><td>Design for weak signal; do not adapt to self-noise (Jasper)</td><td>Small-antenna hardware.</td></tr>
+<tr><td>5 Oct</td><td>H0 = zero sky, not a very low SNR (Jasper)</td><td>−50 dB is a real operating point.</td></tr>
+<tr><td>6 Oct</td><td>Good TOA = fitted ∧ detected (unknown phase) ∧ χ² ok</td><td>FFTFIT searches all phases, so the fair test is "is the best peak anywhere real?"; χ² catches wrong shapes (radar).</td></tr>
+<tr><td>6 Oct</td><td>Design rule SNR ≥ 6–7 per sub-int (was 10)</td><td>Threshold sweep: 92–100 % usable TOAs, no outliers among good ones; 2.4× shorter sub-ints.</td></tr>
+<tr><td>6 Oct</td><td>Worst-case design point (A<sub>eff</sub> 0.3 m², 80 K) (Jasper)</td><td>Area unknown; the pipeline must work there, nominal is the bonus.</td></tr>
+<tr><td>6 Oct</td><td>DM target 100 (Jasper)</td><td>Includes Vela (67.8), B1937+21, B0740−28, plus margin.</td></tr>
+<tr><td>6 Oct</td><td>Sky temperature counted in T<sub>sys</sub> (Jasper)</td><td>The array beam is ~15° wide.</td></tr>
+<tr><td>6 Oct</td><td><b>Excision before the fast simulator; channelized front end</b> (Jasper)</td><td>Real data has RFI; at −54 dB it must be blanked before dedispersion; that changes the fold's data product, which the simulator must emulate.</td></tr>
+<tr><td>6 Oct</td><td>Oversampled filterbank (4/3); common reference via <code>AllowRefOutsideBand</code>; taper inside each channel</td><td>No aliasing into the useful band; alignment by the chirp itself; independent channel noise.</td></tr>
+<tr><td>6 Oct</td><td>No g(W) variance rule; exact per-bin <var>W</var>, <var>V</var>, <var>X</var></td><td>Experiment 3a: simple rules off by up to ±45 %; the exact form is cheap.</td></tr>
+<tr><td>6 Oct</td><td>Tests are functions; pass criteria from predicted σ</td><td>Scripts leaked state between tests; guessed tolerances prove nothing.</td></tr>
+<tr><td>6 Oct</td><td>Weights per phase bin × sub-int × channel; exclusion rule; exact lags (Jasper)</td><td>Exactness first; sub-band grouping later for long runs.</td></tr>
+<tr><td>7 Oct</td><td>Blanking mean with the true channel spectrum (Jasper)</td><td>The pulsar is ~4·10⁻⁶ of the baseline at −54 dB; phase-dependent mean errors must be far below that.</td></tr>
+<tr><td>7 Oct</td><td>Optimal weighting with one common amplitude × known gain</td><td>The exclusion rule wasted data; 128 free amplitudes would fit noise at weak signal.</td></tr>
+<tr><td>8 Oct</td><td>Channel path default; optimal weighting (Jasper)</td><td>Excision needs the channel path.</td></tr>
+<tr><td>8 Oct</td><td>Blank, do not subtract; blanked <b>copies</b>; power threshold only in v1; windows 1–16; P<sub>FA</sub> 10⁻⁶; guard ±10 (Jasper)</td><td>Subtraction leaves residuals ∝ RFI; raw files are the reference; long windows are triggered by the bright test pulsar.</td></tr>
+<tr><td>8 Oct</td><td>Constant-envelope RFI not excised</td><td>Phase-uniform; optimal weighting gives those channels almost no weight.</td></tr>
+<tr><td>8 Oct</td><td>Exact phase-type thresholds instead of Gamma</td><td>The Gamma tail was too thin (1.1× the false flags at 10⁻⁶).</td></tr>
+<tr><td>8 Oct</td><td>Excision on by default (Jasper)</td><td>Costs 0.0125 % of clean data, no TOA change.</td></tr>
+<tr><td>8 Oct</td><td>Realistic radar edges (0.1 µs) as the default (Jasper)</td><td>Instant edges overstate far sidelobes (1/<var>f</var>² vs 1/<var>f</var>⁶).</td></tr>
+<tr><td>8 Oct</td><td>RFI results in baseline units, not TOAs at −5 dB</td><td>The test pulsar is 80,000× brighter than the target; leftovers in baseline units scale to any SNR.</td></tr>
+<tr><td>8 Oct</td><td>Frequency guard default 7 channels (Jasper)</td><td>1 µs locked-radar bias only below −51 dB at ~0.004 % data per channel.</td></tr>
+<tr><td>8 Oct</td><td>Periodic mask (B6)</td><td>Rotating-radar sidelobe pulses are mostly missed one by one; their period is measured from the main beam.</td></tr>
+<tr><td>8 Oct</td><td>Docs site in <code>docs/</code>, updated alongside the code (Jasper)</td><td>A codebase Jasper fully understands.</td></tr>
+</table></div>
+
+<h2 id="logs">3. The session logs</h2>
+<div class="table-wrap"><table>
+<tr><th>File</th><th>Content</th></tr>
+<tr><td><a href="../logs/2026-10-01_session.md"><code>2026-10-01_session.md</code></a></td><td>receiver stage in, refactor, reference run, Monte Carlo</td></tr>
+<tr><td><a href="../logs/2026-10-02_review.md"><code>2026-10-02_review.md</code></a></td><td>mathematics review</td></tr>
+<tr><td><a href="../logs/2026-10-05_fidelity.md"><code>2026-10-05_fidelity.md</code></a></td><td>fidelity, bandpass review, exact optimum, phase D, RFI test, phase E start</td></tr>
+<tr><td><a href="../logs/2026-10-06_phase-e.md"><code>2026-10-06_phase-e.md</code></a></td><td>phase E, H0 run, threshold sweep, scenario, channel front end units 1–3b</td></tr>
+<tr><td><a href="../logs/2026-10-06_overview.md"><code>2026-10-06_overview.md</code></a></td><td>recap of 29 Sep – 6 Oct</td></tr>
+<tr><td><a href="../logs/2026-10-07_fold-noise.md"><code>2026-10-07_fold-noise.md</code></a></td><td>A1–A3, A2c-1</td></tr>
+<tr><td><a href="../logs/2026-10-07_qa.md"><code>2026-10-07_qa.md</code></a></td><td>Jasper's questions on the walkthrough, with answers</td></tr>
+<tr><td><a href="../logs/2026-10-08_optimal-detect-main.md"><code>2026-10-08_optimal-detect-main.md</code></a></td><td>A2c-2, A4</td></tr>
+<tr><td><a href="../logs/2026-10-08_overview.md"><code>2026-10-08_overview.md</code></a></td><td>recap of 7–8 Oct (block A)</td></tr>
+<tr><td><a href="../logs/2026-10-08_excision.md"><code>2026-10-08_excision.md</code></a></td><td>block B: B1–B6</td></tr>
+<tr><td><a href="../logs/2026-10-08_docs.md"><code>2026-10-08_docs.md</code></a></td><td>this documentation site</td></tr>
+<tr><td><a href="../logs/current_project_notes.md"><code>current_project_notes.md</code></a></td><td>the complete reference, kept up to date with the code</td></tr>
+</table></div>
+<p>The <code>.md</code> files open as plain text in the browser.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

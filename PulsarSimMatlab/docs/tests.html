@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unit Tests</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Unit tests</h1>
+<p class="lede">Every function added since 6 October has a test in <code>tests/</code> that checks it three ways: regression
+(bit-identical where nothing should change), algebra (code = independently computed formula) and physics (measured noise
+= predicted noise, within a predicted σ).</p>
+
+<h2>How to run</h2>
+<pre><code>run('tests/testChannelizeIQ.m')</code></pre>
+<p>From the <code>PulsarSimMatlab</code> folder. Every test is a function (own workspace), prints PASS/FAIL lines and its
+numbers, and can be run one after another in one MATLAB session.</p>
+<div class="callout why"><span class="ttl">Why tests are functions, not scripts</span>
+<p>As scripts they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
+cleanup ran at once and changed the folder back, and the next test failed with "Unrecognized function 'pipelineParams'". It only showed
+when several tests ran in one session, the way Jasper runs them (<a href="lessons.html">bugs and lessons</a> #11).</p></div>
+<div class="callout warn"><span class="ttl">Order and shared files</span>
+<ul>
+<li>Several tests need <code>main.m</code>'s files (seed 43, −5 dB, <var>L</var> = 0.1 s, fs 800 MHz) and the channel files that
+<code>testDedisperseChannels</code> / <code>testDetectChannels</code> write to <code>data/chan/</code>; they make them first if missing.</li>
+<li>The <code>make*Reference.m</code> scripts are not tests: they froze outputs of old code (at a named commit) for the regression checks. Do not rerun them with new code.</li>
+<li>Never run two test sessions at once: they share <code>data/chan/</code>.</li>
+<li>A result counts as <span class="badge validated">validated</span> only after Jasper's own run.</li>
+</ul></div>
+
+<h2>The tests</h2>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>Unit</th><th>Time</th><th>Status</th></tr>
+<tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
+<tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
+<tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
+<tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
+<tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
+<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b</td><td>~5 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
+<tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a</td><td>~66 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
+<tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
+<tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~33 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><code>testPeriodicRFI</code></td><td><code>periodicRFI</code> B6</td><td>~1 min</td><td><span class="badge written">in progress (uncommitted)</span></td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Reference maker</th><th>Freezes</th><th>Made with</th><th>File</th></tr>
+<tr><td><code>makeFoldReference</code></td><td>four folds: full band linear / nearest / 3 turns per sub-int, 128 channels</td><td><code>foldProfile</code> of e852da6 (pre-A1)</td><td><code>data/mc/foldRef_pre3c.mat</code></td></tr>
+<tr><td><code>makeToaReference</code></td><td><code>estimateTOA</code> / <code>detectPulsar</code> outputs in five cases</td><td>code of 918cae3 (pre-A2)</td><td><code>data/mc/toaRef_preA2.mat</code></td></tr>
+<tr><td><code>makeRfiReference</code></td><td>20 µs of noise + all five RFI types</td><td>code of f4181f5 (pre-B5a)</td><td><code>data/mc/rfiRef_preB5a.mat</code></td></tr>
+</table></div>
+
+<h2 id="chan"><code>testChannelizeIQ</code></h2>
+<ol>
+<li><b>Tones</b> at, beside and far from channel centres: every output sample equals A·e<sup><var>i</var>φ</sup>·<var>H</var><sub>c</sub>(Δ<var>f</var>)·e<sup><var>i</var>2πΔ<var>f</var>·<var>t</var></sup> to 2.7·10⁻⁷.
+One test pins down frequency mapping (which channel), LO phase, timing and gain. The far tone checks the stopband (−80.2 dB).</li>
+<li><b>White noise</b> (2²³ samples): channel power / Σ<var>h</var>² = 1.0007, passband level 1.0004. The noise model depends on this gain.</li>
+<li><b>Real data</b> (seed 43): Σ channel band powers / IQ band power = 1.00007 (Parseval: no gaps, no double counting).</li>
+</ol>
+
+<h2 id="dedisp"><code>testDedisperseChannels</code></h2>
+<ol>
+<li><b>Regression:</b> full-band <code>applyInverseDispersion</code> with the new option off = <code>test_IQ_dedispersed.dat</code> bit for bit.</li>
+<li><b>Commutation:</b> channelize(dedispersed) vs dedisperse(channelized): correlation ≥ 0.999993, phase ≤ 1.2·10⁻⁵ rad, power 1 ± 3·10⁻⁵.
+Both are linear filters, so the order must not matter; this proves chirps, inter-channel delays and phases.</li>
+<li><b>End to end:</b> channel vs full-band TOAs; differences scatter as predicted (σ·√(2(1−ρ)), ρ = 0.979), tested as a χ² in the 99.8 % range.</li>
+<li><b>Time-bin noise:</b> variance 0.884 vs 0.888 ± 0.005 predicted, lag-1 correlation 0.054 vs 0.052. This showed the narrow-channel effect is real.</li>
+</ol>
+
+<h2 id="exp3a"><code>expBlankingVariance</code> (experiment 3a)</h2>
+<p>Noise only, bottom channel, DM 5 and DM 100, three masks (radar 4 µs at 373 Hz; random 50 µs blanks, 10 %; 1 ms gaps every 5 ms, 20 %).
+Mean: <var>P</var>/<var>W</var> = 1 in every valid-fraction group. Variance: measured / exact = 1 ± 0.002 over ~10⁶ bins, "exact" from the mask
+convolutions (checked against a direct 2<var>n</var>×2<var>n</var> matrix to 7·10⁻⁸). The simple <var>w</var>² and <var>w</var> models are off by up to ±45 %: the
+result that killed the "g(<var>w</var>)" idea and led to exact per-bin weights.</p>
+
+<h2 id="detch"><code>testDetectChannels</code></h2>
+<ol>
+<li><code>powerCovariance</code> (from the spectrum) = statistics from the actual dedispersion impulse response, to 6·10⁻¹⁰.</li>
+<li>Interleaved [128 × nBins] file = <code>detectPower</code> per channel, bit-identical rows.</li>
+<li>Folding the 128-channel file and summing = folding the summed power (1.2·10⁻⁸).</li>
+<li>Measured on real data: <var>V</var> 0.8866 vs 0.8877 ± 0.0006; <var>X</var>₁₋₃ match; variance of 5-bin sums 0.9685 vs 0.9692 (independent bins would say 1).</li>
+</ol>
+
+<h2 id="foldw"><code>testFoldWeights</code></h2>
+<ol>
+<li><b>Regression:</b> without new options the four reference folds bit for bit.</li>
+<li><b>Algebra:</b> awkward synthetic geometry (f0 100.3 Hz, F1 −0.5 Hz/s, 4096 bins, chunks of 1000), exaggerated coefficients:
+<code>weight2</code>/<code>weightX</code> = <var>A</var>ᵀ<var>CA</var> from the explicit assignment matrix, to 6·10⁻¹⁶.</li>
+<li><b>Physics:</b> 128-channel data, measured phase-bin variance and lag-1/2 covariance: new model −1.4σ / +0.6σ / −0.1σ, old model −13.1σ / +5.9σ.</li>
+<li>Constant weight file = <code>NoiseCoeffs</code> fold bit for bit (two code paths, one answer).</li>
+<li>Random weight streams (3 channels, 10 % zeros): weight = <var>A</var>ᵀ<var>W</var>, weight2/weightX = <var>A</var>ᵀ<var>CA</var> per channel to 7·10⁻¹⁶; a <var>W</var> = 0 bin adds no power.</li>
+<li>Fake blanking (15 % random + phase-correlated at 0.30–0.36): weighted mean unbiased (−0.0019 ± 0.0009) while the naive fold is −0.574 off as predicted; noise as modelled.</li>
+</ol>
+
+<h2 id="chtoa"><code>testChannelTOA</code></h2>
+<ol>
+<li><code>estimateTOA</code> single-channel = pre-A2 outputs bit for bit (five cases).</li>
+<li>phaseErr = √(<var>d</var>ᵀΣ<var>d</var>)/|<var>C</var>″| and ampErr with the full covariance built channel by channel (128 channels, 3 lags; and fake blanking
+with excluded channels): to 4·10⁻¹⁶.</li>
+<li>Physics: 128-channel fold vs summed power: same TOAs; blanked vs unblanked consistent.</li>
+<li><code>detectPulsar</code> regression bit for bit.</li>
+<li>T0, normProfile, Tmax = explicit full H0 covariance formulas.</li>
+<li><code>noiseRatio</code> = 1 within 4σ on the channel path, blanked and unblanked.</li>
+</ol>
+
+<h2 id="bw"><code>testBlankingWeights</code></h2>
+<ol>
+<li><b>Exactness:</b> <var>W</var>, <var>V</var>, <var>X</var>(1..7) vs the direct covariance <var>H</var>·diag(keep)·<var>H</var>′ for 221 bins (channels 1, 64, 128; blanks 1–3001 samples): 3·10⁻⁸.</li>
+<li><b>Consistency:</b> empty mask = A1a fold; far bins = unblanked constants; messy mask = clean mask; (2e) channel autocorrelation from the prototype = measured.</li>
+<li><b>End to end:</b> voltages blanked before dedispersion with a zoo of masks including a phase-locked 400 Hz radar and blanks on the pulse: means unbiased per <var>W</var>
+group, noise per valid-fraction group, channel exclusion as the rule says, TOAs consistent, noise ratio 1.</li>
+</ol>
+
+<h2 id="opt"><code>testOptimalTOA</code></h2>
+<ol>
+<li>Default = pre-A2 bit for bit.</li>
+<li>One channel, uniform weights: τ = FFTFIT to 1.7·10⁻¹⁶ turns.</li>
+<li>128 channels (unblanked, fake-blanked): τ maximizes <var>N</var>/√<var>D</var><sub>n</sub>, <var>b</var> and <var>a</var><sub>c</sub> = WLS, errors = explicit sandwich.</li>
+<li>Monte Carlo, 800 profiles per level with the exact covariance of 64 fake-blanked channels: unbiased, pull std 1.006–1.037, scatter optimal/equal 0.955–0.963 as predicted.</li>
+<li>Fake-blanked data: optimal uses all 128 channels (equal 118); TOAs equal within −0.006 ± 0.352 µs.</li>
+<li>Tests 6–10, detection: default bit for bit; explicit H0 matrices ≤ 10⁻¹⁵; H0 Monte Carlo false alarms 0.054 / 0.051 (design 0.05 ± 0.008); H1 detected 0.914 vs theory 0.910; blanked data consistent.</li>
+</ol>
+
+<h2 id="bc"><code>testBlankChannels</code></h2>
+<p>1727 mask rows (5.2 % blanked): masked samples exactly 0, others bit-identical; merge/clip cases; block size independence; empty mask →
+byte-identical copies; <code>dedisperseChannels</code> on the result changes only blanked channels, only within the filter reach.</p>
+
+<h2 id="drfi"><code>testDetectRFI</code></h2>
+<p>Own 0.05 s noise-only and noise + RFI channel files through the real receiver chain with the same noise seed (difference = RFI alone).
+(1) False flags on noise at the design rates; (2) the −5 dB pulsar's on/off-pulse flags as predicted per window size; (3) radar, impulses,
+carrier and GNSS scored against the RFI-only signal; (3d) the frequency guard: mask = own detections + strong events copied to ±7 channels.</p>
+
+<h2 id="edges"><code>testRadarEdges</code></h2>
+<p>(1) <code>RiseTime</code> 0 = the pre-B5a output bit for bit. (2) Defaults (0.1 µs for <code>'pulsed'</code>), invalid values refused. (3) Radar alone =
+an independent formula to 10⁻⁷; envelope 0.500 at the nominal edge; energy = <var>a</var>²/2·(PW − RiseTime/4) to 10⁻⁵. (4) Spectrum: energy beyond
+10/25/50 MHz matches 1/(π²<var>F</var>·PW) for instant edges and the half-sine edge model for 0.1 µs edges.</p>
+
+<h2 id="gating"><code>testRfiGating</code></h2>
+<p>No rotation = pre-B5a reference bit for bit; invalid rotations refused; radar and carrier through two beam passages: energy with/without
+rotation = <var>g</var>(<var>t</var>) averaged over each pulse to 10⁻⁵.</p>
+
+<h2>Statistical validations (scripts, not unit tests)</h2>
+<p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> are experiments with tables, not PASS/FAIL units, and take minutes. See
+<a href="scripts.html">run scripts</a>.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

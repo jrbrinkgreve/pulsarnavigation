@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conventions and Why</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Conventions and why</h1>
+<p class="lede">Rules every stage follows. Each one exists because something would otherwise go wrong:
+out-of-memory errors, silent timing offsets, results that cannot be reproduced, or a pipeline that only works on
+simulated data.</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#truth">The ground-truth rule</a></li>
+<li><a href="#io">Streaming file I/O</a></li>
+<li><a href="#formats">File formats</a></li>
+<li><a href="#info">Info structs</a></li>
+<li><a href="#time">Time and precision</a></li>
+<li><a href="#rng">Reproducibility</a></li>
+<li><a href="#args">Arguments and toolboxes</a></li>
+<li><a href="#params">One parameter file</a></li>
+<li><a href="#regress">Bit-identical regressions</a></li>
+<li><a href="#workflow">Working style</a></li>
+</ol></div>
+
+<h2 id="truth">1. The ground-truth rule</h2>
+<p><b>Processing stages use only what a real observer would know:</b> the ephemeris (the <code>ephem</code> struct:
+<code>f0</code>, <code>F1</code>, <code>TRef</code>, <code>DM</code>, <code>profileFWHM</code>) and the receiver settings (band, LO frequency,
+sample rate, taken from the receiver's <code>info</code>). Ground truth (<code>info_gen</code>, <code>info_disp</code>,
+<code>info_rx</code>: true pulse times, noise level, RFI parameters) is used only by the synthetic stages and by the
+check and validation functions.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>The processing must later run unchanged on real receiver data, where there is no truth. If a processing stage
+quietly used the true noise level or the true pulse times, it would look perfect in simulation and fail on the sky.
+The rule also keeps validation meaningful: comparing a result with the truth only proves something if the truth was not
+used to make it.</p></div>
+<p>Examples of the rule in action:</p>
+<ul>
+<li>The TOA noise model uses the <em>fitted</em> baseline and amplitude, not the simulated noise level.</li>
+<li><code>main.m</code> passes the noise bandwidth of the observer's own dedispersion taper (391.6 MHz), not the
+product of both tapers (389.6 MHz), because the observer does not know the simulator's dispersion taper.</li>
+<li><code>detectRFI</code> uses only the channel data and the channelizer settings, never the RFI parameters.</li>
+<li><code>expectedPowerModel</code>, which uses all the truth, is only called by plot checks and to print the best
+achievable precision.</li>
+</ul>
+
+<h2 id="io">2. Streaming file I/O</h2>
+<p>Every stage is <b>file in → file out, streamed in blocks</b>. Memory is bounded by the block or FFT size, never by
+the file size. Every <code>fwrite</code> count is checked, so a full disk raises an error instead of leaving a
+truncated file.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>One second of simulated data at 4 GHz is 16 GB per real file; a full run uses about 61 GB of files. Nothing fits in
+the 24 GB of memory at once. Streaming also mirrors how real recorded data would be processed. Checking write counts
+prevents the worst failure mode: a run that "succeeds" on a half-written file.</p></div>
+<p>Filters that span many samples (dispersion kernels of 25 million taps) use FFT convolution with
+<b>overlap-add</b> (forward dispersion, IQ filter) or <b>overlap-save</b> (dedispersion). The FFT size is chosen
+automatically to minimise total cost within a <code>MaxMemoryGB</code> limit.</p>
+
+<h2 id="formats">3. File formats</h2>
+<div class="table-wrap"><table>
+<tr><th>Data</th><th>Format</th></tr>
+<tr><td>Real samples (RF)</td><td>float32, little-endian (<code>fopen(..., 'ieee-le')</code>), no header</td></tr>
+<tr><td>Complex samples (IQ)</td><td>interleaved float32 I, Q (I0, Q0, I1, Q1, …), little-endian: the <code>.cf32</code> convention</td></tr>
+<tr><td>Detected power</td><td>float32 <code>[nChan × nBins]</code>, column-major: all channels of bin 1, then bin 2, …</td></tr>
+<tr><td>Data weights</td><td>float32 <code>[nChan × (2 + Lmax) × N]</code>: per bin W of all channels, then V, then X(1) … X(Lmax)</td></tr>
+<tr><td>Channel files</td><td><code>&lt;base&gt;_ch001.dat</code> … one cf32 file per channel, plus <code>&lt;base&gt;_info.mat</code></td></tr>
+<tr><td>Fold</td><td><code>.mat</code> with the <code>fold</code> and <code>info</code> structs</td></tr>
+</table></div>
+<div class="callout why"><span class="ttl">Why headerless float32</span>
+<p>It is what software-defined radios and pulsar recorders commonly write, any tool can read it, and float32 halves the
+disk use of double. Precision is not an issue for sample values; times are never stored in float32 (see <a href="#time">time</a>).</p></div>
+
+<h2 id="info">4. Info structs</h2>
+<p>Every stage returns an <code>info</code> struct and saves it as <code>&lt;outputname&gt;_info.mat</code> next to its data
+file. The next stage takes its input file and sample rate from that struct (<code>info.file</code>,
+<code>info.actualFsOut</code>, …). When <code>main.m</code> skips a stage it reloads the struct with
+<code>loadInfo(dataFile)</code>.</p>
+<p>Common fields: <code>file</code>, <code>inFile</code>, <code>precision</code>, <code>byteOrder</code>, <code>isComplex</code>, <code>N</code>,
+<code>fs</code>, <code>actualFsOut</code>, stage-specific parameters and conventions, <code>elapsed</code>.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>Passing parameters by hand between stages invites mismatches (the wrong sample rate after decimation, the wrong LO).
+Chaining through <code>info</code> means each stage describes exactly what it wrote. It also makes stale files detectable:
+<code>main.m</code>'s <code>checkConsistency</code> warns when files on disk were made with different parameters (T, f_in, L,
+DM, band, SNR, receiver input, fLO, fs, RFI sources).</p></div>
+
+<h2 id="time">5. Time and precision</h2>
+<ul>
+<li>Times are computed in <b>double precision</b> from <b>absolute sample indices</b>. Sample <var>k</var> (0-based) of a stream at
+rate <var>f</var><sub>s</sub> is at time <var>k</var>/<var>f</var><sub>s</sub> (plus <code>T0</code>, currently 0).</li>
+<li>Oscillator and chirp phases are computed from the absolute index, never accumulated sample by sample.</li>
+<li>Filters have odd length or known delay, and their group delay is <b>removed exactly</b>; decimation keeps samples on
+the global grid (output sample <var>k</var> ↔ input sample <var>k</var>·<var>D</var>).</li>
+<li>A detected time bin's time is the centroid of its samples: <var>t</var><sub>k</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why</span>
+<p>Single precision rounds to ~60 ns at <var>t</var> = 1 s, and accumulated phases drift. The project measures TOAs to
+sub-microsecond precision and wants nanoseconds later, so every timing convention must be exact. An unremoved filter
+delay of 256 ns was a real bug once (<a href="lessons.html">bugs and lessons</a> #5).</p></div>
+
+<h2 id="rng">6. Reproducibility</h2>
+<p>Each random process has its own private <code>RandStream</code>; the global random number generator is never touched.</p>
+<div class="table-wrap"><table>
+<tr><th>Process</th><th>Generator</th><th>Seed</th></tr>
+<tr><td>Pulsar signal</td><td><code>mt19937ar</code></td><td><code>seed</code> (42)</td></tr>
+<tr><td>Receiver noise</td><td><code>mt19937ar</code></td><td><code>noiseSeed</code> (seed + 1 = 43)</td></tr>
+<tr><td>RFI</td><td><code>mrg32k3a</code> substreams</td><td>per chip chunk / per burst</td></tr>
+</table></div>
+<p>The same seed gives identical data, <b>independent of block sizes</b>.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>Separate streams let you change the noise without changing the pulsar (Monte Carlo over noise seeds), or rerun one
+stage alone. Block-size independence means a change of memory settings can never change the data. Substreams for RFI
+make each chip chunk or burst depend only on its own index.</p></div>
+
+<h2 id="args">7. Arguments and toolboxes</h2>
+<p>Required inputs are positional; everything else is a name-value option in an <code>arguments</code> block (MATLAB
+R2019b+, <code>mustBeTextScalar</code> needs R2020b+). <b>No Signal Processing Toolbox:</b> filters (Kaiser-windowed sincs,
+raised-cosine tapers, polyphase filterbank) are built by hand.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>Hand-built filters are fully understood and fully specified in the code: tap count, stopband, delay and gain
+convention are all visible. It also avoids a toolbox dependency.</p></div>
+
+<h2 id="params">8. One parameter file</h2>
+<p><code>pipelineParams.m</code> is a <em>script</em> that defines every parameter (pulsar, simulation, receiver, noise and
+RFI, processing, ephemeris, file names). <code>main.m</code> and all <code>run*.m</code> scripts call it, so its variables
+land in their workspace.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>The main run and the Monte Carlo scripts cannot drift apart. Later it will be split into simulation parameters
+(truth) and observation parameters (receiver, processing) for real data.</p></div>
+<p>Monte Carlo and test scripts write to their own files (<code>data/mc/</code>, <code>data/rfi/</code>, <code>data/locked/</code>), so a later
+<code>main.m</code> run with skipped stages never picks up a Monte Carlo realization (<code>checkConsistency</code> does not check
+the noise seed).</p>
+
+<h2 id="regress">9. Bit-identical regressions</h2>
+<p>When a function gains a new option, the default behaviour must reproduce the old output <b>bit for bit</b>. Reference
+outputs are frozen before the change (<code>tests/make*Reference.m</code>), and the unit test compares against them.</p>
+<div class="callout why"><span class="ttl">Why</span>
+<p>Validated numbers stay validated. If the full-band path, validated in block 1, still gives exactly the same bits after
+all of block A, nothing in it needs re-validation. "Close enough" would hide accidental changes.</p></div>
+
+<h2 id="workflow">10. Working style</h2>
+<p>From the project's <code>CLAUDE.md</code>: go one stage at a time; explain the physics and the planned change before
+editing; one logical change per edit; Jasper runs MATLAB; a result is <span class="badge validated">validated</span> only after
+Jasper's own run; after each session a dated note goes into <code>logs/</code>, and <code>docs/</code> is updated alongside the code.
+Session logs record what changed and why; <code>logs/current_project_notes.md</code> is the complete reference.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

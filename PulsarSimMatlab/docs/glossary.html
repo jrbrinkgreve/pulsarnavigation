@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossary</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Glossary</h1>
+<p class="lede">Terms, symbols and variable names used in the code and on this site.</p>
+
+<dl class="facts">
+<dt id="bnoise"><var>B</var><sub>n</sub>, <code>Bnoise</code></dt><dd>Noise-equivalent bandwidth (∫<var>W</var>²)²/∫<var>W</var>⁴: the bandwidth that sets the variance of detected power. 391.6 MHz full band, 3.0596 MHz per channel.</dd>
+<dt>baseline</dt><dd>The off-pulse level of a profile (noise power plus any steady RFI). Fitted, never taken from the truth.</dd>
+<dt>blanking</dt><dd>Setting voltage samples to zero (weight 0) where RFI was detected.</dd>
+<dt>bulkDelayRef</dt><dd>τ(<var>f</var><sub>ref</sub>): the dispersion delay of the reference frequency relative to infinite frequency. Recorded, not applied.</dd>
+<dt>channel</dt><dd>One of 128 sub-bands of 3.125 MHz made by <code>channelizeIQ</code>; an ordinary IQ stream at 4.17 MHz.</dd>
+<dt>coherent dedispersion</dt><dd>Removing dispersion by applying the inverse chirp filter to the complex voltages: exact at every frequency.</dd>
+<dt>complex envelope / IQ</dt><dd>The complex baseband signal <var>z</var>(<var>t</var>) with <var>x</var>(<var>t</var>) = Re{<var>z</var>·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}; I and Q are its real and imaginary parts.</dd>
+<dt>Cramér–Rao bound</dt><dd>The smallest variance any unbiased estimator can reach; here the best possible TOA error.</dd>
+<dt>data weights (<var>W</var>, <var>V</var>, <var>X</var>(<var>L</var>))</dt><dd>Per detected bin and channel: valid fraction, variance and lag covariances relative to the radiometer value. From <code>blankingWeights</code>, used by <code>foldProfile 'DataWeights'</code>.</dd>
+<dt>dispersion measure (DM)</dt><dd>Column density of free electrons to the pulsar, in pc cm⁻³; sets the 1/<var>f</var>² delay.</dd>
+<dt>dutycycle</dt><dd>Pulse FWHM as a percentage of the period (5 % here).</dd>
+<dt>ephemeris (<code>ephem</code>)</dt><dd>The observer's timing model: <code>f0</code>, <code>F1</code>, <code>TRef</code>, <code>DM</code>, <code>profileFWHM</code>.</dd>
+<dt>excision</dt><dd>Finding and blanking RFI (block B).</dd>
+<dt>exclusion rule</dt><dd>With equal channel weights: a channel is used in a sub-int only if it has data in every phase bin where any channel has data.</dd>
+<dt>FFTFIT</dt><dd>Taylor's (1992) template-matching TOA method: cross-correlation in the Fourier domain, continuous shifts.</dd>
+<dt>fold, folding</dt><dd>Averaging detected power at equal rotational phase over many turns.</dd>
+<dt>frequency guard</dt><dd><code>detectRFI</code> blanks strong events (≥ 100× baseline) also in ±7 neighbouring channels, to remove sidelobes below the per-channel threshold.</dd>
+<dt>fullySupported</dt><dd>The sample (or bin) range whose filters saw only real data, e.g. the complete dedispersion sweep. Only this range is folded.</dd>
+<dt>good TOA</dt><dd>Fitted ∧ detected at unknown phase ∧ χ² not flagged.</dd>
+<dt>H0 / H1</dt><dd>The hypotheses "noise only" and "noise + pulse" in the detection test.</dd>
+<dt>INR</dt><dd>Interference-to-noise ratio: RFI power while on, relative to all receiver-noise power in the band.</dd>
+<dt>Isserlis' theorem</dt><dd>Fourth moments of Gaussian variables as sums of products of second moments; gives the covariance of power samples, the root of the noise model.</dd>
+<dt>leftover (<var>L</var>)</dt><dd>In the locked-radar study: folded radar power after excision, in units of the noise baseline.</dd>
+<dt>linear assignment</dt><dd>Splitting each time bin between the two nearest phase bins in proportion to distance; unbiased, but correlates neighbours.</dd>
+<dt>LO</dt><dd>Local oscillator, 1.3 GHz here (off-centre on purpose).</dd>
+<dt>MSP</dt><dd>Millisecond pulsar (e.g. J0437−4715).</dd>
+<dt><code>NoiseCoeffs</code></dt><dd>Fold option: [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)] of correlated time bins (narrow channels, no blanking).</dd>
+<dt>noise ratio</dt><dd>Measured off-pulse variance / modelled variance; 1 if the noise model is right.</dd>
+<dt>Neyman–Pearson (NP)</dt><dd>The most powerful test at a fixed false-alarm rate; for a known shape in Gaussian noise, a matched filter.</dd>
+<dt>optimal weighting</dt><dd>Fit or detection over all channels with inverse-variance weights and one common amplitude (A2c).</dd>
+<dt>oversampled filterbank</dt><dd>A channelizer whose channel rate exceeds the channel width (4/3 here), so aliasing stays out of the useful band.</dd>
+<dt><var>P</var><sub>FA</sub>, <var>P</var><sub>D</sub></dt><dd>False-alarm and detection probabilities.</dd>
+<dt>phase bin</dt><dd>One of <code>NBin</code> (2048) bins of rotational phase.</dd>
+<dt>phase-locked RFI</dt><dd>RFI whose period is a multiple of the pulsar's, so it folds into the same phases every turn.</dd>
+<dt>polyphase filterbank</dt><dd>An efficient implementation of many mix–filter–decimate channels with one FFT.</dd>
+<dt>Q-Q plot</dt><dd>Sorted normalized errors against Gaussian quantiles; the line y = x means honest error bars.</dd>
+<dt>radiometer equation</dt><dd>Relative noise of averaged power: 1/√(<var>B</var>Δ<var>t</var>).</dd>
+<dt>ratio (rms/pred)</dt><dd>rms of actual TOA errors / rms of stated errors; 1 = honest.</dd>
+<dt>reduced χ²</dt><dd>Mean squared normalized fit residual on-pulse; ≫ 1 flags a wrong profile.</dd>
+<dt>RFI</dt><dd>Radio-frequency interference: man-made signals in the band.</dd>
+<dt>Rice factor</dt><dd>√λ₂/2π = 5.51: roughly the number of independent phase trials per turn for this template.</dd>
+<dt>rise time</dt><dd>Duration of a radar pulse's raised-cosine edge (0.1 µs default).</dd>
+<dt>sandwich covariance</dt><dd><var>A</var>⁻¹<var>BA</var>⁻¹: honest parameter covariance when fit weights are not the exact inverse covariance.</dd>
+<dt>scintillation</dt><dd>Fading from multipath interference in the turbulent interstellar plasma.</dd>
+<dt>SEFD</dt><dd>System-equivalent flux density 2<var>k</var>T<sub>sys</sub>/A<sub>eff</sub>: the receiver noise in flux units.</dd>
+<dt>self-noise</dt><dd>The scatter of detected power caused by the pulsar's own noise; proportional to the pulse.</dd>
+<dt id="snr">SNR, ρ, snrDB</dt><dd>Three different numbers. <b>ρ</b> (<code>snrDB</code> in dB) = <var>S</var><sub>peak</sub>/SEFD, a per-hertz ratio set by sky and antenna. <b>SNR per pulse</b> ≈ 388ρ (after matched filtering). <b>SNR per sub-int</b> = SNR per turn × √turns; the design rule is ≥ 6–7.</dd>
+<dt>sub-int (sub-integration)</dt><dd>A group of consecutive turns folded into one profile; one TOA each.</dd>
+<dt>T0, Tmax</dt><dd>Matched-filter statistic at the predicted phase, and its maximum over all phases.</dd>
+<dt>template</dt><dd>The expected pulse shape (a periodic Gaussian here), peak 1 at phase 0.</dd>
+<dt>TOA</dt><dd>Time of arrival of template phase 0 at the reference frequency (1.6 GHz).</dd>
+<dt>valid fraction (<var>W</var>)</dt><dd>The fraction of real (not blanked) data in a detected bin after dedispersion spread the blanks.</dd>
+<dt><code>weight</code>, <code>weight2</code>, <code>weightX</code></dt><dd>Fold fields: data amount, variance factor and neighbour covariance factor per phase bin.</dd>
+</dl>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

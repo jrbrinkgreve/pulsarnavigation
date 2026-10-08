@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline Overview</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Pipeline overview</h1>
+<p class="lede">Every stage of <code>main.m</code>, the files it writes and how the two front ends branch and join.
+Click a box to open its page.</p>
+
+<figure>
+<svg viewBox="0 0 870 660" role="img" aria-label="Pipeline diagram">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+
+  <!-- row 1: sky and receiver -->
+  <a href="sky.html#gen"><rect class="box sky" x="10" y="20" width="195" height="56" rx="7"/>
+    <text class="fn" x="107.5" y="44" text-anchor="middle">generatePulsarSignal</text>
+    <text class="sub" x="107.5" y="62" text-anchor="middle">1 · real, 4 GHz</text></a>
+  <a href="sky.html#disp"><rect class="box sky" x="225" y="20" width="195" height="56" rx="7"/>
+    <text class="fn" x="322.5" y="44" text-anchor="middle">applyDispersionStream</text>
+    <text class="sub" x="322.5" y="62" text-anchor="middle">2 · ISM dispersion, DM 5</text></a>
+  <a href="receiver.html#noise"><rect class="box rx" x="440" y="20" width="195" height="56" rx="7"/>
+    <text class="fn" x="537.5" y="44" text-anchor="middle">addNoiseAndRFI</text>
+    <text class="sub" x="537.5" y="62" text-anchor="middle">3 · noise + RFI at RF</text></a>
+  <a href="receiver.html#iq"><rect class="box rx" x="655" y="20" width="195" height="56" rx="7"/>
+    <text class="fn" x="752.5" y="44" text-anchor="middle">applyIQmodulation</text>
+    <text class="sub" x="752.5" y="62" text-anchor="middle">4 · complex, 800 MHz</text></a>
+  <path class="line" marker-end="url(#ar)" d="M205 48 H223 M420 48 H438 M635 48 H653"/>
+
+  <!-- split -->
+  <path class="line" d="M752.5 76 V100 H150"/>
+  <path class="line" marker-end="url(#ar)" d="M150 100 V128"/>
+  <path class="line" marker-end="url(#ar)" d="M452.5 100 V128"/>
+  <text class="sub" x="158" y="120">frontEnd = 'fullband'</text>
+  <text class="sub" x="460" y="120">'channels' (default)</text>
+
+  <!-- full band column -->
+  <a href="fullband.html#dedisp"><rect class="box proc" x="10" y="130" width="280" height="56" rx="7"/>
+    <text class="fn" x="150" y="154" text-anchor="middle">applyInverseDispersion</text>
+    <text class="sub" x="150" y="172" text-anchor="middle">5 · coherent dedispersion, whole band</text></a>
+  <a href="fullband.html#detect"><rect class="box proc" x="10" y="210" width="280" height="56" rx="7"/>
+    <text class="fn" x="150" y="234" text-anchor="middle">detectPower</text>
+    <text class="sub" x="150" y="252" text-anchor="middle">6 · |z|², 1 µs bins</text></a>
+  <path class="line" marker-end="url(#ar)" d="M150 186 V208"/>
+
+  <!-- channel column A -->
+  <a href="channels.html#chan"><rect class="box proc" x="330" y="130" width="245" height="56" rx="7"/>
+    <text class="fn" x="452.5" y="154" text-anchor="middle">channelizeIQ</text>
+    <text class="sub" x="452.5" y="172" text-anchor="middle">128 × 3.125 MHz, 4.17 MHz rate</text></a>
+  <a href="channels.html#dedisp"><rect class="box proc" x="330" y="210" width="245" height="56" rx="7"/>
+    <text class="fn" x="452.5" y="234" text-anchor="middle">dedisperseChannels</text>
+    <text class="sub" x="452.5" y="252" text-anchor="middle">per channel, aligned at 1.6 GHz</text></a>
+  <a href="channels.html#detect"><rect class="box proc" x="330" y="290" width="245" height="56" rx="7"/>
+    <text class="fn" x="452.5" y="314" text-anchor="middle">detectChannels</text>
+    <text class="sub" x="452.5" y="332" text-anchor="middle">[128 × bins], 0.96 µs + noise V, X</text></a>
+  <path class="line" marker-end="url(#ar)" d="M452.5 186 V208"/>
+  <text class="sub" x="378" y="202" text-anchor="end">no excision</text>
+  <path class="line" marker-end="url(#ar)" d="M452.5 266 V288"/>
+
+  <!-- excision column B -->
+  <rect class="dash" x="593" y="118" width="270" height="256" rx="8"/>
+  <text class="sub" x="728" y="366" text-anchor="middle">RFI excision (excision = true, default)</text>
+  <a href="excision.html#detect"><rect class="box proc" x="605" y="130" width="245" height="56" rx="7"/>
+    <text class="fn" x="727.5" y="154" text-anchor="middle">detectRFI</text>
+    <text class="sub" x="727.5" y="172" text-anchor="middle">power threshold → mask</text></a>
+  <a href="excision.html#blank"><rect class="box proc" x="605" y="210" width="245" height="56" rx="7"/>
+    <text class="fn" x="727.5" y="234" text-anchor="middle">blankChannels</text>
+    <text class="sub" x="727.5" y="252" text-anchor="middle">masked samples set to 0</text></a>
+  <a href="excision.html#weights"><rect class="box proc" x="605" y="290" width="245" height="56" rx="7"/>
+    <text class="fn" x="727.5" y="314" text-anchor="middle">blankingWeights</text>
+    <text class="sub" x="727.5" y="332" text-anchor="middle">mask → W, V, X(L) per bin</text></a>
+  <path class="line" marker-end="url(#ar)" d="M575 158 H603"/>
+  <path class="line" marker-end="url(#ar)" d="M727.5 186 V208"/>
+  <path class="line" marker-end="url(#ar)" d="M605 238 H577"/>
+  <path class="line" marker-end="url(#ar)" d="M575 318 H603"/>
+
+  <!-- join: fold -->
+  <a href="fold.html"><rect class="box proc" x="280" y="410" width="300" height="56" rx="7"/>
+    <text class="fn" x="430" y="434" text-anchor="middle">foldProfile</text>
+    <text class="sub" x="430" y="452" text-anchor="middle">7 · phase bins × sub-ints (× channels)</text></a>
+  <path class="line" marker-end="url(#ar)" d="M150 266 V438 H278"/>
+  <path class="line" marker-end="url(#ar)" d="M452.5 346 V408"/>
+  <path class="line" marker-end="url(#ar)" d="M727.5 346 V438 H582"/>
+  <text class="sub" x="590" y="430">DataWeights</text>
+  <text class="sub" x="460" y="390">NoiseCoeffs</text>
+
+  <!-- TOA and detection -->
+  <a href="toa.html"><rect class="box proc" x="130" y="500" width="260" height="56" rx="7"/>
+    <text class="fn" x="260" y="524" text-anchor="middle">estimateTOA</text>
+    <text class="sub" x="260" y="542" text-anchor="middle">8 · TOA ± σ, χ² flag</text></a>
+  <a href="detection.html"><rect class="box proc" x="470" y="500" width="260" height="56" rx="7"/>
+    <text class="fn" x="600" y="524" text-anchor="middle">detectPulsar</text>
+    <text class="sub" x="600" y="542" text-anchor="middle">NP test, known / unknown phase</text></a>
+  <path class="line" marker-end="url(#ar)" d="M430 466 V482 H260 V498"/>
+  <path class="line" marker-end="url(#ar)" d="M430 482 H600 V498"/>
+
+  <!-- validation -->
+  <a href="validation.html#validate"><rect class="box val" x="280" y="594" width="300" height="56" rx="7"/>
+    <text class="fn" x="430" y="618" text-anchor="middle">validateTOA</text>
+    <text class="sub" x="430" y="636" text-anchor="middle">9 · good TOAs vs ground truth</text></a>
+  <path class="line" d="M260 556 V575 H600 V556"/>
+  <path class="line" marker-end="url(#ar)" d="M430 575 V592"/>
+  <text class="sub" x="440" y="590">good = fitted ∧ detected ∧ χ² ok</text>
+</svg>
+<figcaption>Blue: simulated sky. Orange: simulated receiver. Green: processing (observer-only). Bottom box:
+validation against ground truth. The full-band path is the validated reference; the channel path is the default since 8 Oct 2026.</figcaption>
+</figure>
+
+<h2>Stages and data products</h2>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Function</th><th>Writes</th><th>Data</th><th>Status</th></tr>
+<tr><td>1</td><td><a href="sky.html#gen"><code>generatePulsarSignal</code></a></td><td><code>test.dat</code></td><td>real, f_in = 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>2</td><td><a href="sky.html#disp"><code>applyDispersionStream</code></a></td><td><code>test_dispersed.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>3</td><td><a href="receiver.html#noise"><code>addNoiseAndRFI</code></a></td><td><code>test_rx.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>4</td><td><a href="receiver.html#iq"><code>applyIQmodulation</code></a></td><td><code>test_rx_IQ.dat</code></td><td>complex, fs = 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><th colspan="5">Full-band front end (<code>frontEnd = 'fullband'</code>)</th></tr>
+<tr><td>5</td><td><a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a></td><td><code>test_IQ_dedispersed.dat</code></td><td>complex, 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>6</td><td><a href="fullband.html#detect"><code>detectPower</code></a></td><td><code>test_envelope.dat</code></td><td>power, 1 µs bins</td><td><span class="badge validated">validated</span></td></tr>
+<tr><th colspan="5">Channelized front end (<code>frontEnd = 'channels'</code>, default)</th></tr>
+<tr><td>5a</td><td><a href="channels.html#chan"><code>channelizeIQ</code></a></td><td><code>data/chan/test_rx_IQ_chan_ch###.dat</code></td><td>128 × complex, 4.17 MHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>B2</td><td><a href="excision.html#detect"><code>detectRFI</code></a></td><td>(mask in memory)</td><td>rows [channel, first, last]</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>B1</td><td><a href="excision.html#blank"><code>blankChannels</code></a></td><td><code>…_chan_blanked_ch###.dat</code></td><td>128 × complex, masked samples 0</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>5b</td><td><a href="channels.html#dedisp"><code>dedisperseChannels</code></a></td><td><code>test_dedispB_chan_ch###.dat</code> (or <code>test_dedisp_chan_*</code> without excision)</td><td>128 × complex, aligned at 1.6 GHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>6b</td><td><a href="channels.html#detect"><code>detectChannels</code></a></td><td><code>…_chan_power.dat</code></td><td>power [128 × nBins], 0.96 µs</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>A3a</td><td><a href="excision.html#weights"><code>blankingWeights</code></a></td><td><code>test_dedispB_chan_weights.dat</code></td><td>[128 × 9 × nBins]: W, V, X(1..7)</td><td><span class="badge validated">validated</span></td></tr>
+<tr><th colspan="5">Both</th></tr>
+<tr><td>7</td><td><a href="fold.html"><code>foldProfile</code></a></td><td><code>test_fold.mat</code> / <code>test_fold_chan.mat</code></td><td>profiles + weights</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>8</td><td><a href="toa.html"><code>estimateTOA</code></a></td><td>(in memory: <code>toa</code>)</td><td>TOA, σ, SNR, χ² per sub-int</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="detection.html"><code>detectPulsar</code></a></td><td>(in memory: <code>detection</code>)</td><td>T0, Tmax, detected flags</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>9</td><td><a href="validation.html#validate"><code>validateTOA</code></a></td><td>(figure, <code>val</code>)</td><td>errors vs truth</td><td><span class="badge validated">validated</span></td></tr>
+</table></div>
+
+<h2>Why the pipeline has this order</h2>
+<div class="callout why"><span class="ttl">Sky → receiver → processing</span>
+<p>The simulator follows the physical order. Noise and RFI are added <b>after</b> dispersion because they enter at the
+receiver: they are never dispersed. Dedispersion then applies the inverse chirp to them, exactly as with real data:
+a broadband impulse gets smeared into an inverse sweep; a carrier is only shifted by its frequency's delay.</p></div>
+<div class="callout why"><span class="ttl">Complex voltages until detection</span>
+<p>Coherent dedispersion needs the phase. RFI blanking and (later) beamforming are linear operations that must also come
+before squaring. After square-law detection the data rate drops by ~800× and only power is left.</p></div>
+<div class="callout why"><span class="ttl">Why two front ends</span>
+<p>The full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
+but its filter grows with DM (about 15 GB at DM 100) and it has nowhere to remove RFI. The channelized path splits the band
+into 128 channels first. RFI is then a few samples in a few channels, where it can be found and blanked, and each channel
+needs only a short dedispersion filter. The full-band path stays as the validated reference: every channel-path result
+is compared against it.</p></div>
+<div class="callout why"><span class="ttl">Why excision sits between channelizer and dedispersion</span>
+<p>In a channel, before dedispersion, a 2 µs radar pulse occupies about 8 samples in 2 channels. After dedispersion
+it is spread over thousands of samples and mixed with good data. Excision therefore works on the raw channel voltages.
+Because dedispersion then spreads each blank over its filter length, every detected bin is "partly real";
+<code>blankingWeights</code> computes exactly how much, so the fold stays unbiased.</p></div>
+
+<h2>Run control in <code>main.m</code></h2>
+<div class="table-wrap"><table>
+<tr><th>Switch</th><th>Runs</th><th>When to rerun</th></tr>
+<tr><td><code>runStage.sky</code></td><td>generator + dispersion (the slow part)</td><td>pulsar, T, L, f_in, DM, band or seed changed</td></tr>
+<tr><td><code>runStage.receiver</code></td><td>noise / RFI + IQ</td><td>SNR, RFI, noise seed, fLO or fs changed</td></tr>
+<tr><td><code>runStage.process</code></td><td>dedispersion + detection (and channelizer, excision, weights)</td><td>front end, excision or processing settings changed</td></tr>
+<tr><td><code>runStage.fold</code></td><td>folding</td><td>nBin, sub-int length changed</td></tr>
+<tr><td><code>runStage.toa</code></td><td>TOAs, detection, validation</td><td>always cheap</td></tr>
+</table></div>
+<p>Skipped stages reload their <code>info</code> from disk; <code>checkConsistency</code> warns if those files were made with
+different parameters. <code>plots.*</code> switch the ground-truth check figures (the IQ, detected and fold checks are for the
+full-band path only).</p>
+
+<h2>Sizes</h2>
+<p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files, plus
+for the channel path the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the
+blanked copies and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first.
+At <var>L</var> = 1 s and 800 MHz the full-band files alone are about 61 GB; the default <var>L</var> = 0.1 s needs a tenth of that.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

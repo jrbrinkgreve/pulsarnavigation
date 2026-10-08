@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Run Scripts</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Run scripts</h1>
+<p class="lede">The scripts in the <code>PulsarSimMatlab</code> folder. <code>main.m</code> runs one realization; the
+<code>run*.m</code> scripts are experiments that run the same stages many times and compare with the truth. All read
+their parameters from <code>pipelineParams.m</code> and must be run with MATLAB's current folder = <code>PulsarSimMatlab</code>.</p>
+
+<div class="table-wrap"><table>
+<tr><th>Script</th><th>Question it answers</th><th>Files</th><th>Cost (L = 0.1 s)</th></tr>
+<tr><td><a href="#main"><code>main.m</code></a></td><td>One run through the pipeline; TOAs vs truth</td><td><code>data/</code>, <code>data/chan/</code></td><td>~1 min (sky stage dominates)</td></tr>
+<tr><td><a href="#mc"><code>runMonteCarlo.m</code></a></td><td>Are the error bars honest at one SNR?</td><td><code>data/mc/mc_*</code></td><td>15–20 s per seed</td></tr>
+<tr><td><a href="#sweep"><code>runSNRSweep.m</code></a></td><td>How do precision, honesty, outliers and detection change with SNR?</td><td><code>data/mc/sweep_*</code></td><td>~13 min</td></tr>
+<tr><td><a href="#h0"><code>runH0.m</code></a></td><td>Is the false-alarm rate right? Is the noise model complete?</td><td><code>data/mc/h0_*</code></td><td>~14 min</td></tr>
+<tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case</td></tr>
+<tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~7 min</td></tr>
+</table></div>
+<div class="callout note"><span class="ttl">Which front end the experiments use</span>
+<p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> predate the channelized front end and always run the <b>full-band</b>
+path, whatever <code>frontEnd</code> says. <code>runRFITest</code> and <code>runLockedRadar</code> run the <b>channel</b> path. The channel path's
+statistics are validated by its unit tests (exact covariances, Monte Carlo with the exact noise model) rather than by these long runs.</p></div>
+<div class="callout why"><span class="ttl">Why each experiment writes its own files</span>
+<p>A later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them with another noise
+realization, main would silently pick it up (<code>checkConsistency</code> does not check the noise seed). Separate folders make that impossible.</p></div>
+<div class="callout warn"><span class="ttl">Never run two of these at once</span>
+<p>Scripts and tests that share files (e.g. <code>data/chan/</code>) corrupt each other's data when run in parallel: an overlapping run once
+gave noise 72× the radiometer value (<a href="lessons.html">bugs and lessons</a> #11).</p></div>
+
+<h2 id="main"><code>main.m</code></h2>
+<p>Run control at the top (<code>runStage.*</code>, <code>plots.*</code>, <code>closeFigures</code>), then:</p>
+<ol>
+<li>paths and <code>pipelineParams;</code>, a disk estimate;</li>
+<li>sky (generator + dispersion) or reload; optional <code>plotDispersionCheck</code>;</li>
+<li>receiver (noise/RFI + IQ) or reload; <code>checkConsistency</code>;</li>
+<li>processing: full band (dedispersion + detection) or channels (channelizer → [detectRFI → blankChannels] → dedisperseChannels →
+detectChannels → [blankingWeights]); optional IQ and detection checks (full band);</li>
+<li>fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel path) or reload; optional fold check;</li>
+<li>TOAs, detection, good TOAs, <code>validateTOA</code> (all and good), the exact optimum (full band).</li>
+</ol>
+<p>Printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel path 8 TOAs, 2.943 µs, SNR 92.3
+(with excision 2.956 µs, 91.9).</p>
+<div class="callout why"><span class="ttl">Why the stages can be skipped</span>
+<p>The sky stage is by far the slowest (random numbers and a 25-million-tap filter at 4 GHz) and does not depend on the noise. Changing
+the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>
+warns when files on disk were made with other parameters.</p></div>
+
+<h2 id="mc"><code>runMonteCarlo.m</code> <span class="badge validated">validated</span></h2>
+<p>The pulsar signal is fixed (sky files from <code>main.m</code>); only the receiver noise changes: seeds <code>seed + (1:nSeeds)</code>, default 10.
+The spread of TOAs between realizations is exactly what the error bars claim to describe, so the pooled <var>z</var> = (TOA − truth)/σ must be N(0,1).</p>
+<ul>
+<li>Built-in check: seed 1 = main's <code>noiseSeed</code>, so its TOAs must equal main's.</li>
+<li>Errors if the sky files do not match the parameters (T, L, f_in, seed, DM, band).</li>
+<li>Full-band stage calls as in <code>main.m</code>, <code>'Verbose', false</code>; <code>validateTOA</code> pools all TOAs.</li>
+</ul>
+<p>Result (−5 dB, 90 TOAs): rms/pred 0.950 ± 0.075, χ²<sub>red</sub> 0.91, 72 % within 1σ.</p>
+<div class="callout warn"><span class="ttl">Its blind spot</span>
+<p>The pulsar realization is the same in every run, so its self-noise is identical everywhere and missing from the scatter. Fine at −5 dB
+(~4 % of the variance), wrong at high SNR. That is why <code>runSNRSweep</code> varies the pulsar too.</p></div>
+
+<h2 id="sweep"><code>runSNRSweep.m</code> <span class="badge validated">validated</span></h2>
+<p>Phases D and E: TOA precision, error-bar honesty, outliers and detection versus SNR, against the exact optimum.</p>
+<ul>
+<li>Top: <code>nReal</code> (10), <code>snrList</code> ([−25 −20 −15 −10 −5 0 10 20] dB), <code>replotOnly</code> (redraw from <code>data/mc/snrSweep.mat</code>).</li>
+<li>Per realization <var>j</var>: new sky with pulsar seed <code>seed + 100(j−1)</code>, noise seed = pulsar seed + 1 (<var>j</var> = 1 = main's 42/43, a built-in
+check). The same sky and noise seed for every SNR (noise only rescaled: common random numbers, smoother curves; TOAs within one
+SNR point stay independent).</li>
+<li>Per SNR: pooled <code>validateTOA</code>, robust σ = 1.4826·median|err|, outlier fraction |<var>z</var>| &gt; 5, <code>detectPulsar</code>.</li>
+<li>A true <b>H0 pass</b> per realization: zero sky (generator with A = 0) + receiver noise, only <code>detectPulsar</code>.</li>
+<li>Figure: σ<sub>TOA</sub> vs SNR (rms, robust, predicted, optimum), ratios, |<var>z</var>| &lt; 1 and outliers, detection.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why a very low SNR is not used as H0</span>
+<p>−50 dB is not "no pulsar": it is a real small-antenna operating point that only needs long integrations. H0 must be a zero sky.</p></div>
+<p>Results: <a href="results.html#sweep">validation record</a>. Variant run on 6 Oct with <code>nReal</code> 20 and −20…−15 dB in 1 dB steps: the
+<a href="results.html#threshold">threshold sweep</a> (results kept in <code>data/mc/snrSweep_phaseDE.mat</code>).</p>
+
+<h2 id="h0"><code>runH0.m</code> <span class="badge validated">validated</span></h2>
+<p>Many independent noise-only profiles to test the H0 side of <code>detectPulsar</code> and the noise covariance model behind it (and behind the
+TOA error bars).</p>
+<ul>
+<li><code>nPass</code> (100) passes, zero sky made once, receiver noise with seed <code>seed + 10000 + i</code> (no overlap with the sweeps), the same
+processing as main; 9 complete turns per pass.</li>
+<li>Collects T0, Tmax, noiseRatio, the circular autocorrelation of each <code>normProfile</code>, and the model lag-1 correlation from <code>weightX</code>.</li>
+<li>Exceedances at <var>P</var><sub>FA</sub> 10⁻¹, 10⁻², 10⁻³; saves <code>data/mc/h0Run.mat</code>; figure.</li>
+</ul>
+<p><b>Motivation:</b> the phase E sweep gave T0 std 1.10 ± 0.075 under H0 and error-bar ratios of 1.03–1.06, all from the same 10 noise
+realizations: possibly a 5–10 % hole in the noise model. <b>Outcome:</b> T0 std 1.008 ± 0.024, lag-1 correlation 0.2484 vs 0.2501 modelled,
+nothing beyond lag 1. The noise model is complete; the earlier hint was a fluctuation of the shared realizations.</p>
+
+<h2 id="rfi"><code>runRFITest.m</code> (B4) <span class="badge validated">validated</span></h2>
+<p>For each case (noise only; each source of <code>rfiScenario</code> alone; all five) the receiver stage runs with that RFI and main's noise seed
+(so the noise is the same in every case), then the channel path twice: without and with excision, both with optimal weighting. A table:
+blanked fraction, good TOAs, median SNR, median TOA error, rms/pred, median χ², total offset. Requires <code>frontEnd = 'channels'</code>.</p>
+<p>Results: <a href="excision.html#results">RFI excision</a>.</p>
+<p><b>Rotating radar cases (B5c-2, 8 Oct):</b> cases 8–11 use the scenario radar on a rotating antenna (10 s scan, 39 ms beam): one beam
+passage centred in the file (−30 dB floor), and sidelobes only (beam 5 s away) at −25 / −30 / −35 dB. For pulsed sources the table adds,
+from the source's parameters (ground truth, validation only), the fraction of its pulses blanked in its own channels and the fraction of
+its energy in missed pulses. <code>runCases</code> picks a subset of the cases.</p>
+
+<h2 id="locked"><code>runLockedRadar.m</code> (B5b)</h2>
+<p>A radar with PRF 400 Hz = 4·<var>f</var><sub>0</sub>, one pulse per turn on the pulse flank: what excision leaves of it folds coherently into the profile.</p>
+<ol>
+<li>Receiver runs: reference (no radar) and with the locked radar (0.1 µs and instant edges). Radar run − reference = the radar alone (the chain is linear).</li>
+<li>Per case: mask from the full data; reference, radar-only and full data all go through the same blanking, dedispersion, detection and fold with the same weights.</li>
+<li>Leftover <var>L</var>(φ) = folded radar-only power / channel baseline.</li>
+<li>TOA bias at −5 dB: full data − reference (same noise), cross-checked with reference + leftover.</li>
+<li>Bias at weak SNR: noise-free folds ρ·template + <var>L</var> through <code>estimateTOA</code>, ρ from −5 to −60 dB; the ρ where the bias reaches 1 µs.</li>
+</ol>
+<div class="callout why"><span class="ttl">Why measure the leftover in baseline units</span>
+<p>The pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
+the noise baseline does not depend on the pulsar, and comparing it with the pulse height ρ gives the bias at any SNR from one run.</p></div>
+<p>Results and the frequency-guard sweep: <a href="excision.html#locked">locked radar</a>.</p>
+
+<h2>Planned</h2>
+<p>The same stage calls are repeated in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code>. Factoring the receiver and
+processing chain into one function is an open item (<a href="roadmap.html">roadmap</a>).</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

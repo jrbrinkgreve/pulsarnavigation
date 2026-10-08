@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulsar Navigation Docs</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Pulsar navigation: synthetic data and processing pipeline</h1>
+<p class="lede">A MATLAB pipeline that simulates a pulsar signal through the interstellar medium and a
+realistic radio receiver, then processes the receiver data back into times of arrival (TOAs) with
+honest uncertainties. Every processing stage is checked against the simulation's ground truth.</p>
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>9b959f0</code> (8 Oct 2026) ·
+Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a></p>
+
+<h2>The idea in one paragraph</h2>
+<p>A pulsar is a rotating neutron star that sweeps a radio beam past us once per turn, with a period that is
+stable to better than a microsecond over years. If you know where you are, you can predict when each pulse
+arrives. Turned around: if a pulse arrives <em>earlier</em> than predicted, you are closer to the pulsar along
+the line of sight, by the speed of light times the difference (1 µs ≈ 300 m). Arrival times from at least four
+pulsars in different directions give a 3-D position plus a clock offset, like GNSS but with natural
+beacons. This project builds the part that turns raw antenna voltages into those arrival times.</p>
+
+<figure>
+<svg viewBox="0 0 860 150" role="img" aria-label="From pulsar to position">
+  <rect class="box sky" x="10" y="35" width="150" height="70" rx="8"/>
+  <text x="85" y="64" text-anchor="middle" font-weight="600">Pulsar</text>
+  <text x="85" y="84" text-anchor="middle" class="muted" font-size="13">periodic noise pulses</text>
+  <rect class="box sky" x="190" y="35" width="150" height="70" rx="8"/>
+  <text x="265" y="64" text-anchor="middle" font-weight="600">Interstellar plasma</text>
+  <text x="265" y="84" text-anchor="middle" class="muted" font-size="13">dispersion (1/f² delay)</text>
+  <rect class="box rx" x="370" y="35" width="150" height="70" rx="8"/>
+  <text x="445" y="64" text-anchor="middle" font-weight="600">Receiver</text>
+  <text x="445" y="84" text-anchor="middle" class="muted" font-size="13">noise, RFI, IQ samples</text>
+  <rect class="box proc" x="550" y="35" width="150" height="70" rx="8"/>
+  <text x="625" y="64" text-anchor="middle" font-weight="600">Processing</text>
+  <text x="625" y="84" text-anchor="middle" class="muted" font-size="13">voltages → TOAs ± σ</text>
+  <rect class="box val" x="730" y="35" width="120" height="70" rx="8"/>
+  <text x="790" y="64" text-anchor="middle" font-weight="600">Navigation</text>
+  <text x="790" y="84" text-anchor="middle" class="muted" font-size="13">(later, block E)</text>
+  <path class="line" d="M160 70 H190 M340 70 H370 M520 70 H550 M700 70 H730"/>
+  <text x="265" y="130" text-anchor="middle" class="muted" font-size="12">simulated (ground truth known)</text>
+  <path class="axis" d="M20 120 H510" stroke-dasharray="3 3"/>
+  <text x="625" y="130" text-anchor="middle" class="muted" font-size="12">observer-only code</text>
+</svg>
+<figcaption>The pipeline in one line. The left half is a simulator; the right half must work unchanged on real
+receiver data, so it may only use what a real observer knows.</figcaption>
+</figure>
+
+<h2>What makes this hard</h2>
+<ul>
+  <li><b>The pulse is noise.</b> Pulsar radio emission is broadband Gaussian noise whose <em>power</em> rises
+  once per turn. There is no waveform to correlate with; the information is in the variance. See
+  <a href="physics.html#emission">Physics: emission</a>.</li>
+  <li><b>It is extremely weak.</b> For the target hardware (a 0.61 m² array) the pulse peak is about
+  −54 dB below the receiver noise. One pulse is invisible; a TOA needs hours of folding. See
+  <a href="scenario.html">Reference scenario</a>.</li>
+  <li><b>The sky smears it.</b> Free electrons delay low frequencies more than high ones (dispersion), smearing
+  each pulse over milliseconds across the band. It must be undone exactly. See
+  <a href="physics.html#dispersion">Physics: dispersion</a>.</li>
+  <li><b>Man-made interference is far stronger.</b> One radar pulse can carry the energy of ~80,000 pulsar pulses
+  at −54 dB, so interference must be removed (blanked), not just reduced. See <a href="excision.html">RFI excision</a>.</li>
+  <li><b>Error bars must be honest.</b> A navigation filter trusts the stated σ of each TOA. A small TOA with a
+  wrong σ is worse than a large one with the right σ. Much of the code exists to make σ exact. See
+  <a href="toa.html">TOA estimation</a>.</li>
+</ul>
+
+<h2>Status (8 October 2026)</h2>
+<p>Work is organised in blocks with plain labels. Status markers used everywhere on this site:
+<span class="badge validated">validated</span> run in MATLAB and checked against ground truth (by Jasper);
+<span class="badge written">written</span> code exists, not yet validated;
+<span class="badge todo">todo</span> not implemented.</p>
+<div class="table-wrap"><table>
+<tr><th>Block</th><th>What</th><th>Status</th></tr>
+<tr><td>Block 1</td><td>Full-band chain, receiver noise, TOA error bars, detector, χ² flag, SNR sweeps</td><td><span class="badge validated">closed 6 Oct</span></td></tr>
+<tr><td>A</td><td>Channelized front end: filterbank, per-channel dedispersion, exact narrow-channel noise, data weights, optimal channel weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete 8 Oct</span></td></tr>
+<tr><td>B1–B4</td><td>RFI excision: <code>blankChannels</code>, <code>detectRFI</code>, excision in <code>main.m</code> (default on), <code>runRFITest</code></td><td><span class="badge validated">8 Oct</span></td></tr>
+<tr><td>B5a–c</td><td>Realistic radar edges (0.1 µs rise time), radar locked to the pulsar + frequency guard ±7 channels, rotating radar antenna</td><td><span class="badge validated">8 Oct</span></td></tr>
+<tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse</td><td><span class="badge written">in progress</span></td></tr>
+<tr><td>B5d–e</td><td>Noise-like RFI (LTE), realistic L-band scenario</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
+</table></div>
+<p>Details: <a href="roadmap.html">Status and roadmap</a>.</p>
+
+<h2>How to read this site</h2>
+<div class="cards">
+  <a class="card" href="physics.html"><b>New to pulsars?</b><span>Start with the physics: emission, dispersion, the radiometer equation, folding.</span></a>
+  <a class="card" href="pipeline.html"><b>Want the big picture?</b><span>The pipeline overview shows every stage, file and data product, with both front ends.</span></a>
+  <a class="card" href="sky.html"><b>Reading the code?</b><span>Each stage page follows the same order: purpose, physics, algorithm, why this way, options, outputs, tests, limits.</span></a>
+  <a class="card" href="results.html"><b>Need numbers?</b><span>The validation record lists every measured result against its prediction.</span></a>
+  <a class="card" href="parameters.html"><b>Changing a setting?</b><span>Every parameter in <code>pipelineParams.m</code>: value, meaning, why, and who uses it.</span></a>
+  <a class="card" href="api.html"><b>Calling a function?</b><span>The function reference: every argument and default, generated from the code, with full help texts.</span></a>
+  <a class="card" href="history.html"><b>Why is it like this?</b><span>The development history and a log of every design decision with its reason.</span></a>
+  <a class="card" href="formulas.html"><b>Looking up a formula?</b><span>All key formulas on one page, with links back to where they are used.</span></a>
+  <a class="card" href="glossary.html"><b>Unknown term?</b><span>SEFD, FFTFIT, TOA, sub-int, P_FA, weightX … explained briefly.</span></a>
+</div>
+<p>Green boxes marked <b>Why</b> give the motivation for a design choice: what the obvious alternative was and why it was not taken.
+Orange boxes mark caveats and known limits.</p>
+
+<h2>Quick start</h2>
+<ol>
+  <li>Open MATLAB in the <code>PulsarSimMatlab</code> folder (paths in <code>pipelineParams.m</code> are relative).</li>
+  <li>Edit parameters in <code>pipelineParams.m</code> (pulsar, receiver, SNR, RFI, processing, front end); see <a href="parameters.html">parameters</a>.</li>
+  <li>In <code>main.m</code>, choose which stages to run (<code>runStage.*</code>) and which check plots to show (<code>plots.*</code>). The sky stage is slow and independent of the noise; set it to <code>false</code> once its files exist.</li>
+  <li>Run <code>main</code>. It prints the disk estimate, each stage's progress, the TOAs, the detection result and the validation against the truth.</li>
+</ol>
+<p>Disk use is large: about 61 GB per second of simulated data at 800 MHz (three 4 GHz real files dominate). The default
+<code>L = 0.1 s</code> needs about 6 GB. See <a href="scripts.html">Run scripts</a>.</p>
+
+<h2>Folder layout</h2>
+<div class="table-wrap"><table>
+<tr><th>Path</th><th>Contents</th></tr>
+<tr><td><code>main.m</code></td><td>the pipeline driver for one realization</td></tr>
+<tr><td><code>pipelineParams.m</code></td><td>every parameter, shared by all scripts</td></tr>
+<tr><td><code>run*.m</code></td><td>experiments: Monte Carlo, SNR sweep, noise-only run, RFI test, locked radar</td></tr>
+<tr><td><code>functions/</code></td><td>the stages, helpers and check plots (one function per file)</td></tr>
+<tr><td><code>tests/</code></td><td>unit tests and reference makers</td></tr>
+<tr><td><code>logs/</code></td><td>dated session notes and the full reference <code>current_project_notes.md</code></td></tr>
+<tr><td><code>data/</code></td><td>generated data files (large, not in git)</td></tr>
+<tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
+<tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
+</table></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

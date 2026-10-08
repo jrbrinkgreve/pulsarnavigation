@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Receiver Stages</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stages 3–4 · Receiver: noise, RFI and IQ</h1>
+<p class="lede">The simulated receiver adds thermal noise and man-made interference at RF, then converts the real
+4 GHz stream to complex baseband samples, as an analog I/Q receiver with an ADC would.</p>
+<p class="meta">Run by <code>runStage.receiver</code> · rerun this alone to change the SNR, the RFI or the noise seed.</p>
+
+<h2 id="noise">3 · <code>addNoiseAndRFI</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = addNoiseAndRFI(inFile, outFile, fs, 'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, 'RFI', rfi, 'Seed', noiseSeed)</div>
+<p class="meta"><a href="api.html#addnoiseandrfi">Full interface and help text of <code>addNoiseAndRFI</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Add white Gaussian receiver noise at a chosen SNR, plus any list of interference sources, to the dispersed sky
+signal. Print and store what the chosen SNR means in practice.</p>
+
+<h3>Physics: where noise enters</h3>
+<p>Noise and RFI are added at the receiver input (RF), <b>after</b> dispersion: they never travel through the interstellar
+medium. Dedispersion later applies the inverse chirp to them, exactly as with real data. A broadband impulse gets
+smeared into an inverse 6.3 ms sweep; a narrowband carrier is only shifted by its frequency's delay.</p>
+
+<h3>The SNR definition</h3>
+<div class="eq">snrDB = 10·log₁₀(<var>S</var><sub>peak</sub> / <var>N</var>) = 10·log₁₀(<var>A</var>² / σ<sub>n</sub>²) &nbsp;⇒&nbsp; σ<sub>n</sub> = <var>A</var> / √(10<sup>snrDB/10</sup>)</div>
+<p>The pulsar's power spectral density at the pulse peak over the receiver-noise power spectral density, both in the
+band. In radio-astronomy terms <var>S</var><sub>peak</sub>/SEFD. <code>Inf</code> means no noise.</p>
+<div class="callout why"><span class="ttl">Why this definition</span>
+<p>It does not depend on bandwidth, time resolution or dispersion (each frequency still sees the full pulse height, only
+later), so it describes the <em>sky and antenna</em>, not a processing choice. A small-antenna design point translates
+directly into it: −54 dB for J0437 on the 0.61 m² array. All the "SNR per pulse / per sub-int" numbers follow from it
+through the radiometer equation.</p></div>
+
+<h3>Predictions printed at run time</h3>
+<p>From the radiometer equation for a Gaussian power profile <var>p</var>(<var>t</var>), including self-noise, with ρ = 10<sup>snrDB/10</sup>
+and a flat band <var>B</var> = 400 MHz (stored in <code>info.prediction</code>):</p>
+<div class="eq">SNR<sub>pulse</sub>² = <var>B</var>·∫(ρ<var>p</var>)²/(1 + ρ<var>p</var>)² d<var>t</var>, &nbsp; 1/σ<sub>TOA</sub>² = <var>B</var>·∫(ρ<var>p</var>′)²/(1 + ρ<var>p</var>)² d<var>t</var></div>
+<div class="table-wrap"><table>
+<tr><th>snrDB</th><th>SNR per pulse</th><th>per 10 turns</th><th>all ~100 pulses</th><th>best TOA error per pulse</th></tr>
+<tr><td>−20</td><td class="num">3.88</td><td class="num">12.3</td><td class="num">38.8</td><td class="num">77 µs</td></tr>
+<tr><td>−5</td><td class="num">97.9</td><td colspan="2"></td><td class="num">2.85 µs</td></tr>
+</table></div>
+<div class="callout warn"><span class="ttl">The printed prediction is ~1.5 % optimistic</span>
+<p>It assumes a flat band. The real band tapers pass fewer independent samples (effective <var>B</var> 388.4 MHz), so the exact
+optimum is slightly worse: 3.79 per pulse and 79.0 µs at −20 dB; 96.5 and 2.892 µs at −5 dB. The exact numbers come from
+<a href="validation.html#epm"><code>expectedPowerModel</code></a> and are printed by <code>main.m</code>. The quick version stays because
+it needs nothing but the parameters, so you can choose <code>snrDB</code> before anything runs.</p></div>
+
+<h3 id="rfi">The RFI model: <code>rfiSource</code></h3>
+<div class="sig">src = rfiSource(type, 'Freq', …, 'INRdB', …, 'Label', …)</div>
+<p class="meta"><a href="api.html#rfisource">Full interface and help text of <code>rfiSource</code> →</a></p>
+<p>Each source is a struct with the same fields, so a scenario is an array: <code>rfi = [rfiSource(…), rfiSource(…)]</code>.
+Power is the <b>interference-to-noise ratio</b> <code>INRdB</code>: the RFI power while it is on, relative to <em>all</em> receiver-noise
+power in the analysis band (0 dB = as much as the whole in-band noise).</p>
+<div class="table-wrap"><table>
+<tr><th>Type</th><th>Models</th><th>Parameters</th></tr>
+<tr><td><code>'cw'</code></td><td>carrier</td><td><code>Freq</code>, <code>Drift</code> [Hz/s], <code>Phase</code></td></tr>
+<tr><td><code>'bpsk'</code></td><td>GNSS-like spread spectrum: random ±1 rectangular chips</td><td><code>Freq</code>, <code>ChipRate</code></td></tr>
+<tr><td><code>'pulsed'</code></td><td>radar: pulses with an optional linear chirp</td><td><code>Freq</code>, <code>PulseWidth</code>, <code>PRF</code>, <code>ChirpBW</code>, <code>StartTime</code>, <code>RiseTime</code> (default 0.1 µs)</td></tr>
+<tr><td><code>'impulse'</code></td><td>broadband white bursts at Poisson times</td><td><code>Rate</code>, <code>Duration</code></td></tr>
+</table></div>
+<p>Amplitudes: carrier-type sources <var>a</var> = √(2·INR·<var>P</var><sub>nb</sub>) (power <var>a</var>²/2); impulses σ = √INR·σ<sub>n</sub>; with
+<var>P</var><sub>nb</sub> = σ<sub>n</sub>²·<var>B</var>/(<var>f</var><sub>s</sub>/2) the receiver-noise power in the band. Phases come from the absolute sample index;
+chips from <code>mrg32k3a</code> substreams per 65,536-chip chunk; impulse events are drawn once for the whole file, each burst from
+its own substream. So the result does not depend on the block size.</p>
+
+<h4 id="risetime">Radar edges: <code>RiseTime</code> (B5a, 8 Oct)</h4>
+<p>A real transmitter ramps its pulse up and down. The envelope rises and falls as a raised cosine of duration
+<code>RiseTime</code>, centred on the nominal edges, so <code>PulseWidth</code> stays the width between the 50 % points (the radar
+definition) and the energy is (<code>PulseWidth</code> − <code>RiseTime</code>/4) × the power while on.</p>
+<div class="callout why"><span class="ttl">Why it matters</span>
+<p>With instant edges the radar's spectrum falls only as 1/<var>f</var>² away from the carrier: sidelobes over tens of MHz, in many
+channels, too weak per channel to be detected. With raised-cosine edges it falls as 1/<var>f</var>⁶ beyond ~1/(2·<code>RiseTime</code>)
+= 5 MHz. That difference decides how much radar energy survives excision (see <a href="excision.html#locked">locked radar</a>).
+The default 0.1 µs is an assumed realistic value for a solid-state L-band surveillance radar (Jasper's choice; to be
+checked against ITU emission masks). <code>RiseTime</code> = 0 reproduces the pre-8-Oct output bit for bit.</p></div>
+
+<h4 id="rotation">Rotating antenna (B5c-1, 8 Oct) <span class="badge validated">validated</span></h4>
+<p>Any source type can have a rotating antenna: <code>ScanPeriod</code>, <code>BeamTime</code>, <code>BeamWidth</code>, <code>SidelobeDB</code>. A surveillance
+radar's antenna turns (5–6 rpm: a scan of 10–12 s), so its main beam points at us once per scan and only its sidelobes the rest of the
+time. The source's power is multiplied by the antenna gain seen at time <var>t</var>:</p>
+<div class="eq"><var>g</var>(<var>t</var>) = max(exp(−4 ln2·(d<var>t</var>/<code>BeamWidth</code>)²), 10<sup><code>SidelobeDB</code>/10</sup>)</div>
+<p>with d<var>t</var> the time from the nearest beam passage: a Gaussian main beam with −3 dB width <code>BeamWidth</code> in time (azimuth beamwidth / 360°
+× scan period; 1.4° at 10 s → 39 ms) on a flat sidelobe floor (default −30 dB). <code>INRdB</code> is then the main-beam peak. Default
+<code>ScanPeriod</code> = Inf: no rotation, bit for bit as before. Beamwidth and sidelobe levels of real L-band radars are assumptions.</p>
+<div class="callout why"><span class="ttl">Why model the rotation</span>
+<p>Most of the time a surveillance radar reaches us only through its sidelobes: 25–35 dB weaker, so its pulses are close to the noise in
+their channels and per-pulse detection starts to miss them. Those missed pulses, not the bright main-beam passage, turn out to dominate
+what a rotating radar leaves behind (see <a href="excision.html#rotating">excision: rotating radar</a>).</p></div>
+<p><b>Test</b> (<code>tests/testRfiGating.m</code>, ~10 s): no rotation = the pre-B5a reference bit for bit; invalid rotations refused; radar pulses and a
+carrier through two beam passages (toy scan 1 ms, beam 100 µs, −25 dB floor): energy with/without rotation = <var>g</var> averaged over each pulse
+to 10⁻⁵.</p>
+
+<h4>The scenario in <code>pipelineParams.m</code></h4>
+<p>An illustrative L-band scenario; <code>rfiOn</code> switches it on, <code>rfiSelect</code> picks sources by index ([] = all).</p>
+<div class="table-wrap"><table>
+<tr><th>#</th><th>Source</th><th>Type</th><th>Parameters</th><th>INR</th></tr>
+<tr><td>1</td><td>GNSS L1-like</td><td>bpsk</td><td>1575.42 MHz, 1.023 Mchip/s</td><td>−10 dB</td></tr>
+<tr><td>2</td><td>GNSS L2-like</td><td>bpsk</td><td>1227.60 MHz, 10.23 Mchip/s</td><td>−15 dB</td></tr>
+<tr><td>3</td><td>L-band radar</td><td>pulsed</td><td>1300 MHz, 2 µs, PRF 373 Hz, 1 MHz chirp</td><td>+20 dB when on</td></tr>
+<tr><td>4</td><td>Spurious carrier</td><td>cw</td><td>1351.3 MHz</td><td>−5 dB</td></tr>
+<tr><td>5</td><td>Broadband impulses</td><td>impulse</td><td>200 ns, 50 per second</td><td>+20 dB</td></tr>
+</table></div>
+<div class="callout why"><span class="ttl">Two deliberate choices in the scenario</span>
+<ul>
+<li><b>Radar PRF 373 Hz, not 400 Hz.</b> 400 Hz is a harmonic of the 100 Hz pulsar: the radar would fold coherently into the
+profile and bias the TOAs. That hazard is tested separately and on purpose (<code>runLockedRadar.m</code>); the default scenario
+uses an unrelated PRF.</li>
+<li><b>Carrier at 1351.3 MHz, not 1350 MHz.</b> 1350 MHz is exactly the edge between channels 48 and 49 of the channelizer,
+an unrepresentative special case.</li>
+</ul></div>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. Warns below −60 dB (the pulse would be below single-precision resolution).</dd>
+<dt>Info</dt><dd>noiseStd, noisePSD, noisePowerBand, snrDB, snrDefinition, noiseAddedAt, rfi (with computed amplitudes and parameters), prediction, seed</dd>
+</dl>
+
+<h3>Validation</h3>
+<ul>
+<li>Noise: −5 dB reference run (noise seed 43) and a Monte Carlo over 10 noise seeds: noise baseline 1.232 measured vs 1.233
+predicted; error bars honest (<a href="results.html#mc">validation record</a>).</li>
+<li>All five RFI types observed and checked on 5 Oct 2026 (<a href="results.html#rfi5oct">RFI test</a>); the radar edges by
+<code>tests/testRadarEdges.m</code> (B5a).</li>
+</ul>
+<div class="callout warn"><span class="ttl">Known simplification</span>
+<p>Receiver noise does not pass the dispersion-stage taper <var>W</var><sub>f</sub> (real noise passes the same analog bandpass as the sky
+signal). Effect &lt; 1 % in SNR; fixable by making the dispersion band slightly wider than the analysis band.</p></div>
+
+<h2 id="iq">4 · <code>applyIQmodulation</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = applyIQmodulation(inFile, outFile, f_in, fs, fLO, 'FilterOrder', 2048, 'Band', [fLow fHigh])</div>
+<p class="meta"><a href="api.html#applyiqmodulation">Full interface and help text of <code>applyIQmodulation</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Convert the real RF stream to complex baseband (I/Q) at rate <var>f</var><sub>s</sub>: mix with a complex local oscillator, low-pass
+filter, decimate.</p>
+
+<h3>Physics</h3>
+<div class="eq"><var>z</var>(<var>t</var>) = LPF{2·<var>x</var>(<var>t</var>)·e<sup>−<var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}, &nbsp; so &nbsp; <var>x</var>(<var>t</var>) = Re{<var>z</var>(<var>t</var>)·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}</div>
+<ul>
+<li>Frequency mapping <var>f</var><sub>bb</sub> = <var>f</var><sub>RF</sub> − <var>f</var><sub>LO</sub>, <b>no spectral inversion</b>.</li>
+<li>The mixer also makes a mirror image near −(<var>f</var><sub>RF</sub> + <var>f</var><sub>LO</sub>); it lies far outside the pass band and the low-pass removes it.</li>
+<li>The factor 2 (<code>'Gain','envelope'</code>, default) compensates the discarded image: a tone <var>A</var>·cos(2π<var>ft</var> + φ) becomes
+<var>A</var>·e<sup><var>i</var>φ</sup>·e<sup><var>i</var>2π(<var>f</var>−<var>f</var><sub>LO</sub>)<var>t</var></sup> and mean|<var>z</var>|² = 2·mean(<var>x</var>²) in band.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why the factor 2 does not matter physically (and why it is there anyway)</span>
+<p>It multiplies signal and noise alike, so SNR, TOAs, error bars and detection are unchanged. The pipeline never assumes
+an absolute gain: the detector normalizes by the fitted baseline and the TOA fit uses the fitted model. It is the
+standard complex-envelope bookkeeping, and it matters only for absolute numbers (the noise baseline 1.233, the expected
+power model, the plot checks). <code>'unity'</code> reproduces the old behaviour (amplitudes halved).</p></div>
+
+<h3 id="lo">Why the LO is at 1.3 GHz, not in the middle of the band</h3>
+<p>With <var>f</var><sub>LO</sub> = 1.4 GHz (band centre), 1.2–1.6 GHz maps to −200…+200 MHz, and its mirror image is the same
+interval. A sign error in the mapping (I and Q swapped, or a conjugated stream) would then be invisible: power, bandwidth
+and filter checks all pass. Worse, if both the IQ stage and dedispersion had the sign flipped, the simulation would be
+self-consistent and only real hardware would expose it. With <var>f</var><sub>LO</sub> = 1.3 GHz the band sits at −100…+300 MHz and
+its mirror at −300…+100: a mirrored mapping would put half the band outside the dedispersion filter and fail visibly.</p>
+<p>This needs <var>f</var><sub>s</sub> = 800 MHz (decimation <var>D</var> = 5 from 4 GHz) so that +300 MHz fits inside the flat passband
+(cutoff 0.9·400 = 360 MHz). The original reference configuration was <var>f</var><sub>LO</sub> = 1.4 GHz, <var>f</var><sub>s</sub> = 500 MHz, <var>D</var> = 8.</p>
+
+<h3>Algorithm</h3>
+<ol>
+<li><var>D</var> = round(<var>f</var><sub>in</sub>/<var>f</var><sub>s</sub>); the achieved rate <var>f</var><sub>in</sub>/<var>D</var> is <code>info.actualFsOut</code>.</li>
+<li>LO phase in cycles, mod(<var>n</var><sub>0</sub>·<var>r</var>, 1) + (0:<var>n</var>−1)·<var>r</var> with <var>r</var> = <var>f</var><sub>LO</sub>/<var>f</var><sub>in</sub>, in double from the absolute
+start index (no drift).</li>
+<li>Low-pass: Kaiser-windowed sinc, <b>odd length</b> (2049 taps), unit DC gain, cutoff 0.9·<var>f</var><sub>s</sub>/2, stopband 80 dB,
+transition ≈ 9.8 MHz. Checks: the stopband starts below the output Nyquist (no aliasing into the band); the band lies in the
+flat passband.</li>
+<li>Overlap-add FFT convolution (carry 2048 samples, automatic block size within <code>MaxMemoryGB</code> = 2).</li>
+<li><code>writeDecimated</code>: remove the group delay <var>G</var> = 1024 input samples (256 ns) <b>exactly</b>, keep every <var>D</var>-th
+sample on the global grid → output sample <var>k</var> ↔ input sample <var>k</var>·<var>D</var> ↔ time <var>k</var>/<var>f</var><sub>s</sub>. Output length ⌈<var>N</var>/<var>D</var>⌉.</li>
+</ol>
+<div class="callout why"><span class="ttl">Why odd length and exact delay removal</span>
+<p>An odd-length linear-phase filter delays by an integer number of samples, which can be removed exactly. Without
+removal every TOA would be 256 ns late (this was a real bug once, <a href="lessons.html">#5</a>).</p></div>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>FilterOrder</code> (2048), <code>Cutoff</code>, <code>StopbandDB</code> (80), <code>Band</code>, <code>Gain</code> (<code>'envelope'</code>), <code>BlockLen</code>, <code>MaxMemoryGB</code> (2), <code>SaveInfo</code>, <code>Verbose</code></dd>
+<dt>Info</dt><dd>format cf32, N, fs/actualFsOut, fsIn, decimationFactor, fLO, freqMapping, loPhaseRef, gainConvention, gainFactor, cutoff, transitionWidth, stopbandDB, filterLen, groupDelayRemoved, t0 = 0, Nfft, blockLen</dd>
+</dl>
+
+<h3>Validation</h3>
+<ul>
+<li>Noise-free: NumPy port tones to ~1.5·10⁻⁶, burst centroid shift 0.04 ns, power ratio 2.000.</li>
+<li>With noise at −5 dB and the off-centre LO: the whole chain validates (off-centre mapping correct), see
+<a href="results.html#noise5">validation record</a>.</li>
+<li><code>plotIQCheck</code>: dynamic spectra of dispersed and dedispersed IQ follow the expected sweep.</li>
+</ul>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

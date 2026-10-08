@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky Stages</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stages 1–2 · Sky: pulsar signal and dispersion</h1>
+<p class="lede">The simulated sky: a noise-like pulsar signal, then the interstellar medium's frequency-dependent
+delay. Both run at a real 4 GHz sample rate and know the full ground truth.</p>
+<p class="meta">Run by <code>runStage.sky</code> in <code>main.m</code> · slowest part of the pipeline · independent of
+receiver noise, so it is run once and reused.</p>
+
+<h2 id="gen">1 · <code>generatePulsarSignal</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = generatePulsarSignal(outFile, T, f_in, A, L, dutycycle, ...)</div>
+<p class="meta"><a href="api.html#generatepulsarsignal">Full interface and help text of <code>generatePulsarSignal</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Write a real float32 file of a synthetic pulsar voltage, with the true pulse centre times as ground truth.</p>
+
+<h3>Physics</h3>
+<p>Pulsar emission is the incoherent sum of many emitters, so the voltage is Gaussian noise; the pulsar shows up as a
+periodic change of its <b>variance</b> (see <a href="physics.html#emission">physics</a>):</p>
+<div class="eq"><var>x</var>(<var>t</var>) = <var>A</var>·√<var>G</var>(<var>t</var>)·<var>n</var>(<var>t</var>), &nbsp; <var>n</var> white, unit variance, &nbsp; E[<var>x</var>²] = <var>A</var>²·<var>G</var>(<var>t</var>)</div>
+<p><var>G</var> is a periodic train of unit-peak Gaussians: the power profile. <var>A</var> is the noise standard deviation at the
+pulse peak and sets the signal scale. The noise is white from 0 to <var>f</var><sub>in</sub>/2; that is a property of the
+simulation grid, not of real pulsars (whose spectra fall as a power law, see <a href="limits.html">limitations</a>).</p>
+
+<h3>Algorithm</h3>
+<ol>
+<li>FWHM = <code>dutycycle</code>/100 · <var>T</var> (5 % of 10 ms = 0.5 ms); σ = FWHM / (2√(2 ln 2)) = 212.3 µs.</li>
+<li>Pulse centres at (<var>k</var> + ½)·<var>T</var>: the first pulse peaks at <var>T</var>/2 and the file starts near zero signal.
+These times are stored in <code>info.pulseCenters</code>: the ground truth for every TOA check.</li>
+<li>For each sample, find the nearest pulse <var>k</var><sub>0</sub> = round(<var>t</var>/<var>T</var> − ½) and sum the Gaussians of
+<code>nNeighbors</code> = max(1, ⌈6σ/<var>T</var> + ½⌉) pulses on each side, then divide by the exact peak value of that
+periodic sum (<code>peakNorm</code>), so overlapping pulses keep their true shape and the peak is exactly 1.</li>
+<li>N = round(<var>L</var>·<var>f</var><sub>in</sub>) + 1 samples (inclusive of <var>t</var> = <var>L</var>, which is why file lengths end in …001), in
+blocks of 4·10⁶ samples. Times in double; only the written samples are single.</li>
+</ol>
+<div class="callout why"><span class="ttl">Why <code>'power'</code> envelope mode (default)</span>
+<p>The processing detects power, so the parameter that matters is the FWHM of the <em>power</em> profile. In
+<code>'power'</code> mode the amplitude envelope is √<var>G</var> and the power profile <var>G</var> has exactly the stated FWHM. The
+older <code>'amplitude'</code> mode (amplitude <var>G</var>) makes the power profile √2 narrower, which the template would then
+have to account for.</p></div>
+<div class="callout why"><span class="ttl">Why first pulse at <var>T</var>/2</span>
+<p>With <code>ephem.TRef</code> = <var>T</var>/2 and Φ<sub>0</sub> = 0, every true pulse peak is at an integer rotational phase. The fold
+then cuts turns half-way between pulses, and the expected TOA phase offset is zero.</p></div>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>Seed</code> (private <code>mt19937ar</code> stream; clock-derived and reported if omitted), <code>EnvelopeMode</code> (<code>'power'</code> / <code>'amplitude'</code>), <code>BlockSize</code> (4e6), <code>SaveInfo</code>, <code>Verbose</code> (progress about every 10 %)</dd>
+<dt>Info</dt><dd>format, N, fs, T, A, L, dutycycle, envelopeMode, sigma, FWHM_power, FWHM_amplitude, <b>pulseCenters</b>, nPulses, seed, rngType, bytesWritten, elapsed</dd>
+</dl>
+<p>Runtime is dominated by random-number generation.</p>
+
+<h2 id="disp">2 · <code>applyDispersionStream</code> <span class="badge validated">validated</span></h2>
+<div class="sig">info = applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, ...)</div>
+<p class="meta"><a href="api.html#applydispersionstream">Full interface and help text of <code>applyDispersionStream</code> →</a></p>
+
+<h3>Purpose</h3>
+<p>Apply interstellar dispersion to the RF file, exactly, inside the observed band, streamed through a long FIR filter.</p>
+
+<h3>Physics</h3>
+<p>A cold plasma gives a <b>phase advance</b> and a <b>group delay</b> τ(<var>f</var>) = <var>K</var>·DM/<var>f</var>². Only the delay relative
+to a reference frequency is applied: <code>RefFreq</code> = <var>f</var><sub>High</sub> = 1.6 GHz by default, so the top of the band keeps its
+time and lower frequencies arrive later (up to 6.302 ms at 1.2 GHz for DM 5). The bulk delay τ(<var>f</var><sub>ref</sub>) = 8.103 ms
+is recorded in <code>info.bulkDelayRef</code> but not applied.</p>
+
+<h3>The transfer function</h3>
+<div class="eq"><var>H</var>(<var>f</var>) = <var>W</var>(<var>f</var>) · exp(+<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)² / (<var>f</var>·<var>f</var><sub>ref</sub>²)) · exp(−<var>i</var>2π·<var>f</var>·<var>s</var><sub>0</sub>/<var>f</var><sub>s</sub>)</div>
+<p>Its group delay −(1/2π)·dφ/d<var>f</var> = <var>K</var>DM/<var>f</var>² − <var>K</var>DM/<var>f</var><sub>ref</sub>² + <var>s</var><sub>0</sub>/<var>f</var><sub>s</sub>: the dispersion delay
+relative to <var>f</var><sub>ref</sub>, plus <var>s</var><sub>0</sub> samples that put the kernel's zero lag inside the kernel (and are removed
+again when writing). <var>W</var>(<var>f</var>) is 1 in the band, has raised-cosine (sin²) edges of width <code>EdgeFrac</code>·<var>B</var> = 8 MHz
+<b>inside</b> the band, and is 0 outside.</p>
+<div class="callout why"><span class="ttl">Why the filter is band-limited, and why that is still exact</span>
+<ol>
+<li>Delays diverge as <var>f</var> → 0; no finite kernel can represent dispersion over all frequencies.</li>
+<li>Dispersion is phase-only (|<var>H</var>| = 1) and frequency-preserving: energy never moves between frequencies, so content
+outside the band cannot affect data inside it.</li>
+<li>Dispersion and the receiver bandpass are both linear time-invariant filters, so they commute. Band-limiting before or
+after dispersion gives identical in-band data.</li>
+</ol>
+<p>So <var>W</var> models the <b>receiver bandpass</b>, not the sky. (Caveat: a real receiver is not ideal; strong out-of-band RFI can
+create in-band products through non-linearity. Not modelled.)</p></div>
+<div class="callout why"><span class="ttl">Why raised-cosine edges, not a time window</span>
+<p>An earlier version applied a Hann window to the chirp in time. In a chirp, time maps to frequency, so the window
+attenuated the low end of the band. Tapering in frequency with sin² edges avoids that, and the smooth edge keeps the
+kernel's time response short (the ringing fits in a guard of 20 / edge width = 2.5 µs). See
+<a href="lessons.html">bugs and lessons</a> #3.</p></div>
+
+<h3>Kernel design (<code>makeDispersionKernel</code>)</h3>
+<ul>
+<li>Guard <var>g</var> = ⌈<code>GuardTime</code>·<var>f</var><sub>s</sub>⌉ = 10,000 samples (2.5 µs at 4 GHz) on each side of the sweep.</li>
+<li>Zero-lag index of <var>f</var><sub>ref</sub>: <var>s</var><sub>0</sub> = <var>g</var> + ⌈(τ(<var>f</var><sub>ref</sub>) − τ(<var>f</var><sub>High</sub>))·<var>f</var><sub>s</sub>⌉ (= 10,000 for <var>f</var><sub>ref</sub> = <var>f</var><sub>High</sub>).</li>
+<li>Kernel length <var>N</var><sub>k</sub> = <var>s</var><sub>0</sub> + ⌈(τ(<var>f</var><sub>Low</sub>) − τ(<var>f</var><sub>ref</sub>))·<var>f</var><sub>s</sub>⌉ + <var>g</var> + 1 = <b>25,229,772</b> taps at 4 GHz, DM 5.</li>
+<li>Designed on a frequency grid of 2<sup>nextpow2(2<var>N</var><sub>k</sub>)</sup> = 2²⁶ points, in-band bins only, phase in <b>double</b>
+(the chirp spans about 1.08 million turns of phase). The linear shift term uses mod(<var>k</var>·<var>s</var><sub>0</sub>, <var>N</var><sub>f</sub>), exact.
+Hermitian spectrum → real kernel, truncated to <var>N</var><sub>k</sub>. <code>info.kernelLeakage</code> = energy lost by truncation (3.5·10⁻¹³).</li>
+<li>Kernel energy Σ<var>h</var>² ≈ 0.195 = the fraction of white-noise power passed ≈ 2(<var>B</var> − 1.25·edge)/<var>f</var><sub>s</sub>.</li>
+</ul>
+
+<h3>Streaming (overlap-add)</h3>
+<p>Each block of <var>n</var> samples is convolved with an FFT of size ≥ <var>n</var> + <var>M</var> − 1; the last <var>M</var> − 1 output samples
+(the carry) are added to the next block. <code>chooseBlockSize</code> requires block length ≥ <var>M</var> − 1, so a carry only ever
+spills into the next block, and picks the power-of-two FFT with the lowest total cost <var>n</var><sub>blocks</sub>·<var>N</var><sub>fft</sub>·log₂<var>N</var><sub>fft</sub>
+within <code>MaxMemoryGB</code> (estimate 44 bytes per FFT sample). Output index = full-convolution index − <var>s</var><sub>0</sub>, so
+<var>f</var><sub>ref</sub> stays on its original time. The output has the same length as the input; energy delayed past the
+end of the file is dropped.</p>
+<p>Reference run (<var>L</var> = 1 s): FFT 2²⁸, block 243,205,685 samples (91 % useful), 17 blocks, ~11.8 GB, 81.5 s.</p>
+
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>RefFreq</code> (<var>f</var><sub>High</sub>), <code>EdgeFrac</code> (0.02), <code>GuardTime</code> (20/edge width), <code>MaxLeakage</code> (1e-8, warns), <code>BlockLen</code> ([] = auto), <code>MaxMemoryGB</code> (16), <code>SaveInfo</code>, <code>Verbose</code></dd>
+<dt>Info</dt><dd>DM, fLow, fHigh, refFreq, dispersionConst, delayConvention, smearTime, bulkDelayRef, edgeWidth, kernelLen, kernelZeroLag, kernelLeakage, kernelEnergy, Nfft, blockLen, nBlocks, memEstimateGB, …</dd>
+</dl>
+<div class="callout warn"><span class="ttl">Help text out of date</span>
+<p>The function's help text says the <code>MaxMemoryGB</code> default is 8; the <code>arguments</code> block uses 16 (raised so
+the 11.8 GB reference run fits on the 24 GB machine). The code value, 16, is the one that applies.</p></div>
+
+<h3>Validation</h3>
+<ul>
+<li>NumPy port: group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add equals direct convolution (~10⁻⁷).</li>
+<li>Forward → IQ → inverse round trip ~2·10⁻⁶.</li>
+<li><code>plotDispersionCheck</code>: raw vs dispersed dynamic spectra follow the expected sweep; band-integrated power as expected.</li>
+</ul>
+
+<h3>History: why the current form</h3>
+<p>The first dispersion kernel had the wrong sign (low frequencies arrived <em>earlier</em>) and wrapped around inside the
+kernel. It went unnoticed because the old inverse conjugated the same kernel, so the round trip still worked. The
+current standard chirp was written from the physics, with the sign checked by group delay. An fftshift offset (a bulk
+delay of 8.4 ms that depended on kernel length) and out-of-band content wrapping in time were fixed at the same time.
+See <a href="lessons.html">bugs and lessons</a> #1–4.</p>
+
+<h3>Limits</h3>
+<div class="callout warn"><span class="ttl">Memory at high DM</span>
+<p>The kernel grows with the sweep (∝ DM). At DM 60 the forward dispersion would need about 47 GB, at DM 100 about 94 GB:
+more than the 24 GB machine. The processing side is solved by the channelized front end; the generator side is still
+open (memory-efficient FFT, dispersion at complex baseband, or per-channel generation). See <a href="roadmap.html#dm">roadmap</a>.</p></div>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

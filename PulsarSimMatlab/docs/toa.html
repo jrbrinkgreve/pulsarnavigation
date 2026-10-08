@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TOA Estimation</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stage 8 · TOA estimation: <code>estimateTOA</code> <span class="badge validated">validated</span></h1>
+<p class="lede">Fit a template to each folded profile: the shift gives the time of arrival, and a noise model that
+uses only the fitted profile and the fold's weights gives an honest uncertainty. On the channel path all channels are
+fitted together with inverse-variance weights.</p>
+<div class="sig">[toa, info] = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise, 'Weighting', weighting)</div>
+<p class="meta"><a href="api.html#estimatetoa">Full interface and help text of <code>estimateTOA</code> →</a></p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#model">The model and the TOA definition</a></li>
+<li><a href="#fftfit">FFTFIT: finding the shift</a></li>
+<li><a href="#err">The uncertainty</a></li>
+<li><a href="#chi2">The χ² quality flag</a></li>
+<li><a href="#channels">Combining channels: equal weights (A2a)</a></li>
+<li><a href="#optimal">Optimal weighting (A2c-1)</a></li>
+<li><a href="#template">The template</a></li>
+<li><a href="#outputs">Options and outputs</a></li>
+<li><a href="#valid">Validation</a></li>
+</ol></div>
+
+<h2 id="model">1. The model and the TOA definition</h2>
+<div class="eq"><var>p</var>(φ) = <var>a</var> + <var>b</var>·<var>s</var>(φ − τ) + noise</div>
+<p><var>s</var> = template (peak 1 at phase 0), <var>a</var> = baseline, <var>b</var> = pulse amplitude, τ = phase offset from the ephemeris prediction.</p>
+<div class="eq"><b>TOA</b> = <var>t</var><sub>ref</sub> + τ / <var>f</var><sub>ref</sub></div>
+<p>the arrival time of template phase 0 at the dedispersion reference frequency (1.6 GHz), with <var>t</var><sub>ref</sub>, <var>f</var><sub>ref</sub> from the
+fold's sub-int. <code>toa.total</code> (the whole fold) reports only the offset τ/<var>f</var><sub>0</sub> relative to the ephemeris, not an absolute TOA.</p>
+
+<h2 id="fftfit">2. FFTFIT: finding the shift (Taylor 1992)</h2>
+<ol>
+<li>Cross-spectrum <var>X</var><sub>k</sub> = <var>P</var><sub>k</sub>·conj(<var>S</var><sub>k</sub>) for harmonics <var>k</var> = 1…⌊<var>N</var>/2⌋−1 (DC carries only the baseline;
+Nyquist is ambiguous). <var>C</var>(τ) = Re Σ <var>X</var><sub>k</sub>·e<sup><var>i</var>2π<var>k</var>τ</sup> is the continuous cross-correlation: a shift is a
+phase ramp in the Fourier domain, so any sub-bin τ is exact.</li>
+<li>Coarse search: zero-padded inverse FFT on 8×<var>N</var> points (1/8192 turn = 1.22 µs).</li>
+<li>Refine: Newton on <var>C</var>′(τ) = 0 with analytic <var>C</var>′, <var>C</var>″; steps clamped to one coarse step; <var>C</var>″ &lt; 0 required; stop at 10⁻¹⁴ turns.</li>
+<li><var>b</var> = <var>C</var>(τ̂)/Σ|<var>S</var><sub>k</sub>|²; <var>a</var> = (<var>P</var><sub>0</sub> − <var>b</var>·<var>S</var><sub>0</sub>)/<var>N</var>; τ wrapped to [−½, ½).</li>
+</ol>
+<div class="callout why"><span class="ttl">Why FFTFIT</span>
+<p>It is the standard pulsar-timing method: continuous shifts, fast, and the maximum-likelihood estimator for white noise (the
+weak-signal regime). The SNR sweep showed it within 1 % of the theoretical optimum up to −5 dB; it only loses at very high SNR
+where self-noise dominates (1.5× at +10 dB, 2.4× at +20 dB), irrelevant for the small-antenna target.</p></div>
+
+<h2 id="err">3. The uncertainty</h2>
+<p>τ̂ is where <var>C</var>′(τ) = 0, and <var>C</var>′ is a <b>linear</b> combination of the data: <var>C</var>′ = Σ<sub>j</sub> <var>d</var><sub>j</sub>·<var>p</var><sub>j</sub>, with <var>d</var> from the
+template slope (largest on the pulse flanks). Noise moves <var>C</var>′ by δ<var>C</var>′; the peak moves until <var>C</var>′ = 0 again:
+δτ = −δ<var>C</var>′/<var>C</var>″. Therefore</p>
+<div class="eq">var(τ) = <var>d</var>ᵀ·Cov·<var>d</var> / <var>C</var>″² &nbsp;&nbsp; (and similarly σ<sub>b</sub> from <var>C</var>(τ))</div>
+<p>This is first-order error propagation (the delta method). For white noise it equals the least-squares/Fisher error. For a
+Gaussian pulse it gives σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR.</p>
+<h3>The noise covariance Cov</h3>
+<p><b><code>'radiometer'</code></b> (default): per time bin var = <var>m</var>²/(<var>B</var><sub>noise</sub>·Δ<var>t</var>), with <var>m</var> = <var>a</var> + <var>b</var>·<var>s</var> the <b>fitted</b> model (so the
+pulsar's own contribution, self-noise, is included). Per phase bin var = σ<sub>tb</sub>²·<code>weight2</code>/<code>weight</code>², covariance with neighbours from
+<code>weightX</code>. <b><code>'offpulse'</code></b>: variance and lag covariances measured from off-pulse residuals.</p>
+<div class="callout why"><span class="ttl">Why the fitted model, and which bandwidth</span>
+<p>The ground-truth rule: the observer does not know the true noise level, so σ comes from the fitted baseline and amplitude.
+<code>main.m</code> passes <code>Bnoise</code> = the noise bandwidth of the observer's <em>own</em> dedispersion taper (391.6 MHz; per channel 3.0596 MHz),
+not of both simulated tapers (389.6 MHz, which only the simulator knows). Receiver noise only passes the observer's taper, so this
+is exact for it; when the pulsar dominates (high SNR, in-pulse) the true value is ~0.5 % lower.</p></div>
+<div class="callout note"><span class="ttl">What the error bar does not know</span>
+<p>It measures the sharpness of the correlation peak. It assumes you are on the <em>right</em> peak (at low SNR a noise peak can win:
+outliers) and that the template is right (otherwise χ² catches it). Hence <a href="detection.html">detection</a> and the χ² flag. In the
+5 Oct radar test (full band, no excision) the fit locked onto radar spikes: stated σ ≈ 1 µs, actual errors ~2000 µs rms.</p></div>
+
+<h2 id="chi2">4. The χ² quality flag (phase E, 6 Oct)</h2>
+<div class="eq">χ²<sub>red</sub> = Σ<sub>on-pulse</sub> (<var>p</var><sub>j</sub> − <var>m</var><sub>j</sub>)²/<var>v</var><sub>j</sub> / (<var>n</var> − 3)</div>
+<p>over on-pulse bins (model &gt; 1 % of the peak, <code>OnPulseFrac</code>): normalized residuals squared and averaged. If the profile is template
++ noise with the predicted variance, it is ≈ 1 ± √(2/<var>n</var>) (≈ ± 0.09 for ~260 bins). <code>flagChi2</code> = χ²<sub>red</sub> &gt; <code>MaxRedChi2</code> (2).</p>
+<div class="callout why"><span class="ttl">Why threshold 2</span>
+<p>Far above the clean scatter and the known high-SNR excess (1.05–1.1), far below what a radar does (939–1625). It deliberately does
+not react to moderate RFI (χ² ~1.3 with a carrier), whose TOAs are still valid.</p></div>
+
+<h2 id="channels">5. Combining channels: equal weights (A2a, 7 Oct)</h2>
+<p>For a fold with channels, <code>'Weighting','equal'</code> (the default) sums the channel profiles: <var>p</var> = Σ<sub>c</sub> prof<sub>c</sub>. Shared helper
+<code>combineChannels</code>:</p>
+<ul>
+<li><b>Exclusion rule:</b> a channel is used only if it has data (<var>W</var> &gt; 0) in every phase bin where any channel has data. A channel
+missing in some bins would leave a dip in the sum and pull the TOA. Partial weights stay in.</li>
+<li><b>Noise:</b> channels independent → var(<var>p</var><sub>j</sub>) = Σ<sub>c</sub> <var>s</var><sub>cj</sub>²·<var>W</var>2<sub>cj</sub>/<var>W</var><sub>cj</sub>², covariances for all lags <var>d</var>, with
+<var>s</var><sub>cj</sub> = <var>m</var><sub>c</sub>(φ<sub>j</sub>)/√(<var>B</var><sub>c</sub>·binDt) and each channel's own fitted level <var>m</var><sub>c</sub>.</li>
+<li>Output <code>toa.nChanUsed</code>. Single-channel folds give bit-identical results to before.</li>
+</ul>
+<div class="callout warn"><span class="ttl">Limits of equal weights</span>
+<p>Equal weights are not optimal when channels differ in noise (heavily blanked channels, carrier channels), and the exclusion rule can
+drop whole channels: 1-turn sub-ints with 100 µs blanks removed channels 110–115 everywhere, more data lost than blanked. Hence A2c.</p></div>
+
+<h2 id="optimal">6. Optimal weighting (A2c-1, 7 Oct) — the default in <code>main.m</code></h2>
+<p><code>'Weighting','optimal'</code> fits all channels at once:</p>
+<div class="eq">prof<sub>cj</sub> = <var>a</var><sub>c</sub> + <var>b</var>·<var>s</var><sub>c</sub>·<var>T</var>(φ<sub>j</sub> − τ) + noise</div>
+<p>a baseline <var>a</var><sub>c</sub> per channel, <b>one</b> amplitude <var>b</var> times the known relative gain <var>s</var><sub>c</sub> (<code>'ChannelGain'</code>, default 1: observer
+knowledge of the pulsar spectrum × bandpass), and one τ.</p>
+<div class="callout why"><span class="ttl">Why one common amplitude, not one per channel</span>
+<p>At −54 dB each channel's pulse has SNR ≪ 1 per sub-int; 128 free amplitudes would fit noise. One amplitude with a known spectral
+shape uses all channels' information for the one thing that matters, the shift.</p></div>
+<ul>
+<li>Weights 1/variance per bin and channel (radiometer model with the current fit, or per-channel off-pulse residuals), iterated to
+convergence (|Δτ| &lt; 10⁻¹², ≤ <code>MaxIterations</code> 10).</li>
+<li>For fixed τ, <var>a</var><sub>c</sub> and <var>b</var> by weighted least squares; τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ), the weighted matched filter: FFT
+correlations on the upsampled grid, a bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a value-only search stops at ~10⁻¹⁰ turns).</li>
+<li><b>Error bars: sandwich</b> Cov = <var>A</var>⁻¹<var>BA</var>⁻¹, <var>A</var> = <var>J</var>ᵀ<var>WJ</var>, <var>B</var> = <var>J</var>ᵀ<var>W</var>Σ<var>WJ</var>, with the full covariance Σ of every channel (all lags).
+The weights ignore neighbour covariances (correlation ~0.26, small loss); the error bars do not.</li>
+<li>Empty bins weigh nothing, so there is <b>no exclusion rule and no dips</b>; <code>nChanUsed</code> = channels with data; new output
+<code>chanBaseline</code>. <code>amp</code> = <var>b</var>·Σ<var>s</var><sub>c</sub> (the summed pulse), <code>baseline</code> = Σ<var>a</var><sub>c</sub>.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why the sandwich form</span>
+<p>The weights are an approximation of the inverse covariance (they ignore neighbour correlations). The sandwich estimator is honest
+even when the fit's weights are not exactly the inverse covariance; the plain <var>A</var>⁻¹ would only be right if they were.</p></div>
+<p>A side benefit seen in B4: weighting by 1/level² is a built-in notch for narrowband RFI. A carrier that cut the full-band SNR to
+74 leaves the channel path at 92.</p>
+
+<h2 id="template">7. The template</h2>
+<p><code>main.m</code> uses <code>gaussianTemplate(nBin, ephem.profileFWHM)</code>: a periodic Gaussian, peak 1 at bin 1 (images at −2…+2 turns summed).
+<code>estimateTOA</code> accepts any [NBin × 1] profile with phase 0 at bin 1, so real pulsars need only a different template source (a
+multi-component model or a high-SNR observed profile); its phase 0 then defines the TOA.</p>
+
+<h2 id="outputs">8. Options and outputs</h2>
+<dl class="facts">
+<dt>Options</dt><dd><code>NoiseModel</code> (<code>'radiometer'</code> / <code>'offpulse'</code>), <code>Bnoise</code>, <code>Weighting</code> (<code>'equal'</code> default; main passes <code>'optimal'</code> on the channel path), <code>ChannelGain</code>, <code>MaxIterations</code> (10), <code>MinCoverage</code> (1: complete turns only), <code>MaxHarmonic</code>, <code>Upsample</code> (8), <code>OnPulseFrac</code> (0.01), <code>MaxRedChi2</code> (2), <code>Verbose</code></dd>
+<dt>Per sub-int</dt><dd>valid, coverage, phase, phaseErr, <b>toa</b>, <b>toaErr</b>, amp, ampErr, baseline, snr (= <var>b</var>/σ<sub>b</sub>), redChi2, flagChi2, tRef, fRef, turnRef, nChanUsed, chanBaseline</dd>
+<dt><code>toa.total</code></dt><dd>phase, phaseErr, timeOffset (relative to the ephemeris), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, nChanUsed</dd>
+</dl>
+<p><code>main.m</code> adds <code>toa.good</code> = valid ∧ detected (unknown phase) ∧ ¬flagChi2; see <a href="detection.html#good">good TOAs</a>.</p>
+
+<h2 id="valid">9. Validation</h2>
+<ul>
+<li>Noise-free (1 s, 99 TOAs): median σ 0.466 µs vs 0.469 µs from a NumPy Monte Carlo; rms/pred 1.053; χ² 109.9/99.</li>
+<li>−5 dB Monte Carlo (10 noise seeds, 90 TOAs): rms/pred 0.950 ± 0.075, χ²<sub>red</sub> 0.91, 72 % within 1σ; σ only 0.5 % above the exact optimum.</li>
+<li>SNR sweep −25…+20 dB: error bars honest for SNR per sub-int ≳ 5 (good TOAs); outliers below that, removed by detection.</li>
+<li>Tests <code>tests/testChannelTOA.m</code> (A2a: bit-identical full band, error bars = explicit full-covariance formula to 4·10⁻¹⁶,
+channel vs summed fold) and <code>tests/testOptimalTOA.m</code> (A2c-1: equals FFTFIT for one channel to 1.7·10⁻¹⁶ turns; explicit sandwich;
+Monte Carlo with exact covariance: unbiased, pulls std 1.006–1.037, scatter 0.955–0.963 of equal weighting).</li>
+</ul>
+<p>Full numbers: <a href="results.html">validation record</a>.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

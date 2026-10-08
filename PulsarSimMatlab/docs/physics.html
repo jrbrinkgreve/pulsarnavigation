@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Physics Background</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Physics background</h1>
+<p class="lede">The physics every stage relies on, from the neutron star to the arrival time. Each section
+ends with where it shows up in the code.</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#timing">Pulsar timing and navigation</a></li>
+<li><a href="#emission">What a pulsar signal looks like</a></li>
+<li><a href="#dispersion">Interstellar dispersion</a></li>
+<li><a href="#receiver">The receiver: noise, SNR and baseband</a></li>
+<li><a href="#detection">Square-law detection and the radiometer equation</a></li>
+<li><a href="#folding">Folding</a></li>
+<li><a href="#toa">From a profile to a TOA, and how precise it can be</a></li>
+<li><a href="#np">Is the pulsar there? Detection theory</a></li>
+<li><a href="#rfi">Radio-frequency interference</a></li>
+<li><a href="#propagation">Other propagation effects</a></li>
+</ol></div>
+
+<h2 id="timing">1. Pulsar timing and navigation</h2>
+<p>A pulsar rotates with spin frequency <var>f</var><sub>0</sub> (here 100 Hz, period <var>T</var> = 10 ms) and a slow
+spin-down <var>F</var><sub>1</sub>. An <b>ephemeris</b> (from a pulsar catalogue) gives the rotational phase at any time:</p>
+<div class="eq">φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>) + ½·<var>F</var><sub>1</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>)²</div>
+<p>Each integer phase is a pulse. A <b>time of arrival (TOA)</b> is the measured arrival time of a chosen point of the
+pulse (here: the template's phase 0) at a chosen reference frequency. The difference between a measured TOA and the
+predicted one, times the speed of light, is a distance along the line of sight to the pulsar: 1 µs ≈ 300 m. With four or
+more pulsars in well-separated directions you solve for 3-D position and receiver clock offset, as with GNSS.</p>
+<div class="callout note"><span class="ttl">What this project is, and is not (yet)</span>
+<p>The pipeline produces TOAs with uncertainties for <em>one</em> pulsar at a fixed receiver. Motion (Doppler),
+barycentric corrections and the navigation solution are later blocks (D and E, see
+<a href="roadmap.html">roadmap</a>).</p></div>
+
+<h2 id="emission">2. What a pulsar signal looks like</h2>
+<p>Pulsar radio emission comes from a huge number of independent emitters. Their sum is, by the central limit theorem,
+<b>Gaussian noise</b>. What makes a pulsar a pulsar is that the <em>variance</em> (power) of that noise rises once per
+turn. The simulator models the voltage as</p>
+<div class="eq"><var>x</var>(<var>t</var>) = <var>A</var>·√<var>G</var>(<var>t</var>)·<var>n</var>(<var>t</var>), &nbsp;&nbsp; E[<var>x</var>²] = <var>A</var>²·<var>G</var>(<var>t</var>)</div>
+<p>with <var>n</var> white unit-variance noise and <var>G</var> a periodic train of unit-peak Gaussians (the <b>power profile</b>).</p>
+<figure>
+<svg viewBox="0 0 860 190" role="img" aria-label="Pulsar voltage: noise whose variance rises once per turn">
+  <path class="axis" d="M40 90 H825"/>
+  <path class="curve2" d="M40.0,85.2 L45.2,85.2 L50.4,85.2 L55.6,85.2 L60.8,85.2 L66.0,85.2 L71.2,85.2 L76.4,85.2 L81.6,85.2 L86.9,85.2 L92.1,85.2 L97.3,85.2 L102.5,85.2 L107.7,85.2 L112.9,85.2 L118.1,85.2 L123.3,85.2 L128.5,85.0 L133.7,84.6 L138.9,83.1 L144.1,79.5 L149.3,72.2 L154.5,60.7 L159.7,46.6 L164.9,34.6 L170.1,30.0 L175.4,35.1 L180.6,47.4 L185.8,61.4 L191.0,72.8 L196.2,79.8 L201.4,83.2 L206.6,84.6 L211.8,85.1 L217.0,85.2 L222.2,85.2 L227.4,85.2 L232.6,85.2 L237.8,85.2 L243.0,85.2 L248.2,85.2 L253.4,85.2 L258.6,85.2 L263.8,85.2 L269.1,85.2 L274.3,85.2 L279.5,85.2 L284.7,85.2 L289.9,85.2 L295.1,85.2 L300.3,85.2 L305.5,85.2 L310.7,85.2 L315.9,85.2 L321.1,85.2 L326.3,85.2 L331.5,85.2 L336.7,85.2 L341.9,85.2 L347.1,85.2 L352.3,85.2 L357.6,85.2 L362.8,85.2 L368.0,85.2 L373.2,85.2 L378.4,85.2 L383.6,85.2 L388.8,85.0 L394.0,84.5 L399.2,83.0 L404.4,79.2 L409.6,71.7 L414.8,59.9 L420.0,45.8 L425.2,34.1 L430.4,30.0 L435.6,35.6 L440.8,48.1 L446.1,62.1 L451.3,73.3 L456.5,80.1 L461.7,83.4 L466.9,84.7 L472.1,85.1 L477.3,85.2 L482.5,85.2 L487.7,85.2 L492.9,85.2 L498.1,85.2 L503.3,85.2 L508.5,85.2 L513.7,85.2 L518.9,85.2 L524.1,85.2 L529.3,85.2 L534.5,85.2 L539.8,85.2 L545.0,85.2 L550.2,85.2 L555.4,85.2 L560.6,85.2 L565.8,85.2 L571.0,85.2 L576.2,85.2 L581.4,85.2 L586.6,85.2 L591.8,85.2 L597.0,85.2 L602.2,85.2 L607.4,85.2 L612.6,85.2 L617.8,85.2 L623.0,85.2 L628.3,85.2 L633.5,85.2 L638.7,85.2 L643.9,85.2 L649.1,85.0 L654.3,84.5 L659.5,82.8 L664.7,78.9 L669.9,71.2 L675.1,59.2 L680.3,45.0 L685.5,33.6 L690.7,30.1 L695.9,36.2 L701.1,48.9 L706.3,62.9 L711.5,73.8 L716.8,80.3 L722.0,83.5 L727.2,84.7 L732.4,85.1 L737.6,85.2 L742.8,85.2 L748.0,85.2 L753.2,85.2 L758.4,85.2 L763.6,85.2 L768.8,85.2 L774.0,85.2 L779.2,85.2 L784.4,85.2 L789.6,85.2 L794.8,85.2 L800.0,85.2 L805.3,85.2 L810.5,85.2 L815.7,85.2" opacity="0.7"/>
+  <path class="curve2" d="M40.0,94.8 L45.2,94.8 L50.4,94.8 L55.6,94.8 L60.8,94.8 L66.0,94.8 L71.2,94.8 L76.4,94.8 L81.6,94.8 L86.9,94.8 L92.1,94.8 L97.3,94.8 L102.5,94.8 L107.7,94.8 L112.9,94.8 L118.1,94.8 L123.3,94.8 L128.5,95.0 L133.7,95.4 L138.9,96.9 L144.1,100.5 L149.3,107.8 L154.5,119.3 L159.7,133.4 L164.9,145.4 L170.1,150.0 L175.4,144.9 L180.6,132.6 L185.8,118.6 L191.0,107.2 L196.2,100.2 L201.4,96.8 L206.6,95.4 L211.8,94.9 L217.0,94.8 L222.2,94.8 L227.4,94.8 L232.6,94.8 L237.8,94.8 L243.0,94.8 L248.2,94.8 L253.4,94.8 L258.6,94.8 L263.8,94.8 L269.1,94.8 L274.3,94.8 L279.5,94.8 L284.7,94.8 L289.9,94.8 L295.1,94.8 L300.3,94.8 L305.5,94.8 L310.7,94.8 L315.9,94.8 L321.1,94.8 L326.3,94.8 L331.5,94.8 L336.7,94.8 L341.9,94.8 L347.1,94.8 L352.3,94.8 L357.6,94.8 L362.8,94.8 L368.0,94.8 L373.2,94.8 L378.4,94.8 L383.6,94.8 L388.8,95.0 L394.0,95.5 L399.2,97.0 L404.4,100.8 L409.6,108.3 L414.8,120.1 L420.0,134.2 L425.2,145.9 L430.4,150.0 L435.6,144.4 L440.8,131.9 L446.1,117.9 L451.3,106.7 L456.5,99.9 L461.7,96.6 L466.9,95.3 L472.1,94.9 L477.3,94.8 L482.5,94.8 L487.7,94.8 L492.9,94.8 L498.1,94.8 L503.3,94.8 L508.5,94.8 L513.7,94.8 L518.9,94.8 L524.1,94.8 L529.3,94.8 L534.5,94.8 L539.8,94.8 L545.0,94.8 L550.2,94.8 L555.4,94.8 L560.6,94.8 L565.8,94.8 L571.0,94.8 L576.2,94.8 L581.4,94.8 L586.6,94.8 L591.8,94.8 L597.0,94.8 L602.2,94.8 L607.4,94.8 L612.6,94.8 L617.8,94.8 L623.0,94.8 L628.3,94.8 L633.5,94.8 L638.7,94.8 L643.9,94.8 L649.1,95.0 L654.3,95.5 L659.5,97.2 L664.7,101.1 L669.9,108.8 L675.1,120.8 L680.3,135.0 L685.5,146.4 L690.7,149.9 L695.9,143.8 L701.1,131.1 L706.3,117.1 L711.5,106.2 L716.8,99.7 L722.0,96.5 L727.2,95.3 L732.4,94.9 L737.6,94.8 L742.8,94.8 L748.0,94.8 L753.2,94.8 L758.4,94.8 L763.6,94.8 L768.8,94.8 L774.0,94.8 L779.2,94.8 L784.4,94.8 L789.6,94.8 L794.8,94.8 L800.0,94.8 L805.3,94.8 L810.5,94.8 L815.7,94.8" opacity="0.7"/>
+  <path d="M40.0,89.8 L40.9,87.3 L41.7,92.0 L42.6,87.8 L43.5,90.6 L44.3,90.6 L45.2,85.9 L46.1,89.7 L46.9,90.1 L47.8,88.4 L48.7,87.5 L49.5,90.1 L50.4,88.7 L51.3,92.1 L52.1,90.8 L53.0,91.0 L53.9,92.9 L54.7,93.3 L55.6,93.5 L56.5,90.5 L57.4,90.4 L58.2,90.7 L59.1,89.8 L60.0,92.9 L60.8,90.2 L61.7,89.5 L62.6,88.4 L63.4,91.8 L64.3,90.9 L65.2,94.4 L66.0,91.1 L66.9,94.8 L67.8,93.1 L68.6,87.6 L69.5,94.8 L70.4,88.3 L71.2,89.3 L72.1,90.7 L73.0,89.0 L73.8,88.8 L74.7,87.7 L75.6,90.5 L76.4,91.3 L77.3,91.3 L78.2,92.2 L79.0,90.1 L79.9,91.7 L80.8,87.7 L81.6,94.1 L82.5,92.4 L83.4,92.1 L84.2,94.6 L85.1,85.8 L86.0,95.3 L86.9,90.6 L87.7,91.1 L88.6,86.4 L89.5,94.3 L90.3,87.7 L91.2,91.6 L92.1,90.3 L92.9,91.5 L93.8,88.6 L94.7,92.5 L95.5,90.2 L96.4,89.2 L97.3,86.0 L98.1,95.2 L99.0,86.7 L99.9,87.9 L100.7,91.1 L101.6,89.3 L102.5,91.0 L103.3,86.4 L104.2,89.5 L105.1,90.5 L105.9,90.5 L106.8,90.4 L107.7,90.4 L108.5,91.9 L109.4,85.5 L110.3,94.2 L111.1,97.9 L112.0,90.3 L112.9,90.3 L113.7,89.2 L114.6,90.4 L115.5,90.3 L116.4,89.3 L117.2,87.9 L118.1,91.0 L119.0,90.8 L119.8,85.8 L120.7,88.8 L121.6,92.2 L122.4,84.9 L123.3,88.3 L124.2,91.3 L125.0,92.6 L125.9,89.3 L126.8,91.9 L127.6,92.4 L128.5,92.9 L129.4,91.2 L130.2,87.5 L131.1,91.0 L132.0,93.4 L132.8,88.4 L133.7,89.8 L134.6,87.9 L135.4,86.9 L136.3,90.5 L137.2,90.4 L138.0,90.1 L138.9,93.6 L139.8,87.8 L140.6,85.2 L141.5,89.3 L142.4,91.0 L143.2,91.1 L144.1,93.7 L145.0,94.2 L145.9,92.3 L146.7,95.2 L147.6,93.0 L148.5,101.6 L149.3,87.2 L150.2,89.6 L151.1,101.1 L151.9,114.1 L152.8,90.1 L153.7,76.4 L154.5,99.8 L155.4,96.9 L156.3,98.8 L157.1,79.2 L158.0,106.1 L158.9,71.6 L159.7,96.0 L160.6,70.8 L161.5,89.3 L162.3,95.3 L163.2,124.9 L164.1,106.8 L164.9,96.6 L165.8,73.0 L166.7,83.5 L167.5,108.6 L168.4,78.9 L169.3,63.1 L170.1,94.1 L171.0,101.9 L171.9,100.6 L172.7,68.4 L173.6,75.9 L174.5,113.8 L175.4,80.6 L176.2,101.6 L177.1,107.5 L178.0,62.2 L178.8,72.4 L179.7,104.8 L180.6,88.5 L181.4,80.8 L182.3,101.0 L183.2,91.9 L184.0,80.0 L184.9,115.1 L185.8,85.7 L186.6,81.1 L187.5,84.4 L188.4,103.7 L189.2,87.0 L190.1,97.4 L191.0,85.5 L191.8,85.7 L192.7,88.6 L193.6,94.6 L194.4,93.2 L195.3,85.7 L196.2,94.2 L197.0,87.9 L197.9,88.0 L198.8,91.0 L199.6,81.7 L200.5,89.8 L201.4,83.4 L202.2,95.9 L203.1,96.3 L204.0,87.4 L204.8,88.4 L205.7,90.8 L206.6,90.1 L207.5,94.6 L208.3,91.5 L209.2,92.4 L210.1,90.5 L210.9,88.0 L211.8,89.9 L212.7,89.2 L213.5,91.6 L214.4,91.0 L215.3,89.8 L216.1,90.6 L217.0,87.2 L217.9,91.9 L218.7,85.9 L219.6,92.1 L220.5,87.7 L221.3,91.7 L222.2,86.4 L223.1,89.7 L223.9,89.1 L224.8,88.4 L225.7,91.4 L226.5,92.3 L227.4,94.4 L228.3,87.3 L229.1,91.5 L230.0,91.3 L230.9,90.1 L231.7,85.7 L232.6,93.8 L233.5,89.5 L234.3,90.9 L235.2,88.8 L236.1,93.9 L237.0,90.9 L237.8,88.2 L238.7,86.6 L239.6,86.5 L240.4,91.9 L241.3,89.9 L242.2,90.2 L243.0,93.0 L243.9,93.1 L244.8,88.3 L245.6,89.5 L246.5,90.3 L247.4,87.3 L248.2,92.2 L249.1,88.9 L250.0,90.0 L250.8,90.1 L251.7,88.9 L252.6,89.6 L253.4,89.4 L254.3,89.4 L255.2,85.8 L256.0,90.7 L256.9,87.8 L257.8,88.7 L258.6,90.8 L259.5,88.3 L260.4,91.9 L261.2,87.5 L262.1,91.8 L263.0,91.1 L263.8,89.3 L264.7,88.2 L265.6,88.0 L266.5,88.1 L267.3,90.5 L268.2,92.1 L269.1,88.8 L269.9,89.3 L270.8,92.1 L271.7,87.9 L272.5,89.6 L273.4,92.1 L274.3,89.0 L275.1,92.9 L276.0,91.9 L276.9,89.1 L277.7,93.4 L278.6,89.9 L279.5,92.9 L280.3,88.4 L281.2,91.6 L282.1,89.6 L282.9,93.3 L283.8,90.8 L284.7,87.9 L285.5,89.0 L286.4,94.0 L287.3,88.0 L288.1,88.1 L289.0,90.8 L289.9,86.9 L290.7,92.3 L291.6,90.2 L292.5,87.6 L293.3,87.1 L294.2,87.2 L295.1,92.4 L296.0,93.9 L296.8,89.1 L297.7,93.1 L298.6,90.3 L299.4,92.8 L300.3,87.7 L301.2,88.2 L302.0,88.8 L302.9,90.0 L303.8,89.9 L304.6,90.6 L305.5,89.2 L306.4,89.5 L307.2,89.0 L308.1,90.9 L309.0,85.9 L309.8,89.4 L310.7,87.0 L311.6,87.1 L312.4,91.9 L313.3,93.7 L314.2,87.3 L315.0,90.8 L315.9,89.8 L316.8,90.6 L317.6,89.7 L318.5,92.6 L319.4,90.2 L320.2,91.0 L321.1,90.0 L322.0,95.1 L322.8,88.2 L323.7,89.3 L324.6,93.8 L325.5,91.6 L326.3,89.9 L327.2,88.6 L328.1,90.0 L328.9,87.0 L329.8,90.0 L330.7,92.2 L331.5,91.5 L332.4,88.4 L333.3,91.3 L334.1,88.2 L335.0,87.8 L335.9,88.7 L336.7,87.8 L337.6,90.4 L338.5,90.0 L339.3,91.3 L340.2,91.3 L341.1,93.4 L341.9,91.2 L342.8,92.3 L343.7,93.1 L344.5,89.7 L345.4,89.0 L346.3,90.7 L347.1,87.0 L348.0,87.9 L348.9,87.7 L349.7,91.3 L350.6,93.3 L351.5,88.8 L352.3,89.3 L353.2,88.4 L354.1,89.1 L354.9,87.3 L355.8,90.6 L356.7,88.5 L357.6,92.0 L358.4,95.0 L359.3,91.0 L360.2,86.7 L361.0,93.7 L361.9,87.8 L362.8,91.5 L363.6,90.9 L364.5,89.9 L365.4,89.5 L366.2,92.1 L367.1,89.7 L368.0,89.0 L368.8,88.2 L369.7,91.6 L370.6,86.6 L371.4,85.8 L372.3,84.7 L373.2,92.9 L374.0,89.6 L374.9,94.1 L375.8,89.2 L376.6,88.8 L377.5,92.5 L378.4,93.5 L379.2,89.6 L380.1,88.6 L381.0,91.7 L381.8,90.6 L382.7,95.5 L383.6,91.6 L384.4,89.7 L385.3,89.7 L386.2,86.5 L387.1,92.5 L387.9,95.1 L388.8,89.0 L389.7,91.4 L390.5,89.3 L391.4,88.3 L392.3,88.6 L393.1,86.5 L394.0,86.6 L394.9,94.3 L395.7,90.2 L396.6,84.5 L397.5,91.2 L398.3,87.1 L399.2,90.2 L400.1,91.4 L400.9,84.3 L401.8,86.0 L402.7,91.0 L403.5,85.9 L404.4,96.4 L405.3,93.9 L406.1,84.7 L407.0,89.8 L407.9,97.4 L408.7,86.6 L409.6,87.3 L410.5,78.3 L411.3,80.5 L412.2,93.0 L413.1,95.7 L413.9,91.8 L414.8,93.1 L415.7,68.5 L416.6,64.9 L417.4,67.1 L418.3,83.2 L419.2,94.7 L420.0,71.9 L420.9,97.4 L421.8,84.8 L422.6,128.4 L423.5,100.1 L424.4,54.4 L425.2,116.1 L426.1,128.8 L427.0,94.3 L427.8,45.2 L428.7,50.6 L429.6,99.8 L430.4,103.0 L431.3,93.0 L432.2,115.0 L433.0,89.1 L433.9,97.8 L434.8,127.5 L435.6,104.3 L436.5,96.1 L437.4,109.8 L438.2,114.7 L439.1,70.9 L440.0,51.9 L440.8,95.5 L441.7,97.6 L442.6,81.5 L443.4,93.6 L444.3,101.5 L445.2,71.0 L446.1,103.2 L446.9,98.5 L447.8,97.2 L448.7,98.8 L449.5,92.2 L450.4,85.2 L451.3,79.0 L452.1,85.4 L453.0,89.8 L453.9,97.3 L454.7,90.3 L455.6,94.6 L456.5,90.4 L457.3,85.9 L458.2,89.2 L459.1,90.8 L459.9,92.6 L460.8,90.1 L461.7,89.7 L462.5,92.7 L463.4,91.4 L464.3,87.7 L465.1,94.3 L466.0,91.1 L466.9,92.8 L467.7,86.3 L468.6,88.6 L469.5,88.8 L470.3,89.1 L471.2,89.4 L472.1,89.3 L472.9,93.5 L473.8,89.4 L474.7,88.7 L475.6,93.1 L476.4,88.2 L477.3,88.5 L478.2,93.3 L479.0,91.0 L479.9,90.7 L480.8,91.2 L481.6,89.1 L482.5,92.8 L483.4,90.5 L484.2,89.5 L485.1,88.4 L486.0,89.9 L486.8,90.5 L487.7,88.5 L488.6,94.3 L489.4,88.0 L490.3,90.7 L491.2,92.7 L492.0,90.9 L492.9,94.0 L493.8,94.5 L494.6,90.7 L495.5,91.7 L496.4,88.4 L497.2,91.9 L498.1,92.8 L499.0,92.1 L499.8,86.3 L500.7,89.9 L501.6,91.3 L502.4,92.2 L503.3,92.4 L504.2,90.4 L505.1,89.1 L505.9,87.5 L506.8,87.5 L507.7,89.4 L508.5,91.4 L509.4,91.9 L510.3,95.0 L511.1,92.2 L512.0,89.1 L512.9,90.7 L513.7,89.2 L514.6,92.9 L515.5,88.0 L516.3,89.4 L517.2,89.9 L518.1,89.1 L518.9,94.9 L519.8,91.2 L520.7,92.0 L521.5,86.0 L522.4,90.4 L523.3,91.1 L524.1,88.1 L525.0,92.3 L525.9,86.9 L526.7,91.5 L527.6,90.1 L528.5,92.0 L529.3,88.2 L530.2,94.7 L531.1,88.5 L531.9,91.8 L532.8,89.9 L533.7,92.5 L534.5,89.5 L535.4,89.6 L536.3,88.7 L537.2,89.3 L538.0,88.6 L538.9,87.8 L539.8,90.8 L540.6,92.6 L541.5,92.8 L542.4,88.5 L543.2,90.8 L544.1,87.7 L545.0,89.9 L545.8,92.2 L546.7,88.0 L547.6,85.8 L548.4,90.4 L549.3,92.0 L550.2,91.8 L551.0,88.1 L551.9,91.3 L552.8,90.9 L553.6,88.5 L554.5,90.0 L555.4,89.7 L556.2,91.2 L557.1,91.4 L558.0,89.6 L558.8,89.7 L559.7,88.7 L560.6,91.1 L561.4,89.2 L562.3,89.0 L563.2,89.8 L564.0,88.8 L564.9,87.8 L565.8,89.6 L566.7,89.8 L567.5,92.1 L568.4,89.3 L569.3,90.2 L570.1,90.7 L571.0,91.8 L571.9,88.7 L572.7,84.4 L573.6,89.1 L574.5,89.8 L575.3,89.0 L576.2,91.3 L577.1,89.8 L577.9,91.4 L578.8,91.4 L579.7,89.5 L580.5,89.5 L581.4,90.2 L582.3,91.7 L583.1,89.4 L584.0,92.4 L584.9,88.3 L585.7,90.8 L586.6,90.0 L587.5,88.3 L588.3,88.8 L589.2,92.8 L590.1,90.5 L590.9,89.2 L591.8,92.4 L592.7,95.2 L593.5,90.2 L594.4,90.1 L595.3,89.1 L596.2,89.8 L597.0,89.7 L597.9,89.5 L598.8,87.0 L599.6,88.9 L600.5,88.8 L601.4,90.9 L602.2,87.5 L603.1,90.4 L604.0,88.4 L604.8,94.6 L605.7,89.5 L606.6,90.2 L607.4,91.0 L608.3,87.2 L609.2,89.1 L610.0,90.3 L610.9,91.1 L611.8,85.9 L612.6,88.4 L613.5,88.6 L614.4,91.7 L615.2,87.2 L616.1,88.8 L617.0,90.6 L617.8,90.2 L618.7,93.5 L619.6,88.6 L620.4,92.4 L621.3,88.2 L622.2,91.0 L623.0,91.4 L623.9,89.2 L624.8,89.5 L625.7,92.5 L626.5,90.2 L627.4,88.7 L628.3,90.5 L629.1,92.9 L630.0,90.5 L630.9,92.1 L631.7,91.3 L632.6,89.9 L633.5,90.1 L634.3,90.5 L635.2,93.6 L636.1,89.2 L636.9,90.4 L637.8,90.9 L638.7,89.7 L639.5,85.8 L640.4,92.8 L641.3,93.5 L642.1,88.3 L643.0,91.7 L643.9,87.1 L644.7,92.2 L645.6,91.1 L646.5,88.2 L647.3,88.0 L648.2,89.0 L649.1,89.0 L649.9,90.3 L650.8,91.0 L651.7,90.5 L652.5,87.0 L653.4,88.3 L654.3,90.0 L655.2,89.2 L656.0,87.8 L656.9,86.7 L657.8,90.4 L658.6,90.2 L659.5,88.9 L660.4,81.0 L661.2,89.1 L662.1,85.0 L663.0,96.5 L663.8,86.1 L664.7,97.0 L665.6,95.9 L666.4,93.8 L667.3,90.9 L668.2,88.7 L669.0,87.1 L669.9,88.1 L670.8,94.1 L671.6,63.8 L672.5,85.7 L673.4,82.0 L674.2,63.9 L675.1,76.5 L676.0,81.4 L676.8,84.8 L677.7,58.1 L678.6,109.6 L679.4,108.4 L680.3,87.0 L681.2,133.4 L682.0,107.3 L682.9,63.9 L683.8,101.1 L684.6,85.9 L685.5,72.4 L686.4,120.2 L687.3,82.8 L688.1,106.8 L689.0,119.5 L689.9,97.4 L690.7,91.5 L691.6,100.7 L692.5,107.5 L693.3,65.0 L694.2,60.5 L695.1,76.1 L695.9,92.4 L696.8,114.7 L697.7,108.5 L698.5,113.9 L699.4,85.7 L700.3,72.1 L701.1,73.1 L702.0,90.4 L702.9,96.3 L703.7,87.3 L704.6,88.3 L705.5,82.2 L706.3,72.0 L707.2,97.7 L708.1,68.3 L708.9,110.0 L709.8,105.5 L710.7,102.1 L711.5,97.5 L712.4,91.6 L713.3,77.4 L714.1,93.9 L715.0,84.3 L715.9,91.7 L716.8,89.3 L717.6,94.1 L718.5,81.5 L719.4,90.1 L720.2,92.0 L721.1,83.0 L722.0,89.5 L722.8,88.8 L723.7,90.4 L724.6,92.2 L725.4,93.6 L726.3,90.4 L727.2,86.1 L728.0,89.0 L728.9,90.4 L729.8,87.6 L730.6,92.1 L731.5,86.9 L732.4,90.0 L733.2,91.8 L734.1,88.5 L735.0,88.9 L735.8,90.8 L736.7,89.5 L737.6,87.9 L738.4,87.0 L739.3,91.8 L740.2,95.7 L741.0,85.6 L741.9,90.6 L742.8,90.9 L743.6,89.1 L744.5,90.9 L745.4,87.7 L746.3,92.7 L747.1,90.4 L748.0,92.7 L748.9,86.7 L749.7,90.5 L750.6,87.6 L751.5,87.0 L752.3,92.6 L753.2,90.5 L754.1,88.4 L754.9,89.9 L755.8,90.3 L756.7,88.2 L757.5,88.0 L758.4,91.3 L759.3,90.3 L760.1,88.6 L761.0,89.5 L761.9,89.7 L762.7,92.4 L763.6,86.2 L764.5,90.5 L765.3,89.4 L766.2,90.1 L767.1,89.9 L767.9,89.7 L768.8,91.8 L769.7,89.2 L770.5,87.4 L771.4,89.1 L772.3,88.4 L773.1,89.0 L774.0,89.9 L774.9,86.1 L775.8,91.5 L776.6,89.2 L777.5,87.8 L778.4,89.4 L779.2,92.3 L780.1,92.3 L781.0,86.6 L781.8,92.1 L782.7,90.0 L783.6,88.8 L784.4,89.8 L785.3,93.8 L786.2,94.1 L787.0,90.2 L787.9,91.7 L788.8,90.6 L789.6,89.8 L790.5,89.6 L791.4,92.9 L792.2,93.6 L793.1,88.0 L794.0,91.4 L794.8,92.5 L795.7,94.3 L796.6,88.8 L797.4,92.7 L798.3,92.3 L799.2,88.6 L800.0,89.3 L800.9,88.8 L801.8,92.7 L802.6,96.2 L803.5,92.1 L804.4,90.7 L805.3,91.4 L806.1,88.1 L807.0,89.2 L807.9,92.3 L808.7,88.8 L809.6,90.3 L810.5,91.1 L811.3,87.6 L812.2,93.6 L813.1,87.8 L813.9,87.6 L814.8,94.5 L815.7,90.4 L816.5,90.4 L817.4,92.5 L818.3,91.2 L819.1,91.8 L820.0,89.9" stroke="var(--accent)" stroke-width="0.8" fill="none"/>
+  <text x="170" y="182" text-anchor="middle" class="muted" font-size="12">turn 1</text>
+  <text x="430" y="182" text-anchor="middle" class="muted" font-size="12">turn 2</text>
+  <text x="690" y="182" text-anchor="middle" class="muted" font-size="12">turn 3</text>
+  <text x="45" y="18" class="muted" font-size="12">voltage x(t); orange = ±A·√G(t) (the standard deviation)</text>
+</svg>
+<figcaption>Schematic (pulses widened for visibility). There is no fixed waveform: every turn is a new noise realization;
+only the envelope repeats. Real profiles have duty cycles of a few percent; the simulation uses a 5 % FWHM Gaussian.</figcaption>
+</figure>
+<div class="callout why"><span class="ttl">Why this matters for the processing</span>
+<p>Because the signal is noise, you cannot correlate the voltage with a known waveform. The information is in the
+power. So the processing must at some point <b>square</b> the voltage (detection) and then average many turns. Linear
+operations that need the phase (dedispersion, RFI blanking, beamforming) must happen <b>before</b> squaring.</p></div>
+<h3 id="selfnoise">Self-noise</h3>
+<p>Estimating a variance from a finite number of samples has scatter. A detected power bin averages |z|² over about
+<var>B</var>·Δ<var>t</var> independent samples, so even with no receiver noise its relative scatter is 1/√(<var>B</var>·Δ<var>t</var>).
+When the pulsar is bright, this scatter is proportional to the pulse itself: largest at the peak, zero off-pulse. This
+<b>self-noise</b> limits the SNR of a very bright pulse. At the weak signals this project targets (−54 dB) it is
+negligible, but the noise model includes it.</p>
+<p><b>In the code:</b> <a href="sky.html#gen"><code>generatePulsarSignal</code></a>; the self-noise term in
+<a href="validation.html#epm"><code>expectedPowerModel</code></a>.</p>
+
+<h2 id="dispersion">3. Interstellar dispersion</h2>
+<p>Between the pulsar and us are free electrons. A cold plasma has a frequency-dependent refractive index, so the
+<b>group delay</b> depends on frequency:</p>
+<div class="eq">τ(<var>f</var>) = <var>K</var>·DM / <var>f</var>², &nbsp;&nbsp; <var>K</var> = 4.148808×10³ s·MHz²·pc⁻¹·cm³</div>
+<p>DM (dispersion measure) is the electron column density along the line of sight. For DM = 5 pc cm⁻³ the delay is
+8.103 ms at 1.6 GHz and 14.406 ms at 1.2 GHz: each pulse is smeared over <b>6.30 ms</b> across the 400 MHz band, which
+is more than ten times the 0.5 ms pulse width.</p>
+<figure>
+<svg viewBox="0 0 860 210" role="img" aria-label="Dispersion sweep: lower frequencies arrive later">
+  <path class="axis" d="M60 30 V170 H840"/>
+  <text x="54" y="34" text-anchor="end" font-size="12" class="muted">1.6 GHz</text>
+  <text x="54" y="174" text-anchor="end" font-size="12" class="muted">1.2 GHz</text>
+  <text x="450" y="200" text-anchor="middle" font-size="12" class="muted">time [ms] →</text>
+  <path class="curve" d="M108.0,30.0 L110.5,33.5 L113.0,37.0 L115.5,40.5 L118.1,44.0 L120.7,47.5 L123.4,51.0 L126.2,54.5 L129.0,58.0 L131.9,61.5 L134.8,65.0 L137.8,68.5 L140.8,72.0 L143.9,75.5 L147.1,79.0 L150.3,82.5 L153.6,86.0 L157.0,89.5 L160.4,93.0 L163.9,96.5 L167.5,100.0 L171.2,103.5 L174.9,107.0 L178.8,110.5 L182.7,114.0 L186.7,117.5 L190.8,121.0 L195.0,124.5 L199.3,128.0 L203.6,131.5 L208.1,135.0 L212.7,138.5 L217.4,142.0 L222.2,145.5 L227.1,149.0 L232.2,152.5 L237.3,156.0 L242.6,159.5 L248.0,163.0 L253.6,166.5 L259.3,170.0"/>
+  <path class="curve" d="M348.0,30.0 L350.5,33.5 L353.0,37.0 L355.5,40.5 L358.1,44.0 L360.7,47.5 L363.4,51.0 L366.2,54.5 L369.0,58.0 L371.9,61.5 L374.8,65.0 L377.8,68.5 L380.8,72.0 L383.9,75.5 L387.1,79.0 L390.3,82.5 L393.6,86.0 L397.0,89.5 L400.4,93.0 L403.9,96.5 L407.5,100.0 L411.2,103.5 L414.9,107.0 L418.8,110.5 L422.7,114.0 L426.7,117.5 L430.8,121.0 L435.0,124.5 L439.3,128.0 L443.6,131.5 L448.1,135.0 L452.7,138.5 L457.4,142.0 L462.2,145.5 L467.1,149.0 L472.2,152.5 L477.3,156.0 L482.6,159.5 L488.0,163.0 L493.6,166.5 L499.3,170.0"/>
+  <path class="curve" d="M588.0,30.0 L590.5,33.5 L593.0,37.0 L595.5,40.5 L598.1,44.0 L600.7,47.5 L603.4,51.0 L606.2,54.5 L609.0,58.0 L611.9,61.5 L614.8,65.0 L617.8,68.5 L620.8,72.0 L623.9,75.5 L627.1,79.0 L630.3,82.5 L633.6,86.0 L637.0,89.5 L640.4,93.0 L643.9,96.5 L647.5,100.0 L651.2,103.5 L654.9,107.0 L658.8,110.5 L662.7,114.0 L666.7,117.5 L670.8,121.0 L675.0,124.5 L679.3,128.0 L683.6,131.5 L688.1,135.0 L692.7,138.5 L697.4,142.0 L702.2,145.5 L707.1,149.0 L712.2,152.5 L717.3,156.0 L722.6,159.5 L728.0,163.0 L733.6,166.5 L739.3,170.0"/>
+  <path class="axis" d="M108 175 V182 M348 175 V182 M588 175 V182" />
+  <text x="108" y="194" text-anchor="middle" font-size="11" class="muted">2</text>
+  <text x="348" y="194" text-anchor="middle" font-size="11" class="muted">12</text>
+  <text x="588" y="194" text-anchor="middle" font-size="11" class="muted">22</text>
+  <text x="270" y="100" font-size="12" class="muted">6.3 ms sweep per pulse (DM 5)</text>
+</svg>
+<figcaption>Three pulses 10 ms apart in a frequency–time plane, DM 5, delays relative to 1.6 GHz. Summing over
+frequency without correcting this would smear each pulse over 6.3 ms.</figcaption>
+</figure>
+<p>Two properties make exact correction possible:</p>
+<ul>
+<li><b>Phase-only.</b> Dispersion is a linear filter with |<var>H</var>(<var>f</var>)| = 1: it moves no energy between frequencies.
+Its exact inverse is the conjugate filter (<b>coherent dedispersion</b>), applied to the complex voltages.</li>
+<li><b>It commutes with the receiver bandpass</b> (both are linear time-invariant filters), so the simulator can apply
+dispersion only inside the observed band and still be exact there.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why coherent and not incoherent dedispersion</span>
+<p>Incoherent dedispersion splits the band into channels, detects each, and shifts channels in time. It leaves
+smearing inside each channel. Coherent dedispersion applies the inverse chirp to the voltages and removes the delay
+exactly at every frequency. The channelized front end does both: it splits into 3.125 MHz channels <em>and</em>
+dedisperses each one coherently, so there is no residual smearing either.</p></div>
+<p><b>In the code:</b> forward <a href="sky.html#disp"><code>applyDispersionStream</code></a>; inverse
+<a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a> and <a href="channels.html#dedisp"><code>dedisperseChannels</code></a>.</p>
+
+<h2 id="receiver">4. The receiver: noise, SNR and baseband</h2>
+<h3>Receiver noise and the SNR definition</h3>
+<p>The receiver adds its own Gaussian noise, characterized by the system-equivalent flux density SEFD = 2<var>k</var><var>T</var><sub>sys</sub>/<var>A</var><sub>eff</sub>.
+This project describes signal strength with one number, used everywhere as <code>snrDB</code>:</p>
+<div class="eq">ρ = <var>S</var><sub>peak</sub> / SEFD = pulsar power spectral density at the pulse peak / receiver-noise power spectral density</div>
+<p>It is independent of bandwidth, time resolution and dispersion, which is why it was chosen. In the simulation
+ρ = <var>A</var>²/σ<sub>n</sub>². Values: −5 dB is a bright pulsar on a large dish (used for most validation runs);
+about −54 dB is J0437−4715 on the target 0.61 m² array (worst-case design point).</p>
+<div class="callout warn"><span class="ttl">Do not confuse ρ with "the SNR"</span>
+<p>ρ is a per-hertz power ratio at the pulse peak. The SNR of a pulse after matched filtering is ρ·√(<var>B</var>·σ<sub>t</sub>·√π) ≈ 388·ρ
+for this pulsar and band, and the SNR of a folded sub-integration grows with √(turns). See <a href="#toa">section 7</a>
+and the glossary entry <a href="glossary.html#snr">SNR</a>.</p></div>
+<h3>From RF to complex baseband (IQ)</h3>
+<p>A receiver mixes the RF signal with a local oscillator (LO) at <var>f</var><sub>LO</sub>, low-pass filters and samples. The
+result is the <b>complex envelope</b> <var>z</var>(<var>t</var>), with</p>
+<div class="eq"><var>x</var>(<var>t</var>) = Re{<var>z</var>(<var>t</var>)·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}, &nbsp;&nbsp; <var>f</var><sub>baseband</sub> = <var>f</var><sub>RF</sub> − <var>f</var><sub>LO</sub></div>
+<p>Complex samples keep the phase, which coherent dedispersion needs, at a sample rate equal to the bandwidth of interest
+(800 MHz here instead of the 4 GHz real RF simulation grid).</p>
+<p><b>In the code:</b> <a href="receiver.html#noise"><code>addNoiseAndRFI</code></a>,
+<a href="receiver.html#iq"><code>applyIQmodulation</code></a>.</p>
+
+<h2 id="detection">5. Square-law detection and the radiometer equation</h2>
+<p>Detection forms |<var>z</var>|² = I² + Q² and averages it over time bins of length Δ<var>t</var> (about 1 µs). For Gaussian
+voltages the averaged power is an estimate of the variance, with relative noise</p>
+<div class="eq">σ<sub>P</sub> / P = 1 / √(<var>B</var><sub>n</sub>·Δ<var>t</var>) <span class="label">radiometer equation</span></div>
+<p>where <var>B</var><sub>n</sub> is the <b>noise-equivalent bandwidth</b>. For a band shaped by a taper <var>W</var>(<var>f</var>):</p>
+<div class="eq"><var>B</var><sub>n</sub> = (∫<var>W</var>²d<var>f</var>)² / ∫<var>W</var>⁴d<var>f</var></div>
+<p>The mean power passes ∫<var>W</var>², but the variance depends on ∫<var>W</var>⁴. For a flat band <var>B</var><sub>n</sub> = <var>B</var>. With the
+8 MHz raised-cosine edges used here, <var>B</var><sub>n</sub> ≈ 391.6 MHz for receiver noise.</p>
+<h3 id="isserlis">Where the radiometer equation comes from</h3>
+<p>For zero-mean complex Gaussian voltages, Isserlis' (Wick's) theorem gives the covariance of two power samples as the
+squared voltage correlation between them: cov(|z<sub>a</sub>|², |z<sub>b</sub>|²) = |R(a−b)|². So the variance of a bin mean
+over <var>n</var> samples is</p>
+<div class="eq">var(P̂) = (1/<var>n</var>²)·Σ<sub>a</sub>Σ<sub>b</sub> |R(a − b)|²</div>
+<p>which by Parseval becomes the ∫<var>W</var>⁴ above. This one formula is the root of the whole noise model. In narrow
+channels it predicts that neighbouring time bins are correlated (the bin is not much longer than the channel's
+correlation time); with blanking it gives the exact variance of each bin. See <a href="channels.html#powcov"><code>powerCovariance</code></a>
+and <a href="excision.html#weights"><code>blankingWeights</code></a>.</p>
+<div class="callout why"><span class="ttl">Why detection, then folding, then template matching</span>
+<p>For variance-modulated Gaussian noise, the optimal (Neyman–Pearson) statistic is a profile-weighted sum of |z|².
+Square-law detection followed by folding and a matched filter computes exactly that, in a cheap order.</p></div>
+
+<h2 id="folding">6. Folding</h2>
+<p>One pulse at weak signal is buried in noise. Folding averages all turns at the same rotational phase: each detected
+time bin is assigned to a phase bin using the ephemeris phase φ(<var>t</var>). The pulse adds up coherently, the noise
+averages down, and the SNR grows as √(number of turns). A <b>sub-integration (sub-int)</b> is a group of consecutive turns
+folded together; each gives one TOA.</p>
+<div class="eq">SNR<sub>sub-int</sub> = SNR<sub>turn</sub>·√<var>N</var> &nbsp;&nbsp;⇒&nbsp;&nbsp; <var>N</var> = (SNR<sub>target</sub> / SNR<sub>turn</sub>)²</div>
+<p>The validated design rule is SNR ≥ 6–7 per sub-int (below that, TOAs start to lock on noise peaks). At −54 dB a TOA
+of J0437 needs about 20 hours. See <a href="fold.html"><code>foldProfile</code></a> and the
+<a href="results.html#threshold">threshold sweep</a>.</p>
+
+<h2 id="toa">7. From a profile to a TOA, and how precise it can be</h2>
+<p>The folded profile is modelled as baseline + amplitude × template shifted by τ + noise. The fitted shift τ (in turns)
+gives the TOA: <b>TOA = <var>t</var><sub>ref</sub> + τ/<var>f</var><sub>ref</sub></b>. The fit uses FFTFIT (Taylor 1992), a cross-correlation in
+the Fourier domain that handles sub-bin shifts exactly.</p>
+<h3>The best possible precision (Cramér–Rao bound)</h3>
+<p>Model each detected bin as Gaussian with mean <var>m</var>(<var>t</var>) = <var>P</var><sub>n</sub>(1 + ρ<var>p</var>(<var>t</var>)) and variance
+<var>m</var>²/(<var>B</var>·Δ<var>t</var>). The Fisher information then gives</p>
+<div class="eq">SNR² = <var>B</var>·∫ (ρ<var>p</var>)² / (1 + ρ<var>p</var>)² d<var>t</var>, &nbsp;&nbsp; 1/σ<sub>TOA</sub>² = <var>B</var>·∫ (ρ<var>p</var>′)² / (1 + ρ<var>p</var>)² d<var>t</var></div>
+<p>In the weak-signal limit (ρ<var>p</var> ≪ 1), for a Gaussian pulse of width σ<sub>t</sub>:</p>
+<div class="eq">SNR ≈ ρ·√(<var>B</var>·σ<sub>t</sub>·√π) ≈ 388·ρ, &nbsp;&nbsp; σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub> / SNR</div>
+<p>Timing information lives on the pulse <b>flanks</b>, where the profile changes fastest: a narrow pulse and a high SNR
+give a precise TOA. In the strong-signal limit self-noise caps the SNR. See <a href="toa.html"><code>estimateTOA</code></a>.</p>
+<div class="callout note"><span class="ttl">Honest error bars</span>
+<p>The fit's stated σ follows from first-order error propagation through the fit, using the observer's noise model
+(fitted baseline and amplitude, radiometer equation, exact correlations between phase bins). Validation checks that the
+actual scatter of (TOA − truth) matches the stated σ: their ratio should be 1. See <a href="results.html">validation record</a>.</p></div>
+
+<h2 id="np">8. Is the pulsar there? Detection theory</h2>
+<p>A TOA fit always returns a peak, even on pure noise. A separate test asks whether the pulse is really there:
+<b>H0</b> (baseline + noise) against <b>H1</b> (baseline + template-shaped pulse + noise). The Neyman–Pearson lemma says the
+best test at a fixed false-alarm probability <var>P</var><sub>FA</sub> is a matched filter compared with a threshold η.</p>
+<ul>
+<li><b>Known phase</b> (tracking: you know where the pulse should be): one test, η = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for <var>P</var><sub>FA</sub> = 10⁻³.</li>
+<li><b>Unknown phase</b> (acquisition: the pulse could be anywhere): search all phases and take the maximum. Rice's formula
+for the maximum of a smooth Gaussian process gives η = 4.15 at 10⁻³ (about 5.5 effective independent trials per turn).</li>
+</ul>
+<p>A second check, the reduced χ² of the fit residuals, asks whether what is left after the fit is just noise. It catches
+something wrong in the profile (a radar spike), which detection cannot. See <a href="detection.html">Detection and good TOAs</a>.</p>
+
+<h2 id="rfi">9. Radio-frequency interference</h2>
+<p>Man-made signals in the 1.2–1.6 GHz band are far stronger than the pulsar. The simulator has five types:</p>
+<div class="table-wrap"><table>
+<tr><th>Type</th><th>Example</th><th>What it looks like</th><th>Effect without excision</th></tr>
+<tr><td>Carrier (cw)</td><td>spurious tone</td><td>one frequency, always on</td><td>lowers SNR; TOAs stay valid</td></tr>
+<tr><td>Spread spectrum (bpsk)</td><td>GNSS L1, L2</td><td>1–20 MHz wide, always on, constant envelope</td><td>lowers SNR; TOAs stay valid</td></tr>
+<tr><td>Pulsed</td><td>L-band radar</td><td>2 µs pulses at a repetition frequency, +20 dB</td><td><b>destroys TOAs</b> with confident error bars</td></tr>
+<tr><td>Impulse</td><td>broadband bursts</td><td>200 ns bursts across the whole band</td><td>harmless after coherent dedispersion (spread over 6.3 ms)</td></tr>
+<tr><td>(planned) noise-like</td><td>LTE / OFDM</td><td>indistinguishable from noise</td><td>extra noise in its channels</td></tr>
+</table></div>
+<div class="callout why"><span class="ttl">Why blank, and why before dedispersion</span>
+<p>At −54 dB one radar pulse carries the energy of about 80,000 pulsar pulses. Even 99.9 % suppression would leave more
+interference than pulsar, so samples with RFI must be <b>blanked</b> (set to zero, weight 0), not subtracted. Before
+dedispersion a radar pulse is a 2 µs blip in a few channels; after dedispersion it is smeared over milliseconds and mixed
+with good data. So excision works on the channel voltages, before dedispersion.</p></div>
+<p>See <a href="receiver.html#rfi"><code>rfiSource</code></a> and <a href="excision.html">RFI excision</a>.</p>
+
+<h2 id="propagation">10. Other propagation effects (not yet simulated)</h2>
+<ul>
+<li><b>Scintillation.</b> Turbulence in the interstellar plasma acts as a random phase screen: multipath. At low DM the
+interference pattern has bright patches ("scintles") 0.1–1 GHz wide, so the whole band fades by ~100 % on minutes-to-hours
+timescales. That affects the SNR budget, not the timing.</li>
+<li><b>Scattering.</b> The same multipath blurs the pulse with an exponential tail τ<sub>d</sub>: ~0.4 ns at DM 5 (irrelevant),
+µs at DM ≳ 100.</li>
+<li><b>Pulsar spectrum.</b> Real pulsars are brighter at low frequencies (<var>S</var> ∝ <var>f</var><sup>−1.6</sup> on average); the simulator is white.</li>
+<li><b>Ionosphere.</b> The same 1/<var>f</var>² law as interstellar dispersion, but ~3–70 ns and time-variable; also Faraday
+rotation and ionospheric scintillation.</li>
+<li><b>Motion.</b> Earth's orbital speed (v/c ≈ 10⁻⁴) drifts the pulse phase by ~100 µs per second at 100 Hz. That drift <em>is</em>
+the navigation signal and needs a barycentric phase model (block D).</li>
+</ul>
+<p>Sizes and plans: <a href="limits.html">Limitations</a>.</p>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>
