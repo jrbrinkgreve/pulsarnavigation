@@ -1,5 +1,5 @@
 function testOptimalTOA()
-%TESTOPTIMALTOA  Unit tests for estimateTOA 'Weighting', 'optimal' (A2c-1).
+%TESTOPTIMALTOA  Unit tests for 'Weighting', 'optimal' in estimateTOA (A2c-1) and detectPulsar (A2c-2).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testOptimalTOA.m').
 Needs data/mc/foldRef_pre3c.mat, data/mc/toaRef_preA2.mat and the
@@ -23,6 +23,18 @@ Needs data/mc/foldRef_pre3c.mat, data/mc/toaRef_preA2.mat and the
      'equal' scatter = the predicted ratio of their error bars.
   5. The fake-blanked data: 'optimal' uses all channels (also those with empty
      phase bins); TOAs consistent with 'equal'.
+  6. detectPulsar default ('equal') bit-identical to the pre-A2 outputs.
+  7. detectPulsar 'optimal' algebra: T0 (known phase), Tmax (at the best
+     shift) and normProfile = explicit formulas with sparse per-channel H0
+     covariance matrices (unblanked and blanked 128 channels).
+  8. H0 Monte Carlo (no pulsar, the covariance of test 4, P_FA 0.05): T0 mean
+     0 and std 1; false-alarm rate (known phase) = 0.05 within 4 sigma,
+     unknown phase <= 0.05 (Rice's formula is an upper bound); noise ratio 1.
+  9. H1 Monte Carlo (pulse at the predicted phase, optimal SNR ~3): T0 std 1;
+     detected fraction = 1 - Phi(eta - mean T0); detection SNR optimal >
+     equal.
+ 10. The fake-blanked data: same detections and best phase (+-1 bin) as
+     'equal', all channels used, noise ratio 1.
 Errors at the end if any check fails.
 %}
 
@@ -188,6 +200,115 @@ fprintf(['5. fake-blanked data: channels used optimal %s vs equal %s; TOA optima
 if ~(okT && okU), fails{end+1} = 'blanked data'; end
 
 % ---------------------------------------------------------------------------------
+% 6. detectPulsar: default unchanged
+% ---------------------------------------------------------------------------------
+d1 = detectPulsar(fr.A.fold, fr.A.info, template, 'Bnoise', tr.Bnoise, 'Verbose', false);
+same = sameFields(d1, tr.det.A);
+fprintf('6. detectPulsar default (equal) bit-identical to pre-A2: %d: %s\n', same, passStr(same));
+if ~same, fails{end+1} = 'detect default'; end
+
+% ---------------------------------------------------------------------------------
+% 7. detectPulsar 'optimal' vs explicit matrices (unblanked and blanked 128 channels)
+% ---------------------------------------------------------------------------------
+for i = 1:2
+    [fo, ifo] = cases{i, 2:3};
+    de = detectPulsar(fo, ifo, template, qc{:}, 'Weighting', 'optimal');
+    e0 = 0; eM = 0; eZ = 0; nS = 0;
+    for s = find(de.tested & de.coverage == 1).'
+        im = mod(round(de.phaseMax(s) * nBin), nBin) + 1;
+        ex = explicitDetect(fo, s, nc.Bnoise, ifo.binDt, template, im);
+        e0 = max(e0, abs(ex.T0 - de.T0(s)) / abs(de.T0(s)));
+        eM = max(eM, abs(ex.Tm - de.Tmax(s)) / abs(de.Tmax(s)));
+        eZ = max(eZ, max(abs(ex.z - de.normProfile(:, s)), [], 'omitnan') / max(abs(ex.z)));
+        nS = nS + 1;
+    end
+    pass = e0 < 1e-9 && eM < 1e-9 && eZ < 1e-9 && all(de.nChanUsed(de.tested) == nCh);
+    fprintf(['7. detect algebra, %-9s %d sub-ints: T0 vs explicit %.1e, Tmax %.1e, normProfile %.1e; ' ...
+             'all %d channels used: %s\n'], cases{i, 1}, nS, e0, eM, eZ, nCh, passStr(pass));
+    if ~pass, fails{end+1} = ['detect algebra ' cases{i, 1}]; end %#ok<AGROW>
+end
+
+% ---------------------------------------------------------------------------------
+% 8./9. Monte Carlo of the detector: H0 (no pulsar) and H1 (weak pulsar)
+% ---------------------------------------------------------------------------------
+pfa = 0.05;
+qd = {qc{:}, 'PFA', pfa};                            %#ok<CCAT>
+L0 = noiseFactors(ones(N, nM), Wm, W2m, WXm, sTB2);
+for hyp = ["H0", "H1"]
+    if hyp == "H0"
+        m = ones(N, nM); L = L0;
+    else                                             % optimal matched-filter SNR ~3
+        b = 0.02;
+        for it = 1:2
+            [foldMC, infoMC] = mcFold(ones(N, nM) + b * T0, zeros(N, nM, 1), Wm, W2m, WXm, ifB, 1);
+            t0 = estimateTOA(foldMC, infoMC, template, qc{:}, 'Weighting', 'optimal');
+            b = b * 3 / t0.snr(1);
+        end
+        m = ones(N, nM) + b * T.shape(0);            % pulse at the predicted phase 0
+        L = noiseFactors(m, Wm, W2m, WXm, sTB2);
+    end
+    rng(200 + double(hyp == "H1"));
+    res = struct('equal', [], 'optimal', []);
+    for bt = 1:Rtot/Rb
+        noise = zeros(N, nM, Rb);
+        for c = 1:nM
+            h = Wm(:, c) > 0;
+            noise(h, c, :) = reshape(L{c}.' * randn(nnz(h), Rb), nnz(h), 1, Rb);
+        end
+        [foldMC, infoMC] = mcFold(m, noise, Wm, W2m, WXm, ifB, Rb);
+        for wn = {'equal', 'optimal'}
+            dd = detectPulsar(foldMC, infoMC, template, qd{:}, 'Weighting', wn{1});
+            res.(wn{1}) = [res.(wn{1}); dd.T0, dd.Tmax, dd.noiseRatio, dd.tested];
+            etaK = dd.etaKnown; etaU = dd.etaUnknown;
+        end
+    end
+    for wn = {'equal', 'optimal'}
+        e = res.(wn{1}); e = e(e(:, 4) == 1, :); nR = size(e, 1);
+        pK = mean(e(:, 1) > etaK); pU = mean(e(:, 2) > etaU);
+        if hyp == "H0"
+            okM = abs(mean(e(:, 1))) < 4/sqrt(nR) && abs(std(e(:, 1)) - 1) < 4/sqrt(2*nR);
+            okK = abs(pK - pfa) < 4 * sqrt(pfa*(1-pfa)/nR);
+            okU = pU < pfa + 4 * sqrt(pfa*(1-pfa)/nR);   % Rice: an upper bound
+            okN = abs(mean(e(:, 3)) - 1) < 4 * std(e(:, 3)) / sqrt(nR);
+            pass = okM && okK && okU && okN;
+            fprintf(['8. H0 %-7s %4d profiles: T0 mean %+.3f std %.3f; false alarms known %.3f, ' ...
+                     'unknown %.3f (design %.2f, +- %.3f); noise ratio %.4f: %s\n'], wn{1}, nR, ...
+                mean(e(:, 1)), std(e(:, 1)), pK, pU, pfa, sqrt(pfa*(1-pfa)/nR), mean(e(:, 3)), ...
+                passStr(pass));
+        else
+            snr = mean(e(:, 1));
+            pPred = 0.5 * erfc((etaK - snr) / sqrt(2));
+            okD = abs(pK - pPred) < 4 * sqrt(pPred*(1-pPred)/nR) && abs(std(e(:, 1)) - 1) < 4/sqrt(2*nR);
+            pass = okD;
+            fprintf(['9. H1 %-7s %4d profiles: mean T0 (SNR) %.3f, std %.3f; detected (known phase) ' ...
+                     '%.3f vs theory 1-Phi(eta-SNR) %.3f; unknown phase %.3f: %s\n'], wn{1}, nR, snr, ...
+                std(e(:, 1)), pK, pPred, pU, passStr(pass));
+            sn.(wn{1}) = snr;
+        end
+        if ~pass, fails{end+1} = sprintf('detect MC %s %s', hyp, wn{1}); end %#ok<AGROW>
+    end
+end
+okG = sn.optimal > sn.equal;
+fprintf('   H1: detection SNR optimal / equal = %.3f (> 1): %s\n', sn.optimal / sn.equal, passStr(okG));
+if ~okG, fails{end+1} = 'detect gain'; end
+
+% ---------------------------------------------------------------------------------
+% 10. detectPulsar on the fake-blanked data
+% ---------------------------------------------------------------------------------
+dE = detectPulsar(fB, ifB, template, qc{:});
+dO = detectPulsar(fB, ifB, template, qc{:}, 'Weighting', 'optimal');
+v = dE.tested & dO.tested;
+nr = dO.noiseRatio(v);
+okNR = abs(mean(nr) - 1) < 4 * std(nr) / sqrt(nnz(v));
+samePh = all(abs(dO.phaseMax(v) - dE.phaseMax(v)) <= 1/nBin + 1e-12) && ...
+    isequal(dO.detectedUnknown(v), dE.detectedUnknown(v));
+fprintf(['10. detect, fake-blanked data: channels used %s; same detections and phase (+-1 bin) %d; ' ...
+         'T0 optimal/equal median %.3f; noise ratio %.4f +- %.4f: %s\n'], ...
+    mat2str(dO.nChanUsed(v).'), samePh, median(dO.T0(v) ./ dE.T0(v)), mean(nr), ...
+    std(nr)/sqrt(nnz(v)), passStr(samePh && okNR));
+if ~(samePh && okNR), fails{end+1} = 'detect blanked data'; end
+
+% ---------------------------------------------------------------------------------
 if isempty(fails)
     fprintf('testOptimalTOA: ALL PASSED\n');
 else
@@ -309,6 +430,51 @@ pt = mean(prof, 2, 'omitnan');
 fold.profTotal = reshape(pt, N, nM);
 fold.subint = struct('tRef', zeros(R, 1), 'fRef', ones(R, 1), 'turnRef', (1:R).');
 info = struct('NBin', N, 'nSub', R, 'binDt', ifB.binDt, 'f0', ifB.f0, 'nChan', nM);
+end
+
+function ex = explicitDetect(fold, s, B, binDt, template, im)
+% detectPulsar 'optimal' of sub-int s with explicit sparse covariance matrices (s_c = 1).
+t = template(:) / max(template); N = numel(t); c = t - mean(t);
+nChan = size(fold.prof, 3);
+W  = reshape(fold.weight(:, s, :), N, []);
+W2 = reshape(fold.weight2(:, s, :), N, []);
+WX = reshape(fold.weightX(:, s, :, :), N, size(W, 2), []);
+if size(W, 2) == 1
+    W = repmat(W, 1, nChan); W2 = repmat(W2, 1, nChan); WX = repmat(WX, 1, nChan, 1);
+end
+use = any(W > 0, 1); nU = nnz(use);
+P = reshape(fold.prof(:, s, :), N, nChan); P = P(:, use);
+W = W(:, use); W2 = W2(:, use); WX = WX(:, use, :); has = W > 0; P(~has) = 0;
+aC = sum(W .* P, 1) ./ sum(W, 1);
+j = (1:N).'; Sig = cell(1, nU); w = zeros(N, nU);
+for k = 1:nU
+    h = has(:, k);
+    sg = aC(k) / sqrt(B * binDt);
+    vd = zeros(N, 1); vd(h) = sg^2 * W2(h, k) ./ W(h, k).^2;
+    Sg = sparse(j, j, vd, N, N);
+    for d = 1:size(WX, 3)
+        jd = mod(j - 1 + d, N) + 1; ok = h & h(jd);
+        cvd = zeros(N, 1); cvd(ok) = sg^2 * WX(ok, k, d) ./ (W(ok, k) .* W(jd(ok), k));
+        Sg = Sg + sparse([j; jd], [jd; j], [cvd; cvd], N, N);
+    end
+    Sig{k} = Sg; w(h, k) = 1 ./ vd(h);
+end
+Wc = sum(w, 1); pbar = sum(w .* P, 1) ./ Wc;
+stat = @(tm) statAt(tm, w, Wc, P, pbar, Sig);
+ex.T0 = stat(c);                                     % known phase 0
+ex.Tm = stat(circshift(c, im - 1));                  % template shifted by im-1 bins
+u = sum(w .* (P - pbar), 2); Om = sum(w, 2);
+ex.z = nan(N, 1); hv = Om > 0; ex.z(hv) = u(hv) ./ sqrt(Om(hv));
+end
+
+function Tst = statAt(tm, w, Wc, P, pbar, Sig)
+num = 0; vr = 0;
+for k = 1:size(P, 2)
+    g = w(:, k) .* (tm - sum(w(:, k) .* tm) / Wc(k));
+    num = num + g.' * (P(:, k) - pbar(k));
+    vr = vr + g.' * Sig{k} * g;
+end
+Tst = num / sqrt(vr);
 end
 
 function ok = sameFields(new, old)

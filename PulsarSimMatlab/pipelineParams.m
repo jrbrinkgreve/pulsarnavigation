@@ -57,6 +57,12 @@ nBin          = 2048;   % phase bins in the fold
 subintPeriods = 1;     % turns per sub-integration; aim for SNR >= 6-7 per sub-int
                        % (threshold sweep 6 Oct: 92 % / 100 % usable TOAs at SNR 6 / 7.5;
                        % turns needed N = (7 / SNR per turn)^2, SNR per turn ~ 373*rho here)
+frontEnd      = 'channels';  % 'channels' (default since 8 Oct): the channelized front end
+                             % (channelizeIQ -> dedisperseChannels -> detectChannels; where RFI
+                             % excision will go, block B), or 'fullband': the reference path
+weighting     = 'optimal';   % channel path: how estimateTOA / detectPulsar combine channels:
+                             % 'optimal' (weights 1/variance, all channels) or 'equal'
+chanWidth     = 3.125e6;     % [Hz] channel width of the channelized front end
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre
@@ -77,3 +83,9 @@ fileIQ        = fullfile(dataDir, "test_rx_IQ.dat");
 fileDedisp    = fullfile(dataDir, "test_IQ_dedispersed.dat");
 fileEnvelope  = fullfile(dataDir, "test_envelope.dat");
 fileFold      = fullfile(dataDir, "test_fold.mat");
+% channelized front end (frontEnd = 'channels'); the unit tests in tests/ use these files too
+chanDir        = fullfile(dataDir, "chan");
+fileChanIQ     = fullfile(chanDir, "test_rx_IQ_chan");             % channelizeIQ (base name)
+fileChanDedisp = fullfile(chanDir, "test_dedisp_chan");            % dedisperseChannels (base name)
+fileChanPower  = fullfile(chanDir, "test_dedisp_chan_power.dat");  % detectChannels
+fileFoldChan   = fullfile(dataDir, "test_fold_chan.mat");

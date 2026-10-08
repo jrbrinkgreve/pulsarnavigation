@@ -14,12 +14,20 @@ Pipeline (status):
     4. applyIQmodulation       downconversion to baseband       [done]
     -  clock jitter, pulsar-Earth motion, polarisation?,
        3x3 array element signals, multiple pulsars               [todo]
-  Processing
-    (  array beamforming, RFI excision - linear, before squaring  [todo] )
+  Processing (frontEnd in pipelineParams: 'fullband' or 'channels')
+    (  array beamforming                                         [todo] )
+    full band:
     5. applyInverseDispersion  coherent dedispersion            [done]
     6. detectPower             square-law detection             [done]
+    channelized (128 x 3.125 MHz):
+    5a. channelizeIQ           polyphase filterbank              [done]
+        (RFI excision per channel: blank samples, blankingWeights  [todo, B])
+    5b. dedisperseChannels     coherent dedispersion per channel [done]
+    6b. detectChannels         power per channel + exact noise   [done]
+    both:
     7. foldProfile             folding with a phase model       [done]
-    8. estimateTOA             FFT template matching (FFTFIT)   [done]
+                               (channels: exact narrow-channel noise, NoiseCoeffs)
+    8. estimateTOA             template matching (FFTFIT; channels: 'Weighting') [done]
        detectPulsar            noise normalization, NP detector,
                                TOA quality (good = detected, chi2 ok)  [done]
     -  barycentric / timing corrections, residuals               [todo]
@@ -37,7 +45,7 @@ info_rx) is only used by the synthetic stages and the check/plot functions.
 
 % Run control
 runStage.sky      = false;   % pulsar signal + dispersion (the slow part; independent of noise)
-runStage.receiver = true;   % receiver noise/RFI + IQ (rerun this alone to change SNR or RFI)
+runStage.receiver = true;    % receiver noise/RFI + IQ (rerun this alone to change SNR or RFI)
 runStage.process  = true;   % dedispersion + detection
 runStage.fold     = true;
 runStage.toa      = true;   % TOA estimation + validation (needs the fold)
@@ -61,6 +69,13 @@ pipelineParams;
 % Disk estimate for the streamed files
 % raw + dispersed + receiver (real float32 at f_in), IQ + dedispersed (complex at fs), power
 diskGB = L * (3*f_in*4 + 2*fs*8 + f_out*4) / 1e9;
+fullBand = strcmp(frontEnd, 'fullband');
+if ~fullBand && ~strcmp(frontEnd, 'channels')
+    error('main:frontEnd', 'frontEnd must be ''fullband'' or ''channels''.');
+end
+if ~fullBand                    % channel IQ + dedispersed (4/3 oversampled) + power per channel
+    diskGB = diskGB + L * (2*(fHigh - fLow)*4/3*8 + (fHigh - fLow)/chanWidth*f_out*4) / 1e9;
+end
 fprintf('main: L = %.3g s -> about %.1f GB of data files in "%s"\n', L, diskGB, dataDir);
 
 % Sky: pulsar signal and interstellar dispersion
@@ -92,36 +107,63 @@ end
 checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB, rfi);
 
 % Processing (uses only the ephemeris 'ephem' and receiver settings)
-if runStage.process
-    % Coherent dedispersion
-    info_dedisp = applyInverseDispersion(info_IQ.file, fileDedisp, info_IQ.actualFsOut, ...
-        info_IQ.fLO, ephem.DM, fLow, fHigh, 'RefFreq', refFreq);
-    % Square-law detection
-    info_det = detectPower(info_dedisp.file, fileEnvelope, info_dedisp.fs, info_dedisp.fLO, ...
-        f_out, 'FullySupported', info_dedisp.fullySupported);
+if fullBand
+    if runStage.process
+        % Coherent dedispersion
+        info_dedisp = applyInverseDispersion(info_IQ.file, fileDedisp, info_IQ.actualFsOut, ...
+            info_IQ.fLO, ephem.DM, fLow, fHigh, 'RefFreq', refFreq);
+        % Square-law detection
+        info_det = detectPower(info_dedisp.file, fileEnvelope, info_dedisp.fs, info_dedisp.fLO, ...
+            f_out, 'FullySupported', info_dedisp.fullySupported);
+    else
+        info_dedisp = loadInfo(fileDedisp);
+        info_det    = loadInfo(fileEnvelope);
+    end
 else
-    info_dedisp = loadInfo(fileDedisp);
-    info_det    = loadInfo(fileEnvelope);
+    if runStage.process
+        % Filterbank: 128 channels of 3.125 MHz (oversampled 4/3)
+        info_chan = channelizeIQ(info_IQ.file, fileChanIQ, info_IQ.actualFsOut, info_IQ.fLO, ...
+            fLow, fHigh, 'ChanWidth', chanWidth, 'T0', info_IQ.t0);
+        % (RFI excision per channel goes here: blank samples; mask -> blankingWeights; block B)
+        % Coherent dedispersion per channel, all channels aligned at refFreq
+        info_dc = dedisperseChannels(info_chan, fileChanDedisp, ephem.DM, 'RefFreq', refFreq);
+        % Square-law detection per channel; bins of a whole number of channel samples
+        info_det = detectChannels(info_dc, fileChanPower, info_dc.fs / round(info_dc.fs / f_out));
+    else
+        info_dc  = loadInfo(fileChanDedisp);
+        info_det = loadInfo(fileChanPower);
+    end
 end
 
-truthArgs = {'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp, 'InfoRx', info_rx};
-if plots.iq
-    [~, check_iq] = plotIQCheck(info_gen, info_disp, info_IQ, info_dedisp, 0, 20e-3, 'InfoRx', info_rx);
-end
-if plots.detected
-    [~, check_det] = plotDetectedPower(info_det, info_gen, 0, 20e-3, truthArgs{:});
+if fullBand
+    truthArgs = {'InfoDisp', info_disp, 'InfoIQ', info_IQ, 'InfoDedisp', info_dedisp, 'InfoRx', info_rx};
+    if plots.iq
+        [~, check_iq] = plotIQCheck(info_gen, info_disp, info_IQ, info_dedisp, 0, 20e-3, 'InfoRx', info_rx);
+    end
+    if plots.detected
+        [~, check_det] = plotDetectedPower(info_det, info_gen, 0, 20e-3, truthArgs{:});
+    end
+elseif plots.iq || plots.detected || plots.fold
+    fprintf('main: the iq / detected / fold check plots are for the full-band path only\n');
 end
 
 % Folding
 if runStage.fold
-    [info_fold, fold] = foldProfile(info_det, fileFold, ephem.f0, ...
-        'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods);
-    if plots.fold
-        [~, check_fold] = plotFoldCheck(fold, info_fold, info_gen, truthArgs{:});
+    if fullBand
+        [info_fold, fold] = foldProfile(info_det, fileFold, ephem.f0, ...
+            'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods);
+        if plots.fold
+            [~, check_fold] = plotFoldCheck(fold, info_fold, info_gen, truthArgs{:});
+        end
+    else
+        % narrow channels: neighbouring time bins correlate -> exact phase-bin noise
+        [info_fold, fold] = foldProfile(info_det, fileFoldChan, ephem.f0, ...
+            'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods, ...
+            'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]);
     end
 elseif runStage.toa
-    S = load(fileFold, 'fold', 'info');                 % reuse the saved fold
-    fold = S.fold; info_fold = S.info;
+    if fullBand, S = load(fileFold, 'fold', 'info'); else, S = load(fileFoldChan, 'fold', 'info'); end
+    fold = S.fold; info_fold = S.info;                  % reuse the saved fold
 end
 
 % TOA estimation and validation
@@ -131,13 +173,21 @@ if runStage.toa
     % observer's own dedispersion taper (receiver noise only passes this one).
     % When the pulsar dominates (high SNR, in-pulse) the true value is ~0.5 %
     % lower, since the simulated signal also passed the dispersion-stage taper.
-    Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
-    [toa, info_toa] = estimateTOA(fold, info_fold, template, 'Bnoise', Bnoise);
+    % Channel path: Bnoise of ONE channel (its own dedispersion taper), and the
+    % channels combined as set by 'weighting'.
+    if fullBand
+        Bnoise = noiseBandwidth(fLow, fHigh, info_dedisp.edgeWidth);
+        toaArgs = {'Bnoise', Bnoise};
+    else
+        Bnoise = info_det.noise.Bnoise;
+        toaArgs = {'Bnoise', Bnoise, 'Weighting', weighting};
+    end
+    [toa, info_toa] = estimateTOA(fold, info_fold, template, toaArgs{:});
 
     % Detection (Neyman-Pearson, P_FA 1e-3 per sub-int) and TOA quality.
     % Good TOA: fitted, pulsar detected without using the ephemeris phase
     % (unknown phase), and the fit residuals consistent with the noise (chi^2).
-    [detection, info_detect] = detectPulsar(fold, info_fold, template, 'Bnoise', Bnoise);
+    [detection, info_detect] = detectPulsar(fold, info_fold, template, toaArgs{:});
     toa.good = toa.valid & detection.detectedUnknown & ~toa.flagChi2;
     fprintf('main: %d of %d fitted TOAs good (%d not detected, %d chi2-flagged)\n', ...
         nnz(toa.good), nnz(toa.valid), nnz(toa.valid & ~detection.detectedUnknown), ...
@@ -148,8 +198,15 @@ if runStage.toa
         toaGood = toa; toaGood.valid = toa.good;          % validate the good TOAs only
         valGood = validateTOA(toaGood, info_gen, 'Plot', false, 'Label', 'good TOAs');
     end
-    % Best achievable (ground truth, exact band tapers; see expectedPowerModel)
-    M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx);
+    % Best achievable (ground truth, exact band tapers; see expectedPowerModel;
+    % full-band path; the channel path uses the same 390 MHz of band)
+    if fullBand
+        M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx);
+    else
+        M = struct('hasNoise', false);
+        fprintf('main: channel path, %d channels, weighting ''%s'', channels used %s\n', ...
+            info_fold.nChan, weighting, mat2str(unique(toa.nChanUsed(toa.valid)).'));
+    end
     if M.hasNoise
         fprintf(['main: predicted best TOA error per sub-int (%d turns) %.4g us, ' ...
                  'SNR per sub-int %.1f; whole file %.4g us\n'], subintPeriods, ...

@@ -101,11 +101,14 @@ RECEIVER (synthetic)                 runStage.receiver
   3. addNoiseAndRFI         ─► test_rx.dat           real, 4 GHz          [written]
   4. applyIQmodulation      ─► test_rx_IQ.dat        complex, 500 MHz     [validated*]
 PROCESSING                           runStage.process / .fold / .toa
+  (frontEnd in pipelineParams, A4 8 Oct: 'channels' (default) or 'fullband')
   5. applyInverseDispersion ─► test_IQ_dedispersed.dat  complex, 500 MHz  [validated]
   6. detectPower            ─► test_envelope.dat     power, 1 MHz bins    [validated]
   7. foldProfile            ─► test_fold.mat         profiles             [validated]
   8. estimateTOA            (in memory: toa, info_toa)                    [validated]
-PROCESSING, channelized (in development, §10 item 1; not yet in main)
+PROCESSING, channelized (frontEnd = 'channels' in main.m since A4, 8 Oct; fold
+  data/test_fold_chan.mat; estimateTOA / detectPulsar with Bnoise of one channel and
+  'Weighting' = weighting)
   4b. channelizeIQ          ─► data/chan/*_ch###.dat 128 × complex, 4.17 MHz [validated]
       (excision per channel goes here, step 2)
   5b. dedisperseChannels    ─► data/chan/*_ch###.dat 128 × complex, aligned at 1.6 GHz [validated]
@@ -114,9 +117,11 @@ PROCESSING, channelized (in development, §10 item 1; not yet in main)
       foldProfile + 'DataWeights' ─► weights per channel (A1b)  [validated]
   8b. estimateTOA combining channels (A2a)                   [validated]
       estimateTOA 'Weighting','optimal' (A2c-1)               [validated]
+      detectPulsar 'Weighting','optimal' (A2c-2)              [validated]
       detectPulsar combining channels (A2b)                    [validated]
   5c. blankingWeights: mask -> exact W, V, X(L) weight file (A3a) [validated]
-      (next: A3 remaining items, A4 switch in main.m)
+  A4: switch in main.m (frontEnd, weighting; 'channels' default) [validated]
+      (next: B — RFI excision: blank channel samples, mask -> blankingWeights -> DataWeights)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -178,7 +183,9 @@ The MC adds rx + IQ + dedispersed files in `data/mc/` (≈ 2.9 GB at L = 0.1 s, 
 **Current `pipelineParams.m`** (1 Oct 2026) differs from the reference: L = 0.1 s,
 fLO = 1.3 GHz, fs = 800 MHz (D = 5; band at −100…+300 MHz baseband, which also tests
 the RF↔baseband mapping), snrDB = −5 (ρ = 0.316: SNR per pulse 97.9, best TOA error per
-pulse 2.85 µs), subintPeriods = 1, nBin = 2048 (4.88 µs bins).
+pulse 2.85 µs), subintPeriods = 1, nBin = 2048 (4.88 µs bins). Since A4 (8 Oct):
+frontEnd = 'channels' (128 × 3.125 MHz, chanWidth; default since 8 Oct, Jasper) or
+'fullband' (the reference path), weighting = 'optimal' (channel path only).
 
 ---
 
@@ -802,6 +809,30 @@ on the channel path 0.9973 ± 0.0061 (unblanked) and 1.0049 ± 0.0067 (blanked),
 8 sub-ints → the per-bin H0 model is honest; old summed-power path 0.9842, ratio 1.0133
 (fold level, A1a: 1.0134); same best phase and detections; T0 ratio 1.0008.
 
+**Optimal weighting: A2c-2 (8 Oct 2026; validated, Jasper's run).**
+Option `'Weighting'` 'optimal' (and `'ChannelGain'`), as `estimateTOA`: the weighted
+matched filter over channels, N(τ) = Σ_c s_c Σ_j w_cj (p_cj − p̄_c) T(φ_j − τ), w = 1/var
+under H0 (channel level a_c = data-weighted mean, radiometer, fold weights), normalized by
+its exact H0 standard deviation including all lags of weightX — so T0 and T(τ) are N(0,1)
+under H0 and the thresholds stay (η 3.09 / 4.15 at P_FA 1e-3; Rice's formula assumes a
+stationary process — with blanking the weights vary slightly with phase, measured fine).
+All bin shifts at once: Var(m) = corr(Ω, c²) − Σ_c s_c² W_c T̄_c(m)² + 2 Σ_d [corr(H_d, c·c_d)
+− Σ_c s_c² T̄_c(m) corr(h_cd + h_cd(−d), c) + Σ_c s_c² T̄_c(m)² Σ_j h_cjd], h_cjd =
+w_cj w_c,j+d cv_cjd, T̄_c = corr(w_c, c)/W_c (one FFT batch per lag). Known phase: direct
+sums. normProfile = Σ_c s_c w_cj (p_cj − p̄_c)/√(Σ_c s_c² w_cj) (unit variance per bin
+under H0); noiseRatio from it with the off-pulse level correction per channel; 'baseline'
+= Σ a_c; no exclusion rule. Local function `testOptimal`.
+
+**Tests 6–10 (`tests/testOptimalTOA.m`, run by Claude and Jasper 8 Oct 2026; whole test ~130 s).**
+(6) default bit-identical to pre-A2. (7) T0, Tmax and normProfile = explicit sparse H0
+covariance matrices (unblanked / blanked 128 channels): ≤ 1e-15. (8) H0 Monte Carlo (800
+profiles, covariance of 64 fake-blanked channels, P_FA 0.05): optimal T0 mean +0.001, std
+1.009; false alarms known 0.054, unknown 0.051 (design 0.05 ± 0.008); noise ratio 0.996
+(equal: 0.054 / 0.055, 0.996). (9) H1 (pulse at the predicted phase): detected fraction
+0.914 vs theory 1 − Φ(η − SNR) 0.910 (equal 0.890 / 0.889); detection SNR optimal/equal
+1.041. (10) fake-blanked data: all 128 channels, same detections and phase (±1 bin) as
+'equal', noise ratio 1.0002 ± 0.0067.
+
 ### 5.14 `runH0.m` [validated, 6 Oct 2026]
 
 **Idea.** Many independent noise-only (H0) profiles to test the H0 side of `detectPulsar`
@@ -1405,7 +1436,7 @@ channel spectrum where not.
   optimal). **Addressed 7 Oct (A2c-1, §5.8): `'Weighting', 'optimal'`** (weighted
   multi-channel fit, own a_c, common b·s_c and τ, weights 1/var; no exclusion; Monte
   Carlo: unbiased, honest, scatter 0.955–0.963 of 'equal' with light blanking).
-  `detectPulsar` still equal-weight (A2c-2).
+  `detectPulsar` 'optimal' too (A2c-2, 8 Oct, §5.13).
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1436,7 +1467,14 @@ A3a `blankingWeights` (§5.18) + fold rule "W = 0 adds no power" (§5.7) + mean 
 true channel spectrum: validated 7 Oct (Jasper's run). Open
 from A3a (§9): exclusion rule drops whole channels / equal channel weights → A2c
 weighted multi-channel fit (agreed 7 Oct): A2c-1 `estimateTOA` 'optimal' validated
-(§5.8; Jasper's run); next A2c-2 `detectPulsar`.
+(§5.8; Jasper's run); A2c-2 `detectPulsar` 'optimal' validated 8 Oct (§5.13; Jasper's
+run). A4 (switch in main.m, `frontEnd` / `weighting` in `pipelineParams`) validated 8 Oct
+(main.m run both ways by Claude and by Jasper, identical; default now 'channels', Jasper's
+choice) (seed 43): full band unchanged (9 TOAs,
+2.880 µs, SNR 93.4); channels 'optimal' 8 TOAs, 2.943 µs, SNR 92.3, red. χ² 1.008, all
+detected, noise ratio 0.990, total offset +0.12 ± 0.98 µs (full band −0.21 ± 0.96); per
+sub-int differences 0.26σ rms (χ² 12.7 / 8, inside the 99.8 % range). With A4, block A is
+complete apart from the optional A3b (multi-seed MC with blanking). Next: B.
 
 **Agreed order (6 Oct 2026, revised the same day: excision before the fast simulator).**
 Why (Jasper): real data contains RFI, excision is mandatory, simulations without RFI are
@@ -1796,8 +1834,8 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency` | current |
-| `pipelineParams.m` | all parameters + `ephem` (script, shared) | current |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct) | current; A4 validated (8 Oct) |
+| `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4) | current |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
@@ -1813,7 +1851,7 @@ per day).
 | `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct) | validated (A1a, A1b: 7 Oct) |
 | `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct); 'Weighting','optimal' weighted multi-channel fit (A2c-1, 7 Oct) | validated (noise-free; −5 dB MC; A2a, A2c-1 7 Oct) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
-| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check; channels combined, all lags (A2b, 7 Oct) | validated (6 Oct; P_FA via `runH0.m`; A2b 7 Oct) |
+| `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check; channels combined, all lags (A2b, 7 Oct); 'Weighting','optimal' weighted matched filter (A2c-2, 8 Oct) | validated (6 Oct; P_FA via `runH0.m`; A2b 7 Oct; A2c-2 8 Oct) |
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
@@ -1831,6 +1869,6 @@ per day).
 | `tests/makeToaReference.m` | saves pre-A2 estimateTOA / detectPulsar outputs (`data/mc/toaRef_preA2.mat`) | run 7 Oct |
 | `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio | passes (Jasper's run, 7 Oct) |
 | `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs) | passes (Jasper's run, 7 Oct) |
-| `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data | passes (Jasper's run, 7 Oct) |
+| `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data; A2c-2 (tests 6–10): detection default, explicit H0 matrices, H0 / H1 Monte Carlo, blanked data | passes (Jasper's run, 7 and 8 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
