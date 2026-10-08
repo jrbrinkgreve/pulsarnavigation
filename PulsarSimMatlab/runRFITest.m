@@ -20,6 +20,10 @@ with a pulsed source the table also gives, from the source's parameters
 (ground truth, validation only): the fraction of its pulses blanked in its
 own channels, and the fraction of its energy in the pulses that were missed.
 
+LTE (B5d-2): band-limited Gaussian noise (rfiSource 'noise'), 20 MHz at
+1472 MHz (inside LTE band 32), INR -10 dB and 0 dB of the whole-band noise
+(~+3 / +13 dB in its ~6 channels): cases 12-13.
+
 Needs: the sky files (main.m with runStage.sky once). Files go to data/rfi
 and are overwritten per case; main's files and data/chan are not touched.
 ~45 s per case; runCases picks a subset.
@@ -42,8 +46,10 @@ rotRadar = @(beamTime, sl, label) rfiSource('pulsed', 'Freq', rad.freq, 'PulseWi
 cases = {[], 1, 2, 3, 4, 5, 1:5, ...
     rotRadar(L/2, -30, 'rotating radar, beam passage'), ...
     rotRadar(5, -25, 'radar sidelobes -25 dB'), rotRadar(5, -30, 'radar sidelobes -30 dB'), ...
-    rotRadar(5, -35, 'radar sidelobes -35 dB')};
-runCases = 1:numel(cases);           % e.g. 8:11 for the rotating radar only
+    rotRadar(5, -35, 'radar sidelobes -35 dB'), ...
+    rfiSource('noise', 'Freq', 1472e6, 'Bandwidth', 20e6, 'INRdB', -10, 'Label', 'LTE 20 MHz, -10 dB'), ...
+    rfiSource('noise', 'Freq', 1472e6, 'Bandwidth', 20e6, 'INRdB', 0, 'Label', 'LTE 20 MHz, 0 dB')};
+runCases = 1:numel(cases);           % e.g. 8:11 rotating radar, 12:13 LTE
 
 rfiDir  = fullfile(dataDir, "rfi");
 rRx     = fullfile(rfiDir, "rfi_rx.dat");

@@ -20,6 +20,11 @@ Types and their parameters:
                                            RiseTime [s] (default 0.1e-6, see below)
   'impulse'  broadband bursts              Rate [1/s] (Poisson), Duration [s];
              white noise bursts over the whole sampled band
+  'noise'    band-limited Gaussian noise   Freq [Hz] (centre), Bandwidth [Hz]:
+             e.g. an LTE / OFDM downlink (many subcarriers with random data
+             -> Gaussian by the central limit theorem); flat over the band,
+             -6 dB at Freq +- Bandwidth/2, transition 5 % of Bandwidth,
+             60 dB stopband (B5d, 8 Oct 2026)
   'Label'    free text for logs/plots
   any type:  rotating antenna              ScanPeriod [s], BeamTime [s],
                                            BeamWidth [s], SidelobeDB (see below)
@@ -64,6 +69,7 @@ arguments
     opts.RiseTime   (1,1) double = NaN
     opts.Rate       (1,1) double = NaN
     opts.Duration   (1,1) double = NaN
+    opts.Bandwidth  (1,1) double = NaN
     opts.ScanPeriod (1,1) double = Inf
     opts.BeamTime   (1,1) double = 0
     opts.BeamWidth  (1,1) double = NaN
@@ -73,9 +79,9 @@ end
 type = lower(char(type));
 need = struct('cw', {{'Freq'}}, 'bpsk', {{'Freq', 'ChipRate'}}, ...
     'pulsed', {{'Freq', 'PulseWidth', 'PRF'}}, ...
-    'impulse', {{'Rate', 'Duration'}});
+    'impulse', {{'Rate', 'Duration'}}, 'noise', {{'Freq', 'Bandwidth'}});
 if ~isfield(need, type)
-    error('rfiSource:type', 'Unknown RFI type "%s" (cw, bpsk, pulsed, impulse).', type);
+    error('rfiSource:type', 'Unknown RFI type "%s" (cw, bpsk, pulsed, impulse, noise).', type);
 end
 for f = need.(type)
     v = opts.(f{1});
@@ -114,5 +120,5 @@ src = struct('type', type, 'label', label, 'freq', opts.Freq, 'INRdB', opts.INRd
     'pulseWidth', opts.PulseWidth, 'prf', opts.PRF, 'chirpBW', opts.ChirpBW, ...
     'startTime', opts.StartTime, 'riseTime', riseTime, 'rate', opts.Rate, ...
     'duration', opts.Duration, 'scanPeriod', opts.ScanPeriod, 'beamTime', opts.BeamTime, ...
-    'beamWidth', opts.BeamWidth, 'sidelobeDB', opts.SidelobeDB);
+    'beamWidth', opts.BeamWidth, 'sidelobeDB', opts.SidelobeDB, 'bandwidth', opts.Bandwidth);
 end

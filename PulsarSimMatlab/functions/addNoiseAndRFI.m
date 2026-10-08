@@ -125,18 +125,22 @@ Nx = floor(fInfo.bytes / 4);
 tTotal = Nx / fs;
 
 src = struct('type', {}, 'label', {}, 'amp', {}, 'r', {}, 'rs', {}, ...
-             'evStart', {}, 'evLen', {}, 'def', {});
+             'evStart', {}, 'evLen', {}, 'h', {}, 'def', {});
 for s = 1:nR
     d = rfi(s);
     INR = 10^(d.INRdB/10);
     e = struct('type', d.type, 'label', d.label, 'amp', NaN, 'r', NaN, 'rs', [], ...
-               'evStart', [], 'evLen', [], 'def', d);
+               'evStart', [], 'evLen', [], 'h', [], 'def', d);
     if ~strcmp(d.type, 'impulse')
         if d.freq <= 0 || d.freq >= fs/2
             error('addNoiseAndRFI:freq', 'RFI "%s": Freq must lie in (0, fs/2).', d.label);
         end
         e.amp = sqrt(2 * INR * PnBand);             % carrier: power = amp^2/2
         e.r   = d.freq / fs;                        % cycles per sample
+        if strcmp(d.type, 'noise')                  % band-pass filter for white noise,
+            h = noiseBandpass(d.freq, d.bandwidth, fs);   % scaled to power INR * PnBand
+            e.h = h * sqrt(INR * PnBand / sum(h.^2));
+        end
     else
         e.amp = sqrt(INR) * sigN;                   % white burst: same in-band ratio
     end
@@ -247,7 +251,7 @@ info.snrDefinition = 'pulse-peak signal PSD / receiver-noise PSD in the band (S_
 info.noiseStd      = sigN;
 info.noisePSD      = sigN^2 / fs;                   % two-sided, per Hz
 info.noisePowerBand = PnBand;
-info.rfi           = rmfield(src, {'rs', 'def'});
+info.rfi           = rmfield(src, {'rs', 'h', 'def'});
 if nR > 0
     [info.rfi.params] = src.def;
 end
@@ -327,6 +331,25 @@ switch d.type
             x(a0 - n0 + 1 : a1 - n0 + 1) = x(a0 - n0 + 1 : a1 - n0 + 1) + ...
                 e.amp * w(a0 - e.evStart(i) + 1 : a1 - e.evStart(i) + 1);
         end
+
+    case 'noise'
+        % white noise w(m) for absolute samples m = n0-G .. n0+n-1+G from counter-based
+        % substreams (CH per substream; offset K0 keeps substream numbers >= 1 for the
+        % negative m before the file), then the band-pass, 'valid' part: the same for any
+        % block size, and noise exists before the first sample (no switch-on transient)
+        M  = numel(e.h); G = (M - 1) / 2;
+        K0 = ceil(G / CH) + 2;
+        m0 = n0 - G; m1 = n0 + n - 1 + G;
+        c0 = floor(m0 / CH); c1 = floor(m1 / CH);
+        w  = zeros(CH, c1 - c0 + 1);
+        for c = c0:c1
+            e.rs.Substream = c + K0;
+            w(:, c - c0 + 1) = randn(e.rs, CH, 1);
+        end
+        w  = w(m0 - c0*CH + 1 : m1 - c0*CH + 1);
+        Nf = 2^nextpow2(numel(w) + M - 1);
+        y  = real(ifft(fft(w(:), Nf) .* fft(e.h(:), Nf)));
+        x  = y(M : M + n - 1).';
 end
 
 % rotating antenna (rfiSource 'ScanPeriod'): power x g(t), Gaussian main beam on a
@@ -337,6 +360,26 @@ if isfield(d, 'scanPeriod') && isfinite(d.scanPeriod)
     g  = max(exp(-4*log(2) * (dt / d.beamWidth).^2), 10^(d.sidelobeDB/10));
     x  = x .* sqrt(g);
 end
+end
+
+
+% =====================================================================================
+function h = noiseBandpass(fc, bw, fs)
+%NOISEBANDPASS  Real band-pass FIR for the 'noise' RFI type: Kaiser-windowed sinc
+% low-pass with cutoff bw/2 (-6 dB at the band edges, equivalent noise bandwidth ~bw),
+% transition width 5 % of bw, 60 dB stopband, shifted to fc. Odd length, zero phase.
+A  = 60; tw = 0.05 * bw;
+beta = 0.1102 * (A - 8.7);
+M  = ceil((A - 8) / (2.285 * 2*pi * tw / fs)) + 1;
+M  = M + 1 - mod(M, 2);                             % odd
+G  = (M - 1) / 2;
+k  = (-G:G).';
+fcn = (bw/2) / fs;                                  % cutoff / sample rate
+lp = 2 * fcn * ones(M, 1);
+nz = k ~= 0;
+lp(nz) = sin(2*pi*fcn*k(nz)) ./ (pi*k(nz));
+win = besseli(0, beta * sqrt(1 - (k/G).^2)) / besseli(0, beta);
+h  = 2 * lp .* win .* cos(2*pi * fc/fs * k);        % low-pass shifted to +-fc (real)
 end
 
 

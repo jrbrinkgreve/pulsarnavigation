@@ -336,6 +336,13 @@ receiver-noise power in the analysis band (0 dB = as much as the whole in-band n
   beamwidth/360° × ScanPeriod; 1.4° at 10 s → 39 ms), `SidelobeDB` (default −30). Power ×
   g(t) = max(exp(−4 ln2 (dt/BeamWidth)²), 10^(SidelobeDB/10)), dt = time from the nearest
   beam passage; `INRdB` = main-beam peak. Beamwidth and sidelobe levels are assumptions.
+- `'noise'` (B5d, 8 Oct): band-limited Gaussian noise, `Freq` (centre), `Bandwidth`: an
+  LTE / OFDM downlink (many subcarriers with random data → Gaussian by the central limit
+  theorem). Real white noise from counter-based substreams by absolute sample index
+  (65,536 per substream, also before the first sample: no switch-on transient), filtered
+  by a Kaiser band-pass (−6 dB at Freq ± Bandwidth/2, transition 5 % of Bandwidth, 60 dB
+  stopband) with the overlap of the filter length → independent of the block size;
+  power = INR × the in-band noise from the filter's own Σh². ~0.5 s per 1 ms at 4 GHz.
 - `'impulse'`: broadband white bursts, Poisson `Rate`, `Duration`.
 Amplitudes: carrier types a = √(2·INR·P_nb) (power a²/2); impulse σ = √INR·σ_n;
 P_nb = σ_n²·B/(fs/2). Phases from absolute sample index; chips from `mrg32k3a`
@@ -1589,6 +1596,26 @@ do this; a periodic mask can: the main-beam passage (~15–40 pulses at +38 dB) 
 radar's PRF, pulse phase and channels precisely, so its weak sidelobe pulses can be
 blanked where they are predicted to be (B6). Unlocked: phase-uniform noise.
 
+**B5d — LTE-like noise (`'noise'` type, 8 Oct).** `tests/testRfiNoise.m` (~5 s, Claude's
+run): other types = pre-B5a reference bit for bit; BlockSize 1e6+3 = one block bit for bit;
+power 0.9945 of INR × in-band noise (σ 0.0045); spectrum flat (in-band level / (power /
+Bandwidth) 1.0078, bin scatter 0.036 vs 0.040 expected), out of band ≤ 1.8e-7; kurtosis
+3.0040 (σ 0.016). `runRFITest` cases 12–13 (20 MHz at 1472 MHz, inside LTE band 32):
+
+| case | excision | blanked | good | SNR | err [µs] | ratio | red. χ² | offset [µs] |
+|---|---|---|---|---|---|---|---|---|
+| LTE −10 dB (~+3 dB in its channels) | off / on | – / 0.0127 % | 8/8 | 90.1 / 89.7 | 3.017 / 3.030 | 0.82 / 0.81 | 1.01 | +0.06 / +0.03 ± 1.0 |
+| LTE 0 dB (~+13 dB) | off / on | – / 0.0369 % | 8/8 | 89.5 / 89.1 | 3.036 / 3.049 | 0.84 / 0.83 | **1.04** | +0.14 / +0.11 ± 1.0 |
+
+As expected: not detectable (−10 dB: blanked = noise only), handled by the 'optimal'
+weighting (SNR −2.4 / −3 %, TOAs fine). But at 0 dB the excess flags (0.037 % vs 0.0125 %)
+sit entirely in the two LTE edge channels (84: 16 % covered, 540 flagged windows; 91: 24 %,
+367; fully covered 85–90: 0–4; others ~3): in a partly covered channel the RFI fills only
+a slice of the channel band but dominates its power, so samples stay correlated over µs
+— fewer independent samples per window than detectRFI's model (the channelizer's flat
+spectrum) → heavier tail → false flags; and the detected-bin noise there exceeds the fold
+model (V, X from a flat spectrum) → red. χ² 1.04. Fully covered channels are flat again.
+
 ---
 
 ## 8. Bugs found and fixed (lessons)
@@ -1757,6 +1784,13 @@ blanked where they are predicted to be (B6). Unlocked: phase-uniform noise.
   kurtosis, no whole-channel flags, no periodicity search (B6 if needed). (e) Noise-like
   RFI (LTE / OFDM) is undetectable by any power or kurtosis test: it is extra noise in
   its channels, handled by the 'optimal' weighting.
+- **Flat spectrum within a channel assumed (8 Oct 2026, B5d).** detectRFI's thresholds and
+  the fold's V, X assume each channel's noise spectrum is the channelizer's (flat). A
+  channel only partly covered by wideband RFI (the band edges of an LTE carrier) violates
+  this: false flags (540 vs ~3 windows) and detected-bin noise above the model (red. χ²
+  1.04 at LTE 0 dB). Possible remedies: per-channel noise calibrated on the data
+  (measured off-pulse variance per channel → scales V, X and the weights), per-channel
+  thresholds from the measured spectrum, or flagging such edge channels whole.
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1793,7 +1827,10 @@ the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, e
 8.8e-6. **B6-3** done (Claude's runs): `periodicMask` (default true) / `periodicArgs` in
 `pipelineParams`, hook in `main.m` (no RFI: 0 emitters, identical TOAs); `runLockedRadar`
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
-main beam 0.41 µs at −54 dB (§7). Then B5d `'noise'` type (LTE), B5e realistic scenario.
+main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type done (Claude's run; §5.3, §7):
+LTE undetectable and down-weighted as expected; found: partly covered edge channels break
+the flat-spectrum assumption (false flags, χ² 1.04; §9). Next: B5e realistic scenario, or
+first the per-channel noise calibration (§9).
 Then B5d `'noise'` type (LTE), B5e the realistic
 scenario as a second list in `pipelineParams`; B6 (spectral kurtosis,
 whole-channel flags) only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
@@ -2188,7 +2225,7 @@ per day).
 |---|---|---|
 | `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4) | current |
-| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy (`runCases` picks a subset) | run 8 Oct (§7) |
+| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases (`runCases` picks a subset) | run 8 Oct (§7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
@@ -2198,9 +2235,10 @@ per day).
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
 | `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
-| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs); rotating antenna for any type (B5c-1) | validated (5 Oct; B5a, B5c-1 8 Oct) |
+| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs); rotating antenna for any type (B5c-1); 'noise' type (B5d) | validated (5 Oct; B5a, B5c-1 8 Oct; B5d Claude's run) |
 | `tests/makeRfiReference.m` | saves the pre-B5a addNoiseAndRFI output (`data/mc/rfiRef_preB5a.mat`) | run 8 Oct |
 | `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Jasper's run, 8 Oct) |
+| `tests/testRfiNoise.m` | B5d: 'noise' type: regression, block-size independence, power, spectrum, kurtosis | passes (Claude's run, 8 Oct) |
 | `tests/testRfiGating.m` | B5c-1: rotating antenna: regression (off = bit for bit), checks, radar and carrier envelopes vs g(t) | passes (Jasper's run, 8 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
