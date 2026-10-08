@@ -1807,6 +1807,8 @@ pointers; details of finished work are in §7 and the session logs.)*
 
 **Status 8 Oct 2026: block A complete** (validated, committed `27b2367`; `main.m` runs the
 channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview.md`.
+**Handover for the next session: `logs/2026-10-08_handover-B.md`** (state of block B,
+the open decision "measure first or fix first", pending runs, how to run, conventions).
 **Status 8 Oct 2026 (later): B1–B4 done** (log `2026-10-08_excision.md`): B1
 `blankChannels` (§5.19) and B2 `detectRFI` (§5.20) validated (Jasper's runs); B3 excision
 in `main.m` (default `excision = true`, Jasper) validated (Jasper's main run identical);
