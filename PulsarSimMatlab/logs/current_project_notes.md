@@ -1451,6 +1451,12 @@ channel spectrum where not.
 *(Tidied 6 Oct 2026: open items first, then deferred, then a short done list with
 pointers; details of finished work are in §7 and the session logs.)*
 
+**Status 8 Oct 2026: block A complete** (validated, committed `27b2367`; `main.m` runs the
+channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview.md`.
+**Next: B — RFI excision** (blanking function, per-channel RFI detection, L-band scenario,
+false-flag rate; mask → `blankingWeights` → `DataWeights` in main). A3b (multi-seed Monte
+Carlo with blanking) optional.
+
 **Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
 A = finish the front end (item 1 below): A1 fold with channels and exact noise (old
 "unit 3c"), A2 detection / TOA fit combining channels (3d), A3 fake-blanking test (3e),

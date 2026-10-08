@@ -62,3 +62,9 @@
 2. **B — RFI excision:** blanking function for channel files, RFI detection per channel
    (power threshold, spectral kurtosis), realistic L-band scenario (rotating radar,
    GNSS), false-flag rate on clean data; mask → blankingWeights → DataWeights in main.
+
+## Handover
+
+Jasper continues in a new context. Full recap of this session (7–8 Oct): what was built
+and why, key results and lessons, status, how to run, what B needs →
+`logs/2026-10-08_overview.md`.
