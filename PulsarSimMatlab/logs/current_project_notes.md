@@ -1547,6 +1547,20 @@ wider guard for such emitters.
 - **Processing assumptions not checked**: DM correctness (a wrong DM leaves a residual
   sweep), fRef convention vs TOA definition (constant offset), receiver sideband /
   spectral inversion (assumed f_RF = fLO + f_bb), true fs (trusted via info chaining).
+- **Ionosphere (noted 8 Oct 2026, Jasper: "we maybe need to take care of ionosphere
+  effects as well"; not yet assessed in detail).** Not modelled. (1) Dispersive delay,
+  same 1/f² law as interstellar dispersion: Δt = 40.3·TEC/(c·f²) ≈ 0.69 ns per TECU at
+  1.4 GHz (1 TECU = 1e16 el/m² ≡ 3.2e-7 pc cm⁻³ of DM); TEC ~5–100 TECU → ~3–70 ns,
+  varying with time of day, solar activity, elevation and site. Small against today's
+  µs TOAs, but ns-level for navigation (1 ns ≈ 30 cm) and time-variable over a long fold;
+  chromatic, so sub-band TOAs (DM fit) or GNSS TEC maps (e.g. IGS) could correct it.
+  (2) Faraday rotation of the (partly linearly polarized) pulsar signal: with a single
+  linear polarization (§9 Receiver) the received fraction changes with TEC × B∥ → profile
+  amplitude / shape changes over a fold. (3) Ionospheric scintillation at L-band
+  (equatorial and high-latitude sites): fading of signal amplitude. (4) Refraction: small
+  apparent source-position shift. To do: size each effect for the target hardware and
+  site, decide what the simulator and the processing must include (likely block D or
+  later).
 - **Propagation**: no scattering (irreversible pulse broadening), no DM variations, no
   higher-order frequency terms, no scintillation.
   - DM variations: δDM = 1e-3 pc cm⁻³ shifts TOAs by ≈ 2.1 µs at 1.4 GHz (chromatic;
@@ -1800,6 +1814,10 @@ sub-band TOAs, clock jitter); Block 3 further (multiple pulsars from the §11 ta
 barycentric corrections, navigation solution).
 
 **Open items**
+- **[todo] Ionosphere (8 Oct 2026, Jasper).** Assess dispersive delay (~3–70 ns at
+  1.4 GHz, time-variable), Faraday rotation (single polarization), ionospheric
+  scintillation and refraction for the target hardware / site; decide what to model and
+  correct (§9). Likely with block D (time-dependent corrections) or later.
 5. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
    and margin): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
