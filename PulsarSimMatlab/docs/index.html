@@ -13,7 +13,7 @@
 <p class="lede">A MATLAB pipeline that simulates a pulsar signal through the interstellar medium and a
 realistic radio receiver, then processes the receiver data back into times of arrival (TOAs) with
 honest uncertainties. Every processing stage is checked against the simulation's ground truth.</p>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>9b959f0</code> (8 Oct 2026) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>9750461</code> (8 Oct 2026) ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a></p>
 
 <h2>The idea in one paragraph</h2>
@@ -79,8 +79,9 @@ receiver data, so it may only use what a real observer knows.</figcaption>
 <tr><td>A</td><td>Channelized front end: filterbank, per-channel dedispersion, exact narrow-channel noise, data weights, optimal channel weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete 8 Oct</span></td></tr>
 <tr><td>B1–B4</td><td>RFI excision: <code>blankChannels</code>, <code>detectRFI</code>, excision in <code>main.m</code> (default on), <code>runRFITest</code></td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B5a–c</td><td>Realistic radar edges (0.1 µs rise time), radar locked to the pulsar + frequency guard ±7 channels, rotating radar antenna</td><td><span class="badge validated">8 Oct</span></td></tr>
-<tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse</td><td><span class="badge written">in progress</span></td></tr>
-<tr><td>B5d–e</td><td>Noise-like RFI (LTE), realistic L-band scenario</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse (<code>periodicRFI</code>, default on)</td><td><span class="badge validated">8 Oct</span></td></tr>
+<tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge written">8 Oct, Jasper's run pending</span></td></tr>
+<tr><td>B5e</td><td>Realistic L-band scenario — or first a per-channel noise level measured on the data (open decision)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>

@@ -21,7 +21,7 @@ their parameters from <code>pipelineParams.m</code> and must be run with MATLAB'
 <tr><td><a href="#sweep"><code>runSNRSweep.m</code></a></td><td>How do precision, honesty, outliers and detection change with SNR?</td><td><code>data/mc/sweep_*</code></td><td>~13 min</td></tr>
 <tr><td><a href="#h0"><code>runH0.m</code></a></td><td>Is the false-alarm rate right? Is the noise model complete?</td><td><code>data/mc/h0_*</code></td><td>~14 min</td></tr>
 <tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case</td></tr>
-<tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~7 min</td></tr>
+<tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 </table></div>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> predate the channelized front end and always run the <b>full-band</b>
@@ -103,6 +103,8 @@ blanked fraction, good TOAs, median SNR, median TOA error, rms/pred, median χ²
 passage centred in the file (−30 dB floor), and sidelobes only (beam 5 s away) at −25 / −30 / −35 dB. For pulsed sources the table adds,
 from the source's parameters (ground truth, validation only), the fraction of its pulses blanked in its own channels and the fraction of
 its energy in missed pulses. <code>runCases</code> picks a subset of the cases.</p>
+<p><b>LTE cases (B5d-2, 8 Oct):</b> cases 12–13: the <code>'noise'</code> type, 20 MHz at 1472 MHz (inside LTE band 32), INR −10 and 0 dB.
+Results: <a href="receiver.html#noisetype">receiver</a> and <a href="excision.html#limits">excision limits</a>.</p>
 
 <h2 id="locked"><code>runLockedRadar.m</code> (B5b)</h2>
 <p>A radar with PRF 400 Hz = 4·<var>f</var><sub>0</sub>, one pulse per turn on the pulse flank: what excision leaves of it folds coherently into the profile.</p>
@@ -116,7 +118,11 @@ its energy in missed pulses. <code>runCases</code> picks a subset of the cases.<
 <div class="callout why"><span class="ttl">Why measure the leftover in baseline units</span>
 <p>The pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
 the noise baseline does not depend on the pulsar, and comparing it with the pulse height ρ gives the bias at any SNR from one run.</p></div>
-<p>Results and the frequency-guard sweep: <a href="excision.html#locked">locked radar</a>.</p>
+<p>Cases are rows of <code>caseList</code> = [radar, excision, frequency guard, periodic mask]; radars: 0.1 µs edges, instant edges, and (B6-3)
+the 0.1 µs radar on a rotating antenna seen only through −35 dB sidelobes. Cases 9–12 compare excision with and without the periodic mask;
+<code>runCases</code> picks a subset, and only the radars it needs are simulated.</p>
+<p>Results and the frequency-guard sweep: <a href="excision.html#locked">locked radar</a>; the periodic mask:
+<a href="excision.html#periodic"><code>periodicRFI</code></a>.</p>
 
 <h2>Planned</h2>
 <p>The same stage calls are repeated in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code>. Factoring the receiver and

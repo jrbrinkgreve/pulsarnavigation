@@ -46,7 +46,8 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~33 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
-<tr><td><code>testPeriodicRFI</code></td><td><code>periodicRFI</code> B6</td><td>~1 min</td><td><span class="badge written">in progress (uncommitted)</span></td></tr>
+<tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge written">passes (Claude's run); Jasper's run pending</span></td></tr>
 </table></div>
 <div class="table-wrap"><table>
 <tr><th>Reference maker</th><th>Freezes</th><th>Made with</th><th>File</th></tr>
@@ -143,6 +144,18 @@ an independent formula to 10⁻⁷; envelope 0.500 at the nominal edge; energy =
 <h2 id="gating"><code>testRfiGating</code></h2>
 <p>No rotation = pre-B5a reference bit for bit; invalid rotations refused; radar and carrier through two beam passages: energy with/without
 rotation = <var>g</var>(<var>t</var>) averaged over each pulse to 10⁻⁵.</p>
+
+<h2 id="periodic"><code>testPeriodicRFI</code></h2>
+<p>Own 0.05 s channel data through the receiver chain, the same noise in every run, so a run minus the noise-only run is the RFI
+alone; scored with the sources' parameters. (1) Noise only: no emitter. (2) Impulses at 1000/s: no emitter. (3) Scenario radar: PRF
+372.9992 ± 0.0018 Hz (true 373), predicted pulse times within 0.4 samples of the truth, all pulses blanked. (4) Rotating radar seen only
+through −35 dB sidelobes: found from <code>detectRFI</code>'s 42 % of the pulses; with the prediction 100 % blanked, radar energy left
+0.48 → 8.8·10⁻⁶.</p>
+
+<h2 id="noise"><code>testRfiNoise</code></h2>
+<p>(1) The other RFI types = the pre-B5a reference bit for bit. (2) Block size 10⁶ + 3 = one block bit for bit. (3) Power = INR × the
+in-band receiver noise within 4σ of 1/√(<var>B</var>·<var>T</var>): 0.9945 (σ 0.0045). (4) Spectrum flat in band (level 1.0078 of power/bandwidth),
+out of band ≤ 2·10⁻⁷. (5) Kurtosis 3.004 (Gaussian 3, σ 0.016).</p>
 
 <h2>Statistical validations (scripts, not unit tests)</h2>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> are experiments with tables, not PASS/FAIL units, and take minutes. See

@@ -64,6 +64,7 @@ power in the analysis band (0 dB = as much as the whole in-band noise).</p>
 <tr><td><code>'bpsk'</code></td><td>GNSS-like spread spectrum: random ±1 rectangular chips</td><td><code>Freq</code>, <code>ChipRate</code></td></tr>
 <tr><td><code>'pulsed'</code></td><td>radar: pulses with an optional linear chirp</td><td><code>Freq</code>, <code>PulseWidth</code>, <code>PRF</code>, <code>ChirpBW</code>, <code>StartTime</code>, <code>RiseTime</code> (default 0.1 µs)</td></tr>
 <tr><td><code>'impulse'</code></td><td>broadband white bursts at Poisson times</td><td><code>Rate</code>, <code>Duration</code></td></tr>
+<tr><td><code>'noise'</code></td><td>band-limited Gaussian noise: an LTE / OFDM downlink (B5d)</td><td><code>Freq</code> (centre), <code>Bandwidth</code></td></tr>
 </table></div>
 <p>Amplitudes: carrier-type sources <var>a</var> = √(2·INR·<var>P</var><sub>nb</sub>) (power <var>a</var>²/2); impulses σ = √INR·σ<sub>n</sub>; with
 <var>P</var><sub>nb</sub> = σ<sub>n</sub>²·<var>B</var>/(<var>f</var><sub>s</sub>/2) the receiver-noise power in the band. Phases come from the absolute sample index;
@@ -96,6 +97,22 @@ what a rotating radar leaves behind (see <a href="excision.html#rotating">excisi
 <p><b>Test</b> (<code>tests/testRfiGating.m</code>, ~10 s): no rotation = the pre-B5a reference bit for bit; invalid rotations refused; radar pulses and a
 carrier through two beam passages (toy scan 1 ms, beam 100 µs, −25 dB floor): energy with/without rotation = <var>g</var> averaged over each pulse
 to 10⁻⁵.</p>
+
+
+<h4 id="noisetype">Band-limited Gaussian noise: <code>'noise'</code> (B5d, 8 Oct) <span class="badge written">tests pass (Claude's run)</span></h4>
+<p>An LTE downlink is OFDM: hundreds of subcarriers carrying random data. By the central limit theorem its voltage is Gaussian,
+so it looks like extra receiver noise with a raised level in its band. The <code>'noise'</code> type makes exactly that: real white Gaussian
+noise, filtered by a Kaiser band-pass centred on <code>Freq</code> (−6 dB at <code>Freq</code> ± <code>Bandwidth</code>/2, transition 5 % of the bandwidth,
+60 dB stopband). The white noise comes from counter-based random substreams indexed by absolute sample, also before the first
+sample, and the filter overlaps the block edges, so the result does not depend on the block size. Its power is set from the
+filter's own Σ<var>h</var>², so the INR is exact.</p>
+<div class="callout why"><span class="ttl">What it shows</span>
+<p>No power or kurtosis test can find Gaussian RFI. Its only signature is the higher level in its channels, which the optimal
+TOA fit already handles (weights 1/level²). In <code>runRFITest</code> (20 MHz at 1472 MHz) it costs 2–3 % SNR and is not flagged. But
+the two channels that the band only partly covers break the flat-spectrum assumption (see
+<a href="excision.html#limits">excision limits</a>).</p></div>
+<p><b>Test</b> (<code>tests/testRfiNoise.m</code>, ~5 s): other types = the pre-B5a reference bit for bit; an odd block size = one block bit for
+bit; power 0.9945 of INR × the in-band noise (σ 0.0045); flat in band, out of band ≤ 2·10⁻⁷; kurtosis 3.004 (σ 0.016).</p>
 
 <h4>The scenario in <code>pipelineParams.m</code></h4>
 <p>An illustrative L-band scenario; <code>rfiOn</code> switches it on, <code>rfiSelect</code> picks sources by index ([] = all).</p>

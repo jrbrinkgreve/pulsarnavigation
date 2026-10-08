@@ -168,6 +168,10 @@ going from 10 to ~6.5 allows (10/6.5)² ≈ 2.4× shorter sub-ints.</li>
 energy outside its channels 0.6 % (was 1.3 %), left after excision 1.0·10⁻⁴ (instant edges ≈ 1.6·10⁻³).</li>
 <li><b>B5b</b> locked radar and frequency guard: <a href="excision.html#locked">RFI excision</a>.</li>
 <li><b>B5c</b> rotating radar: <a href="excision.html#rotating">RFI excision</a>.</li>
+<li><b>B6</b> periodic mask (<code>periodicRFI</code>): the −35 dB sidelobe radar 42 % → 100 % blanked; locked sidelobe radar leftover
+2.3·10⁻³ → 1.2·10⁻¹⁰ of the baseline (0.001 µs at −54 dB); locked main beam 0.41 µs at −54 dB: <a href="excision.html#periodic">RFI excision</a>.</li>
+<li><b>B5d</b> LTE-like noise (<code>'noise'</code> type): not flagged, 2–3 % SNR; edge channels over-flagged and red. χ² 1.04 at 0 dB:
+<a href="receiver.html#noisetype">receiver</a>, <a href="excision.html#limits">excision limits</a>.</li>
 </ul>
 
 <h2 id="other">11. Algorithm ports and run times</h2>

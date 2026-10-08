@@ -49,6 +49,7 @@
 <tr><td>Expected variance (exact tapers)</td><td>(<var>c</var><sub>ss</sub><var>P</var><sub>s</sub>² + 2<var>c</var><sub>sn</sub><var>P</var><sub>s</sub><var>P</var><sub>n</sub> + <var>c</var><sub>nn</sub><var>P</var><sub>n</sub>²)/d<var>t</var></td><td><a href="validation.html#epm">validation</a></td></tr>
 <tr><td>RFI window statistic</td><td>Σ<sub>n</sub><var>p</var>/<var>m</var> = Σλ<sub>k</sub><var>E</var><sub>k</sub>, λ = eig(toeplitz(ρ)); <var>P</var>(&gt; <var>x</var>) = [1 0…0]·expm(<var>Qx</var>)·1</td><td><a href="excision.html#detect">excision</a></td></tr>
 <tr><td>Robust baseline</td><td><var>m</var> = median(|<var>x</var>|²)/ln 2</td><td><a href="excision.html#detect">excision</a></td></tr>
+<tr><td>Periodic RFI significance</td><td><var>p</var> = <var>n</var>·<var>P</var>(Bin(<var>n</var>−1, <var>q</var>) ≥ <var>m</var>−1), <var>q</var> = (2·tol + 1)/<var>P</var>; accepted if <var>p</var> × candidates &lt; 10⁻⁶</td><td><a href="excision.html#periodic">excision</a></td></tr>
 </table></div>
 
 <h2>Folding and TOAs</h2>

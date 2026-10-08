@@ -77,7 +77,8 @@ Labels A–E introduced.</li>
 <li>A2c-2 (optimal detection), A4 (switch in <code>main.m</code>, channel path default) → <b>block A complete</b>.</li>
 <li>B1 <code>blankChannels</code>, B2 <code>detectRFI</code>, B3 excision in <code>main.m</code> (default on), B4 <code>runRFITest</code>.</li>
 <li>B5a radar rise time (realistic default), B5b locked radar → B5b-2 frequency guard (default 7), B5c rotating antenna. Ionosphere noted as an open item.</li>
-<li>B6 periodic mask started. Documentation site created.</li>
+<li>B6 periodic mask (<code>periodicRFI</code>, default on): a radar locked to the pulsar and seen only through −35 dB sidelobes now leaves
+1.2·10⁻¹⁰ of the baseline. B5d LTE-like noise source. Documentation site created.</li>
 </ul>
 
 <h2 id="decisions">2. Decision log</h2>
@@ -120,6 +121,9 @@ agreed.</p>
 <tr><td>8 Oct</td><td>RFI results in baseline units, not TOAs at −5 dB</td><td>The test pulsar is 80,000× brighter than the target; leftovers in baseline units scale to any SNR.</td></tr>
 <tr><td>8 Oct</td><td>Frequency guard default 7 channels (Jasper)</td><td>1 µs locked-radar bias only below −51 dB at ~0.004 % data per channel.</td></tr>
 <tr><td>8 Oct</td><td>Periodic mask (B6)</td><td>Rotating-radar sidelobe pulses are mostly missed one by one; their period is measured from the main beam.</td></tr>
+<tr><td>8 Oct</td><td>Predicted pulses blanked unconditionally</td><td>A mask that does not depend on the noise keeps <code>blankingWeights</code> exact and truncates nothing.</td></tr>
+<tr><td>8 Oct</td><td>Emitters accepted by a significance test, not a pulse count</td><td>Counting 6 fitting pulses let random impulses form fake emitters; the binomial chance × candidates &lt; 10⁻⁶ does not.</td></tr>
+<tr><td>8 Oct</td><td>Periodic mask on by default</td><td>It adds nothing without a periodic emitter (no RFI: identical TOAs).</td></tr>
 <tr><td>8 Oct</td><td>Docs site in <code>docs/</code>, updated alongside the code (Jasper)</td><td>A codebase Jasper fully understands.</td></tr>
 </table></div>
 

@@ -16,10 +16,6 @@ values.</p>
 <p class="meta">Values as committed in <code>9b959f0</code>. Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
 uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
 
-<div class="callout note"><span class="ttl">In progress (uncommitted): B6 switches</span>
-<p><code>periodicMask = true</code> (with excision, also blank every predicted pulse of periodic RFI found by <code>periodicRFI</code>) and
-<code>periodicArgs = {}</code>. To be added to the table when B6 is validated and committed.</p></div>
-
 <div class="toc"><b>Groups</b><ol>
 <li><a href="#pulsar">Pulsar (truth)</a></li>
 <li><a href="#sim">Simulation (truth)</a></li>
@@ -83,6 +79,8 @@ uses it; <b>observer</b> = the processing may use it (the <a href="conventions.h
 <tr><td><code>chanWidth</code></td><td>3.125 MHz</td><td>channel width → 128 channels</td><td>Narrow enough that a radar or GNSS signal occupies a few channels, wide enough that the bins stay short; divides 800 MHz into 256 slots.</td><td><code>channelizeIQ</code></td></tr>
 <tr><td><code>excision</code></td><td>true</td><td>channel path: RFI excision before dedispersion</td><td>Default since 8 Oct (Jasper); costs 0.0125 % of clean data, no TOA change (<a href="excision.html#results">B3</a>).</td><td>main</td></tr>
 <tr><td><code>excisionArgs</code></td><td>{}</td><td>name-value options for <code>detectRFI</code></td><td>Its defaults are the validated ones (windows 1–16, P<sub>FA</sub> 10⁻⁶, guard 10, frequency guard 7).</td><td><code>detectRFI</code></td></tr>
+<tr><td><code>periodicMask</code></td><td>true</td><td>with excision: find periodic RFI (radars) in the detections and blank all its predicted pulses</td><td>A radar locked to the pulsar and seen only through weak sidelobes would otherwise dominate the TOA at −54 dB; with the mask 0.001 µs (<a href="excision.html#periodic">B6</a>). Adds nothing when no periodic emitter is found.</td><td><code>periodicRFI</code>, main</td></tr>
+<tr><td><code>periodicArgs</code></td><td>{}</td><td>name-value options for <code>periodicRFI</code></td><td>Defaults: ≥ 6 pulses, ±4 samples, chance &lt; 10⁻⁶, PRF 50 Hz – 20 kHz.</td><td><code>periodicRFI</code></td></tr>
 </table></div>
 
 <h2 id="ephem">6. Ephemeris (<code>ephem</code>, observer)</h2>

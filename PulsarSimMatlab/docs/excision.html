@@ -13,7 +13,8 @@
 <p class="lede">Find interference in the raw channel voltages, set those samples to zero, dedisperse, and then tell the
 fold exactly how much valid data and noise every detected bin still contains. Block B, default on since 8 October 2026.</p>
 <p class="meta">Channel path only · <code>excision = true</code> and <code>excisionArgs</code> (options for <code>detectRFI</code>) in
-<code>pipelineParams.m</code> · order in <code>main.m</code>: <code>channelizeIQ</code> → <code>detectRFI</code> → <code>blankChannels</code> →
+<code>pipelineParams.m</code> · order in <code>main.m</code>: <code>channelizeIQ</code> → <code>detectRFI</code> → (<code>periodicRFI</code>, with
+<code>periodicMask</code>) → <code>blankChannels</code> →
 <code>dedisperseChannels</code> → <code>detectChannels</code> → <code>blankingWeights</code> → <code>foldProfile('DataWeights', …)</code></p>
 
 <div class="toc"><b>On this page</b><ol>
@@ -24,6 +25,7 @@ fold exactly how much valid data and noise every detected bin still contains. Bl
 <li><a href="#results">Results: each RFI type with and without excision</a></li>
 <li><a href="#locked">A radar locked to the pulsar, and the frequency guard</a></li>
 <li><a href="#rotating">A rotating radar: the sidelobe problem</a></li>
+<li><a href="#periodic"><code>periodicRFI</code>: blanking predicted pulses</a></li>
 <li><a href="#limits">Limits</a></li>
 </ol></div>
 
@@ -231,6 +233,7 @@ difference of a radar run and a reference run with the same noise; the TOA bias 
 <tr><td>0.1 µs, freq. guard 3</td><td>on</td><td>0.055 %</td><td>4.6·10⁻⁶</td><td>−0.02 / −0.18 / −1.8 / −41</td><td>−37.4 dB</td></tr>
 <tr><td>0.1 µs, freq. guard 5</td><td>on</td><td>0.073 %</td><td>1.2·10⁻⁶</td><td>−0.003 / −0.025 / −0.25 / −6.4</td><td>−46.0 dB</td></tr>
 <tr><td><b>0.1 µs, freq. guard 7</b></td><td>on</td><td>0.090 %</td><td>3.7·10⁻⁷</td><td>−0.001 / −0.008 / −0.08 / −2.0</td><td><b>−51.1 dB</b></td></tr>
+<tr><td><b>0.1 µs, freq. guard 7 + periodic mask</b> (B6)</td><td>on</td><td>0.127 %</td><td>1.7·10⁻⁷</td><td>0 / −0.002 / −0.016 / −0.41</td><td><b>−57.9 dB</b></td></tr>
 </table></div>
 <ul>
 <li>Measured = predicted at −5 dB, so the method holds. Excision alone cuts the bias ~2000× at −5 dB, but a fixed leftover scales as
@@ -263,21 +266,90 @@ channels, so most pulses are missed one by one. Over a scan the sidelobes then d
 <p>Per-pulse thresholds cannot fix this. But the main-beam passage (~15–40 pulses at +38 dB) measures the radar's period, pulse phase and
 channels precisely, so its weak sidelobe pulses can be blanked where they are predicted to be. That is B6. Unlocked, the leftover is only
 phase-uniform noise.</p></div>
-<div class="callout note"><span class="ttl">In progress (uncommitted): <code>periodicRFI</code> (B6)</span>
-<p>The working tree has a new <code>functions/periodicRFI.m</code> and <code>tests/testPeriodicRFI.m</code>: group <code>detectRFI</code>'s detections into
-pulses and emitters, find each emitter's period, and add every predicted pulse (also the ones too weak to be seen) to the mask before
-<code>blankChannels</code>. It uses only the detections, no ground truth. This page will describe it once it is validated and committed.</p></div>
+<p>The periodic mask that does this is described in <a href="#periodic">section 8</a>; with it, the −35 dB sidelobe radar is blanked
+completely.</p>
 
-<h2 id="limits">8. Limits</h2>
+<h2 id="periodic">8 · <code>periodicRFI</code>: blanking predicted pulses (B6) <span class="badge validated">validated (B6)</span></h2>
+<div class="sig">[rows, info] = periodicRFI(info_chan, info_rfi, ...)</div>
+<p class="meta"><a href="api.html#periodicrfi">Full interface and help text of <code>periodicRFI</code> →</a> · in <code>main.m</code> with
+<code>excision</code> and <code>periodicMask</code> (default true): its rows are added to <code>detectRFI</code>'s mask before <code>blankChannels</code>.</p>
+
+<div class="callout why"><span class="ttl">Why predict instead of detect</span>
+<p>What makes periodic RFI dangerous — regular timing, so it can pile up at fixed pulse phases (section 6) — also makes it
+predictable: once the period and the time of one pulse are known, every pulse is known, also those too weak to be seen (the
+−35 dB sidelobes of section 7). RFI with irregular timing (Poisson impulses, PRF jitter) cannot be predicted, but it cannot fold
+coherently either; it is only extra noise. So prediction covers exactly the dangerous case.</p></div>
+
+<h3>Method</h3>
+<ol>
+<li><b>Pulses.</b> <code>detectRFI</code> lists every flagged interval (<code>info.events</code>: channel, interval, peak). Intervals at the same
+time (within 8 samples) in neighbouring channels are one pulse; its time is the centre of the interval in its strongest
+channel.</li>
+<li><b>Emitters.</b> Narrowband pulses whose strongest channels are within 2 of each other form one candidate emitter. Broadband
+pulses (≥ 32 channels, impulses) form a group of their own, because their strongest channel is random.</li>
+<li><b>Period.</b> Candidate periods are the gaps between a pulse and its next three, divided by 1–8 (missed pulses leave gaps of 2<var>P</var>,
+3<var>P</var>, …). For each candidate: the best phase, and the <var>m</var> of <var>n</var> pulses within ±4 samples (1 µs) of
+<var>t</var><sub>0</sub> + <var>kP</var>. How likely is that for random times? One pulse sets the phase, each other fits by chance with
+<var>q</var> = 9/<var>P</var>:
+<div class="eq">p = n · P( Binomial(n − 1, q) ≥ m − 1 ),  accepted if p × (number of candidates) &lt; 10⁻⁶ and m ≥ 6</div>
+The least likely (most significant) candidate wins, which also picks <var>P</var> over <var>P</var>/2 (same pulses, twice the chance).
+<var>t</var><sub>0</sub> and <var>P</var> are then refined by least squares.</li>
+<li><b>Mask.</b> Every predicted pulse in the file is blanked <b>unconditionally</b>, over its width + 2 × (time guard + tolerance +
+4 × the prediction uncertainty), in the emitter's channels ± the frequency guard.</li>
+</ol>
+<div class="callout why"><span class="ttl">Two design choices</span>
+<ul>
+<li><b>Unconditional blanking.</b> The mask then does not depend on the noise values, so <code>blankingWeights</code> stays exact and nothing
+is truncated. Cost: ~0.05–0.13 % of the data for one radar.</li>
+<li><b>The significance test.</b> The first version accepted an emitter when 6 pulses fitted; random impulses then produced 3 fake
+emitters, because for short trial periods 6 random pulses fit somewhere. The binomial chance, corrected for the number of
+candidates tried, fixed this.</li>
+</ul></div>
+<div class="callout note"><span class="ttl">The pulsar is not masked</span>
+<p>The pulsar is periodic too, but it is dispersed: in the raw channels its pulse arrives 59 µs later per channel (at 1.3 GHz), so
+neighbouring channels do not combine into one simultaneous pulse, and its detections jitter across the 0.5 ms pulse, far outside
+±1 µs. <code>main.m</code> at −5 dB without RFI: 245 detected pulses, 0 emitters, identical TOAs.</p></div>
+
+<h3>Results</h3>
+<p><code>testPeriodicRFI</code> (own 0.05 s data, the RFI alone from a difference with the same noise):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Result</th></tr>
+<tr><td>noise only</td><td>60 detected pulses, no emitter</td></tr>
+<tr><td>impulses, 1000/s</td><td>157 pulses, no emitter</td></tr>
+<tr><td>scenario radar, 373 Hz</td><td>PRF 372.9992 ± 0.0018 Hz; predicted pulse times within 0.4 samples of the truth; 0.11 % blanked by prediction</td></tr>
+<tr><td>rotating radar, only −35 dB sidelobes</td><td>found from <code>detectRFI</code>'s 42 % of the pulses; with prediction 100 % blanked; radar energy left 0.48 → 8.8·10⁻⁶</td></tr>
+</table></div>
+<p><code>runLockedRadar</code>, radar locked at 400 Hz, worst phase:</p>
+<div class="table-wrap"><table>
+<tr><th>Radar</th><th>Excision</th><th>Periodic mask</th><th>Blanked</th><th><var>L</var> max</th><th>Bias at −54 dB</th><th>1 µs bias at</th></tr>
+<tr><td>−35 dB sidelobes only</td><td>off</td><td>–</td><td>–</td><td>2.9·10⁻³</td><td>210 µs</td><td>−14 dB</td></tr>
+<tr><td>−35 dB sidelobes only</td><td>guard 7</td><td>off</td><td>0.015 %</td><td>2.3·10⁻³</td><td>locks on the radar</td><td>−17 dB</td></tr>
+<tr><td><b>−35 dB sidelobes only</b></td><td>guard 7</td><td><b>on</b></td><td>0.073 %</td><td><b>1.2·10⁻¹⁰</b></td><td><b>0.001 µs</b></td><td>not reached (−60 dB)</td></tr>
+<tr><td>main beam, 0.1 µs edges</td><td>guard 7</td><td>on</td><td>0.127 %</td><td>1.7·10⁻⁷</td><td>0.41 µs</td><td>−57.9 dB</td></tr>
+</table></div>
+<div class="callout warn"><span class="ttl">Limits of version 1</span>
+<ul>
+<li>Fixed PRF only. A staggered PRF (a repeating pattern of intervals, common for ATC radars) fits no single period; such a group is
+reported (<code>info.unfitted</code>), and its detected pulses are still blanked by <code>detectRFI</code>.</li>
+<li>Needs ≥ 6 detected pulses of an emitter in the same data.</li>
+<li>Built for short files: it compares pulse pairs and writes one mask row per pulse and channel.</li>
+</ul></div>
+
+<h2 id="limits">9. Limits</h2>
 <div class="callout warn"><span class="ttl">Known limits of excision</span>
 <ul>
 <li><b>Data-dependent:</b> blanking removes the highest samples, so the kept noise is slightly truncated. Negligible at weak SNR; at
 −5 dB it costs 0.4 % of pulse amplitude.</li>
-<li><b>Locked RFI:</b> with the guard, 2 µs bias at −54 dB for an exactly locked radar on the worst phase. The guard width is fixed,
-not scaled with the event's strength.</li>
+<li><b>Locked RFI:</b> with the frequency guard and the periodic mask, 0.41 µs bias at −54 dB for an exactly locked radar on the
+worst phase (guard alone: 2 µs). The guard width is fixed, not scaled with the event's strength. The periodic mask handles fixed
+PRFs only (section 8).</li>
 <li><b>Carrier / GNSS channels</b> have baselines 7–47× the noise, so impulses there are not caught (those channels carry little weight).</li>
 <li><b>Window length ≤ 16 samples:</b> weak bursts longer than 3.8 µs are found only above the 16-sample threshold (2.69×). Weak repeated pulses (rotating-radar sidelobes at −35 dB) are mostly
-missed one by one; the periodic mask (B6) is being built for them. No spectral kurtosis or whole-channel flags yet.</li>
+missed one by one; the periodic mask (section 8) blanks them by prediction. No spectral kurtosis or whole-channel flags yet.</li>
+<li><b>Flat spectrum within a channel assumed.</b> A channel only partly covered by strong wideband RFI (the band edges of an LTE
+carrier) has a lopsided noise spectrum: <code>detectRFI</code> over-flags there (540 vs ~3 windows), and the detected-power noise exceeds
+the fold model (red. χ² 1.04 at LTE 0 dB). See <a href="limits.html">limitations</a>; a per-channel noise measured on the data is a
+possible remedy (open decision).</li>
 <li><b>Noise-like RFI</b> (LTE, OFDM) is undetectable by any power or kurtosis test; it is extra noise in its channels, handled by the
 optimal weighting.</li>
 <li>The 0.1 µs rise time is an assumption, to be checked against ITU masks.</li>
