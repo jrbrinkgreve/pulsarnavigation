@@ -45,8 +45,9 @@ rfi = [ ...
     rfiSource('bpsk',    'Freq', 1227.60e6, 'ChipRate', 10.23e6, 'INRdB', -15, 'Label', 'GNSS L2 P(Y)-like'), ...
     rfiSource('pulsed',  'Freq', 1300e6, 'PulseWidth', 2e-6, 'PRF', 373, 'ChirpBW', 1e6, ...
               'INRdB', 20, 'Label', 'L-band radar'), ...
-    rfiSource('cw',      'Freq', 1350e6, 'INRdB', -5, 'Label', 'spurious carrier'), ...
+    rfiSource('cw',      'Freq', 1351.3e6, 'INRdB', -5, 'Label', 'spurious carrier'), ... % not 1350 (ch 48/49 edge)
     rfiSource('impulse', 'Rate', 50, 'Duration', 200e-9, 'INRdB', 20, 'Label', 'broadband impulses')];
+rfiScenario = rfi;      % the full list (runRFITest picks from it)
 if ~isempty(rfiSelect), rfi = rfi(rfiSelect); end
 if ~rfiOn || isinf(snrDB), rfi = struct([]); end
 
@@ -63,6 +64,11 @@ frontEnd      = 'channels';  % 'channels' (default since 8 Oct): the channelized
 weighting     = 'optimal';   % channel path: how estimateTOA / detectPulsar combine channels:
                              % 'optimal' (weights 1/variance, all channels) or 'equal'
 chanWidth     = 3.125e6;     % [Hz] channel width of the channelized front end
+excision      = true;        % channel path: RFI excision before dedispersion (block B):
+                             % detectRFI -> blankChannels -> ... -> blankingWeights -> fold
+                             % with DataWeights (default since 8 Oct, Jasper); false = none
+excisionArgs  = {};          % name-value options for detectRFI, e.g. {'PFA', 1e-6}
+                             % (defaults: windows 1-16 samples, PFA 1e-6, guard 10)
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre
@@ -86,6 +92,11 @@ fileFold      = fullfile(dataDir, "test_fold.mat");
 % channelized front end (frontEnd = 'channels'); the unit tests in tests/ use these files too
 chanDir        = fullfile(dataDir, "chan");
 fileChanIQ     = fullfile(chanDir, "test_rx_IQ_chan");             % channelizeIQ (base name)
+% with excision: own files, so the unblanked ones (the tests' reference) stay
+fileChanBlank   = fullfile(chanDir, "test_rx_IQ_chan_blanked");          % blankChannels (base name)
+fileChanDedispB = fullfile(chanDir, "test_dedispB_chan");                % dedisperseChannels, blanked
+fileChanPowerB  = fullfile(chanDir, "test_dedispB_chan_power.dat");      % detectChannels, blanked
+fileChanWeight  = fullfile(chanDir, "test_dedispB_chan_weights.dat");    % blankingWeights
 fileChanDedisp = fullfile(chanDir, "test_dedisp_chan");            % dedisperseChannels (base name)
 fileChanPower  = fullfile(chanDir, "test_dedisp_chan_power.dat");  % detectChannels
 fileFoldChan   = fullfile(dataDir, "test_fold_chan.mat");

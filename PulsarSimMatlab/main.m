@@ -21,9 +21,12 @@ Pipeline (status):
     6. detectPower             square-law detection             [done]
     channelized (128 x 3.125 MHz):
     5a. channelizeIQ           polyphase filterbank              [done]
-        (RFI excision per channel: blank samples, blankingWeights  [todo, B])
+        RFI excision (pipelineParams 'excision'):
+        detectRFI              power threshold per channel -> mask [done, B2]
+        blankChannels          zero the masked samples           [done, B1]
     5b. dedisperseChannels     coherent dedispersion per channel [done]
     6b. detectChannels         power per channel + exact noise   [done]
+        blankingWeights        mask -> exact data weights W, V, X [done, A3a]
     both:
     7. foldProfile             folding with a phase model       [done]
                                (channels: exact narrow-channel noise, NoiseCoeffs)
@@ -75,6 +78,9 @@ if ~fullBand && ~strcmp(frontEnd, 'channels')
 end
 if ~fullBand                    % channel IQ + dedispersed (4/3 oversampled) + power per channel
     diskGB = diskGB + L * (2*(fHigh - fLow)*4/3*8 + (fHigh - fLow)/chanWidth*f_out*4) / 1e9;
+    if excision                 % blanked channel copies + weights (W, V, X(1..7) per bin)
+        diskGB = diskGB + L * ((fHigh - fLow)*4/3*8 + (fHigh - fLow)/chanWidth*f_out*9*4) / 1e9;
+    end
 end
 fprintf('main: L = %.3g s -> about %.1f GB of data files in "%s"\n', L, diskGB, dataDir);
 
@@ -120,18 +126,36 @@ if fullBand
         info_det    = loadInfo(fileEnvelope);
     end
 else
+    if excision                 % own files: the unblanked ones are the tests' reference
+        dcFile = fileChanDedispB; pwFile = fileChanPowerB;
+    else
+        dcFile = fileChanDedisp;  pwFile = fileChanPower;
+    end
     if runStage.process
         % Filterbank: 128 channels of 3.125 MHz (oversampled 4/3)
         info_chan = channelizeIQ(info_IQ.file, fileChanIQ, info_IQ.actualFsOut, info_IQ.fLO, ...
             fLow, fHigh, 'ChanWidth', chanWidth, 'T0', info_IQ.t0);
-        % (RFI excision per channel goes here: blank samples; mask -> blankingWeights; block B)
+        % RFI excision BEFORE dedispersion (a radar pulse is a few samples here):
+        % find the RFI, zero those samples in copies of the channel files
+        if excision
+            [rfiMask, info_rfi] = detectRFI(info_chan, excisionArgs{:});
+            info_chanD = blankChannels(info_chan, rfiMask, fileChanBlank);
+        else
+            info_chanD = info_chan;
+        end
         % Coherent dedispersion per channel, all channels aligned at refFreq
-        info_dc = dedisperseChannels(info_chan, fileChanDedisp, ephem.DM, 'RefFreq', refFreq);
+        info_dc = dedisperseChannels(info_chanD, dcFile, ephem.DM, 'RefFreq', refFreq);
         % Square-law detection per channel; bins of a whole number of channel samples
-        info_det = detectChannels(info_dc, fileChanPower, info_dc.fs / round(info_dc.fs / f_out));
+        info_det = detectChannels(info_dc, pwFile, info_dc.fs / round(info_dc.fs / f_out));
+        % Dedispersion spreads each blank over the filter's reach: the exact valid
+        % fraction W and noise V, X of every detected bin, from the mask and each filter
+        if excision
+            info_w = blankingWeights(info_chan, info_dc, info_det, info_chanD.mask, fileChanWeight);
+        end
     else
-        info_dc  = loadInfo(fileChanDedisp);
-        info_det = loadInfo(fileChanPower);
+        info_dc  = loadInfo(dcFile);
+        info_det = loadInfo(pwFile);
+        if excision, info_w = loadInfo(fileChanWeight); end
     end
 end
 
@@ -156,10 +180,16 @@ if runStage.fold
             [~, check_fold] = plotFoldCheck(fold, info_fold, info_gen, truthArgs{:});
         end
     else
-        % narrow channels: neighbouring time bins correlate -> exact phase-bin noise
+        % narrow channels: neighbouring time bins correlate -> exact phase-bin noise;
+        % with excision the data weights carry it per bin (and the valid fraction W)
+        if excision
+            noiseArgs = {'DataWeights', info_w};
+        else
+            noiseArgs = {'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]};
+        end
         [info_fold, fold] = foldProfile(info_det, fileFoldChan, ephem.f0, ...
             'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods, ...
-            'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]);
+            noiseArgs{:});
     end
 elseif runStage.toa
     if fullBand, S = load(fileFold, 'fold', 'info'); else, S = load(fileFoldChan, 'fold', 'info'); end
@@ -204,8 +234,8 @@ if runStage.toa
         M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx);
     else
         M = struct('hasNoise', false);
-        fprintf('main: channel path, %d channels, weighting ''%s'', channels used %s\n', ...
-            info_fold.nChan, weighting, mat2str(unique(toa.nChanUsed(toa.valid)).'));
+        fprintf('main: channel path, %d channels, weighting ''%s'', excision %d, channels used %s\n', ...
+            info_fold.nChan, weighting, excision, mat2str(unique(toa.nChanUsed(toa.valid)).'));
     end
     if M.hasNoise
         fprintf(['main: predicted best TOA error per sub-int (%d turns) %.4g us, ' ...
