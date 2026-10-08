@@ -330,6 +330,11 @@ receiver-noise power in the analysis band (0 dB = as much as the whole in-band n
   **default 0.1 µs** = the realistic radar (Jasper); 0 = instant edges, the behaviour
   before 8 Oct, bit for bit). Spectrum: instant edges ~1/f² over tens of MHz;
   raised-cosine edges ~1/f⁶ beyond ~1/(2·RiseTime) = 5 MHz.
+- Any type, **rotating antenna** (B5c-1, 8 Oct): `ScanPeriod` (default Inf = off, bit for
+  bit as before), `BeamTime`, `BeamWidth` (−3 dB width of the passage in time = azimuth
+  beamwidth/360° × ScanPeriod; 1.4° at 10 s → 39 ms), `SidelobeDB` (default −30). Power ×
+  g(t) = max(exp(−4 ln2 (dt/BeamWidth)²), 10^(SidelobeDB/10)), dt = time from the nearest
+  beam passage; `INRdB` = main-beam peak. Beamwidth and sidelobe levels are assumptions.
 - `'impulse'`: broadband white bursts, Poisson `Rate`, `Duration`.
 Amplitudes: carrier types a = √(2·INR·P_nb) (power a²/2); impulse σ = √INR·σ_n;
 P_nb = σ_n²·B/(fs/2). Phases from absolute sample index; chips from `mrg32k3a`
@@ -1499,6 +1504,32 @@ channel for this radar (duty 0.08 %). Guard 5: 1 µs at −46 dB, 6.4 µs at −
 edges: no help (the 1/f² plateau comes from far channels) → periodic mask (B6) or a much
 wider guard for such emitters.
 
+**B5c — rotating radar (8 Oct).** `tests/testRfiGating.m` (~10 s, Claude's run): no
+rotation = pre-B5a reference bit for bit; bad rotations refused; radar pulses through two
+beam passages (toy scan 1 ms, beam 100 µs, −25 dB floor): energy with / without rotation =
+g averaged over each pulse to 1e-5; carrier local power likewise to 1e-5.
+`runRFITest.m` cases 8–11 (scenario radar, 10 s scan, BeamWidth 39 ms; per-pulse ground
+truth for pulsed sources):
+
+| case | excision | blanked | good | ratio | red. χ² | pulses blanked | energy missed |
+|---|---|---|---|---|---|---|---|
+| beam passage (centre of the file, −30 dB floor) | off | – | 4/8 | 5.44 | 8.78 | – | – |
+| beam passage | on | 0.077 % | 8/8 | 0.81 | 1.01 | 100 % | 0 |
+| sidelobes only, −25 dB (+13 dB per channel) | off / on | – / 0.020 % | 8/8 | 0.85 / 0.82 | 1.01 | 100 % | 0 |
+| sidelobes only, −30 dB (+8 dB) | off / on | – / 0.019 % | 8/8 | 0.84 / 0.82 | 1.01 | 100 % | 0 |
+| sidelobes only, −35 dB (+3 dB) | off / on | – / 0.015 % | 8/8 | 0.84 / 0.82 | 1.01 | **39.5 %** | **61 %** |
+
+At −5 dB the sidelobe radar is harmless with or without excision. But at −35 dB a 2 µs
+pulse is only ~2× the noise per sample in its channels: most are missed per pulse. Over a
+scan the sidelobes then dominate what a rotating radar leaves: the main beam (excised,
+leftover ~0 with the frequency guard) carries ~41 ms × full power per 10 s scan, the
+sidelobes at −35 dB ~3 ms × full power, of which ~60 % is missed → ~2 ms × full power per
+scan stays. If locked to the pulsar, that is ~1.8e-3 of the baseline in the fold (scaled
+from B5b: 9.2 × 10^−3.5 × 0.61) ≈ 450× the −54 dB pulsar. → per-pulse thresholds cannot
+do this; a periodic mask can: the main-beam passage (~15–40 pulses at +38 dB) measures the
+radar's PRF, pulse phase and channels precisely, so its weak sidelobe pulses can be
+blanked where they are predicted to be (B6). Unlocked: phase-uniform noise.
+
 ---
 
 ## 8. Bugs found and fixed (lessons)
@@ -1652,7 +1683,9 @@ wider guard for such emitters.
   ~150 µs at −54 dB (below-threshold sidelobes in channels a few away); with the frequency
   guard ±7 1 µs at −51 dB, 2 µs at −54 dB (±5: −46 dB, 6.4 µs). Fixed-width guard, not scaled with the event's strength (sidelobe
   reach ∝ S^(1/6) for 1/f⁶); no help for instant-edge emitters (far-channel plateau).
-  Remaining remedies: periodic mask (B6), Doppler decorrelation (D). The 0.1 µs rise
+  Remaining remedies: periodic mask (B6), Doppler decorrelation (D). Rotating radar
+  (B5c): sidelobe pulses at −35 dB are mostly missed per pulse (39.5 % caught, 61 % of
+  their energy missed) and dominate a rotating radar's leftover → periodic mask (B6). The 0.1 µs rise
   time is an assumption (check against ITU masks). (c) In channels dominated by a carrier
   or GNSS signal the baseline is 7–47× the noise, so impulses there are not caught (those
   channels have little weight). (d) Windows ≤ 16 samples (3.8 µs): weak bursts longer
@@ -1688,7 +1721,10 @@ GLONASS G1 ~1598–1606 MHz; 1400–1427 MHz protected). **B5a radar rise time d
 (`RiseTime`, realistic 0.1 µs default; §5.3, §7). **B5b** locked radar done (`runLockedRadar.m`, §7:
 excision leaves 1 µs bias at −24 dB, ~150 µs at −54 dB; leftover in channels ~3 away from
 the flagged ones). **B5b-2** frequency guard in `detectRFI` done (`FreqGuard`
-default 7 (Jasper), `FreqGuardMin` 100; §5.20, §7: 1 µs only below −51 dB). Then B5c rotating-antenna gating, B5d `'noise'` type (LTE), B5e the realistic
+default 7 (Jasper), `FreqGuardMin` 100; §5.20, §7: 1 µs only below −51 dB). **B5c**
+rotating antenna done (`rfiSource` `ScanPeriod` etc., `testRfiGating`, `runRFITest`
+cases 8–11; §5.3, §7): sidelobes at −35 dB mostly missed → B6 periodic mask is needed.
+Then B5d `'noise'` type (LTE), B5e the realistic
 scenario as a second list in `pipelineParams`; B6 (spectral kurtosis,
 whole-channel flags) only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
 
@@ -2082,7 +2118,7 @@ per day).
 |---|---|---|
 | `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct) | current; A4, B3 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4) | current |
-| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`) | run 8 Oct (§7) |
+| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy (`runCases` picks a subset) | run 8 Oct (§7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
@@ -2092,9 +2128,10 @@ per day).
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
 | `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
-| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs) | validated (5 Oct; B5a 8 Oct, Claude's run) |
+| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs); rotating antenna for any type (B5c-1) | validated (5 Oct; B5a, B5c-1 8 Oct) |
 | `tests/makeRfiReference.m` | saves the pre-B5a addNoiseAndRFI output (`data/mc/rfiRef_preB5a.mat`) | run 8 Oct |
-| `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Claude's run, 8 Oct) |
+| `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Jasper's run, 8 Oct) |
+| `tests/testRfiGating.m` | B5c-1: rotating antenna: regression (off = bit for bit), checks, radar and carrier envelopes vs g(t) | passes (Jasper's run, 8 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |

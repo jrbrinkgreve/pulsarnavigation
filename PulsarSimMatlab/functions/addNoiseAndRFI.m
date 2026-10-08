@@ -54,10 +54,11 @@ SNR definition (receiver end):
 
 RFI power: see rfiSource ('INRdB' relative to the receiver-noise power in
 the band; radar pulses with raised-cosine edges of 'RiseTime', default
-0.1 us since 8 Oct 2026, 0 = instant edges as before). Continuous and
+0.1 us since 8 Oct 2026, 0 = instant edges as before; any source can have
+a rotating antenna, 'ScanPeriod' etc., off by default). Continuous and
 chip-level phases are computed from the absolute sample index, and random
-parts come from counter-based substreams, so the
-result does not depend on the block size.
+parts come from counter-based substreams, so the result does not depend on
+the block size.
 %}
 
 arguments
@@ -326,6 +327,15 @@ switch d.type
             x(a0 - n0 + 1 : a1 - n0 + 1) = x(a0 - n0 + 1 : a1 - n0 + 1) + ...
                 e.amp * w(a0 - e.evStart(i) + 1 : a1 - e.evStart(i) + 1);
         end
+end
+
+% rotating antenna (rfiSource 'ScanPeriod'): power x g(t), Gaussian main beam on a
+% sidelobe floor; no rotation (Inf, or a struct from before 8 Oct 2026): untouched
+if isfield(d, 'scanPeriod') && isfinite(d.scanPeriod)
+    T  = d.scanPeriod;
+    dt = mod(t - d.beamTime + T/2, T) - T/2;            % time from the nearest beam passage
+    g  = max(exp(-4*log(2) * (dt / d.beamWidth).^2), 10^(d.sidelobeDB/10));
+    x  = x .* sqrt(g);
 end
 end
 

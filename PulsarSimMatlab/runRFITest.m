@@ -13,9 +13,16 @@ fraction, good TOAs, median SNR, median TOA error, rms / predicted error
 Reference for the full band without excision: notes §7, RFI test of 5 Oct
 (carrier then at 1350 MHz; in the full band its frequency does not matter).
 
+Rotating radar (B5c-2): the scenario radar with a rotating antenna (10 s
+scan, 1.4 deg beam -> BeamWidth 39 ms): one beam passage centred in the
+file, and sidelobes only (beam 5 s away) at -25 / -30 / -35 dB. For cases
+with a pulsed source the table also gives, from the source's parameters
+(ground truth, validation only): the fraction of its pulses blanked in its
+own channels, and the fraction of its energy in the pulses that were missed.
+
 Needs: the sky files (main.m with runStage.sky once). Files go to data/rfi
 and are overwritten per case; main's files and data/chan are not touched.
-~1 min per case.
+~45 s per case; runCases picks a subset.
 %}
 
 % Paths and parameters
@@ -26,7 +33,17 @@ if ~strcmp(frontEnd, 'channels')
     error('runRFITest:frontEnd', 'runRFITest is for the channel path (frontEnd = ''channels'').');
 end
 
-cases = {[], 1, 2, 3, 4, 5, 1:5};     % indices into rfiScenario; [] = noise only
+% cases: indices into rfiScenario ([] = noise only) or rfiSource structs
+rad = rfiScenario(3);                % the scenario radar, with a rotating antenna
+rotRadar = @(beamTime, sl, label) rfiSource('pulsed', 'Freq', rad.freq, 'PulseWidth', rad.pulseWidth, ...
+    'PRF', rad.prf, 'ChirpBW', rad.chirpBW, 'StartTime', rad.startTime, 'INRdB', rad.INRdB, ...
+    'RiseTime', rad.riseTime, 'ScanPeriod', 10, 'BeamTime', beamTime, 'BeamWidth', 39e-3, ...
+    'SidelobeDB', sl, 'Label', label);
+cases = {[], 1, 2, 3, 4, 5, 1:5, ...
+    rotRadar(L/2, -30, 'rotating radar, beam passage'), ...
+    rotRadar(5, -25, 'radar sidelobes -25 dB'), rotRadar(5, -30, 'radar sidelobes -30 dB'), ...
+    rotRadar(5, -35, 'radar sidelobes -35 dB')};
+runCases = 1:numel(cases);           % e.g. 8:11 for the rotating radar only
 
 rfiDir  = fullfile(dataDir, "rfi");
 rRx     = fullfile(rfiDir, "rfi_rx.dat");
@@ -41,16 +58,19 @@ info_gen  = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);
 template  = gaussianTemplate(nBin, ephem.profileFWHM);
 
-nC = numel(cases);
+nC = numel(runCases);
 res = struct('label', {}, 'excision', {}, 'blanked', {}, 'nGood', {}, 'nValid', {}, ...
-    'snr', {}, 'err', {}, 'ratio', {}, 'redChi2', {}, 'offset', {}, 'offsetErr', {});
+    'snr', {}, 'err', {}, 'ratio', {}, 'redChi2', {}, 'offset', {}, 'offsetErr', {}, ...
+    'pulses', {}, 'missedE', {});
 fprintf('runRFITest: %d cases, SNR %.1f dB, L = %.3g s, noise seed %d\n', nC, snrDB, L, noiseSeed);
 tAll = tic;
-for c = 1:nC
+for c = runCases
     tCase = tic;
     idx = cases{c};
     if isempty(idx)
         rfiCase = struct([]); label = 'noise only';
+    elseif isstruct(idx)
+        rfiCase = idx; label = strjoin({rfiCase.label}, ' + ');
     else
         rfiCase = rfiScenario(idx);
         label = strjoin({rfiCase.label}, ' + ');
@@ -82,7 +102,9 @@ for c = 1:nC
             info_w = blankingWeights(info_chan, info_dc, info_det, info_chanD.mask, rWeight, 'Verbose', false);
             noiseArgs = {'DataWeights', info_w};
             blanked = mean(info_chanD.blankedFraction);
+            [pulses, missedE] = pulseStats(rfiCase, rfiMask, info_chan);
         else
+            pulses = NaN; missedE = NaN;
             noiseArgs = {'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]};
             blanked = 0;
         end
@@ -102,19 +124,60 @@ for c = 1:nC
             'nGood', nnz(good), 'nValid', nnz(v), 'snr', median(toa.snr(v)), ...
             'err', median(toa.toaErr(v)) * 1e6, 'ratio', val.ratio, ...
             'redChi2', median(toa.redChi2(v)), 'offset', val.totalOffset * 1e6, ...
-            'offsetErr', val.totalOffsetErr * 1e6); %#ok<SAGROW>
+            'offsetErr', val.totalOffsetErr * 1e6, 'pulses', pulses, 'missedE', missedE); %#ok<SAGROW>
     end
-    fprintf('  case %d/%d (%s): %.0f s\n', c, nC, label, toc(tCase));
+    fprintf('  case %d of %d (%s): %.0f s\n', c, numel(cases), label, toc(tCase));
 end
 fprintf('runRFITest: done in %.0f s\n\n', toc(tAll));
 
 % Table
-fprintf('%-34s %4s %9s %6s %7s %9s %8s %8s %16s\n', 'case', 'exc', 'blanked', 'good', ...
-    'SNR', 'err [us]', 'rms/pred', 'redChi2', 'offset [us]');
+fprintf('%-34s %4s %9s %6s %7s %9s %8s %8s %16s %8s %9s\n', 'case', 'exc', 'blanked', 'good', ...
+    'SNR', 'err [us]', 'rms/pred', 'redChi2', 'offset [us]', 'pulses', 'E missed');
 for k = 1:numel(res)
     r = res(k);
-    fprintf('%-34s %4d %8.4f%% %3d/%-2d %7.1f %9.3f %8.3f %8.2f %+8.2f +- %5.2f\n', r.label, ...
+    pc = '       -'; me = '        -';
+    if ~isnan(r.pulses), pc = sprintf('%7.1f%%', 100*r.pulses); me = sprintf('%9.1e', r.missedE); end
+    fprintf('%-34s %4d %8.4f%% %3d/%-2d %7.1f %9.3f %8.3f %8.2f %+8.2f +- %5.2f %s %s\n', r.label, ...
         r.excision, 100*r.blanked, r.nGood, r.nValid, r.snr, r.err, r.ratio, r.redChi2, ...
-        r.offset, r.offsetErr);
+        r.offset, r.offsetErr, pc, me);
 end
-save(fullfile(rfiDir, "runRFITest_results.mat"), 'res', 'cases');
+fprintf(['pulses: fraction of the pulsed source''s pulses blanked in its own channels; E missed: ' ...
+         'fraction of its energy in the missed pulses (ground truth)\n']);
+save(fullfile(rfiDir, "runRFITest_results.mat"), 'res', 'cases', 'runCases');
+
+
+% ======================================================================
+%  Local functions
+% ======================================================================
+function [frac, missedE] = pulseStats(rfiCase, mask, info_chan)
+% For the first pulsed source of the case (ground truth): fraction of its pulses whose
+% samples are blanked in all its own channels (those within ChanWidth/2 + ChirpBW/2 of
+% its frequency), and the fraction of its energy (per-pulse antenna gain) in the others.
+frac = NaN; missedE = NaN;
+if isempty(rfiCase), return; end
+k = find(strcmp({rfiCase.type}, 'pulsed'), 1);
+if isempty(k), return; end
+d = rfiCase(k);
+fsC = info_chan.fs; Nc = info_chan.N;
+ch = find(abs(info_chan.chanFreqs - d.freq) < info_chan.chanWidth/2 + d.chirpBW/2).';
+sOf = @(t) round((t - info_chan.t0) * fsC) + 1;
+tk = d.startTime + (0 : floor(Nc / fsC * d.prf)).' / d.prf;      % pulse starts
+tk = tk(sOf(tk) >= 1 & sOf(tk + d.pulseWidth) <= Nc);
+g = ones(size(tk));                                              % antenna gain per pulse
+if isfinite(d.scanPeriod)
+    T = d.scanPeriod;
+    dt = mod(tk + d.pulseWidth/2 - d.beamTime + T/2, T) - T/2;
+    g = max(exp(-4*log(2) * (dt / d.beamWidth).^2), 10^(d.sidelobeDB/10));
+end
+hit = true(size(tk));
+for j = ch
+    r = mask(mask(:, 1) == j, 2:3);
+    cv = false(1, Nc);
+    for i = 1:size(r, 1), cv(r(i, 1):r(i, 2)) = true; end
+    for i = 1:numel(tk)
+        hit(i) = hit(i) && all(cv(sOf(tk(i)) : sOf(tk(i) + d.pulseWidth)));
+    end
+end
+frac = mean(hit);
+missedE = sum(g(~hit)) / sum(g);
+end

@@ -21,6 +21,8 @@ Types and their parameters:
   'impulse'  broadband bursts              Rate [1/s] (Poisson), Duration [s];
              white noise bursts over the whole sampled band
   'Label'    free text for logs/plots
+  any type:  rotating antenna              ScanPeriod [s], BeamTime [s],
+                                           BeamWidth [s], SidelobeDB (see below)
 
 Radar edges ('pulsed', 'RiseTime'): a real transmitter ramps its pulse up
 and down. The envelope rises and falls as a raised cosine of duration
@@ -33,6 +35,18 @@ carrier, sidelobes over tens of MHz; with raised-cosine edges it falls as
 1/f^6 beyond ~1/(2*RiseTime) (5 MHz for 0.1 us). Default 0.1e-6: an
 assumed realistic value for a solid-state L-band surveillance radar (to be
 checked against ITU emission masks); RiseTime <= PulseWidth.
+
+Rotating antenna (any type; 'ScanPeriod' finite): a surveillance radar's
+antenna turns (5-6 rpm: ScanPeriod 10-12 s), so its main beam points at us
+once per scan and only its sidelobes the rest of the time. The source's
+power is multiplied by the antenna gain seen at time t,
+  g(t) = max( exp(-4 ln2 (dt/BeamWidth)^2), 10^(SidelobeDB/10) ),
+dt = t - BeamTime wrapped to (-ScanPeriod/2, ScanPeriod/2]: a Gaussian main
+beam with -3 dB width BeamWidth in time (= azimuth beamwidth / 360 deg x
+ScanPeriod; 1.4 deg at 10 s -> 39 ms), centred at BeamTime + k ScanPeriod,
+on a flat sidelobe floor (default -30 dB). INRdB is the main-beam peak.
+Default ScanPeriod Inf: no rotation (g = 1), the behaviour before 8 Oct 2026.
+Beamwidth and sidelobe levels of real L-band radars are assumptions here.
 %}
 
 arguments
@@ -50,6 +64,10 @@ arguments
     opts.RiseTime   (1,1) double = NaN
     opts.Rate       (1,1) double = NaN
     opts.Duration   (1,1) double = NaN
+    opts.ScanPeriod (1,1) double = Inf
+    opts.BeamTime   (1,1) double = 0
+    opts.BeamWidth  (1,1) double = NaN
+    opts.SidelobeDB (1,1) double = -30
 end
 
 type = lower(char(type));
@@ -77,11 +95,24 @@ if strcmp(type, 'pulsed')
     end
 end
 
+if isfinite(opts.ScanPeriod)
+    if opts.ScanPeriod <= 0 || ~(opts.BeamWidth > 0 && opts.BeamWidth < opts.ScanPeriod)
+        error('rfiSource:scan', ['A rotating antenna needs ScanPeriod > 0 and ' ...
+            '0 < BeamWidth < ScanPeriod.']);
+    end
+    if opts.SidelobeDB > 0
+        error('rfiSource:scan', 'SidelobeDB must be <= 0 (relative to the main beam).');
+    end
+elseif opts.ScanPeriod ~= Inf
+    error('rfiSource:scan', 'ScanPeriod must be positive (Inf = no rotation).');
+end
+
 label = char(opts.Label);
 if isempty(label), label = type; end
 src = struct('type', type, 'label', label, 'freq', opts.Freq, 'INRdB', opts.INRdB, ...
     'phase', opts.Phase, 'drift', opts.Drift, 'chipRate', opts.ChipRate, ...
     'pulseWidth', opts.PulseWidth, 'prf', opts.PRF, 'chirpBW', opts.ChirpBW, ...
     'startTime', opts.StartTime, 'riseTime', riseTime, 'rate', opts.Rate, ...
-    'duration', opts.Duration);
+    'duration', opts.Duration, 'scanPeriod', opts.ScanPeriod, 'beamTime', opts.BeamTime, ...
+    'beamWidth', opts.BeamWidth, 'sidelobeDB', opts.SidelobeDB);
 end
