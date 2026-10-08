@@ -23,6 +23,7 @@ Pipeline (status):
     5a. channelizeIQ           polyphase filterbank              [done]
         RFI excision (pipelineParams 'excision'):
         detectRFI              power threshold per channel -> mask [done, B2]
+        periodicRFI            periodic RFI: all predicted pulses  [done, B6]
         blankChannels          zero the masked samples           [done, B1]
     5b. dedisperseChannels     coherent dedispersion per channel [done]
     6b. detectChannels         power per channel + exact noise   [done]
@@ -139,6 +140,10 @@ else
         % find the RFI, zero those samples in copies of the channel files
         if excision
             [rfiMask, info_rfi] = detectRFI(info_chan, excisionArgs{:});
+            if periodicMask             % + every predicted pulse of periodic RFI (radars)
+                [perRows, info_per] = periodicRFI(info_chan, info_rfi, periodicArgs{:});
+                rfiMask = [rfiMask; perRows];
+            end
             info_chanD = blankChannels(info_chan, rfiMask, fileChanBlank);
         else
             info_chanD = info_chan;

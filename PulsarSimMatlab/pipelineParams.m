@@ -69,6 +69,10 @@ excision      = true;        % channel path: RFI excision before dedispersion (b
                              % with DataWeights (default since 8 Oct, Jasper); false = none
 excisionArgs  = {};          % name-value options for detectRFI, e.g. {'PFA', 1e-6}
                              % (defaults: windows 1-16 samples, PFA 1e-6, guard 10)
+periodicMask  = true;        % with excision: find periodic RFI (radars) in the detections and
+                             % blank all its predicted pulses, also those too weak to be seen
+                             % (periodicRFI, B6; 8 Oct); false = detectRFI's mask only
+periodicArgs  = {};          % name-value options for periodicRFI
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre

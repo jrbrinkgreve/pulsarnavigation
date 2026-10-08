@@ -198,7 +198,8 @@ frontEnd = 'channels' (128 × 3.125 MHz, chanWidth; default since 8 Oct, Jasper)
 'fullband' (the reference path), weighting = 'optimal' (channel path only). Since B3
 (8 Oct): excision = true (default, Jasper), excisionArgs = {} (detectRFI defaults); RFI
 scenario carrier at 1351.3 MHz (was 1350 MHz = edge of channels 48/49), full list kept as
-`rfiScenario`.
+`rfiScenario`. Since B6-3 (8 Oct): periodicMask = true (with excision: periodicRFI's
+predicted pulses added to the mask), periodicArgs = {}.
 
 ---
 
@@ -1096,7 +1097,9 @@ side (**default 7**, Jasper, from the B5b sweep: 1 µs locked-radar bias only be
 ~0.004 % of the data per guard channel): its spectral sidelobes there are below the noise
 per sample but add up coherently in the fold if the RFI is locked to the pulsar (B5b, §7). Weak flags (noise,
 the pulsar) never reach 100× and do not spread. info: `ownFlaggedSamples`, `nStrong`,
-`flaggedSamples` (final mask incl. guard).
+`flaggedSamples` (final mask incl. guard), `events` (B6-1: every own flagged interval,
+before the frequency guard, as [channel, first, last, peakSample, peak/baseline], for
+`periodicRFI`).
 Options `Scales`, `PFA`, `Guard`, `FreqGuard`, `FreqGuardMin`, `BaselineTime`, `Passes`,
 `KeepWindows`, `MaxMemoryGB`.
 Uses only the channel data + channelizer settings. ~3 s for 0.1 s of 128 channels.
@@ -1120,6 +1123,48 @@ frequency guard ±7) mask = own detections + every strong event copied to ±7 ch
 energy left over all channels (steady level subtracted) zero within ~1e-6 (1.0e-4
 without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 % removed
 (98.65 %), blanked 0.81 % (0.65 %).
+
+### 5.21 `periodicRFI(info_chan, info_rfi, ...)` → `[rows, info]` [B6-2, 8 Oct 2026, Claude's run]
+
+**Idea.** What makes periodic RFI dangerous — regular timing, so it can pile up at fixed
+pulse phases (B5b) — also makes it predictable: once the period and one pulse time are
+known, every pulse is known, also those too weak to be seen (radar sidelobes, B5c).
+Irregular RFI (Poisson impulses, PRF jitter) cannot be predicted but cannot fold
+coherently either. Uses only `detectRFI`'s events (no ground truth).
+**Method.** (1) pulses: events at the same time (interval centres within `GroupTime` = 8
+samples) in neighbouring channels (gaps ≤ 2); time = centre of the interval in the
+strongest channel (symmetric time guard). (2) emitters: narrowband pulses (< `MaxSpan` = 32
+channels) grouped by strongest channel (within `ChanGroup` = 2); broadband pulses one group.
+(3) period: candidates = gaps to the next 3 pulses / 1…`MaxMissing` (8), in `PeriodRange`
+(50 µs – 20 ms); per candidate the best phase and the m of n pulses within ±`TimeTol`
+(4 samples); significance p = n·P(Bin(n−1, q) ≥ m−1), q = (2·TimeTol + 1)/P (one pulse sets
+the phase); the smallest p wins (P, not P/2: same pulses, twice the chance); accepted if
+p × (number of candidates) < `FalseAlarm` (1e-6) and m ≥ `MinPulses` (6); least-squares
+refit of t0, P on the inliers (twice); inliers removed, group searched again. (Counting
+inliers alone failed: for short trial periods random impulses fit 6 pulses somewhere —
+3 fake emitters in the first test run.) (4) mask: every predicted pulse in the file,
+unconditionally (data-independent: blankingWeights stays exact, no truncation), over
+width + 2·(`Guard` + `TimeTol` + 4σ_pred(k)), in the emitter's channels ± `FreqGuard`.
+Fixed PRF only (v1); groups with ≥ MinPulses pulses but no period are reported
+(`info.unfitted`: impulses, or a staggered PRF). Not yet scalable to hours of data (all
+pulse pairs, one row per pulse and channel). info: emitters (prf, period, periodErr,
+logChance, t0, nGroup, nInliers, rmsResid, channels, blankChannels, pulseWidth, nPredicted,
+maxSigmaPred), nPulses, unfitted, blanked fractions.
+**Tests (`tests/testPeriodicRFI.m`, ~35 s, Claude's run 8 Oct;** own 0.05 s channel data,
+same noise seed, RFI alone = difference). (1) noise: 60 detected pulses, no emitter, no
+rows. (2) impulses 1000/s: 157 pulses, no emitter (6 groups without a period). (3) scenario
+radar: PRF 372.9992 ± 0.0018 Hz (true 373), 18 pulses fit; predicted vs true pulse centres
+≤ 0.4 samples; all pulses blanked; 0.107 % blanked by prediction. (4) rotating radar, only
+−35 dB sidelobes: found from detectRFI's 42 % of pulses (PRF 373.0001 Hz); with the
+prediction 100 % blanked; radar energy left (±20 µs windows, all channels) 0.48 → 8.8e-6;
+0.051 % blanked by prediction.
+**In `main.m` (B6-3):** with `excision` and `periodicMask` (default true), `periodicRFI`
+runs on `detectRFI`'s info and its rows are added to the mask before `blankChannels`.
+Without periodic RFI it adds nothing: main.m at −5 dB without RFI finds 245 detected
+pulses (noise + the bright pulsar), 0 emitters, identical TOAs — the pulsar is not taken
+for periodic RFI (dispersed: its pulse arrives 59 µs later per channel at 1.3 GHz, so
+neighbouring channels do not combine into one simultaneous pulse, and its detections
+jitter across the 0.5 ms pulse, far outside ±1 µs).
 
 ---
 
@@ -1150,6 +1195,7 @@ without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 %
 | FFTFIT uncertainty | σ_τ = √(dᵀ·Cov·d)/|C″| |
 | RFI window power (detectRFI) | Σ_n p/m = Σ λ_k E_k, λ = eig(toeplitz(ρ)); P(> x) = [1 0…0]·expm(Qx)·1 |
 | Robust baseline | m = median(|x|²)/ln 2 (exponential power) |
+| Periodic RFI significance (periodicRFI) | p = n·P(Bin(n−1, q) ≥ m−1), q = (2·TimeTol + 1)/P; accept if p·N_cand < 1e-6 |
 
 ---
 
@@ -1503,6 +1549,19 @@ channel for this radar (duty 0.08 %). Guard 5: 1 µs at −46 dB, 6.4 µs at −
 7 (Jasper). Instant
 edges: no help (the 1/f² plateau comes from far channels) → periodic mask (B6) or a much
 wider guard for such emitters.
+**Periodic mask (B6-3, `runLockedRadar` cases 9–12):**
+
+| radar (locked, 400 Hz, worst phase) | excision | periodic mask | blanked | L max | bias at −20 / −40 / −54 / −60 dB | 1 µs at |
+|---|---|---|---|---|---|---|
+| main beam, 0.1 µs edges | guard 7 | on | 0.127 % | 1.7e-7 | 0 / −0.016 / −0.41 / −1.6 µs | −57.9 dB |
+| −35 dB sidelobes only (rotating, beam 5 s away) | off | – | – | 2.9e-3 | 3.8 / 163 / 210 / 212 µs | −14.2 dB |
+| −35 dB sidelobes only | guard 7 | off | 0.015 % | 2.3e-3 | 1.9 / 124 µs / locks on the radar | −17.2 dB |
+| −35 dB sidelobes only | guard 7 | **on** | 0.073 % | **1.2e-10** | 0 / 0 / −0.001 / −0.004 µs | not reached |
+
+periodicRFI found the emitter in both (PRF 400.0009 Hz from 40 pulses; 400.0050 Hz from
+the 25 detected sidelobe pulses). The periodic mask removes the locked-sidelobe problem
+(leftover 2.3e-3 → 1.2e-10 of the baseline) and also improves the main-beam case (it blanks
+the frequency-guard channels at every predicted pulse, not only at strong detections).
 
 **B5c — rotating radar (8 Oct).** `tests/testRfiGating.m` (~10 s, Claude's run): no
 rotation = pre-B5a reference bit for bit; bad rotations refused; radar pulses through two
@@ -1685,7 +1744,12 @@ blanked where they are predicted to be (B6). Unlocked: phase-uniform noise.
   reach ∝ S^(1/6) for 1/f⁶); no help for instant-edge emitters (far-channel plateau).
   Remaining remedies: periodic mask (B6), Doppler decorrelation (D). Rotating radar
   (B5c): sidelobe pulses at −35 dB are mostly missed per pulse (39.5 % caught, 61 % of
-  their energy missed) and dominate a rotating radar's leftover → periodic mask (B6). The 0.1 µs rise
+  their energy missed) and dominate a rotating radar's leftover → periodic mask (B6):
+  with it (default since B6-3) a locked radar seen only through −35 dB sidelobes leaves
+  1.2e-10 of the baseline (bias 0.001 µs at −54 dB), a locked main-beam radar 0.41 µs at
+  −54 dB. periodicRFI v1: fixed PRF only (staggered PRF unfitted, reported), short files
+  (all pulse pairs; one mask row per pulse and channel), needs ≥ 6 detected pulses of an
+  emitter in the same data. The 0.1 µs rise
   time is an assumption (check against ITU masks). (c) In channels dominated by a carrier
   or GNSS signal the baseline is 7–47× the noise, so impulses there are not caught (those
   channels have little weight). (d) Windows ≤ 16 samples (3.8 µs): weak bursts longer
@@ -1724,6 +1788,12 @@ the flagged ones). **B5b-2** frequency guard in `detectRFI` done (`FreqGuard`
 default 7 (Jasper), `FreqGuardMin` 100; §5.20, §7: 1 µs only below −51 dB). **B5c**
 rotating antenna done (`rfiSource` `ScanPeriod` etc., `testRfiGating`, `runRFITest`
 cases 8–11; §5.3, §7): sidelobes at −35 dB mostly missed → B6 periodic mask is needed.
+**B6-1/B6-2** done (Claude's run): `detectRFI` `info.events`, new `periodicRFI` (§5.21):
+the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, energy left
+8.8e-6. **B6-3** done (Claude's runs): `periodicMask` (default true) / `periodicArgs` in
+`pipelineParams`, hook in `main.m` (no RFI: 0 emitters, identical TOAs); `runLockedRadar`
+cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
+main beam 0.41 µs at −54 dB (§7). Then B5d `'noise'` type (LTE), B5e realistic scenario.
 Then B5d `'noise'` type (LTE), B5e the realistic
 scenario as a second list in `pipelineParams`; B6 (spectral kurtosis,
 whole-channel flags) only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
@@ -2116,10 +2186,10 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct) | current; A4, B3 validated (8 Oct) |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy (`runCases` picks a subset) | run 8 Oct (§7) |
-| `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`) | run 8 Oct (§7) |
+| `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
@@ -2142,7 +2212,9 @@ per day).
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
-| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2) | validated (8 Oct); B5b-2 Claude's run |
+| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct); B6-1 Claude's run |
+| `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | Claude's run (8 Oct) |
+| `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
 | `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; 3d Claude's run) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |

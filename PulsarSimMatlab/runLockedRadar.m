@@ -29,10 +29,13 @@ Method (main's noise seed and -5 dB pulsar in every run):
      through estimateTOA ('optimal'), rho from -5 to -60 dB; the rho where the
      bias reaches 1 us.
   Cases: edges x excision off/on, and with excision the frequency guard of
-  detectRFI (strong events blanked in +-FreqGuard channels) swept.
+  detectRFI (strong events blanked in +-FreqGuard channels) swept; and (B6-3)
+  the locked radar on a rotating antenna seen only through -35 dB sidelobes,
+  with excision without / with the periodic mask (periodicRFI). runCases
+  picks a subset (only the radars it needs are simulated).
 
 Needs: the sky files (main.m with runStage.sky once). Files in data/locked
-(overwritten). ~7 min.
+(overwritten). ~9 min for all cases.
 %}
 
 % Paths and parameters
@@ -57,8 +60,15 @@ Kdm   = 4.148808e3 * 1e12 * ephem.DM;                % [s Hz^2]
 delta = Kdm * (1/fR^2 - 1/refFreq^2);                % 4.17 ms
 sigT  = ephem.profileFWHM / ephem.f0 / (2*sqrt(2*log(2)));
 tStart = mod(ephem.TRef + sigT + delta - pw/2, 1/prf);
-edgeList = [0.1e-6, 0];                              % realistic, instant
-edgeName = {'0.1 us edges', 'instant edges'};
+% the radars: realistic edges, instant edges, realistic edges seen only through -35 dB
+% sidelobes of a rotating antenna (main beam 5 s away)
+radarArgs = {{'RiseTime', 0.1e-6}, {'RiseTime', 0}, ...
+             {'RiseTime', 0.1e-6, 'ScanPeriod', 10, 'BeamTime', 5, 'BeamWidth', 39e-3, 'SidelobeDB', -35}};
+radarName = {'0.1 us edges', 'instant edges', 'sidelobes -35'};
+% cases: [radar, excision, FreqGuard, periodic mask]
+caseList = [1 0 0 0; 1 1 0 0; 1 1 3 0; 1 1 5 0; 1 1 7 0; 2 0 0 0; 2 1 0 0; 2 1 5 0; ...
+            1 1 7 1; 3 0 0 0; 3 1 7 0; 3 1 7 1];
+runCases = 1:size(caseList, 1);                      % e.g. 9:12 for the periodic-mask cases
 
 fprintf(['runLockedRadar: radar %.0f MHz, %.0f us, PRF %g Hz (= %d f0), +20 dB, one pulse per turn at ' ...
          '+%.0f us from the pulse peak; %.1f dB pulsar, L = %.3g s\n'], fR/1e6, pw*1e6, prf, ...
@@ -67,10 +77,10 @@ tAll = tic;
 
 % ---- 1. Receiver runs ---------------------------------------------------------------------
 chanRef = receiverChannels(info_disp, fullfile(lkDir, "ref"), struct([]), rxArgs, iqArgs, chArgs, fs, fLO, fLow, fHigh);
-chanTot = cell(1, 2); chanR = cell(1, 2);
-for e = 1:2
+chanTot = cell(1, numel(radarArgs)); chanR = chanTot;
+for e = unique(caseList(runCases, 1)).'
     radar = rfiSource('pulsed', 'Freq', fR, 'PulseWidth', pw, 'PRF', prf, 'ChirpBW', 1e6, ...
-        'StartTime', tStart, 'INRdB', 20, 'RiseTime', edgeList(e), 'Label', 'locked radar');
+        'StartTime', tStart, 'INRdB', 20, radarArgs{e}{:}, 'Label', 'locked radar');
     chanTot{e} = receiverChannels(info_disp, fullfile(lkDir, "tot" + e), radar, rxArgs, iqArgs, ...
         chArgs, fs, fLO, fLow, fHigh);
     chanR{e} = differenceChannels(chanTot{e}, chanRef, fullfile(lkDir, "radar" + e));
@@ -79,14 +89,19 @@ fprintf('  receiver runs: %.0f s\n', toc(tAll));
 
 % ---- 2.-4. Cases ------------------------------------------------------------------------------
 rhoDB = [-5 -10 -20 -30 -40 -50 -54 -60];
-caseList = [1 0 0; 1 1 0; 1 1 3; 1 1 5; 1 1 7; 2 0 0; 2 1 0; 2 1 5];   % [edges, excision, FreqGuard]
-res = struct('edges', {}, 'excision', {}, 'guard', {}, 'blanked', {}, 'Lpeak', {}, 'Lflank', {}, ...
-    'pulse', {}, 'dMeas', {}, 'dPred', {}, 'dSyn', {}, 'rho1us', {}, 'L', {});
-for c = 1:size(caseList, 1)
-    e = caseList(c, 1); exc = caseList(c, 2) == 1; g = caseList(c, 3);
+res = struct('edges', {}, 'excision', {}, 'guard', {}, 'periodic', {}, 'blanked', {}, 'Lpeak', {}, ...
+    'Lflank', {}, 'pulse', {}, 'dMeas', {}, 'dPred', {}, 'dSyn', {}, 'rho1us', {}, 'L', {});
+for c = runCases
+    e = caseList(c, 1); exc = caseList(c, 2) == 1; g = caseList(c, 3); per = caseList(c, 4) == 1;
     tCase = tic;
     if exc
-        mask = detectRFI(chanTot{e}, excisionArgs{:}, 'FreqGuard', g, 'Verbose', false);
+        [mask, info_rfi] = detectRFI(chanTot{e}, excisionArgs{:}, 'FreqGuard', g, 'Verbose', false);
+        if per                                       % + every predicted pulse (B6)
+            [perRows, info_per] = periodicRFI(chanTot{e}, info_rfi, periodicArgs{:}, 'Verbose', false);
+            mask = [mask; perRows];
+            fprintf('  periodicRFI: %d emitter(s)%s\n', numel(info_per.emitters), ...
+                sprintf(', PRF %.4f Hz from %d pulses', [[info_per.emitters.prf]; [info_per.emitters.nInliers]]));
+        end
     else
         mask = zeros(0, 3);
     end
@@ -130,26 +145,28 @@ for c = 1:size(caseList, 1)
         rho1 = interp1(log10(ab(k1-1:k1)), rhoDB(k1-1:k1), -6);
     end
     blanked = 0;
-    if exc, blanked = sum(mask(:, 3) - mask(:, 2) + 1) / (chanRef.nChan * chanRef.N); end
-    res(end+1) = struct('edges', edgeName{e}, 'excision', exc, 'guard', g, 'blanked', blanked, ...
+    if exc, blanked = mean(info_w.blankedFraction); end
+    res(end+1) = struct('edges', radarName{e}, 'excision', exc, 'guard', g, 'periodic', per, ...
+        'blanked', blanked, ...
         'Lpeak', max(abs(Lphi)), 'Lflank', max(abs(Lphi(flank))), 'pulse', max(P5), ...
         'dMeas', dMeas, 'dPred', dPred, 'dSyn', dSyn, 'rho1us', rho1, 'L', Lphi); %#ok<SAGROW>
-    fprintf('  %s, excision %d, frequency guard %d: %.0f s\n', edgeName{e}, exc, g, toc(tCase));
+    fprintf('  %s, excision %d, frequency guard %d, periodic mask %d: %.0f s\n', radarName{e}, exc, ...
+        g, per, toc(tCase));
 end
 fprintf('runLockedRadar: done in %.0f s\n\n', toc(tAll));
 
 % ---- Table --------------------------------------------------------------------------------------
 fprintf(['leftover L = folded radar power / noise baseline (max over phase; on the flank); the pulsar ' ...
          'peak at %.0f dB is %.3g in these units (rho = %.3g)\n'], snrDB, res(1).pulse, 10^(snrDB/10));
-fprintf('%-14s %4s %6s %9s %10s %10s %11s %11s   %s   %s\n', 'radar', 'exc', 'guard', 'blanked', ...
-    'L max', 'L flank', 'dTOA meas', 'dTOA pred', ['bias [us] at ' mat2str(rhoDB) ' dB'], '1 us at');
+fprintf('%-14s %4s %6s %4s %9s %10s %10s %11s %11s   %s   %s\n', 'radar', 'exc', 'guard', 'per', ...
+    'blanked', 'L max', 'L flank', 'dTOA meas', 'dTOA pred', ['bias [us] at ' mat2str(rhoDB) ' dB'], '1 us at');
 for k = 1:numel(res)
     r = res(k);
-    fprintf('%-14s %4d %6d %8.4f%% %10.2e %10.2e %9.3f us %9.3f us   %s   %5.1f dB\n', r.edges, ...
-        r.excision, r.guard, 100*r.blanked, r.Lpeak, r.Lflank, r.dMeas*1e6, r.dPred*1e6, ...
+    fprintf('%-14s %4d %6d %4d %8.4f%% %10.2e %10.2e %9.3f us %9.3f us   %s   %5.1f dB\n', r.edges, ...
+        r.excision, r.guard, r.periodic, 100*r.blanked, r.Lpeak, r.Lflank, r.dMeas*1e6, r.dPred*1e6, ...
         mat2str(round(r.dSyn*1e6, 3)), r.rho1us);
 end
-save(fullfile(lkDir, "runLockedRadar_results.mat"), 'res', 'rhoDB', 'tStart', 'prf', 'caseList');
+save(fullfile(lkDir, "runLockedRadar_results.mat"), 'res', 'rhoDB', 'tStart', 'prf', 'caseList', 'runCases');
 
 if doPlot
     figure('Name', 'Locked radar: leftover in the fold');
@@ -160,7 +177,8 @@ if doPlot
     nexttile; hold on
     for k = 1:numel(res)
         Lk = res(k).L(sel); plot(phs, Lk(o), 'DisplayName', ...
-            sprintf('%s, exc %d, guard %d', res(k).edges, res(k).excision, res(k).guard));
+            sprintf('%s, exc %d, guard %d, per %d', res(k).edges, res(k).excision, res(k).guard, ...
+            res(k).periodic));
     end
     tpl = template(:); tpl = tpl(sel); tpl = tpl(o);
     plot(phs, 10^(snrDB/10) * tpl, 'k--', 'DisplayName', sprintf('pulsar %.0f dB', snrDB));
@@ -169,7 +187,8 @@ if doPlot
     nexttile; hold on
     for k = 1:numel(res)
         Lk = abs(res(k).L(sel)); semilogy(phs, Lk(o) + eps, 'DisplayName', ...
-            sprintf('%s, exc %d, guard %d', res(k).edges, res(k).excision, res(k).guard));
+            sprintf('%s, exc %d, guard %d, per %d', res(k).edges, res(k).excision, res(k).guard, ...
+            res(k).periodic));
     end
     semilogy(phs, 10^(-54/10) * tpl, 'k:', 'LineWidth', 1.5);
     set(gca, 'YScale', 'log'); ylabel('|power| / baseline'); xlabel('pulse phase [turns]');

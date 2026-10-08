@@ -113,7 +113,10 @@ Outputs:
         rho (lags 0..), nWindows (per scale, per channel), nFlaggedWindows
         [nChan x nScales], expectedFalse (per scale, all channels: nChan *
         nWindows * PFA, Gaussian noise), ownFlaggedSamples (per channel,
-        own detections), nStrong (strong events per channel), freqGuard,
+        own detections), nStrong (strong events per channel), events
+        [M x 5]: every own flagged interval (before the frequency guard) as
+        [channel, first, last, peakSample, peak power / baseline] (for
+        periodicRFI), freqGuard,
         freqGuardMin, flaggedSamples / flaggedFraction (per channel, the
         final mask incl. the frequency guard), nIntervals, flaggedWindows
         (if KeepWindows), elapsed.
@@ -186,6 +189,7 @@ nFlagged = zeros(nChan, nS);
 ownFlagged = zeros(nChan, 1);
 nStrong  = zeros(nChan, 1);
 strong   = cell(nChan, 1);                          % strong intervals [first last] per channel
+events   = cell(nChan, 1);                          % [channel, first, last, peakSample, peak]
 rows = cell(nChan, 1);
 if opts.KeepWindows, flaggedWindows = cell(nChan, nS); end
 
@@ -233,10 +237,13 @@ for j = 1:nChan
     first = find(dcv == 1); last = find(dcv == -1) - 1;
     rows{j} = [j * ones(numel(first), 1), first.', last.'];
     % strong events: peak sample power / baseline of their block >= FreqGuardMin
-    pk = zeros(numel(first), 1);
+    pk = zeros(numel(first), 1); iPk = pk;
     for i = 1:numel(first)
-        pk(i) = max(p(first(i):last(i))) / mb(blkOf(first(i)));
+        [pmax, im] = max(p(first(i):last(i)));
+        pk(i) = pmax / mb(blkOf(first(i)));
+        iPk(i) = first(i) + im - 1;
     end
+    events{j} = [j * ones(numel(first), 1), first.', last.', iPk, pk];
     isS = pk >= opts.FreqGuardMin;
     strong{j} = [first(isS).', last(isS).'];
     nStrong(j) = nnz(isS);
@@ -274,6 +281,8 @@ info.nFlaggedWindows = nFlagged;
 info.expectedFalse   = nChan * nWin * opts.PFA;     % all channels, Gaussian noise
 info.ownFlaggedSamples = ownFlagged;
 info.nStrong         = nStrong;
+info.events          = vertcat(events{:});            % own detections, before the frequency guard
+if isempty(info.events), info.events = zeros(0, 5); end
 info.freqGuard       = opts.FreqGuard;
 info.freqGuardMin    = opts.FreqGuardMin;
 info.flaggedSamples  = flaggedSamples;
