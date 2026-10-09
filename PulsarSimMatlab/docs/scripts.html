@@ -20,7 +20,7 @@ their parameters from <code>pipelineParams.m</code> and must be run with MATLAB'
 <tr><td><a href="#mc"><code>runMonteCarlo.m</code></a></td><td>Are the error bars honest at one SNR?</td><td><code>data/mc/mc_*</code></td><td>15–20 s per seed</td></tr>
 <tr><td><a href="#sweep"><code>runSNRSweep.m</code></a></td><td>How do precision, honesty, outliers and detection change with SNR?</td><td><code>data/mc/sweep_*</code></td><td>~13 min</td></tr>
 <tr><td><a href="#h0"><code>runH0.m</code></a></td><td>Is the false-alarm rate right? Is the noise model complete?</td><td><code>data/mc/h0_*</code></td><td>~14 min</td></tr>
-<tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case</td></tr>
+<tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case; realistic 3–6 min</td></tr>
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 </table></div>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
@@ -105,6 +105,17 @@ from the source's parameters (ground truth, validation only), the fraction of it
 its energy in missed pulses. <code>runCases</code> picks a subset of the cases.</p>
 <p><b>LTE cases (B5d-2, 8 Oct):</b> cases 12–13: the <code>'noise'</code> type, 20 MHz at 1472 MHz (inside LTE band 32), INR −10 and 0 dB.
 Results: <a href="receiver.html#noisetype">receiver</a> and <a href="excision.html#limits">excision limits</a>.</p>
+<p><b>Realistic scenario (B5e, 9 Oct):</b> case 14 = <code>rfiRealistic</code> (~3 min); case 15 = the same with Inmarsat as ten
+narrow (200 kHz) carriers inside channels 105–114 instead of three wide blocks (~5 min), the worst case for the TOA error bars.
+A case can be given as <code>{sources, label}</code>. Since 9 Oct the excision path also runs <code>periodicRFI</code> when
+<code>periodicMask</code> is true, as <code>main.m</code> does (before: <code>detectRFI</code> only).</p>
+<p><b>Per-channel noise check (B5e, every case; evaluation only):</b> <var>r</var> = var/mean² of the off-pulse fold bins (more than
+3 FWHM from the pulse) in a channel, over the median channel's (1 = behaves like the model). Two table columns: the number of channels
+with <var>r</var> &gt; 1.1, and how much the TOA error bars are too small because of them, √(Σ<var>F r</var>/Σ<var>F</var>) − 1 with
+<var>F</var> = 1/<var>a</var><sub>c</sub>² (the fit's channel weights). After the table, per run with excision: the channels with
+<var>r</var> &gt; 1.1 or with flagged windows &gt; 10× the expected false flags and &gt; 3× the median channel's, with the sources
+covering them (ground truth, for labels only), and the periodic emitters found. Valid only when little is blanked (<var>r</var>
+compares with the median channel, not with the blanking-aware model). Results: <a href="results.html#b5e">results</a>.</p>
 
 <h2 id="locked"><code>runLockedRadar.m</code> (B5b)</h2>
 <p>A radar with PRF 400 Hz = 4·<var>f</var><sub>0</sub>, one pulse per turn on the pulse flank: what excision leaves of it folds coherently into the profile.</p>

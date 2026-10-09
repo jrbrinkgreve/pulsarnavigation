@@ -62,9 +62,11 @@ uses it; <b>observer</b> = the processing may use it (the <a href="conventions.h
 <tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.1 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>noiseSeed</code></td><td>seed + 1 = 43</td><td>receiver-noise random stream</td><td>Different from the pulsar seed; "seed 43" is the reference realization in every comparison.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>rfiOn</code></td><td>false</td><td>switch the RFI scenario on</td><td>Noise-only is the reference; RFI is studied on purpose (<code>runRFITest</code>).</td><td>main</td></tr>
-<tr><td><code>rfiSelect</code></td><td>[]</td><td>which sources of the list (1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses); [] = all</td><td>Test one source at a time.</td><td>main</td></tr>
+<tr><td><code>rfiList</code></td><td>'illustrative'</td><td>which list <code>rfi</code> is taken from: <code>'illustrative'</code> (5 sources) or <code>'realistic'</code> (16 sources, B5e, 9 Oct)</td><td>The illustrative list stays the default, so main and all tests are unchanged (Jasper).</td><td>main</td></tr>
+<tr><td><code>rfiSelect</code></td><td>[]</td><td>which sources of the chosen list (illustrative: 1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses); [] = all</td><td>Test one source at a time.</td><td>main</td></tr>
 <tr><td><code>rfi</code></td><td>5 <code>rfiSource</code> structs</td><td>the illustrative L-band scenario (table on <a href="receiver.html#rfi">receiver</a>)</td><td>Radar PRF 373 Hz (not a pulsar harmonic); carrier 1351.3 MHz (not a channel edge).</td><td><code>addNoiseAndRFI</code></td></tr>
-<tr><td><code>rfiScenario</code></td><td>= the full list</td><td>kept before <code>rfiSelect</code> / <code>rfiOn</code> are applied</td><td><code>runRFITest</code> picks cases from it.</td><td><code>runRFITest</code></td></tr>
+<tr><td><code>rfiScenario</code></td><td>= the full illustrative list</td><td>kept before <code>rfiSelect</code> / <code>rfiOn</code> are applied</td><td><code>runRFITest</code> picks cases from it.</td><td><code>runRFITest</code></td></tr>
+<tr><td><code>rfiRealistic</code></td><td>16 <code>rfiSource</code> structs</td><td>the realistic L-band scenario for the reference hardware (table on <a href="receiver.html#realistic">receiver</a>)</td><td>GNSS, two rotating radars, LTE band 32, Inmarsat, impulses, a local carrier; levels from a link budget (±10 dB).</td><td><code>runRFITest</code> (cases 14–15), main if chosen</td></tr>
 </table></div>
 
 <h2 id="proc">5. Processing (observer)</h2>

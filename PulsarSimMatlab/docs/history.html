@@ -81,6 +81,14 @@ Labels A–E introduced.</li>
 1.2·10⁻¹⁰ of the baseline. B5d LTE-like noise source. Documentation site created.</li>
 </ul>
 
+<h3>9 October — B5e, the realistic scenario</h3>
+<ul>
+<li>Decision "measure first" (Jasper): B5e, a realistic L-band RFI environment for the reference hardware (<code>rfiList</code> /
+<code>rfiRealistic</code>), with a per-channel noise check in <code>runRFITest</code>.</li>
+<li>Lopsided channels understood: a flat-channel formula predicted the affected channels and the effect on the TOA error bars
+(0.39 %); worst case narrow noise-like carriers, 3.4 %. Found: the periodic mask accepts false emitters when detections are dense.</li>
+</ul>
+
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
 agreed.</p>
@@ -125,6 +133,10 @@ agreed.</p>
 <tr><td>8 Oct</td><td>Emitters accepted by a significance test, not a pulse count</td><td>Counting 6 fitting pulses let random impulses form fake emitters; the binomial chance × candidates &lt; 10⁻⁶ does not.</td></tr>
 <tr><td>8 Oct</td><td>Periodic mask on by default</td><td>It adds nothing without a periodic emitter (no RFI: identical TOAs).</td></tr>
 <tr><td>8 Oct</td><td>Docs site in <code>docs/</code>, updated alongside the code (Jasper)</td><td>A codebase Jasper fully understands.</td></tr>
+<tr><td>9 Oct</td><td>Measure first (B5e), then fix (Jasper)</td><td>The realistic scenario shows how much the lopsided channels matter and becomes the test case for the fix.</td></tr>
+<tr><td>9 Oct</td><td>Illustrative RFI list stays the default (Jasper)</td><td><code>main.m</code> and all tests unchanged; the realistic list is chosen with <code>rfiList</code>.</td></tr>
+<tr><td>9 Oct</td><td>Judge lopsided channels by the TOA error bars, not χ²</td><td>χ² counts every channel equally; the fit weights channels by 1/level², small where the RFI is.</td></tr>
+<tr><td>9 Oct</td><td>Next: periodic-mask fix, then per-channel noise calibration</td><td>The false emitters blank ~30 % of the data on the default path; the 3.4 % error-bar case justifies the calibration.</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -141,6 +153,7 @@ agreed.</p>
 <tr><td><a href="../logs/2026-10-08_overview.md"><code>2026-10-08_overview.md</code></a></td><td>recap of 7–8 Oct (block A)</td></tr>
 <tr><td><a href="../logs/2026-10-08_excision.md"><code>2026-10-08_excision.md</code></a></td><td>block B: B1–B6</td></tr>
 <tr><td><a href="../logs/2026-10-08_docs.md"><code>2026-10-08_docs.md</code></a></td><td>this documentation site</td></tr>
+<tr><td><a href="../logs/2026-10-09_B5e.md"><code>2026-10-09_B5e.md</code></a></td><td>B5e realistic scenario, lopsided channels, the periodic-mask bug</td></tr>
 <tr><td><a href="../logs/current_project_notes.md"><code>current_project_notes.md</code></a></td><td>the complete reference, kept up to date with the code</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>

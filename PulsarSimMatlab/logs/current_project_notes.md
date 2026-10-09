@@ -18,7 +18,8 @@ loss, turns per sub-int, §6/§7/§10), and the centroid-offset test (Block 1 cl
 §5.13, §5.15–5.18; `2026-10-07_fold-noise.md`, `2026-10-08_optimal-detect-main.md`,
 handover `2026-10-08_overview.md`). 8 October: block B1–B4, RFI excision (`blankChannels`,
 `detectRFI`, `excision` in main, `runRFITest.m`; §5.19, §5.20, §7, §9, §10;
-`2026-10-08_excision.md`). Status markers: **[validated]** = run in MATLAB and
+`2026-10-08_excision.md`). 9 October: B5e, realistic L-band RFI scenario (§5.3, §7, §9,
+§10; `2026-10-09_B5e.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -97,7 +98,8 @@ and validates every processing stage against the ground truth.
 - `runH0.m`: long noise-only run, detection statistics and bin-bin noise correlation under
   H0 (§5.14).
 - `runRFITest.m`: B4, each RFI type of the scenario on the channel path, without and with
-  excision (files in `data/rfi`; §7).
+  excision (files in `data/rfi`; §7); B5e (9 Oct): realistic scenario cases 14–15, a
+  per-channel noise check, and the periodic mask as in `main.m`.
 
 ```
 SKY (synthetic)                      runStage.sky
@@ -285,7 +287,7 @@ blockLen, nBlocks, memEstimateGB, …
 81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
 memory), which covers this 11.8 GB run.
 
-### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7]
+### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d Claude's run; B5e realistic scenario 9 Oct, Claude's runs]
 
 **Physics / placement.** Noise and man-made interference are added **at the receiver
 input (RF), after dispersion** → they are not dispersed. Dedispersion later applies the
@@ -362,6 +364,35 @@ sources by index, 1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses, [] = all):
 
 Radar PRF is deliberately **not** a harmonic of the pulsar frequency (400 Hz would fold
 coherently into the profile and bias TOAs — a real hazard to test once excision exists).
+
+**Realistic scenario (B5e, 9 Oct 2026):** `rfiList` = `'illustrative'` (default, the list
+above, Jasper) or `'realistic'` (`rfiRealistic`, 16 sources); `rfiSelect` indexes the chosen
+list; both lists stay defined (`rfiScenario`, `rfiRealistic`) for `runRFITest`. Basis: the
+reference hardware (3×3 array, T_sys 70 K → receiver noise kT·B = −124 dBW in 400 MHz);
+array gain ~22 dBi in the main beam (~15°), ~0–3 dBi to the rest of the sky, −10 dBi
+assumed to the horizon. GNSS: ICD minimum received power + ~3 dB, summed over the visible
+satellites (L1 ~30 add up to Gaussian noise → `'noise'`; the weaker bands one `'bpsk'` each).
+Other levels are link-budget estimates (±10 dB). Frequencies verified 8 Oct (§10); radars
+and carrier off the channel grid.
+
+| Source | Type | Parameters | INR |
+|---|---|---|---|
+| GNSS L1 band (~30 satellites) | noise | 1575.42 MHz, 2.046 MHz | −14 dB |
+| BeiDou B1I | bpsk | 1561.098 MHz, 2.046 Mchip/s | −23 dB |
+| Galileo E6 | bpsk | 1278.75 MHz, 5.115 Mchip/s | −17 dB |
+| BeiDou B3I | bpsk | 1268.52 MHz, 10.23 Mchip/s | −23 dB |
+| GLONASS G2 | bpsk | 1246 MHz, 5.11 Mchip/s (FDMA approximated) | −29 dB |
+| GPS L2 | bpsk | 1227.60 MHz, 10.23 Mchip/s | −22 dB |
+| En-route radar, beam passage | pulsed | 1332.9 MHz, 2 µs, 1 MHz chirp, PRF 973 Hz; scan 10 s, beam 39 ms (1.4°) centred in the file, sidelobes −30 dB | +40 dB main beam |
+| Radar 2, sidelobes only | pulsed | 1257.3 MHz, 2 µs, 1 MHz chirp, PRF 351 Hz, start 0.7 ms; scan 12 s, beam 6 s away, sidelobes −35 dB | +20 dB main beam |
+| LTE band 32, operators 1–3 | noise | 1459.5 / 1472 / 1484.5 MHz, 13.5 / 9 / 13.5 MHz (90 % of 15/10/15 MHz) | 0 / −6 / −3 dB |
+| Inmarsat blocks 1–3 | noise | 1528.0 / 1541.4 / 1550.5 MHz, 4 / 6.4 / 2.8 MHz | −17 / −20 / −23 dB |
+| Broadband impulses | impulse | 200 ns, 50 /s | +20 dB |
+| Local spurious carrier | cw | 1388.9 MHz | −15 dB |
+
+Radar 1 at +40 dB = some tens of km away with terrain in between; a nearby radar is much
+stronger and would clip a real ADC (not modelled). `runRFITest` case 15 replaces the three
+Inmarsat blocks by ten narrow carriers (§7).
 
 **Options:** `Band`, `SNRdB`, `SignalInfo` (info_gen) or `SignalAmp`, `NoiseStd`, `RFI`,
 `Seed`, `BlockSize`, `SaveInfo`, `Verbose`. Warns below −60 dB (single-precision limit).
@@ -1641,6 +1672,36 @@ a slice of the channel band but dominates its power, so samples stay correlated 
 spectrum) → heavier tail → false flags; and the detected-bin noise there exceeds the fold
 model (V, X from a flat spectrum) → red. χ² 1.04. Fully covered channels are flat again.
 
+**B5e — realistic scenario (`runRFITest` cases 14–15, 9 Oct; Claude's runs at Jasper's
+request; −5 dB, noise seed 43, f_out 1e6).** Per-channel check (evaluation only): r = var /
+mean² of the off-pulse fold bins (> 3 FWHM from the pulse) over the median channel's (1 =
+as the model; valid only when little is blanked); error-bar factor √(Σ F_c r_c / Σ F_c),
+F_c = 1/a_c² (the fit's channel weights): true / reported TOA error. Flat-channel formula
+for RFI with PSD R × noise over a fraction f of a channel: L = 1 + fR,
+r = (1 − f + f(1 + R)²)/L² (§9).
+
+| case (with excision; periodic mask off) | blanked | good | SNR | χ² | r > 1.1 | error bars too small |
+|---|---|---|---|---|---|---|
+| noise only | 0.0125 % | 8/8 | 91.9 | 1.01 | 0 | 0 % |
+| LTE 20 MHz, 0 dB (case 13) | 0.037 % | 8/8 | 89.1 | 1.04 | 2 (ch 84 r 3.41, 91 2.95) | 0.08 % |
+| realistic, Inmarsat as 3 blocks (14) | 0.29 % | 8/8 | 82.0 | 1.06 | 8 | 0.39 % |
+| realistic, Inmarsat as 10 narrow carriers (15) | 0.49 % | 8/8 | 80.5 | 1.22 | 16 | **3.4 %** |
+| realistic (14), no excision | – | 0/8 | 80.3 | 17.4 | 17 | (radar) |
+
+- Case 14: exactly the predicted 8 channels (LTE edges 81 / 86 / 89 / 94: r 4.54 / 1.79 /
+  1.46 / 3.00; Inmarsat block edges 105 / 106: 1.16 / 1.20; L1 120 / 121: 2.40 / 1.69; the
+  formula 3–20 % higher); error bars 0.39 % = predicted. Radar 1: 100 % of its pulses
+  blanked, energy missed 0. SNR cost of the environment −11 % (~25 % longer observing),
+  mostly LTE band 32 (~14 channels effectively lost by the weighting).
+- Case 15 (ten 200 kHz carriers at −21 dB, one inside each of channels 105–114, each about
+  as strong as its channel's noise = the worst case of §9): r 3.35–3.72 (formula 4.7),
+  level 1.96–2.01, 280–730 false-flag windows per carrier channel; χ² 1.22 and TOA error
+  bars 3.4 % too small → the per-channel noise calibration is worth doing.
+- **With the periodic mask (main's default)** cases 14 / 15 blank **29 % / 32 %** of the
+  data (SNR 69 / 66, χ² 1.19 / 1.40): periodicRFI accepts false emitters at ~14.1 kHz from
+  the dense false flags (§9). Run 1 (cases 1, 13, 14) used runRFITest before its periodic
+  hook (= periodic mask off); case 15 without the mask from a scratch copy.
+
 ---
 
 ## 8. Bugs found and fixed (lessons)
@@ -1816,6 +1877,24 @@ model (V, X from a flat spectrum) → red. χ² 1.04. Fully covered channels are
   1.04 at LTE 0 dB). Possible remedies: per-channel noise calibrated on the data
   (measured off-pulse variance per channel → scales V, X and the weights), per-channel
   thresholds from the measured spectrum, or flagging such edge channels whole.
+  Quantified 9 Oct (B5e, §7): χ² counts every channel equally, but the TOA error depends on
+  the fit's weights F = 1/L², which are small where the RFI is: error bars too small by
+  √(Σ F r / Σ F). Per channel F(r − 1) = f(1 − f)R²/(1 + fR)⁴, largest at R = 1/f (RFI power =
+  the channel's noise): (1 − f)/(16 f). Worst case = narrow noise-like carriers about as strong
+  as their channel's noise. Measured: LTE 0 dB 0.08 %; realistic scenario 0.39 %; with ten
+  narrow Inmarsat-like carriers χ² 1.22, error bars 3.4 % too small (matters for navigation).
+- **periodicRFI accepts false emitters when detections are dense (9 Oct 2026, B5e).** In the
+  realistic scenario (§7) the lopsided channels produce hundreds of false flags each.
+  periodicRFI then fitted 14108.5 Hz (70.88 µs = 2/29 of radar 1's period: every second radar
+  sidelobe pulse on the grid, random flags fill in; 67 of 707, logChance −19.9) and
+  14467.6 Hz (69.12 µs = exactly 288 channel samples: 86 of 2240 dense flags; probably
+  detectRFI's window grid makes random times non-uniform in phase, so q = (2 TimeTol + 1)/P
+  is too small) and blanked every predicted pulse (3.8–9.6 µs every ~70 µs) in channels
+  22–121: 29–32 % of the data. Radar 1 itself (973 Hz) is not found: with ~7000 flags/s in
+  its group the candidate gaps (next 3 pulses) are random flags. Causes: the significance
+  test assumes sparse, uniformly random pulse times; no plausibility check (duty 3–14 %,
+  PRF 14 kHz accepted; PeriodRange up to 20 kHz). Fix to design (next); the per-channel
+  calibration also removes the dense false flags.
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1856,11 +1935,14 @@ the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, e
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
 main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type done (Claude's run; §5.3, §7):
 LTE undetectable and down-weighted as expected; found: partly covered edge channels break
-the flat-spectrum assumption (false flags, χ² 1.04; §9). Next: B5e realistic scenario, or
-first the per-channel noise calibration (§9).
-Then B5d `'noise'` type (LTE), B5e the realistic
-scenario as a second list in `pipelineParams`; B6 (spectral kurtosis,
-whole-channel flags) only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
+the flat-spectrum assumption (false flags, χ² 1.04; §9). **B5e** done 9 Oct (Jasper chose
+"measure first"; log `2026-10-09_B5e.md`; §5.3, §7, §9): `rfiList` / `rfiRealistic` in
+`pipelineParams`, `runRFITest` cases 14–15 + per-channel noise check + periodic hook.
+Lopsided channels: error bars 0.39 % too small in the realistic scenario, 3.4 % with narrow
+Inmarsat-like carriers (χ² 1.22). New: periodicRFI false emitters from dense false flags
+blank ~30 % of the data on main's default path (§9). **Next: periodicRFI robustness fix
+(design note first), then the per-channel noise calibration (§9).** Spectral kurtosis /
+whole-channel flags only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
 
 **Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
 A = finish the front end (item 1 below): A1 fold with channels and exact noise (old
@@ -1946,8 +2028,10 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    no-excision table (§7). Include a harmonic-PRF radar (400 Hz, folds coherently) and an
    extended generic L-band scenario: ATC radar with antenna rotation (new gating option in
    `rfiSource`), GNSS L1/L2/E6, Inmarsat, LTE (frequencies from memory → verify).
-   **Done 8 Oct: B1 `blankChannels`, B2 `detectRFI`, B3 main hook, B4 `runRFITest`
-   (§5.19, §5.20, §7). Open: B5 (scenario above + radar rise time, locked radar), B6.**
+   **Done 8 Oct: B1 `blankChannels`, B2 `detectRFI`, B3 main hook, B4 `runRFITest`,
+   B5a–B5d, B6 `periodicRFI` (§5.19–5.21, §7); B5e realistic scenario 9 Oct (§5.3, §7).
+   Open: periodicRFI false emitters with dense detections, then per-channel noise
+   calibration (§9).**
 3. **Fast simulator for long observations** (`simulateFold`). Hours cannot be simulated
    at voltage level (~61 GB per second of data). Draws the fold struct directly (same
    fields as `foldProfile`, so `detectPulsar` / `estimateTOA` run unchanged), plus a
@@ -2260,8 +2344,8 @@ per day).
 | File | Role | Status |
 |---|---|---|
 | `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
-| `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4) | current |
-| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases (`runCases` picks a subset) | run 8 Oct (§7) |
+| `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
+| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct (§7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |

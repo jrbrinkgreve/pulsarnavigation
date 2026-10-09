@@ -348,8 +348,10 @@ PRFs only (section 8).</li>
 missed one by one; the periodic mask (section 8) blanks them by prediction. No spectral kurtosis or whole-channel flags yet.</li>
 <li><b>Flat spectrum within a channel assumed.</b> A channel only partly covered by strong wideband RFI (the band edges of an LTE
 carrier) has a lopsided noise spectrum: <code>detectRFI</code> over-flags there (540 vs ~3 windows), and the detected-power noise exceeds
-the fold model (red. χ² 1.04 at LTE 0 dB). See <a href="limits.html">limitations</a>; a per-channel noise measured on the data is a
-possible remedy (open decision).</li>
+the fold model (red. χ² 1.04 at LTE 0 dB). Measured in the realistic scenario (B5e, 9 Oct): TOA error bars 0.39 % too small, 3.4 %
+with narrow Inmarsat-like carriers (<a href="results.html#b5e">results</a>); a per-channel noise measured on the data is planned.</li>
+<li><b>Periodic mask with dense detections</b> (found 9 Oct, B5e): hundreds of false flags per channel (lopsided channels) let
+<code>periodicRFI</code> accept false emitters (~14.1 kHz) and blank ~30 % of the data. See <a href="limits.html">limitations</a>; fix next.</li>
 <li><b>Noise-like RFI</b> (LTE, OFDM) is undetectable by any power or kurtosis test; it is extra noise in its channels, handled by the
 optimal weighting.</li>
 <li>The 0.1 µs rise time is an assumption, to be checked against ITU masks.</li>

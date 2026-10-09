@@ -133,6 +133,25 @@ uses an unrelated PRF.</li>
 an unrepresentative special case.</li>
 </ul></div>
 
+<h4 id="realistic">The realistic scenario (B5e, 9 Oct) <span class="badge written">Claude's run</span></h4>
+<p>A second list, <code>rfiRealistic</code>, chosen with <code>rfiList = 'realistic'</code> (default <code>'illustrative'</code>: the
+list above). It models the radio environment of the reference hardware (3×3 array, <var>T</var><sub>sys</sub> ≈ 70 K, ground
+station). Receiver noise <var>kT</var><sub>sys</sub><var>B</var> = −124 dBW in 400 MHz; INR is relative to that. Array gain ~22 dBi in
+the main beam (~15°), ~0–3 dBi to the rest of the sky, −10 dBi assumed to the horizon. GNSS: the published minimum received power
++ ~3 dB, summed over the visible satellites; other levels are link-budget estimates (±10 dB).</p>
+<div class="table-wrap"><table>
+<tr><th>Source</th><th>Type</th><th>Parameters</th><th>INR</th></tr>
+<tr><td>GNSS L1 band (~30 satellites)</td><td>noise</td><td>1575.42 MHz, 2.046 MHz (many satellites add up to Gaussian noise)</td><td>−14 dB</td></tr>
+<tr><td>BeiDou B1I · Galileo E6 · BeiDou B3I · GLONASS G2 · GPS L2</td><td>bpsk</td><td>1561.098 · 1278.75 · 1268.52 · 1246 · 1227.60 MHz</td><td>−23 · −17 · −23 · −29 · −22 dB</td></tr>
+<tr><td>En-route radar, beam passage</td><td>pulsed</td><td>1332.9 MHz, 2 µs, PRF 973 Hz, 10 s scan, 1.4° beam centred in the file, sidelobes −30 dB</td><td>+40 dB main beam</td></tr>
+<tr><td>Radar 2, sidelobes only</td><td>pulsed</td><td>1257.3 MHz, 2 µs, PRF 351 Hz, 12 s scan (beam far away), sidelobes −35 dB</td><td>+20 dB main beam</td></tr>
+<tr><td>LTE band 32, three operators</td><td>noise</td><td>1459.5 · 1472 · 1484.5 MHz, 13.5 · 9 · 13.5 MHz occupied</td><td>0 · −6 · −3 dB</td></tr>
+<tr><td>Inmarsat downlink, three blocks</td><td>noise</td><td>1528.0 · 1541.4 · 1550.5 MHz, 4 · 6.4 · 2.8 MHz</td><td>−17 · −20 · −23 dB</td></tr>
+<tr><td>Broadband impulses · local spurious carrier</td><td>impulse · cw</td><td>200 ns, 50 per second · 1388.9 MHz</td><td>+20 · −15 dB</td></tr>
+</table></div>
+<p>Radar 1 at +40 dB is a radar some tens of km away with terrain in between; a nearby radar is much stronger and would clip a real
+ADC (not modelled). Results: <a href="results.html#b5e">results</a>.</p>
+
 <h3>Options and outputs</h3>
 <dl class="facts">
 <dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. Warns below −60 dB (the pulse would be below single-precision resolution).</dd>
