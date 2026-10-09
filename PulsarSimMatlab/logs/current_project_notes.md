@@ -101,6 +101,8 @@ and validates every processing stage against the ground truth.
 - `runRFITest.m`: B4, each RFI type of the scenario on the channel path, without and with
   excision (files in `data/rfi`; §7); B5e (9 Oct): realistic scenario cases 14–15, a
   per-channel noise check, and the periodic mask as in `main.m`.
+- `runLockedRadar.m`: B5b, radar locked to the pulsar: leftover in baseline units, TOA
+  bias vs SNR, frequency guard and periodic mask cases (files in `data/locked`; §7).
 
 ```
 SKY (synthetic)                      runStage.sky
@@ -134,7 +136,9 @@ PROCESSING, channelized (frontEnd = 'channels' in main.m since A4, 8 Oct; fold
   A4: switch in main.m (frontEnd, weighting; 'channels' default) [validated]
   B3: excision in main.m: detectRFI → blankChannels → dedisperse → detect →
       blankingWeights → foldProfile 'DataWeights' (instead of NoiseCoeffs) [validated]
-      (next: B5 realistic L-band scenario)
+      periodicRFI: periodic emitters from detectRFI's events → mask of every predicted
+      pulse, merged before blankChannels (B6; periodicMask, default false since 9 Oct) [validated]
+      (block B closed 9 Oct; next block C, not started)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -1189,7 +1193,7 @@ energy left over all channels (steady level subtracted) zero within ~1e-6 (1.0e-
 without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 % removed
 (98.65 %), blanked 0.81 % (0.65 %).
 
-### 5.21 `periodicRFI(info_chan, info_rfi, ...)` → `[rows, info]` [B6-2, 8 Oct 2026, Claude's run]
+### 5.21 `periodicRFI(info_chan, info_rfi, ...)` → `[rows, info]` [B6, validated 8 Oct 2026 (Jasper's run of testPeriodicRFI)]
 
 **Idea.** What makes periodic RFI dangerous — regular timing, so it can pile up at fixed
 pulse phases (B5b) — also makes it predictable: once the period and one pulse time are
@@ -1936,9 +1940,9 @@ the flagged ones). **B5b-2** frequency guard in `detectRFI` done (`FreqGuard`
 default 7 (Jasper), `FreqGuardMin` 100; §5.20, §7: 1 µs only below −51 dB). **B5c**
 rotating antenna done (`rfiSource` `ScanPeriod` etc., `testRfiGating`, `runRFITest`
 cases 8–11; §5.3, §7): sidelobes at −35 dB mostly missed → B6 periodic mask is needed.
-**B6-1/B6-2** done (Claude's run): `detectRFI` `info.events`, new `periodicRFI` (§5.21):
+**B6** validated 8 Oct (Jasper's run of `testPeriodicRFI`). B6-1/B6-2: `detectRFI` `info.events`, new `periodicRFI` (§5.21):
 the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, energy left
-8.8e-6. **B6-3** done (Claude's runs): `periodicMask` (default true; false since 9 Oct) / `periodicArgs` in
+8.8e-6. B6-3: `periodicMask` (default true; false since 9 Oct) / `periodicArgs` in
 `pipelineParams`, hook in `main.m` (no RFI: 0 emitters, identical TOAs); `runLockedRadar`
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
 main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type done (Claude's run; §5.3, §7):
@@ -2022,7 +2026,7 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    3b `detectChannels` + helper `powerCovariance` (power file [nChan × nBins] + weight
    file, ν from the channel spectrum); 3c `foldProfile` (weight file, per-channel
    weights, `NoiseCoeffs`); 3d `detectPulsar` + `estimateTOA` (per-channel variance sum,
-   a_c/b_c, exclusion); 3e `tests/testChannelWeights.m` (synthetic masks: unbiased TOAs,
+   a_c/b_c, exclusion); 3e `tests/testChannelWeights.m` (became `tests/testBlankingWeights.m`; synthetic masks: unbiased TOAs,
    honest error bars). Full-band path bit-identical throughout. Then a switch in main.
    **Revised after 3a (6 Oct, agreed):** no g(w) model (experiment §7: errors up to ±45 %);
    each time bin carries W (valid fraction), V (variance) and X(L) (lag covariances),
@@ -2165,7 +2169,6 @@ barycentric corrections, navigation solution).
   T_sky in T_sys.
 - `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print per
   ~10 %; `*.asv` git-ignored.
-per ~10 %; `*.asv` git-ignored.
 
 ---
 
@@ -2354,7 +2357,7 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct (§7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
@@ -2382,8 +2385,8 @@ per day).
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
 | `tests/expSamplingRate.m` | experiment (9 Oct): sample rate vs matched-filter SNR (√(2E/N0) with the N0 the filter sees) and the square law (radiometer bound independent of f_out) | passes (Claude's run, 9 Oct) |
-| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct); B6-1 Claude's run |
-| `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | Claude's run (8 Oct) |
+| `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct; B6-1 with B6) |
+| `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | validated (8 Oct, Jasper's run of testPeriodicRFI) |
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
 | `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; 3d Claude's run) |
@@ -2405,4 +2408,5 @@ per day).
 | `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data; A2c-2 (tests 6–10): detection default, explicit H0 matrices, H0 / H1 Monte Carlo, blanked data | passes (Jasper's run, 7 and 8 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
+| `docs/` | documentation site (26 static pages; `api.html` generated by `docs/tools/make_api.py`; checklist in `docs/maintenance.html`) | current |
 | other `old/` files (`applyDispersion.m`, `process_large_baseband_file.m`, `read_baseband_chunk.m`, `stream_pulsar_baseband_to_file.m`, `test.m`, `test_pipeline.m`) | legacy, unused | – |

@@ -36,7 +36,7 @@ Name-value options:
   'BlockLen'    samples per block; [] (default) = automatic. A manual value
                 must be >= kernel length - 1 unless the file fits in one
                 block.
-  'MaxMemoryGB' memory budget for the streaming FFT buffers (default 8).
+  'MaxMemoryGB' memory budget for the streaming FFT buffers (default 16).
   'SaveInfo'    save info to <outFile>_info.mat (default true).
   'Verbose'     print progress (default true).
 

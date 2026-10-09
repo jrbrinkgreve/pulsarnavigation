@@ -47,7 +47,7 @@ then the notes; fix the site.</p>
 <h2>Discrepancies found while writing the docs</h2>
 <div class="table-wrap"><table>
 <tr><th>Date</th><th>Where</th><th>What</th><th>Status</th></tr>
-<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>open: help text to be fixed</td></tr>
+<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16)</td></tr>
 </table></div>
 
 <h2>Changelog</h2>
@@ -62,10 +62,12 @@ history, roadmap, home); B5d (<code>'noise'</code> type, LTE results, the flat-s
 <code>api.html</code> regenerated.</td></tr>
 <tr><td>8 Oct 2026</td><td><code>a0f9198</code></td><td>Home page redesigned as a landing page: hero illustration, key numbers, a three-step "start here" path,
 status strip (the per-block table kept, collapsible), sections grouped by purpose. New home-page styles in <code>style.css</code>.</td></tr>
-<tr><td>9 Oct 2026</td><td>B5e</td><td>Realistic scenario (B5e) documented with its commit: receiver (realistic list), parameters (<code>rfiList</code>,
+<tr><td>9 Oct 2026</td><td><code>d501ea7</code></td><td><code>applyDispersionStream</code> help text fixed (<code>MaxMemoryGB</code> default 16); discrepancy closed.
+Rerun <code>tools/make_api.py</code> after that commit so <code>api.html</code> shows the new help text.</td></tr>
+<tr><td>9 Oct 2026</td><td><code>f019a8a</code></td><td>Realistic scenario (B5e) documented with its commit: receiver (realistic list), parameters (<code>rfiList</code>,
 <code>rfiRealistic</code>), scripts (<code>runRFITest</code> cases 14–15, per-channel check, periodic hook), results (B5e), limits and excision
 (lopsided channels quantified; periodic-mask false emitters), roadmap, history, home.</td></tr>
-<tr><td>9 Oct 2026</td><td>block B closed</td><td><code>periodicMask</code> default false: parameters, excision, limits, results, roadmap, home, history
+<tr><td>9 Oct 2026</td><td><code>cbecd1d</code></td><td>Block B closed, <code>periodicMask</code> default false: parameters, excision, limits, results, roadmap, home, history
 (decisions, log list); block-B handover linked.</td></tr>
 </table></div>
 
