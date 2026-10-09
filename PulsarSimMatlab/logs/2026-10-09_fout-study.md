@@ -144,7 +144,7 @@ Jasper's request): 78 ms at full rate (FFT of 1e7, ~3.5e9 flops, 160 MB per arra
 convolution ~1e14) vs 0.58 ms binned (0.5 ms of it the binning itself): ~130× faster. Key sentences: way 2 IS way 1
 with a template that is constant within each bin; binning = boxcar anti-alias filter +
 decimation, way 3 = decimation without it (all noise above 5 kHz folds into the band).
-Registered in `tests.html` and notes §13. Not committed.
+Registered in `tests.html` and notes §13. Committed in `0656e60`.
 
 ## "S/N is not the metric": sufficiency, ROC and Cramér–Rao (Jasper expects this objection)
 Metric-independent argument: for complex Gaussian samples, independent (white band), with
