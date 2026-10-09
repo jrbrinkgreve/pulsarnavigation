@@ -25,14 +25,15 @@ scenario; decision: excision and a channelized front end before the fast simulat
 <tr><td>8 Oct</td><td>A2c-2, A4 (channel path default) → <b>block A complete</b>. B1–B4 (excision, default on). B5a (radar edges), B5b (locked radar, frequency guard),
 B5c (rotating radar), B6 (periodic mask, default on), B5d (LTE-like noise source; Jasper's run pending).</td></tr>
 <tr><td>9 Oct</td><td>Decision "measure first" → B5e (realistic L-band scenario): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with
-narrow Inmarsat-like carriers; found a periodic-mask bug (false emitters with dense detections, ~30 % of the data blanked).</td></tr>
+narrow Inmarsat-like carriers; found a periodic-mask bug (false emitters with dense detections, ~30 % of the data blanked). <b>Block B closed for now</b>:
+periodic mask off by default, open items parked with designs. C not started yet (Jasper).</td></tr>
 </table></div>
 
 <h2>The labels</h2>
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
 <tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span> (A3b, a multi-seed Monte Carlo with blanking, optional)</td></tr>
-<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>B1–B5c, B6 <span class="badge validated">done</span>; B5d, B5e <span class="badge written">written</span>; periodic-mask fix, per-channel noise <span class="badge todo">todo</span></td></tr>
+<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5c, B6 <span class="badge validated">done</span> (periodic mask off by default); B5d, B5e <span class="badge written">written</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
 <tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
@@ -54,10 +55,12 @@ run unchanged on it. Motion (D) is then a hard requirement: folding across passe
 
 <h2>Block B: what remains</h2>
 <ul>
-<li><b>Next: fix the periodic mask</b> (found in B5e, 9 Oct): <code>periodicRFI</code> accepts false emitters when detections are dense and
-blanks ~30 % of the data (<a href="limits.html">limits</a>). Design note first: plausibility check, rhythm search on strong detections only,
-a chance calculation that holds for dense detections.</li>
-<li><b>Then: per-channel noise calibration</b> — measure each channel's noise level on the data instead of assuming a flat spectrum (a change
+<li><b>Block B closed for now (9 Oct, Jasper):</b> the essentials are done; what remained was second-order, tuned against estimated RFI at a
+pulsar 80,000× brighter than the target. State, open items and ready designs: <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>. The periodic mask is off by default.</li>
+<li><b>Parked: fix the periodic mask</b> (found in B5e): <code>periodicRFI</code> accepts false emitters when detections are dense and
+blanks ~30 % of the data (<a href="limits.html">limits</a>). Fix designed: a grid-aware chance calculation, a minimum fraction of predicted
+pulses detected, trial periods from strong pulses.</li>
+<li><b>Parked: per-channel noise calibration</b> — measure each channel's noise level on the data instead of assuming a flat spectrum (a change
 to the validated TOA / detection noise model, design note first). Justified by B5e: TOA error bars 3.4 % too small with narrow
 Inmarsat-like carriers; it also removes the dense false flags that fed the periodic-mask bug.</li>
 <li><b>B5e</b> <span class="badge written">done 9 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in

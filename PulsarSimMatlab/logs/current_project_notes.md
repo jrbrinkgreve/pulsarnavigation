@@ -19,7 +19,8 @@ loss, turns per sub-int, §6/§7/§10), and the centroid-offset test (Block 1 cl
 handover `2026-10-08_overview.md`). 8 October: block B1–B4, RFI excision (`blankChannels`,
 `detectRFI`, `excision` in main, `runRFITest.m`; §5.19, §5.20, §7, §9, §10;
 `2026-10-08_excision.md`). 9 October: B5e, realistic L-band RFI scenario (§5.3, §7, §9,
-§10; `2026-10-09_B5e.md`). Status markers: **[validated]** = run in MATLAB and
+§10; `2026-10-09_B5e.md`); block B closed 9 Oct (handover `2026-10-09_handover-B-closed.md`;
+periodic mask default off). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -201,7 +202,8 @@ frontEnd = 'channels' (128 × 3.125 MHz, chanWidth; default since 8 Oct, Jasper)
 (8 Oct): excision = true (default, Jasper), excisionArgs = {} (detectRFI defaults); RFI
 scenario carrier at 1351.3 MHz (was 1350 MHz = edge of channels 48/49), full list kept as
 `rfiScenario`. Since B6-3 (8 Oct): periodicMask = true (with excision: periodicRFI's
-predicted pulses added to the mask), periodicArgs = {}.
+predicted pulses added to the mask), periodicArgs = {}. Since 9 Oct: periodicMask = false
+(false emitters with dense detections, §9; Jasper).
 
 ---
 
@@ -1221,7 +1223,8 @@ radar: PRF 372.9992 ± 0.0018 Hz (true 373), 18 pulses fit; predicted vs true pu
 −35 dB sidelobes: found from detectRFI's 42 % of pulses (PRF 373.0001 Hz); with the
 prediction 100 % blanked; radar energy left (±20 µs windows, all channels) 0.48 → 8.8e-6;
 0.051 % blanked by prediction.
-**In `main.m` (B6-3):** with `excision` and `periodicMask` (default true), `periodicRFI`
+**In `main.m` (B6-3):** with `excision` and `periodicMask` (default true until 9 Oct, **false since 9 Oct**: false
+emitters with dense detections, §9; fix design in `2026-10-09_handover-B-closed.md`), `periodicRFI`
 runs on `detectRFI`'s info and its rows are added to the mask before `blankChannels`.
 Without periodic RFI it adds nothing: main.m at −5 dB without RFI finds 245 detected
 pulses (noise + the bright pulsar), 0 emitters, identical TOAs — the pulsar is not taken
@@ -1697,7 +1700,7 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   as strong as its channel's noise = the worst case of §9): r 3.35–3.72 (formula 4.7),
   level 1.96–2.01, 280–730 false-flag windows per carrier channel; χ² 1.22 and TOA error
   bars 3.4 % too small → the per-channel noise calibration is worth doing.
-- **With the periodic mask (main's default)** cases 14 / 15 blank **29 % / 32 %** of the
+- **With the periodic mask (main's default until 9 Oct; now off)** cases 14 / 15 blank **29 % / 32 %** of the
   data (SNR 69 / 66, χ² 1.19 / 1.40): periodicRFI accepts false emitters at ~14.1 kHz from
   the dense false flags (§9). Run 1 (cases 1, 13, 14) used runRFITest before its periodic
   hook (= periodic mask off); case 15 without the mask from a scratch copy.
@@ -1887,14 +1890,17 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   realistic scenario (§7) the lopsided channels produce hundreds of false flags each.
   periodicRFI then fitted 14108.5 Hz (70.88 µs = 2/29 of radar 1's period: every second radar
   sidelobe pulse on the grid, random flags fill in; 67 of 707, logChance −19.9) and
-  14467.6 Hz (69.12 µs = exactly 288 channel samples: 86 of 2240 dense flags; probably
-  detectRFI's window grid makes random times non-uniform in phase, so q = (2 TimeTol + 1)/P
-  is too small) and blanked every predicted pulse (3.8–9.6 µs every ~70 µs) in channels
+  14467.6 Hz (69.12 µs = exactly 288 channel samples: 86 of 2240 dense flags, 138 at the
+  best phase where q predicts 70: confirmed, detectRFI's window steps put all pulse times on a
+  4-sample grid, so the chance is (2·floor(TimeTol/4) + 1)·4/P = 12/P, not (2 TimeTol + 1)/P = 9/P) and blanked every predicted pulse (3.8–9.6 µs every ~70 µs) in channels
   22–121: 29–32 % of the data. Radar 1 itself (973 Hz) is not found: with ~7000 flags/s in
   its group the candidate gaps (next 3 pulses) are random flags. Causes: the significance
   test assumes sparse, uniformly random pulse times; no plausibility check (duty 3–14 %,
-  PRF 14 kHz accepted; PeriodRange up to 20 kHz). Fix to design (next); the per-channel
-  calibration also removes the dense false flags.
+  PRF 14 kHz accepted; PeriodRange up to 20 kHz; false emitters had 4.7–5.9 % of their predicted
+  pulses detected, real ones ≥ 40 %). **Periodic mask default off since 9 Oct (Jasper).** Fix
+  designed, not implemented (grid-aware chance; minimum fraction of predicted pulses detected;
+  candidates from strong pulses): `2026-10-09_handover-B-closed.md`. The per-channel calibration
+  also removes the dense false flags.
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -1911,7 +1917,9 @@ pointers; details of finished work are in §7 and the session logs.)*
 
 **Status 8 Oct 2026: block A complete** (validated, committed `27b2367`; `main.m` runs the
 channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview.md`.
-**Handover for the next session: `logs/2026-10-08_handover-B.md`** (state of block B,
+**Block B closed 9 Oct: `logs/2026-10-09_handover-B-closed.md`** (state, open items with ready
+designs, periodic mask default off, pending runs). Earlier handover:
+**`logs/2026-10-08_handover-B.md`** (state of block B,
 the open decision "measure first or fix first", pending runs, how to run, conventions).
 **Status 8 Oct 2026 (later): B1–B4 done** (log `2026-10-08_excision.md`): B1
 `blankChannels` (§5.19) and B2 `detectRFI` (§5.20) validated (Jasper's runs); B3 excision
@@ -1930,7 +1938,7 @@ rotating antenna done (`rfiSource` `ScanPeriod` etc., `testRfiGating`, `runRFITe
 cases 8–11; §5.3, §7): sidelobes at −35 dB mostly missed → B6 periodic mask is needed.
 **B6-1/B6-2** done (Claude's run): `detectRFI` `info.events`, new `periodicRFI` (§5.21):
 the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, energy left
-8.8e-6. **B6-3** done (Claude's runs): `periodicMask` (default true) / `periodicArgs` in
+8.8e-6. **B6-3** done (Claude's runs): `periodicMask` (default true; false since 9 Oct) / `periodicArgs` in
 `pipelineParams`, hook in `main.m` (no RFI: 0 emitters, identical TOAs); `runLockedRadar`
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
 main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type done (Claude's run; §5.3, §7):
@@ -1940,8 +1948,11 @@ the flat-spectrum assumption (false flags, χ² 1.04; §9). **B5e** done 9 Oct (
 `pipelineParams`, `runRFITest` cases 14–15 + per-channel noise check + periodic hook.
 Lopsided channels: error bars 0.39 % too small in the realistic scenario, 3.4 % with narrow
 Inmarsat-like carriers (χ² 1.22). New: periodicRFI false emitters from dense false flags
-blank ~30 % of the data on main's default path (§9). **Next: periodicRFI robustness fix
-(design note first), then the per-channel noise calibration (§9).** Spectral kurtosis /
+blank ~30 % of the data on main's default path (§9). **Block B closed 9 Oct** (Jasper: "are we not
+stuck in a very tiny hole about RFI?" — essentials done, the rest second-order against
+estimated RFI): periodic mask default off; periodicRFI fix and per-channel noise calibration
+parked with ready designs (`2026-10-09_handover-B-closed.md`). **Next block: C — not started,
+Jasper decides when.** Spectral kurtosis /
 whole-channel flags only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
 
 **Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
@@ -2030,8 +2041,8 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    `rfiSource`), GNSS L1/L2/E6, Inmarsat, LTE (frequencies from memory → verify).
    **Done 8 Oct: B1 `blankChannels`, B2 `detectRFI`, B3 main hook, B4 `runRFITest`,
    B5a–B5d, B6 `periodicRFI` (§5.19–5.21, §7); B5e realistic scenario 9 Oct (§5.3, §7).
-   Open: periodicRFI false emitters with dense detections, then per-channel noise
-   calibration (§9).**
+   Closed 9 Oct (periodic mask default off); parked with designs: periodicRFI false
+   emitters, per-channel noise calibration (§9; `2026-10-09_handover-B-closed.md`).**
 3. **Fast simulator for long observations** (`simulateFold`). Hours cannot be simulated
    at voltage level (~61 GB per second of data). Draws the fold struct directly (same
    fields as `foldProfile`, so `detectPulsar` / `estimateTOA` run unchanged), plus a
@@ -2343,7 +2354,7 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3 validated (8 Oct); B6-3 Claude's run |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct (§7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |

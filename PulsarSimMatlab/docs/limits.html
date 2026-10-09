@@ -86,10 +86,12 @@ bars 3.4 % too small. → The per-channel noise calibration is planned (after th
 <div class="callout warn"><span class="ttl">Periodic mask: false emitters when detections are dense (found 9 Oct, B5e)</span>
 <p><code>periodicRFI</code> looks for a fixed rhythm in the detections and assumes the other detections are few and randomly timed. In the
 realistic scenario the lopsided channels give hundreds of false flags each. In that dense cloud it accepted rhythms that are not there
-(14.1 kHz: every second pulse of a real 973 Hz radar plus random flags; 14.5 kHz: probably <code>detectRFI</code>'s window grid) and
-blanked every predicted "pulse" — every ~70 µs across ~100 channels: <b>29–32 % of the data</b> on main's default path (SNR −15 %).
-Nothing checks physical plausibility (these "radars" would transmit 3–14 % of the time). Fix next (design note first): a plausibility
-check, the rhythm search on strong detections only, and a chance calculation that holds for dense detections.</p></div>
+(14.1 kHz: every second pulse of a real 973 Hz radar plus random flags; 14.5 kHz: <code>detectRFI</code>'s window steps put all detection
+times on a 4-sample grid, which the chance calculation ignores) and blanked every predicted "pulse" — every ~70 µs across ~100 channels:
+<b>29–32 % of the data</b> (SNR −15 %). Nothing checks physical plausibility (only ~5 % of these "radars'" predicted pulses were detected,
+≥ 40 % for real ones). <b>The periodic mask is therefore off by default since 9 Oct</b> (it is only needed for radars locked to the pulsar).
+Fix designed, not implemented: a grid-aware chance calculation, a minimum fraction of predicted pulses detected, and trial periods from
+strong pulses (block-B handover <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p></div>
 
 <h2>Edges and scale</h2>
 <ul>

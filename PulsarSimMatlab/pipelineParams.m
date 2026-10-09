@@ -108,9 +108,13 @@ excision      = true;        % channel path: RFI excision before dedispersion (b
                              % with DataWeights (default since 8 Oct, Jasper); false = none
 excisionArgs  = {};          % name-value options for detectRFI, e.g. {'PFA', 1e-6}
                              % (defaults: windows 1-16 samples, PFA 1e-6, guard 10)
-periodicMask  = true;        % with excision: find periodic RFI (radars) in the detections and
+periodicMask  = false;       % with excision: find periodic RFI (radars) in the detections and
                              % blank all its predicted pulses, also those too weak to be seen
-                             % (periodicRFI, B6; 8 Oct); false = detectRFI's mask only
+                             % (periodicRFI, B6; 8 Oct); false = detectRFI's mask only.
+                             % Default off since 9 Oct (Jasper): with dense false flags it
+                             % accepts false emitters and blanked ~30 % of the data (B5e);
+                             % only needed for radars locked to the pulsar. State and fix
+                             % design: logs/2026-10-09_handover-B-closed.md
 periodicArgs  = {};          % name-value options for periodicRFI
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue

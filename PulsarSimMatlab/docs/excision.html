@@ -272,7 +272,7 @@ completely.</p>
 <h2 id="periodic">8 · <code>periodicRFI</code>: blanking predicted pulses (B6) <span class="badge validated">validated (B6)</span></h2>
 <div class="sig">[rows, info] = periodicRFI(info_chan, info_rfi, ...)</div>
 <p class="meta"><a href="api.html#periodicrfi">Full interface and help text of <code>periodicRFI</code> →</a> · in <code>main.m</code> with
-<code>excision</code> and <code>periodicMask</code> (default true): its rows are added to <code>detectRFI</code>'s mask before <code>blankChannels</code>.</p>
+<code>excision</code> and <code>periodicMask</code> (default true until 9 Oct, <b>false since 9 Oct</b>: see the limits below): its rows are added to <code>detectRFI</code>'s mask before <code>blankChannels</code>.</p>
 
 <div class="callout why"><span class="ttl">Why predict instead of detect</span>
 <p>What makes periodic RFI dangerous — regular timing, so it can pile up at fixed pulse phases (section 6) — also makes it
@@ -351,7 +351,8 @@ carrier) has a lopsided noise spectrum: <code>detectRFI</code> over-flags there 
 the fold model (red. χ² 1.04 at LTE 0 dB). Measured in the realistic scenario (B5e, 9 Oct): TOA error bars 0.39 % too small, 3.4 %
 with narrow Inmarsat-like carriers (<a href="results.html#b5e">results</a>); a per-channel noise measured on the data is planned.</li>
 <li><b>Periodic mask with dense detections</b> (found 9 Oct, B5e): hundreds of false flags per channel (lopsided channels) let
-<code>periodicRFI</code> accept false emitters (~14.1 kHz) and blank ~30 % of the data. See <a href="limits.html">limitations</a>; fix next.</li>
+<code>periodicRFI</code> accept false emitters (~14.1 kHz) and blank ~30 % of the data. Therefore off by default since 9 Oct; fix designed, not implemented
+(<a href="limits.html">limitations</a>, <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</li>
 <li><b>Noise-like RFI</b> (LTE, OFDM) is undetectable by any power or kurtosis test; it is extra noise in its channels, handled by the
 optimal weighting.</li>
 <li>The 0.1 µs rise time is an assumption, to be checked against ITU masks.</li>

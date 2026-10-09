@@ -195,9 +195,9 @@ the model's noise): χ² 1.22, error bars 3.4 % too small. Enough to matter for 
 worth doing (<a href="limits.html">limits</a>).</li>
 <li><b>Cost of the environment:</b> −11 % SNR (~25 % longer observing), mostly LTE band 32 (~14 channels effectively lost). The
 +40 dB radar: all its pulses blanked, none of its energy missed.</li>
-<li><b>Bug found in the periodic mask:</b> with <code>periodicMask</code> on (main's default) the same cases blank <b>29–32 %</b> of
+<li><b>Bug found in the periodic mask:</b> with <code>periodicMask</code> on (main's default until 9 Oct) the same cases blank <b>29–32 %</b> of
 the data (SNR 69 / 66): <code>periodicRFI</code> accepts false emitters at ~14.1 kHz from the dense false flags of the lopsided
-channels (<a href="limits.html">limits</a>). Fix next.</li>
+channels (<a href="limits.html">limits</a>). The mask is off by default since 9 Oct; fix designed, not implemented.</li>
 </ul>
 
 <h2 id="other">11. Algorithm ports and run times</h2>
