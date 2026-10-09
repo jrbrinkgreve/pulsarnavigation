@@ -293,7 +293,7 @@ blockLen, nBlocks, memEstimateGB, …
 81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
 memory), which covers this 11.8 GB run.
 
-### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d Claude's run; B5e realistic scenario 9 Oct, Claude's runs]
+### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d 9 Oct (Jasper's run); B5e realistic scenario 9 Oct, Claude's runs]
 
 **Physics / placement.** Noise and man-made interference are added **at the receiver
 input (RF), after dispersion** → they are not dispersed. Dedispersion later applies the
@@ -1660,7 +1660,7 @@ radar's PRF, pulse phase and channels precisely, so its weak sidelobe pulses can
 blanked where they are predicted to be (B6). Unlocked: phase-uniform noise.
 
 **B5d — LTE-like noise (`'noise'` type, 8 Oct).** `tests/testRfiNoise.m` (~5 s, Claude's
-run): other types = pre-B5a reference bit for bit; BlockSize 1e6+3 = one block bit for bit;
+run; Jasper's run 9 Oct: all passed): other types = pre-B5a reference bit for bit; BlockSize 1e6+3 = one block bit for bit;
 power 0.9945 of INR × in-band noise (σ 0.0045); spectrum flat (in-band level / (power /
 Bandwidth) 1.0078, bin scatter 0.036 vs 0.040 expected), out of band ≤ 1.8e-7; kurtosis
 3.0040 (σ 0.016). `runRFITest` cases 12–13 (20 MHz at 1472 MHz, inside LTE band 32):
@@ -1945,7 +1945,7 @@ the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, e
 8.8e-6. B6-3: `periodicMask` (default true; false since 9 Oct) / `periodicArgs` in
 `pipelineParams`, hook in `main.m` (no RFI: 0 emitters, identical TOAs); `runLockedRadar`
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
-main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type done (Claude's run; §5.3, §7):
+main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type validated 9 Oct (Jasper's run of `testRfiNoise`; §5.3, §7):
 LTE undetectable and down-weighted as expected; found: partly covered edge channels break
 the flat-spectrum assumption (false flags, χ² 1.04; §9). **B5e** done 9 Oct (Jasper chose
 "measure first"; log `2026-10-09_B5e.md`; §5.3, §7, §9): `rfiList` / `rfiRealistic` in
@@ -2369,10 +2369,10 @@ per day).
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
 | `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
-| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs); rotating antenna for any type (B5c-1); 'noise' type (B5d) | validated (5 Oct; B5a, B5c-1 8 Oct; B5d Claude's run) |
+| `rfiSource.m` | RFI source definitions; `RiseTime` for 'pulsed' (B5a, default 0.1 µs); rotating antenna for any type (B5c-1); 'noise' type (B5d) | validated (5 Oct; B5a, B5c-1 8 Oct; B5d 9 Oct) |
 | `tests/makeRfiReference.m` | saves the pre-B5a addNoiseAndRFI output (`data/mc/rfiRef_preB5a.mat`) | run 8 Oct |
 | `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Jasper's run, 8 Oct) |
-| `tests/testRfiNoise.m` | B5d: 'noise' type: regression, block-size independence, power, spectrum, kurtosis | passes (Claude's run, 8 Oct) |
+| `tests/testRfiNoise.m` | B5d: 'noise' type: regression, block-size independence, power, spectrum, kurtosis | passes (Jasper's run, 9 Oct) |
 | `tests/testRfiGating.m` | B5c-1: rotating antenna: regression (off = bit for bit), checks, radar and carrier envelopes vs g(t) | passes (Jasper's run, 8 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |

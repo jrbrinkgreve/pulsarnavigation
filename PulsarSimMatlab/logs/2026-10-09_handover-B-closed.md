@@ -40,7 +40,7 @@ channelizeIQ → detectRFI → [periodicRFI if periodicMask] → blankChannels �
 | B5b / B5b-2 | `runLockedRadar.m`; `detectRFI` frequency guard (`FreqGuard` 7) | 724501d | Jasper |
 | B5c | rotating antenna for any RFI type | 9b959f0 | Jasper |
 | B6 | `periodicRFI` (periodic mask); **default off since 9 Oct** | 2082540 | Jasper (testPeriodicRFI) |
-| B5d | `'noise'` RFI type (LTE) | 9750461 | Claude's run; **Jasper's run of `tests/testRfiNoise.m` pending** |
+| B5d | `'noise'` RFI type (LTE) | 9750461 | Jasper (`testRfiNoise`, 9 Oct: all passed) |
 | B5e | realistic scenario (`rfiList`, `rfiRealistic`), `runRFITest` cases 14–15, per-channel noise check, periodic hook | f019a8a | Claude's runs at Jasper's request |
 | close | `periodicMask` default false; this handover | (this commit) | – |
 
@@ -134,7 +134,7 @@ check in `runRFITest` compares with the median channel and is invalid under heav
 
 ## Pending runs (Jasper)
 
-- `run('tests/testRfiNoise.m')` (B5d, ~5 s).
+- ~~`run('tests/testRfiNoise.m')` (B5d)~~ done 9 Oct: all passed.
 - Optional: `runRFITest` with `runCases = [1 13 14 15]` (~10 min) to validate B5e yourself
   (now without the periodic mask by default — matches the B5e table in notes §7).
 

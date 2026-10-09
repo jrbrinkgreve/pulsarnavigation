@@ -109,7 +109,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
 <tr><td>B1–B4</td><td>RFI excision: <code>blankChannels</code>, <code>detectRFI</code>, excision in <code>main.m</code> (default on), <code>runRFITest</code></td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B5a–c</td><td>Realistic radar edges (0.1 µs rise time), radar locked to the pulsar + frequency guard ±7 channels, rotating radar antenna</td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse (<code>periodicRFI</code>). Bug found 9 Oct: false emitters when detections are dense (~30 % blanked) → <b>off by default since 9 Oct</b>; fix designed</td><td><span class="badge validated">8 Oct</span></td></tr>
-<tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge written">8 Oct, Jasper's run pending</span></td></tr>
+<tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge validated">9 Oct</span></td></tr>
 <tr><td>B5e</td><td>Realistic L-band scenario (<code>rfiList = 'realistic'</code>): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with narrow Inmarsat-like carriers</td><td><span class="badge written">9 Oct, Claude's runs</span></td></tr>
 <tr><td>B parked</td><td>Periodic-mask fix; per-channel noise level measured on the data (designs in the block-B handover)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
 <tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
