@@ -49,6 +49,7 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
+<tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
 <div class="table-wrap"><table>
 <tr><th>Reference maker</th><th>Freezes</th><th>Made with</th><th>File</th></tr>
@@ -172,6 +173,13 @@ with the <var>N</var><sub>0</sub> the filter sees, in all cases. (2) Noise-like 
 <var>a</var>√(<var>B</var>∫(<var>g</var>−⟨<var>g</var>⟩)²d<var>t</var>) for every <code>f_out</code>; square → keep one, or average the voltages → square, grow as
 √<code>f_out</code> and reach it only at <code>f_out</code> = <var>B</var>. The bound is set by <var>B</var>·<var>T</var>, not by the post-detection rate.
 Full discussion: <code>logs/2026-10-09_fout-study.md</code>.</p>
+
+<h2 id="demobinning"><code>demoBinningMatchedFilter</code> (demo, 9 Oct)</h2>
+<p>A script for explaining the binning, run section by section. Noise-like pulse (complex, 100 MHz, P 10 ms, FWHM 0.5 ms, peak 3.4 % of the noise),
+detected power, matched filter (1) at 100 MHz, (2) after averaging into 10 kHz bins, (3) after keeping one sample per 10 kHz bin. Measured SNR
+(100 trials) 21.5 / 21.4 / 0.23 vs predicted 20.0 / 19.9 / 0.20: binning loses only the 0.5 % smearing of a 100 µs bin and is ~130× faster
+(0.58 ms incl. binning vs 78 ms via FFT, <code>timeit</code>; a direct convolution at full rate ~10¹⁴ operations); decimation without averaging loses
+√10000 = 100× in SNR. Timing, operation counts and memory are printed and shown under each matched-filter panel.</p>
 
 <h2>Statistical validations (scripts, not unit tests)</h2>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> are experiments with tables, not PASS/FAIL units, and take minutes. See

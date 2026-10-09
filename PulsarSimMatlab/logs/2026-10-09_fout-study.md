@@ -132,3 +132,38 @@ warn when max(binDt·f0, 1/NBin) > w/5 (w = narrowest width at half maximum).
   `api.html` after the commit (`make_api.py` reads committed code).
 - Also added: `tests/expSamplingRate.m` (the E/N0 experiment above), registered in
   `tests.html` and notes §13.
+
+## Demo for the professor: `tests/demoBinningMatchedFilter.m`
+Jasper's request: noise-like signal with a slow Gaussian envelope at 100 MHz; matched filter
+(1) at full rate, (2) after proper 10 kHz binning, (3) after decimation to 10 kHz. His
+expectation (1 ≈ 2, 3 worse) confirmed. Script with sections (variables stay in the
+workspace), ~15 s, ~1 GB. Claude's run, 100 trials: SNR 21.5 / 21.4 / 0.23 (predicted
+20.0 / 19.9 / 0.20; binned/full 0.996 vs 0.995 = smearing of a 100 µs bin at FWHM 0.5 ms;
+decimated/full 0.0106 vs 1/√10000). Matched filter over all lags (`timeit`, shown under each panel at
+Jasper's request): 78 ms at full rate (FFT of 1e7, ~3.5e9 flops, 160 MB per array; direct
+convolution ~1e14) vs 0.58 ms binned (0.5 ms of it the binning itself): ~130× faster. Key sentences: way 2 IS way 1
+with a template that is constant within each bin; binning = boxcar anti-alias filter +
+decimation, way 3 = decimation without it (all noise above 5 kHz folds into the band).
+Registered in `tests.html` and notes §13. Not committed.
+
+## "S/N is not the metric": sufficiency, ROC and Cramér–Rao (Jasper expects this objection)
+Metric-independent argument: for complex Gaussian samples, independent (white band), with
+power λ_k constant within bin k, the likelihood of the raw voltages is
+Π_k (πλ_k)^(−L) exp(−S_k/λ_k), S_k = Σ_{n∈k} |x_n|²: it depends on the data only through the
+bin sums (Fisher–Neyman factorization) → the bin sums are a SUFFICIENT statistic. Every
+detector / estimator on the full-rate data can be matched on the bin sums: same ROC, same
+Cramér–Rao bound, any metric. Only loss: power variation inside a bin (smearing). Decimation
+drops L−1 of L terms → worse for every metric (data processing inequality; Fisher info ÷ L).
+The exact Neyman–Pearson LRT is Σ p_n (1 − 1/λ_n): linear in the detected power.
+Scratch check (`rocCheck.m`, Claude's run; fs 10 MHz, 10 kHz bins, deflection 3, 4000
+trials per hypothesis): P_D at P_FA 1 %: full-rate MF 0.732, binned 0.729, decimated 0.010
+(chance); exact LRT full rate 0.779, LRT on bin sums 0.778 (the LRT uses the known noise
+level, the zero-mean MF does not: d 3.12 vs 3.00, unrelated to binning). TOA Cramér–Rao:
+full 97.1 µs, binned 98.4 µs (+1.4 %, 100 µs bins vs 0.5 ms pulse), decimated 3070 µs
+(×31.6 = √1000). Limits of sufficiency: white band (else per channel → channelized front
+end), power constant within a bin (smearing, warnings), Gaussian data (RFI → excision first),
+dispersion removed before detection.
+
+## Bin-size sweep: tried, removed
+A parfor sweep of the bin rate (P_D at P_FA = 1 %) was added to the demo and removed again by
+Jasper (figure too cluttered); not part of the demo.

@@ -541,10 +541,6 @@ true pulse centre (T/2) and Phi0 = 0, every true pulse peak is at an integer pha
 neighbours; ignoring the positive covariance underestimates the variance of any sum over
 bins by ~1.5× (fold check predicted 0.226 µs instead of the correct 0.277 µs until fixed).
 
-**Correlated time bins: option `NoiseCoeffs` (7 Oct 2026, A1a; validated, Jasper's
-run).** In a narrow channel neighbouring detected time bins are
-correlated (§5.17: var V, covariance X(L) at L bins apart, relative to σ² = m²/(B·dt)).
-A phase-bin sum S_j = Σ_k a_kj P_k then has
 **Coverage warning `foldProfile:coverage` (9 Oct 2026; validated, Jasper's run of
 `testFoldWeights` incl. test 7).** Consecutive time bins are f·binDt·NBin
 phase bins apart; above 1 a sub-int can leave phase bins empty, and `estimateTOA` /
@@ -557,6 +553,10 @@ with the limits NBin ≤ time bins per turn, binDt ≤ 1/(f·NBin), or more turn
 Skipped when f·binDt·NBin ≤ 1 (always covered), with fewer than 3 sub-ints, or above 2^22
 time bins in the check. Fold outputs unchanged (tests 1–6 bit-identical).
 
+**Correlated time bins: option `NoiseCoeffs` (7 Oct 2026, A1a; validated, Jasper's
+run).** In a narrow channel neighbouring detected time bins are
+correlated (§5.17: var V, covariance X(L) at L bins apart, relative to σ² = m²/(B·dt)).
+A phase-bin sum S_j = Σ_k a_kj P_k then has
 cov(S_j, S_j+d) = σ²·Σ_k Σ_k′ a_kj a_k′,j+d c(k′ − k), c(0) = V, c(±L) = X(L).
 - `'NoiseCoeffs'` = [V X(1..Lmax)] (from `detectChannels` info.noise); default 1 =
   independent bins (full band) → everything as before, bit for bit.
@@ -687,10 +687,6 @@ accepts any [NBin × 1] profile with phase 0 at bin 1, so real data with other p
 shapes needs only a different template source (multi-component model or high-SNR
 observed profile); its phase 0 then defines the TOA.
 
-**Channels combined: A2a (7 Oct 2026; validated, Jasper's run).**
-For a fold with several channels (nChan > 1) the profile is p = Σ_c prof_c (equal
-weights). Exclusion rule: a channel is used only if it has data (W > 0) in every phase
-bin where any channel has data (a missing channel would leave a dip); partial weights
 **Resolution warning `estimateTOA:resolution` (9 Oct 2026; validated, Jasper's run of
 `testChannelTOA` incl. test 7).** A profile bin is the pulse averaged over
 a time bin (binDt·f0 turns) and spread over ~1 phase bin by the fold's assignment; the
@@ -704,6 +700,10 @@ w/15 → 1.03; **phase bins only** (1 µs time bins) of w/1.2–1.6 → 1.14–1
 the critical side; the w/5 rule covers both conservatively. Main's settings: r = w/102.
 Later, if coarse bins are ever needed: a bin-smoothed template.
 
+**Channels combined: A2a (7 Oct 2026; validated, Jasper's run).**
+For a fold with several channels (nChan > 1) the profile is p = Σ_c prof_c (equal
+weights). Exclusion rule: a channel is used only if it has data (W > 0) in every phase
+bin where any channel has data (a missing channel would leave a dip); partial weights
 stay in. Noise: channels independent → var(p_j) = Σ_c s_cj²·W2_cj/W_cj²,
 cov(p_j, p_j+d) = Σ_c s_cj s_c,j+d·WX_cjd/(W_cj W_c,j+d) for all lags d = 1..D,
 s_cj = m_c(φ_j)/√(B_c·binDt), m_c = a_c + b_c·template(φ − τ) with a_c, b_c from the same
@@ -2127,10 +2127,6 @@ barycentric corrections, navigation solution).
    (item 3) covers it statistically first.
 9. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
    or update to `binTime0` and `'ieee-le'`.
-
-**Deferred / low priority**
-- **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
-  (§7), not for the weak-signal target.
 10. **[todo] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
    In the lag loop, `q = h(1:end-tau) .* conj(h(1+tau:end))` is a scalar at
    tau = numel(h) − 1, and `fft(q, M)` of a scalar returns a ROW (1×M); `Kf .* Qf`
@@ -2140,12 +2136,24 @@ barycentric corrections, navigation solution).
    Proposed fix: `Qf = fft(q, M, 1)` (line 203; one line, used by both the mean and the
    C products), and optionally stop the loop at tau = numel(h) − 1 (higher lags have C = 0). Not fixed yet (validated code):
    design note + rerun of `tests/testBlankingWeights.m` plus a long-bin case.
+
+**Deferred / low priority**
+- **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
+  (§7), not for the weak-signal target.
 - **Receiver noise does not pass W_f** in the simulation (real noise passes the same
   analog bandpass as the sky signal); < 1 % in SNR; fix by making the dispersion band
   slightly wider than the analysis band if needed (`2026-10-05_fidelity.md`).
 - **Real data**: the receiver bandpass is not ideal (ripple, slopes) and not known
   exactly → measure W² from the off-pulse spectrum (or off-pulse var/mean²) and multiply
   it into W for the statistical bandwidth (∫W²)²/∫W⁴ (§6).
+- **Idea: fold and correlate in the dispersed domain (Jasper, 9 Oct 2026; investigated,
+  parked — not to be implemented yet).** Skip coherent dedispersion: per channel, the
+  delay to `refFreq` goes into the fold or the template (exact, free), the in-channel smear
+  into the template. Estimate (`2026-10-09_dispersed-domain.md`): TOA error ×1.003 (simulated
+  pulsar) / ×1.012 (J0437) at 3.125 MHz channels, Vela needs ≤ 0.8 MHz channels;
+  arithmetic about halves (the filterbank then dominates); bigger gains in memory, file
+  size and `blankingWeights`. Needs independent channels (cheap trim), per-channel delay and
+  smeared template.
 - Optional percentile colour limits in the RFI check figures.
 
 **Done (details in §7 and the logs)**
@@ -2373,6 +2381,8 @@ per day).
 | `tests/makeRfiReference.m` | saves the pre-B5a addNoiseAndRFI output (`data/mc/rfiRef_preB5a.mat`) | run 8 Oct |
 | `tests/testRadarEdges.m` | B5a: regression (RiseTime 0 bit for bit), defaults, envelope vs formula, spectrum vs edge model | passes (Jasper's run, 8 Oct) |
 | `tests/testRfiNoise.m` | B5d: 'noise' type: regression, block-size independence, power, spectrum, kurtosis | passes (Jasper's run, 9 Oct) |
+| `tests/expSamplingRate.m` | experiment (9 Oct): sample rate vs matched-filter SNR (√(2E/N0) with the N0 the filter sees) and the square law (radiometer bound independent of f_out) | passes (Claude's run, 9 Oct) |
+| `tests/demoBinningMatchedFilter.m` | demo (9 Oct): matched filter on the detected power at 100 MHz vs 10 kHz bins vs 1-in-10,000 decimation (SNR 21.5 / 21.4 / 0.23) | demo, no PASS/FAIL |
 | `tests/testRfiGating.m` | B5c-1: rotating antenna: regression (off = bit for bit), checks, radar and carrier envelopes vs g(t) | passes (Jasper's run, 8 Oct) |
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
@@ -2384,7 +2394,6 @@ per day).
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
-| `tests/expSamplingRate.m` | experiment (9 Oct): sample rate vs matched-filter SNR (√(2E/N0) with the N0 the filter sees) and the square law (radiometer bound independent of f_out) | passes (Claude's run, 9 Oct) |
 | `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct; B6-1 with B6) |
 | `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | validated (8 Oct, Jasper's run of testPeriodicRFI) |
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
