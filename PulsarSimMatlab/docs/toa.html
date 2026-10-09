@@ -120,6 +120,12 @@ even when the fit's weights are not exactly the inverse covariance; the plain <v
 <p><code>main.m</code> uses <code>gaussianTemplate(nBin, ephem.profileFWHM)</code>: a periodic Gaussian, peak 1 at bin 1 (images at −2…+2 turns summed).
 <code>estimateTOA</code> accepts any [NBin × 1] profile with phase 0 at bin 1, so real pulsars need only a different template source (a
 multi-component model or a high-SNR observed profile); its phase 0 then defines the TOA.</p>
+<div class="callout warn"><span class="ttl">Bins must be fine compared with the template (warning since 9 Oct)</span>
+<p>A profile bin is the pulse averaged over a time bin (binDt·<var>f</var>₀ turns) and spread over ~1 phase bin; the template is the unsmoothed pulse at the
+bin centres. <code>estimateTOA</code> warns (<code>estimateTOA:resolution</code>) when <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/5 of the template's
+narrowest width at half maximum <var>w</var>, and returns both in <code>info.binResolution</code> / <code>info.templateWidth</code>. Measured at −5 dB (rms error ÷ error bar,
+1.04 with fine bins): time bins of <var>w</var>/2.5 → <b>2.04</b>, <var>w</var>/5 → 1.08; phase bins alone of <var>w</var>/1.6 → 1.16, <var>w</var>/2.4–6.4 → 1.05.
+Coarse time bins are the critical side. Main's settings: <var>r</var> = <var>w</var>/102.</p></div>
 
 <h2 id="outputs">8. Options and outputs</h2>
 <dl class="facts">

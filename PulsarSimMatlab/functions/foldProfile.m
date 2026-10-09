@@ -24,7 +24,13 @@ Name-value options:
                    Phase 0 is the centre of phase bin 1. For the synthetic
                    data, TRef = info_gen.pulseCenters(1) puts every true
                    pulse peak at phase 0, so a perfect TOA has offset 0.
-  'NBin'           phase bins (default 1024).
+  'NBin'           phase bins (default 1024). Every phase bin needs data in
+                   every sub-integration: time bins of at most one phase bin
+                   (binDt <= 1/(f0*NBin)), or enough turns per sub-integration
+                   to fill the gaps. Otherwise warning 'foldProfile:coverage'
+                   (checked on the time grid before folding): estimateTOA and
+                   detectPulsar (MinCoverage 1) would reject every
+                   sub-integration.
   'SubintPeriods'  turns per sub-integration (default 1).
   'SubintTime'     [s] alternative: sub-integration length, rounded to
                    whole turns (overrides SubintPeriods).
@@ -214,6 +220,40 @@ D = ceil(Lmax * dt * fMax * Nbin * (1 + 1e-9)) + 1;
 if Lmax > 0 && 2*D >= Nbin
     error('foldProfile:lags', ['Correlated time bins span %d of %d phase bins; ' ...
         'use fewer lags or fewer phase bins.'], D, Nbin);
+end
+
+% ---- Phase coverage of a complete sub-integration ---------------------------------------
+% Consecutive time bins are f*dt*NBin phase bins apart. Above 1, phase bins can stay
+% empty in every sub-integration, and estimateTOA / detectPulsar (MinCoverage 1)
+% then reject them all (f_out sweep 9 Oct: 100 kHz, NBin 2048, 1 turn -> no TOAs).
+% Checked on the time grid alone (no data): the time bins of sub-integration 2, the
+% first complete one (the first and last are usually partial), assigned as in the
+% fold. Skipped without a complete sub-integration or above 2^22 time bins.
+if fMax * dt * Nbin > 1 && nSub >= 3
+    fMin = min(f0 + F1*(tFirst - TRef), f0 + F1*(tLast - TRef));
+    nCov = min(k2 - k1 + 1, ceil((2*nPer + 2) / (fMin * dt)));   % reaches past sub-int 2
+    if nCov <= 2^22
+        phCov   = phiOf(t1 + ((k1 : k1 + nCov - 1).' - 1) * dt);
+        turnCov = round(phCov);
+        xCov    = (phCov - turnCov) * Nbin;
+        xCov    = xCov(floor((turnCov - turnFirst) / nPer) == 1);   % sub-integration 2
+        if strcmp(assign, 'nearest')
+            hit = mod(round(xCov), Nbin);
+        else                                        % both neighbours with weight > 0
+            j0  = floor(xCov);
+            hit = [mod(j0, Nbin); mod(j0(xCov > j0) + 1, Nbin)];
+        end
+        nHit = numel(unique(hit));
+        if nHit < Nbin
+            warning('foldProfile:coverage', ...
+                ['NBin = %d is too fine for %.4g us time bins: a complete sub-integration ' ...
+                 '(%d turn(s)) puts data in only %d of %d phase bins, so estimateTOA and ' ...
+                 'detectPulsar (MinCoverage 1) reject every sub-integration. Use NBin <= %d ' ...
+                 '(time bins per turn), time bins <= %.4g us (f_out >= %.4g Hz), or more ' ...
+                 'turns per sub-integration.'], Nbin, dt*1e6, nPer, nHit, Nbin, ...
+                floor(1/(fMax*dt)), 1e6/(fMax*Nbin), fMax*Nbin);
+        end
+    end
 end
 
 memGB = Nbin * nSub * (2*nChan + nW*(2 + D)) * 8 / 1e9;

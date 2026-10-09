@@ -41,6 +41,11 @@ data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
      off-pulse bins and for the window alone (pass within 4 sigma).
      (Real blanking acts on voltages before dedispersion; its streams come
      from mask convolutions, A3/B.)
+  7. Coverage warning (9 Oct): synthetic time grids, P ~ 10 ms. 10.08 us bins
+     with NBin 2048 and 1 turn per sub-int (linear and nearest) leave phase
+     bins empty -> warning; NBin 512, 0.96 us bins, or 10 turns per sub-int
+     fill every bin -> no warning. Pass when the warning comes exactly when a
+     complete sub-integration of the fold itself has empty phase bins.
 Errors at the end if any check fails. Writes ~0.5 GB of temporary files to
 tempdir (deleted at the end).
 %}
@@ -327,6 +332,37 @@ for ir = 1:2
     end
 end
 if ~pass, fails{end+1} = 'fake blanking'; end
+
+% ---------------------------------------------------------------------------------
+% 7. Coverage warning: phase bins finer than the time bins
+% ---------------------------------------------------------------------------------
+% {time bin [s], NBin, turns per sub-int, assignment}; P ~ 10 ms, 0.3 s of random power.
+% Pass when the warning comes exactly when a complete sub-integration (2 .. nSub-1)
+% of the fold itself has empty phase bins.
+fprintf('7. coverage warning (foldProfile:coverage)\n');
+cases7 = {10.08e-6, 2048, 1, 'linear'; 10.08e-6, 512, 1, 'linear'; 0.96e-6, 2048, 1, 'linear'; ...
+          10.08e-6, 2048, 1, 'nearest'; 10.08e-6, 2048, 10, 'linear'};
+pass = true;
+for c = 1:size(cases7, 1)
+    [dt7, nb7, per7, asg7] = cases7{c, :};
+    N7 = round(0.3 / dt7);
+    det7 = struct('file', fullfile(tmp, 'p7.dat'), 'nChan', 1, 'N', N7, 'binTime0', 0.3e-3, ...
+        'binDt', dt7, 'fullySupportedBins', [1, N7], 'byteOrder', 'ieee-le', 'chanFreqs', 0);
+    writeF32(det7.file, rand(N7, 1));
+    lastwarn('');
+    ws = warning('off', 'foldProfile:coverage');      % quiet; lastwarn still records it
+    [ifo7, f7] = foldProfile(det7, 'x', 100.3, 'TRef', 1.7e-3, 'NBin', nb7, ...
+        'SubintPeriods', per7, 'Assign', asg7, 'SaveFile', false, 'Verbose', false);
+    warning(ws);
+    [~, id7] = lastwarn;
+    warned = strcmp(id7, 'foldProfile:coverage');
+    cov7 = min(mean(f7.weight(:, 2:ifo7.nSub-1) > 0, 1));
+    ok = warned == (cov7 < 1);
+    fprintf('   bins %5.2f us, NBin %4d, %2d turn(s), %-7s: min coverage of complete sub-ints %.3f, warning %d: %s\n', ...
+        dt7*1e6, nb7, per7, asg7, cov7, warned, passStr(ok));
+    pass = pass && ok;
+end
+if ~pass, fails{end+1} = 'coverage warning'; end
 
 % ---------------------------------------------------------------------------------
 if isempty(fails)

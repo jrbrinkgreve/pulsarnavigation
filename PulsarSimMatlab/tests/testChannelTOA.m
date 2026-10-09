@@ -39,6 +39,13 @@ data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
      the scatter between sub-ints), unblanked and blanked; per-channel vs
      summed power: same best phase and detections (noise ratio of the old
      path ~1.3 % lower, as the fold level showed).
+  7. Resolution warning (9 Oct): synthetic folds of random power, six
+     (time bin, NBin) cases from 0.96 us / 2048 to 200 us / 32 and
+     0.96 us / 24: info.binResolution = max(binDt*f0, 1/NBin), and the
+     warning comes exactly when it exceeds 1/5 of info.templateWidth.
+     templateWidth: a Gaussian gives its FWHM (1e-3); with a narrower second
+     component it gives that component's width at half the global maximum
+     (analytic, 1e-2).
 Errors at the end if any check fails. Writes ~0.5 GB of temporary files to
 tempdir (deleted at the end).
 %}
@@ -217,6 +224,52 @@ fprintf(['   per-channel vs summed power (%d sub-ints): same phaseMax and detect
     nnz(v), samePh, median(detC.T0(v) ./ detS.T0(v)), mean(detC.noiseRatio(v)), ...
     mean(detS.noiseRatio(v)), mean(detC.noiseRatio(v) ./ detS.noiseRatio(v)), passStr(samePh));
 if ~samePh, fails{end+1} = 'detection per-channel vs summed'; end
+
+% ---------------------------------------------------------------------------------
+% 7. Resolution warning (estimateTOA:resolution) and the template width
+% ---------------------------------------------------------------------------------
+% Synthetic folds of random power (P ~ 10 ms, 0.3 s). {time bin [s], NBin}; template
+% Gaussian FWHM 0.05 turns. Pass when info.binResolution = max(binDt*f0, 1/NBin) and
+% the warning comes exactly when it exceeds templateWidth/5.
+fprintf('7. resolution warning (estimateTOA:resolution)\n');
+f07 = 100.3; fw7 = 0.05; pass = true;
+cases7 = {0.96e-6, 2048; 200e-6, 32; 100e-6, 64; 33.3e-6, 256; 0.96e-6, 24; 0.96e-6, 128};
+for c = 1:size(cases7, 1)
+    [dt7, nb7] = cases7{c, :};
+    N7 = round(0.3 / dt7);
+    det7 = struct('file', fullfile(tmp, 'p7.dat'), 'nChan', 1, 'N', N7, 'binTime0', 0.3e-3, ...
+        'binDt', dt7, 'fullySupportedBins', [1, N7], 'byteOrder', 'ieee-le', 'chanFreqs', 0);
+    fid = fopen(det7.file, 'w', 'ieee-le'); fwrite(fid, 1 + rand(N7, 1), 'float32'); fclose(fid);
+    [ifo7, f7] = foldProfile(det7, 'x', f07, 'TRef', 1.7e-3, 'NBin', nb7, ...
+        'SaveFile', false, 'Verbose', false);
+    tm7 = gaussianTemplate(nb7, fw7);
+    lastwarn('');
+    ws = warning('off', 'estimateTOA:resolution');   % quiet; lastwarn still records it
+    [~, it7] = estimateTOA(f7, ifo7, tm7, 'Bnoise', 1e6, 'Verbose', false);
+    warning(ws);
+    [~, id7] = lastwarn;
+    warned = strcmp(id7, 'estimateTOA:resolution');
+    res7 = max(dt7 * f07, 1/nb7);
+    ok = abs(it7.binResolution - res7) < 1e-12 && warned == (res7 > it7.templateWidth/5);
+    fprintf(['   bins %6.2f us, NBin %4d: resolution %.4f turns, template width %.4f ' ...
+             '(1/%.1f), warning %d: %s\n'], dt7*1e6, nb7, it7.binResolution, ...
+        it7.templateWidth, it7.templateWidth/it7.binResolution, warned, passStr(ok));
+    pass = pass && ok;
+    if c == 1                                         % template width, fine grid
+        ph7 = ((0:nb7-1).' / nb7);
+        ph7(ph7 >= 0.5) = ph7(ph7 >= 0.5) - 1;
+        sg  = @(w) w / (2*sqrt(2*log(2)));
+        two = exp(-0.5*(ph7/sg(fw7)).^2) + 0.8*exp(-0.5*((ph7 - 0.25)/sg(0.01)).^2);
+        [~, it7b] = estimateTOA(f7, ifo7, two, 'Bnoise', 1e6, 'Verbose', false);
+        wTwo = 0.01 * sqrt(log(0.8/0.5) / log(2));  % 2nd component at half the global max
+        okW = abs(it7.templateWidth / fw7 - 1) < 1e-3 && abs(it7b.templateWidth / wTwo - 1) < 1e-2;
+        fprintf(['   template width: Gaussian %.5f (FWHM %.5f); two components %.5f ' ...
+                 '(narrow one at half the global max %.5f): %s\n'], it7.templateWidth, fw7, ...
+            it7b.templateWidth, wTwo, passStr(okW));
+        pass = pass && okW;
+    end
+end
+if ~pass, fails{end+1} = 'resolution warning'; end
 
 % ---------------------------------------------------------------------------------
 if isempty(fails)

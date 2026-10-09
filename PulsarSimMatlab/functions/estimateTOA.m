@@ -26,6 +26,12 @@ Inputs:
   template         [NBin x 1] profile shape, phase 0 at bin 1 (the value at
                    bin j is the template at phase (j-1)/NBin). Normalized
                    here to peak 1, so b is the peak height above baseline.
+                   It is not smoothed by the bins, so the bins must be fine
+                   compared with it: warning 'estimateTOA:resolution' when
+                   the time bin (binDt*f0) or the phase bin (1/NBin) is
+                   wider than 1/5 of the template's narrowest width at half
+                   maximum (otherwise red. chi^2 rises and the error bars
+                   come out too small).
 
 Name-value options:
   'NoiseModel'  'radiometer' (default): per time bin, var = m^2/(Bnoise*binDt)
@@ -90,7 +96,9 @@ Outputs:
         plus toa.total (the whole fold): phase, phaseErr, timeOffset
         [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2,
         nChanUsed.
-  info  method, noise model, Bnoise, harmonics, template.
+  info  method, noise model, Bnoise, harmonics, template, binResolution
+        (max(binDt*f0, 1/NBin) [turns]), templateWidth (narrowest width at
+        half maximum [turns]).
 
 Uncertainties:
   tau solves C'(tau) = 0 for the cross-correlation C(tau). C'(tau) is a
@@ -150,6 +158,26 @@ if numel(template) ~= N
     error('estimateTOA:template', 'Template must have NBin = %d points.', N);
 end
 template = template / max(template);
+
+% ---- Resolution: bins coarse compared with the template --------------------------------
+% A profile bin is the pulse averaged over a time bin (binDt*f0 turns) and spread over
+% ~1 phase bin by the fold's assignment; the template is the unsmoothed pulse at the bin
+% centres. When the coarser of the two is not small against the template's narrowest
+% feature (width at half maximum), the fit model is wrong and the error bars come out
+% too small (sweeps 9 Oct, -5 dB, rms error / error bar vs 1.04 with fine bins: time
+% bins of FWHM/2.5 -> 2.04, FWHM/5 -> 1.08; phase bins of FWHM/1.6 -> 1.16, FWHM/2.4-6.4
+% -> 1.05-1.06; from FWHM/12.8 as fine bins). Observer information only.
+binRes = max(binDt * info_fold.f0, 1/N);            % [turns]
+tmplW  = halfMaxWidth(template);                    % [turns]
+if binRes > tmplW/5
+    warning('estimateTOA:resolution', ...
+        ['Bins are coarse for this template: time bin %.3g turns, phase bin %.3g turns, ' ...
+         'template width at half maximum %.3g turns (bins should be <= 1/5 of it, here ' ...
+         '1/%.1f). The template is not smoothed by the bins, so red. chi^2 rises and the ' ...
+         'TOA error bars come out too small (2x measured for time bins of 1/2.5). Use a ' ...
+         'higher f_out and more phase bins, or a bin-smoothed template.'], ...
+        binDt * info_fold.f0, 1/N, tmplW, tmplW/binRes);
+end
 
 K = floor(N/2) - 1;
 if ~isempty(opts.MaxHarmonic), K = min(K, opts.MaxHarmonic); end
@@ -251,7 +279,7 @@ info = struct('method', 'FFTFIT (Fourier-domain template matching), Newton-refin
     'noiseModel', model, 'Bnoise', opts.Bnoise, 'binDt', binDt, 'harmonics', K, ...
     'upsample', opts.Upsample, 'template', template, 'NBin', N, 'maxRedChi2', opts.MaxRedChi2, ...
     'toaConvention', 'TOA = tRef + phase/fRef; time of template phase 0 at the dedispersion reference frequency', ...
-    'weighting', weighting);
+    'weighting', weighting, 'binResolution', binRes, 'templateWidth', tmplW);
 if strcmp(weighting, 'optimal')
     info.method = ['weighted multi-channel fit (a_c + b*s_c*T, weights 1/var, iterated), ' ...
                    'FFT correlation + bounded search; sandwich error bars'];
@@ -582,4 +610,20 @@ q = sum(x .* y .* v, 'all');
 for d = 1:size(cv, 3)
     q = q + sum((x .* circshift(y, -d, 1) + circshift(x, -d, 1) .* y) .* cv(:, :, d), 'all');
 end
+end
+
+
+function w = halfMaxWidth(tmpl)
+%HALFMAXWIDTH  Narrowest width [turns] of the regions where tmpl is above half its range.
+% Circular; edges by linear interpolation between bins. Inf for a flat template.
+N = numel(tmpl);
+y = (tmpl - min(tmpl)) / (max(tmpl) - min(tmpl)) - 0.5;   % > 0 above half maximum
+if ~all(isfinite(y)), w = Inf; return; end
+[~, i0] = min(y);
+y = [circshift(y, -(i0 - 1)); y(i0)];                     % start (and end) below half
+up = find(y(1:N) <= 0 & y(2:N+1) > 0);                    % rising: between j and j+1
+dn = find(y(1:N) > 0 & y(2:N+1) <= 0);                    % falling
+xu = up + y(up) ./ (y(up) - y(up + 1));
+xd = dn + y(dn) ./ (y(dn) - y(dn + 1));
+w  = min(xd - xu) / N;                                    % regions pair up in order
 end

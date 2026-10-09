@@ -38,8 +38,8 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
-<tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
-<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b</td><td>~5 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
+<tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b, coverage warning</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
+<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~5 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
 <tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a</td><td>~66 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
@@ -48,6 +48,7 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge written">passes (Claude's run); Jasper's run pending</span></td></tr>
+<tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 </table></div>
 <div class="table-wrap"><table>
 <tr><th>Reference maker</th><th>Freezes</th><th>Made with</th><th>File</th></tr>
@@ -96,6 +97,8 @@ result that killed the "g(<var>w</var>)" idea and led to exact per-bin weights.<
 <li>Constant weight file = <code>NoiseCoeffs</code> fold bit for bit (two code paths, one answer).</li>
 <li>Random weight streams (3 channels, 10 % zeros): weight = <var>A</var>ᵀ<var>W</var>, weight2/weightX = <var>A</var>ᵀ<var>CA</var> per channel to 7·10⁻¹⁶; a <var>W</var> = 0 bin adds no power.</li>
 <li>Fake blanking (15 % random + phase-correlated at 0.30–0.36): weighted mean unbiased (−0.0019 ± 0.0009) while the naive fold is −0.574 off as predicted; noise as modelled.</li>
+<li>Coverage warning (9 Oct): 10.08 µs bins with NBin 2048 and 1 turn per sub-int, linear and nearest, leave phase bins empty (coverage 0.966 / 0.483) → warning.
+NBin 512, 0.96 µs bins, or 10 turns per sub-int fill every bin → no warning. Passes when the warning comes exactly when the fold itself has empty bins.</li>
 </ol>
 
 <h2 id="chtoa"><code>testChannelTOA</code></h2>
@@ -107,6 +110,9 @@ with excluded channels): to 4·10⁻¹⁶.</li>
 <li><code>detectPulsar</code> regression bit for bit.</li>
 <li>T0, normProfile, Tmax = explicit full H0 covariance formulas.</li>
 <li><code>noiseRatio</code> = 1 within 4σ on the channel path, blanked and unblanked.</li>
+<li>Resolution warning (9 Oct): six (time bin, NBin) cases from 0.96 µs / 2048 to 200 µs / 32 and 0.96 µs / 24: <code>binResolution</code> = max(binDt·<var>f</var>₀, 1/NBin)
+and the warning exactly when it exceeds <code>templateWidth</code>/5. <code>templateWidth</code>: Gaussian = FWHM (10⁻³); with a narrower second component, that
+component's width at half the global maximum (analytic, 10⁻²).</li>
 </ol>
 
 <h2 id="bw"><code>testBlankingWeights</code></h2>
@@ -156,6 +162,16 @@ through −35 dB sidelobes: found from <code>detectRFI</code>'s 42 % of the puls
 <p>(1) The other RFI types = the pre-B5a reference bit for bit. (2) Block size 10⁶ + 3 = one block bit for bit. (3) Power = INR × the
 in-band receiver noise within 4σ of 1/√(<var>B</var>·<var>T</var>): 0.9945 (σ 0.0045). (4) Spectrum flat in band (level 1.0078 of power/bandwidth),
 out of band ≤ 2·10⁻⁷. (5) Kurtosis 3.004 (Gaussian 3, σ 0.016).</p>
+
+<h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
+<p>Question from a meeting: a matched filter at 100 kHz looks less noisy than at 1 kHz, so should a higher <code>f_out</code> help? Two experiments, 300 trials,
+every measured SNR within 4σ of its prediction. (1) Known pulse (FWHM 5 ms) in white noise: with the same σ per sample at every rate the SNR grows as
+√<var>f</var><sub>s</sub> (4.9 → 170), because the noise PSD the filter sees, 2σ²/<var>f</var><sub>s</sub>, drops; with a fixed physical PSD and integrate-and-dump (the
+pipeline) it is 5.0 at every rate; keeping one sample per output (aliasing) grows back to 5.0 only at the analog rate. Measured = √(2<var>E</var>/<var>N</var><sub>0</sub>)
+with the <var>N</var><sub>0</sub> the filter sees, in all cases. (2) Noise-like pulse with the square law: square → average (pipeline) sits at the radiometer bound
+<var>a</var>√(<var>B</var>∫(<var>g</var>−⟨<var>g</var>⟩)²d<var>t</var>) for every <code>f_out</code>; square → keep one, or average the voltages → square, grow as
+√<code>f_out</code> and reach it only at <code>f_out</code> = <var>B</var>. The bound is set by <var>B</var>·<var>T</var>, not by the post-detection rate.
+Full discussion: <code>logs/2026-10-09_fout-study.md</code>.</p>
 
 <h2>Statistical validations (scripts, not unit tests)</h2>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> are experiments with tables, not PASS/FAIL units, and take minutes. See

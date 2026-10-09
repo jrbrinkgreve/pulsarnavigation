@@ -508,6 +508,18 @@ bins by ~1.5× (fold check predicted 0.226 µs instead of the correct 0.277 µs 
 run).** In a narrow channel neighbouring detected time bins are
 correlated (§5.17: var V, covariance X(L) at L bins apart, relative to σ² = m²/(B·dt)).
 A phase-bin sum S_j = Σ_k a_kj P_k then has
+**Coverage warning `foldProfile:coverage` (9 Oct 2026; validated, Jasper's run of
+`testFoldWeights` incl. test 7).** Consecutive time bins are f·binDt·NBin
+phase bins apart; above 1 a sub-int can leave phase bins empty, and `estimateTOA` /
+`detectPulsar` (MinCoverage 1) reject every sub-int. Found in the f_out sweep
+(`2026-10-09_fout-study.md`): f_out = 100 kHz with NBin 2048 and 1 turn per sub-int gives
+1984 of 2048 bins and no TOAs at all, with no message. Check before folding, on the time grid
+alone (observer information): the time bins of sub-int 2 (the first complete one), assigned
+as in the fold (linear: both neighbours with weight > 0); fewer than NBin bins hit → warning
+with the limits NBin ≤ time bins per turn, binDt ≤ 1/(f·NBin), or more turns per sub-int.
+Skipped when f·binDt·NBin ≤ 1 (always covered), with fewer than 3 sub-ints, or above 2^22
+time bins in the check. Fold outputs unchanged (tests 1–6 bit-identical).
+
 cov(S_j, S_j+d) = σ²·Σ_k Σ_k′ a_kj a_k′,j+d c(k′ − k), c(0) = V, c(±L) = X(L).
 - `'NoiseCoeffs'` = [V X(1..Lmax)] (from `detectChannels` info.noise); default 1 =
   independent bins (full band) → everything as before, bit for bit.
@@ -642,6 +654,19 @@ observed profile); its phase 0 then defines the TOA.
 For a fold with several channels (nChan > 1) the profile is p = Σ_c prof_c (equal
 weights). Exclusion rule: a channel is used only if it has data (W > 0) in every phase
 bin where any channel has data (a missing channel would leave a dip); partial weights
+**Resolution warning `estimateTOA:resolution` (9 Oct 2026; validated, Jasper's run of
+`testChannelTOA` incl. test 7).** A profile bin is the pulse averaged over
+a time bin (binDt·f0 turns) and spread over ~1 phase bin by the fold's assignment; the
+template is the unsmoothed pulse at the bin centres. Warning when r = max(binDt·f0, 1/NBin)
+> w/5, w = the template's narrowest width at half maximum (`halfMaxWidth`: circular, edges
+interpolated; a Gaussian gives its FWHM). Observer information only; `info.binResolution`
+and `info.templateWidth` returned. Calibration (`2026-10-09_fout-study.md`, −5 dB, 5 seeds,
+rms error / error bar, 1.04 with fine bins): **time bins** of w/2.5 → 2.04, w/5 → 1.08,
+w/15 → 1.03; **phase bins only** (1 µs time bins) of w/1.2–1.6 → 1.14–1.16, w/2.4–6.4 →
+1.05–1.06, w/12.8 → 1.04 (red. χ² 1.45 → 1.06 → 1.007 at SNR 92). So coarse time bins are
+the critical side; the w/5 rule covers both conservatively. Main's settings: r = w/102.
+Later, if coarse bins are ever needed: a bin-smoothed template.
+
 stay in. Noise: channels independent → var(p_j) = Σ_c s_cj²·W2_cj/W_cj²,
 cov(p_j, p_j+d) = Σ_c s_cj s_c,j+d·WX_cjd/(W_cj W_c,j+d) for all lags d = 1..D,
 s_cj = m_c(φ_j)/√(B_c·binDt), m_c = a_c + b_c·template(φ − τ) with a_c, b_c from the same
@@ -2007,6 +2032,15 @@ barycentric corrections, navigation solution).
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
   (§7), not for the weak-signal target.
+10. **[todo] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
+   In the lag loop, `q = h(1:end-tau) .* conj(h(1+tau:end))` is a scalar at
+   tau = numel(h) − 1, and `fft(q, M)` of a scalar returns a ROW (1×M); `Kf .* Qf`
+   then expands to M×M (2^19 × 2^19, "4096 GB" error, line 213). Triggered when the
+   lag range reaches the filter length, (Lmax+1)·n ≥ numel(h), i.e. long time bins
+   (low f_out) with excision on; f_out = 2 kHz crashed, 100 kHz and 1 MHz run fine.
+   Proposed fix: `Qf = fft(q, M, 1)` (line 203; one line, used by both the mean and the
+   C products), and optionally stop the loop at tau = numel(h) − 1 (higher lags have C = 0). Not fixed yet (validated code):
+   design note + rerun of `tests/testBlankingWeights.m` plus a long-bin case.
 - **Receiver noise does not pass W_f** in the simulation (real noise passes the same
   analog bandpass as the sky signal); < 1 % in SNR; fix by making the dispersion band
   slightly wider than the analysis band if needed (`2026-10-05_fidelity.md`).
@@ -2252,6 +2286,7 @@ per day).
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
 | `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
+| `tests/expSamplingRate.m` | experiment (9 Oct): sample rate vs matched-filter SNR (√(2E/N0) with the N0 the filter sees) and the square law (radiometer bound independent of f_out) | passes (Claude's run, 9 Oct) |
 | `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct); B6-1 Claude's run |
 | `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | Claude's run (8 Oct) |
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |

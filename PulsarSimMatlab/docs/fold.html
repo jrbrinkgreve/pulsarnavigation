@@ -130,6 +130,12 @@ weighted fold is unbiased (−0.0019 ± 0.0009), a naive fold is off by −0.574
 Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. Rule of thumb NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter
 SNR do not depend on NBin once bins are fine. What NBin does change is cost: weights scale as NBin × sub-ints × channels × lags,
 so long observations will likely use fewer bins or sub-bands.</p></div>
+<div class="callout warn"><span class="ttl">NBin and f_out together: every phase bin needs data (warning since 9 Oct)</span>
+<p>Consecutive time bins are <var>f</var>·binDt·NBin phase bins apart. Above 1, a sub-int can leave phase bins empty, and
+<code>estimateTOA</code> / <code>detectPulsar</code> (MinCoverage 1) then reject every sub-int. Example from the f_out sweep: f_out = 100 kHz
+(10.08 µs bins) with NBin 2048 and 1 turn per sub-int fills 1984 of 2048 bins, so the run gives no TOAs at all. <code>foldProfile</code> now checks the time
+grid of the first complete sub-int before folding and issues <code>foldProfile:coverage</code> with the limits: NBin ≤ time bins per turn,
+binDt ≤ 1/(<var>f</var>·NBin), or more turns per sub-int. Main's settings (0.96 µs bins, 4.9 µs phase bins) are far inside the limit.</p></div>
 <div class="callout why"><span class="ttl">Sub-int length: SNR ≥ 6–7</span>
 <p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model).
 Sub-ints exist to validate error bars, see drift (phase-model errors, motion, clock, position error) and catch bad data. Below SNR ≈ 6

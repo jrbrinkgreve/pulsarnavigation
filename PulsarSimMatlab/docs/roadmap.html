@@ -87,6 +87,7 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><td><span class="badge todo">todo</span> Factor the chain into one function</td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code>.</td></tr>
 <tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
 <tr><td><span class="badge todo">todo</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: retire or update.</td></tr>
+<tr><td><span class="badge todo">todo</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct. At lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returns a row, so <code>Kf .* Qf</code> expands to an M×M array and the run stops. Happens when (Lmax+1)·n ≥ numel(h): low <code>f_out</code> (2 kHz) with excision on; 100 kHz and 1 MHz are fine. Fix: <code>fft(q, M, 1)</code> (line 203), then rerun <code>testBlankingWeights</code> plus a long-bin case.</td></tr>
 <tr><td>Deferred: phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR.</td></tr>
 </table></div>
 
