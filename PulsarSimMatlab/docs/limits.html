@@ -99,6 +99,7 @@ strong pulses (block-B handover <a href="../logs/2026-10-09_handover-B-closed.md
 <li><b>High DM in the generator:</b> forward dispersion needs ~47 GB at DM 60 and ~94 GB at DM 100 (24 GB machine). The processing side is solved by the
 channelized front end; the generator side is open (<a href="roadmap.html#dm">roadmap</a>).</li>
 <li>Disk: ~61 GB per second of simulated data. Hours of data need the fast simulator (block C).</li>
+<li><b>Excision on long files</b> (12 Oct): the front end streams, but <code>detectRFI</code> (reads each channel whole), <code>periodicRFI</code> (all events at once) and <code>blankingWeights</code> (each blanked channel whole; weight array 4.8 GB at <var>L</var> = 1 s, above its 4 GB default) do not. Fine for 0.1 s simulations and for block C; needed for real data. Designed (time blocks with the filter reach as overlap), not built.</li>
 </ul>
 
 </main>

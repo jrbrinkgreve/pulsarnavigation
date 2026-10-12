@@ -1130,11 +1130,20 @@ numbers exactly). **Test 4** (`testBlankingWeights`): 1401-sample bins with Lmax
 range reaches channel 128's filter (2802 samples); 3 blanks in channel 128. 9 bins vs the
 direct covariance matrix: max diff 2.8e-8. The HEAD version fails this case with the
 4096 GB error (checked 12 Oct). Claude's and Jasper's runs 12 Oct: ALL PASSED, ~110 s in total.
-**Remaining limit (not fixed):** the lag array `A` holds n·nb·(Lmax+1)·n doubles ≈
-N_samples·(Lmax+1)·n·8 bytes per blanked channel: 0.1 GB at 1 MHz, but ~3 GB at 10 kHz
-and ~14 GB at 2 kHz for 0.1 s of data, with (Lmax+1)·n lag FFTs. `MaxMemoryGB` checks only
-the weight file. Matters only for long bins (e.g. slow pulsars with wide pulses); fix when
-needed (sum the lags into V, X inside the loop instead of storing `A`).
+**Lag-array memory (fixed 12 Oct):** the lag loop stored |C(a, a+τ)|² for every sample and lag
+(n·nb·(Lmax+1)·n doubles: 0.1 GB at 1 MHz, ~14 GB at 2 kHz for 0.1 s) before `binSums` added them
+up. Now each lag is added into V, X as soon as it is computed (local function `addLag`, the
+former body of `binSums`' loop): one lag in memory, whatever the bin length. Same additions in
+the same order → weight files **bit-identical** to before (checked 12 Oct with the committed
+version on the test-1 mask, a dense 128-channel mask and the long-bin case; slightly faster);
+`testBlankingWeights` all passed, same numbers (Claude's and Jasper's runs): validated.
+**Still limited (not fixed; design ready):** (1) run time ∝ number of lags, (Lmax+1)·n FFT
+pairs per blanked channel (~10 ms each at 0.1 s: ~40 s per channel at 2 kHz); (2) file length:
+each blanked channel is processed whole (FFT size ≥ number of samples) and the weight array
+`Y` is held in memory — 0.5 GB at 0.1 s, **4.8 GB at 1 s (above the 4 GB default `MaxMemoryGB`:
+L = 1 s stops with an error)**. Design (§9): time blocks with an overlap of the filter reach
+(nF + nP + nR samples; exact, since C(a, a+τ) only uses the mask near a), block-outer /
+channel-inner loop, `Y` written per block, clean blocks skipped.
 
 ### 5.19 `blankChannels(info_chan, mask, outBase, ...)` [B1, validated 8 Oct 2026 (Jasper's run)]
 
@@ -1928,6 +1937,17 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   designed, not implemented (grid-aware chance; minimum fraction of predicted pulses detected;
   candidates from strong pulses): `2026-10-09_handover-B-closed.md`. The per-channel calibration
   also removes the dense false flags.
+- **Excision chain on long files (12 Oct 2026).** `channelizeIQ`, `blankChannels`,
+  `dedisperseChannels`, `detectChannels` and `foldProfile` stream (memory set by the block size).
+  Three excision stages do not: `detectRFI` reads each channel file whole (`readPower`; ~240 GB
+  per channel for 1 h), `periodicRFI` uses all events and pulse pairs at once (short files only,
+  §5.21), `blankingWeights` processes each blanked channel whole and holds the weight array
+  (4.8 GB at L = 1 s: above its 4 GB default `MaxMemoryGB`, so L = 1 s fails on the channel path
+  with excision unless it is raised). Fine for the 0.1 s simulations and for C (profile level);
+  needed for real data or voltage simulations of seconds and more. Design for `blankingWeights`
+  (§5.18): time blocks with an overlap of the filter reach, exact. `detectRFI`: blocks with an
+  overlap of the longest window + guard. `periodicRFI`: sliding time window. Planned as one piece
+  of work ("excision for long data"), when real data is close.
 - **Covariance between consecutive sub-int profiles not stored (7 Oct 2026, A1a).** With
   correlated time bins (narrow channels) the last time bins of one sub-int correlate
   with the first of the next. Only the 2–3 phase bins at the sub-int boundary (phase 0.5,
@@ -2153,8 +2173,8 @@ barycentric corrections, navigation solution).
 10. **[done 12 Oct] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
    `fft(q, M)` of the scalar q at τ = numel(h) − 1 returned a row → an M×M array. Fixed with
    `fft(q, M, 1)`; `tests/testBlankingWeights.m` test 4 (long bins) added; Claude's and Jasper's
-   runs 12 Oct: all passed (§5.18); validated. Left open: the lag array's memory grows ∝ bin length (~14 GB per
-   blanked channel at 2 kHz for 0.1 s; §5.18). Fix only when long bins are needed.
+   runs 12 Oct: all passed (§5.18); validated. Lag-array memory (∝ bin length) also fixed 12 Oct
+   (bit-identical, Jasper's run, §5.18). Left open: run time ∝ bin length and whole-file processing (§9, design ready).
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR

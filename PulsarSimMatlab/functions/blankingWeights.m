@@ -195,7 +195,7 @@ for j = 1:nChan
     % (0-based) -> result index a-1+nF; zero padding = no data outside the file
     M  = 2^nextpow2(Nc + Nimp);
     Kf = fft(double(keep), M);
-    A  = zeros(n, nb, nTau);                        % |C(a, a+tau)|^2 / m0^2, a in bin k
+    V  = zeros(nb, 1); X = zeros(nb, Lmax);         % summed lag by lag (no [n x nb x nTau] array)
     aIdx = nF + (1:nb*n).';                         % 1-based index of a = 1..nb*n
     Acc = zeros(M, 1);                              % mean: sum_d wR(d) F(keep.keep_d) F(q_d)
     for tau = 0:max(nTau, nR + 1) - 1
@@ -209,16 +209,15 @@ for j = 1:nChan
                 Acc = Acc + wR(tau + 1) * (fft(kd, M) .* Qf);
             end
         end
-        if tau < nTau
+        if tau < nTau                               % |C(a, a+tau)|^2 / m0^2, a in bin k
             Ct = ifft(Kf .* Qf);
-            A(:, :, tau + 1) = reshape(abs(Ct(aIdx)).^2 / m0^2, n, nb);
+            [V, X] = addLag(V, X, reshape(abs(Ct(aIdx)).^2 / m0^2, n, nb), tau, n, Lmax);
         end
     end
     num = real(ifft(Acc));
     w = num(aIdx) / den;                            % valid fraction of each sample
     W = mean(reshape(w, n, nb), 1).';
-    [V, X] = binSums(A, n, Lmax, nb);
-    V = V / rad; X = X / rad;
+    V = V / n^2 / rad; X = X / n^2 / rad;
     for L = 1:Lmax
         X(nb-L+1:nb, L) = 0;                        % no partner bin k+L
     end
@@ -309,18 +308,23 @@ function [V, X] = binSums(A, n, Lmax, nb)
 % Pairs with bin k+L: b in bin k+L, i.e. i + tau in [L*n, L*n + n-1].
 V = zeros(nb, 1); X = zeros(nb, Lmax);
 for tau = 0:size(A, 3) - 1
-    B = A(:, :, tau + 1);
-    if tau < n
-        V = V + (1 + (tau > 0)) * sum(B(1:n-tau, :), 1).';
-    end
-    for L = 1:Lmax
-        i = max(0, L*n - tau) : min(n-1, L*n + n-1 - tau);
-        if ~isempty(i)
-            X(:, L) = X(:, L) + sum(B(i + 1, :), 1).';
-        end
-    end
+    [V, X] = addLag(V, X, A(:, :, tau + 1), tau, n, Lmax);
 end
 V = V / n^2; X = X / n^2;
+end
+
+function [V, X] = addLag(V, X, B, tau, n, Lmax)
+%ADDLAG  Add lag tau to the pair sums of binSums (without the 1/n^2).
+% B(i+1, k) = |C(a, a+tau)|^2 for sample a = (k-1)*n + 1 + i of bin k.
+if tau < n
+    V = V + (1 + (tau > 0)) * sum(B(1:n-tau, :), 1).';
+end
+for L = 1:Lmax
+    i = max(0, L*n - tau) : min(n-1, L*n + n-1 - tau);
+    if ~isempty(i)
+        X(:, L) = X(:, L) + sum(B(i + 1, :), 1).';
+    end
+end
 end
 
 function writeCF32(file, x)
