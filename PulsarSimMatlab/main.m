@@ -30,7 +30,8 @@ Pipeline (status):
         blankingWeights        mask -> exact data weights W, V, X [done, A3a]
     both:
     7. foldProfile             folding with a phase model       [done]
-                               (channels: exact narrow-channel noise, NoiseCoeffs)
+                               (channels: exact narrow-channel noise, NoiseCoeffs;
+                                with excision the data weights, DataWeights)
     8. estimateTOA             template matching (FFTFIT; channels: 'Weighting') [done]
        detectPulsar            noise normalization, NP detector,
                                TOA quality (good = detected, chi2 ok)  [done]

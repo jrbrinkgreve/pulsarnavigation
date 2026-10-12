@@ -45,6 +45,11 @@ test_rx_IQ_chan_*, test_dedisp_chan_*, test_dedisp_chan_power.dat). Writes
      (d) TOAs vs unblanked consistent; noise ratio of detectPulsar = 1, and
          equal to that of the unblanked fold with the same channels per
          sub-int (paired, much tighter).
+  4. Long time bins (12 Oct 2026; notes §10 item 10): bins of 1401 samples
+     with Lmax 1, so the lag range (Lmax+1)*n reaches the length of channel
+     128's filter (2802 samples) and q_tau is a scalar at the last lag
+     (crashed before: fft of a scalar is a row). Channel 128 blanked (9, 300
+     and 3001 samples); W, V, X(1) vs the direct covariance matrix as in 1.
 Errors at the end if any check fails.
 %}
 
@@ -407,6 +412,45 @@ fprintf(['       noise ratio blanked - unblanked with the same channels, per sub
 if ~okT, fails{end+1} = 'TOAs'; end
 if ~okN, fails{end+1} = 'noise ratio'; end
 if ~okNR, fails{end+1} = 'noise ratio paired'; end
+
+% ---------------------------------------------------------------------------------
+% 4. Long time bins: the lag range reaches the filter length
+% ---------------------------------------------------------------------------------
+t4 = tic;
+cL = 128;                                            % shortest filter (2802 samples)
+[h, nF, nP] = channelKernel(info_dc, cL, tmp);
+m0 = sum(abs(h).^2);
+nL = ceil(numel(h) / 2);                             % (Lmax+1)*nL >= numel(h) with Lmax 1
+detL = struct('file', detD.file, 'nChan', nCh, 'binLen', nL, 'N', 60, ...
+    'fullySupportedBins', [2 60], 'noise', struct('Lmax', 1, 'radiometer', rad * n / nL));
+s0 = 20000;
+mask4 = [cL s0 s0+8; cL s0+3000 s0+3299; cL s0+10000 s0+13000];
+try
+    bw4 = blankingWeights(info_chan, info_dc, detL, mask4, fullfile(tmp, 'w4.dat'), 'Verbose', false);
+    ran = true;
+catch err
+    fprintf('4. long time bins: blankingWeights failed: %s\n', err.message);
+    ran = false;
+end
+if ran
+    Y4 = readWeights(bw4);
+    W4 = squeeze(Y4(cL, 1, :));
+    keep = keepOf(mask4, cL, Nc);
+    pick = unique([find(W4(1:end-1) < 0.99999); 3; 40; 55]);
+    err4 = 0;
+    for k = pick.'
+        [We, Ve, Xe] = directStats(h, nF, nP, keep, k, nL, 1, m0, detL.noise.radiometer, bw4.Rx);
+        err4 = max([err4, abs(We - Y4(cL, 1, k)), abs(Ve - Y4(cL, 2, k)), abs(Xe - Y4(cL, 3, k))]);
+    end
+    pass = err4 < 1e-6;
+    fprintf(['4. long time bins (%d samples, Lmax 1, channel %d filter %d samples): runs; %d bins vs ' ...
+             'direct covariance matrix, max |d(W, V, X)| %.1e; %.0f s: %s\n'], nL, cL, numel(h), ...
+        numel(pick), err4, toc(t4), passStr(pass));
+    deleteFiles({bw4.file});
+else
+    pass = false;
+end
+if ~pass, fails{end+1} = 'long time bins'; end
 
 % ---------------------------------------------------------------------------------
 if isempty(fails)

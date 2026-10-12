@@ -110,7 +110,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
 <tr><td>B5a–c</td><td>Realistic radar edges (0.1 µs rise time), radar locked to the pulsar + frequency guard ±7 channels, rotating radar antenna</td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse (<code>periodicRFI</code>). Bug found 9 Oct: false emitters when detections are dense (~30 % blanked) → <b>off by default since 9 Oct</b>; fix designed</td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge validated">9 Oct</span></td></tr>
-<tr><td>B5e</td><td>Realistic L-band scenario (<code>rfiList = 'realistic'</code>): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with narrow Inmarsat-like carriers</td><td><span class="badge written">9 Oct, Claude's runs</span></td></tr>
+<tr><td>B5e</td><td>Realistic L-band scenario (<code>rfiList = 'realistic'</code>): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with narrow Inmarsat-like carriers</td><td><span class="badge validated">validated 12 Oct (rerun)</span></td></tr>
 <tr><td>B parked</td><td>Periodic-mask fix; per-channel noise level measured on the data (designs in the block-B handover)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
 <tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
@@ -179,7 +179,7 @@ See <a href="scripts.html">run scripts</a>.</p>
 <tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
 <tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
 </table></div>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>9750461</code> (8 Oct 2026) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>849ccf5</code> (9 Oct 2026) plus the 12 Oct fixes ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a> · <a href="maintenance.html">docs maintenance</a></p>
 
 </main>

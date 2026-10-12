@@ -40,10 +40,10 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b, coverage warning</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
 <tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~5 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
-<tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a</td><td>~66 s</td><td><span class="badge validated">passes, 7 Oct</span></td></tr>
+<tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a; long time bins (test 4, 12 Oct)</td><td>~110 s</td><td><span class="badge validated">passes, 7 Oct; test 4: 12 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
-<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~33 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
+<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~33 s</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span></td></tr>
 <tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
@@ -122,6 +122,7 @@ component's width at half the global maximum (analytic, 10⁻²).</li>
 <li><b>Consistency:</b> empty mask = A1a fold; far bins = unblanked constants; messy mask = clean mask; (2e) channel autocorrelation from the prototype = measured.</li>
 <li><b>End to end:</b> voltages blanked before dedispersion with a zoo of masks including a phase-locked 400 Hz radar and blanks on the pulse: means unbiased per <var>W</var>
 group, noise per valid-fraction group, channel exclusion as the rule says, TOAs consistent, noise ratio 1.</li>
+<li><b>Long time bins</b> (12 Oct): 1401-sample bins with <var>L</var><sub>max</sub> 1, so the lag range reaches channel 128's filter (2802 samples) and <var>q</var><sub>τ</sub> is a single number at the last lag. 9 bins vs the direct covariance: 2.8·10⁻⁸. The pre-fix code fails this case (an M×M array of 4096 GB).</li>
 </ol>
 
 <h2 id="opt"><code>testOptimalTOA</code></h2>

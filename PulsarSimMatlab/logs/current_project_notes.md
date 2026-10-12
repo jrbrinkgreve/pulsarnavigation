@@ -7,7 +7,9 @@ step, what has been validated (with numbers), what went wrong along the way, and
 still to do.
 
 This file tracks the **current state** of the code (started 30 September 2026 as
-`2026-09-30_project_notes.md`). Last updated: 5 October 2026 (§9: physical-fidelity and
+`2026-09-30_project_notes.md`). **Last updated: 12 October 2026** (`blankingWeights` long-bin
+crash fixed, §10 item 10; B5e cases rerun, §7; stale text fixed; `2026-10-12_overview.md`).
+Earlier updates, in order: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
 `expectedPowerModel`, §5.3/§5.10/§6/§10; phase D SNR sweep `runSNRSweep.m`, §5.12/§7;
 RFI test, bpsk fix, `rfiSelect`, §5.3/§7/§8; see `2026-10-05_fidelity.md`). Then 6 October
@@ -20,7 +22,9 @@ handover `2026-10-08_overview.md`). 8 October: block B1–B4, RFI excision (`bla
 `detectRFI`, `excision` in main, `runRFITest.m`; §5.19, §5.20, §7, §9, §10;
 `2026-10-08_excision.md`). 9 October: B5e, realistic L-band RFI scenario (§5.3, §7, §9,
 §10; `2026-10-09_B5e.md`); block B closed 9 Oct (handover `2026-10-09_handover-B-closed.md`;
-periodic mask default off). Status markers: **[validated]** = run in MATLAB and
+periodic mask default off); 9 October also: f_out study with the `foldProfile:coverage` and
+`estimateTOA:resolution` warnings (§5.7, §5.8; `2026-10-09_fout-study.md`) and the
+dispersed-domain idea (§10, deferred; `2026-10-09_dispersed-domain.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
 **[todo]** = not implemented.
 
@@ -109,7 +113,7 @@ SKY (synthetic)                      runStage.sky
   1. generatePulsarSignal   ─► test.dat              real, f_in = 4 GHz   [validated]
   2. applyDispersionStream  ─► test_dispersed.dat    real, 4 GHz          [validated]
 RECEIVER (synthetic)                 runStage.receiver
-  3. addNoiseAndRFI         ─► test_rx.dat           real, 4 GHz          [written]
+  3. addNoiseAndRFI         ─► test_rx.dat           real, 4 GHz          [validated]
   4. applyIQmodulation      ─► test_rx_IQ.dat        complex, 500 MHz     [validated*]
 PROCESSING                           runStage.process / .fold / .toa
   (frontEnd in pipelineParams, A4 8 Oct: 'channels' (default) or 'fullband')
@@ -277,7 +281,7 @@ cause in-band products through non-linearity; not modelled.)
 
 **Streaming (overlap-add).** Carry = M − 1 samples. `chooseBlockSize` requires
 blockLen ≥ M − 1 (a carry only spills into the next block) and picks the power-of-two
-Nfft with lowest total cost nBlocks·Nfft·log₂Nfft within `MaxMemoryGB` (default 8;
+Nfft with lowest total cost nBlocks·Nfft·log₂Nfft within `MaxMemoryGB` (default 16;
 estimate 44 bytes per FFT sample). Output index = full-convolution index − s0 (fRef on
 its original time). Final carry flushed; energy delayed past the file end is dropped.
 Output length = input length.
@@ -293,7 +297,7 @@ blockLen, nBlocks, memEstimateGB, …
 81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
 memory), which covers this 11.8 GB run.
 
-### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d 9 Oct (Jasper's run); B5e realistic scenario 9 Oct, Claude's runs]
+### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d 9 Oct (Jasper's run); B5e realistic scenario 9 Oct, Claude's runs; validated 12 Oct by a rerun (Claude's run at Jasper's request)]
 
 **Physics / placement.** Noise and man-made interference are added **at the receiver
 input (RF), after dispersion** → they are not dispersed. Dedispersion later applies the
@@ -1062,7 +1066,7 @@ X₁₋₃ 0.0455 / 0.0053 / 0.0018 (pred 0.0458 / 0.0051 / 0.0020 ± 0.0004); v
 sums (~ one 4.9 µs phase bin) 0.9685 × 5·rad (pred 0.9692 ± 0.0014; the independent-bin
 model says 1).
 
-### 5.18 `blankingWeights(info_chan, info_dc, info_det, mask, outFile, ...)` [A3a, validated 7 Oct 2026 (Jasper's run)]
+### 5.18 `blankingWeights(info_chan, info_dc, info_det, mask, outFile, ...)` [A3a, validated 7 Oct 2026 (Jasper's run); long-bin fix validated 12 Oct]
 
 **Idea.** Excision zeroes channel samples before per-channel dedispersion; the fold needs
 per detected bin the valid fraction W, variance V and lag covariances X(L) (A1b
@@ -1116,6 +1120,21 @@ rule says (10 never; 64 left out in sub-ints 3–6; 110–115 left out everywher
 100 µs blanks leave empty phase bins in 1-turn sub-ints); TOAs consistent (−0.25 ± 0.35 µs,
 errors 3.05 vs 2.93 µs); noise ratio 0.987 ± 0.005, paired with the unblanked fold on
 the same channels −0.0075 ± 0.0060.
+
+**Long time bins (12 Oct 2026; §10 item 10).** Fix: `Qf = fft(q, M, 1)` in the lag loop. At
+τ = numel(h) − 1, q_τ is a single number, and `fft` of a scalar returns a ROW, so `Kf .* Qf`
+became M×M (2^19 × 2^19, "4096 GB"). This happens whenever (Lmax+1)·n ≥ numel(h), i.e.
+for long time bins. Lags beyond the filter give an empty column, which `fft(…, M, 1)` turns
+into zeros (correct: C = 0 there). Short bins: no change (tests 1–3 reproduce the 7 Oct
+numbers exactly). **Test 4** (`testBlankingWeights`): 1401-sample bins with Lmax 1, so the lag
+range reaches channel 128's filter (2802 samples); 3 blanks in channel 128. 9 bins vs the
+direct covariance matrix: max diff 2.8e-8. The HEAD version fails this case with the
+4096 GB error (checked 12 Oct). Claude's and Jasper's runs 12 Oct: ALL PASSED, ~110 s in total.
+**Remaining limit (not fixed):** the lag array `A` holds n·nb·(Lmax+1)·n doubles ≈
+N_samples·(Lmax+1)·n·8 bytes per blanked channel: 0.1 GB at 1 MHz, but ~3 GB at 10 kHz
+and ~14 GB at 2 kHz for 0.1 s of data, with (Lmax+1)·n lag FFTs. `MaxMemoryGB` checks only
+the weight file. Matters only for long bins (e.g. slow pulsars with wide pulses); fix when
+needed (sum the lags into V, X inside the loop instead of storing `A`).
 
 ### 5.19 `blankChannels(info_chan, mask, outBase, ...)` [B1, validated 8 Oct 2026 (Jasper's run)]
 
@@ -1187,7 +1206,7 @@ channels 27–39) and 0.18 % remains (this included ~0.02 % of always-on GNSS L1
 in the radar windows — BPSK, 1/f² over tens of MHz; since 8 Oct each channel's steady RFI
 level is subtracted first: ≈ 0.16 %); impulses (1000/s) 98.65 % removed (expected ~98 %);
 carrier / GNSS channels no flags of their own (baseline 47× / 7× / 14×). (3d, with the
-frequency guard ±7) mask = own detections + every strong event copied to ±7 channels
+frequency guard ±7; Jasper's run 12 Oct identical) mask = own detections + every strong event copied to ±7 channels
 (independent coverage check); no strong events on noise or from the −5 dB pulsar; radar
 energy left over all channels (steady level subtracted) zero within ~1e-6 (1.0e-4
 without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 % removed
@@ -1708,6 +1727,10 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   data (SNR 69 / 66, χ² 1.19 / 1.40): periodicRFI accepts false emitters at ~14.1 kHz from
   the dense false flags (§9). Run 1 (cases 1, 13, 14) used runRFITest before its periodic
   hook (= periodic mask off); case 15 without the mask from a scratch copy.
+- **Rerun 12 Oct (validation; Claude's run at Jasper's request):** `runRFITest` cases 1, 13, 14,
+  15 with today's code (periodic mask off, `blankingWeights` long-bin fix), 9 min. Every number
+  of the table above and of B4 / B5d for cases 1 and 13 reproduced exactly. New row, case 15
+  without excision: 0/8 good, SNR 79.2, red. χ² 17.6 (radar), 25 channels with r > 1.1.
 
 ---
 
@@ -1865,7 +1888,7 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   Remaining remedies: periodic mask (B6), Doppler decorrelation (D). Rotating radar
   (B5c): sidelobe pulses at −35 dB are mostly missed per pulse (39.5 % caught, 61 % of
   their energy missed) and dominate a rotating radar's leftover → periodic mask (B6):
-  with it (default since B6-3) a locked radar seen only through −35 dB sidelobes leaves
+  with it (`periodicMask`; off by default since 9 Oct) a locked radar seen only through −35 dB sidelobes leaves
   1.2e-10 of the baseline (bias 0.001 µs at −54 dB), a locked main-beam radar 0.41 µs at
   −54 dB. periodicRFI v1: fixed PRF only (staggered PRF unfitted, reported), short files
   (all pulse pairs; one mask row per pulse and channel), needs ≥ 6 detected pulses of an
@@ -1947,12 +1970,12 @@ the −35 dB sidelobe radar found from 42 % of its pulses, then 100 % blanked, e
 cases 9–12: locked −35 dB sidelobe radar leaves 1.2e-10 (bias 0.001 µs at −54 dB), locked
 main beam 0.41 µs at −54 dB (§7). **B5d** `'noise'` type validated 9 Oct (Jasper's run of `testRfiNoise`; §5.3, §7):
 LTE undetectable and down-weighted as expected; found: partly covered edge channels break
-the flat-spectrum assumption (false flags, χ² 1.04; §9). **B5e** done 9 Oct (Jasper chose
+the flat-spectrum assumption (false flags, χ² 1.04; §9). **B5e** done 9 Oct, validated 12 Oct by a rerun (Jasper chose
 "measure first"; log `2026-10-09_B5e.md`; §5.3, §7, §9): `rfiList` / `rfiRealistic` in
 `pipelineParams`, `runRFITest` cases 14–15 + per-channel noise check + periodic hook.
 Lopsided channels: error bars 0.39 % too small in the realistic scenario, 3.4 % with narrow
 Inmarsat-like carriers (χ² 1.22). New: periodicRFI false emitters from dense false flags
-blank ~30 % of the data on main's default path (§9). **Block B closed 9 Oct** (Jasper: "are we not
+blank ~30 % of the data when the periodic mask is on (§9). **Block B closed 9 Oct** (Jasper: "are we not
 stuck in a very tiny hole about RFI?" — essentials done, the rest second-order against
 estimated RFI): periodic mask default off; periodicRFI fix and per-channel noise calibration
 parked with ready designs (`2026-10-09_handover-B-closed.md`). **Next block: C — not started,
@@ -2127,15 +2150,11 @@ barycentric corrections, navigation solution).
    (item 3) covers it statistically first.
 9. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
    or update to `binTime0` and `'ieee-le'`.
-10. **[todo] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
-   In the lag loop, `q = h(1:end-tau) .* conj(h(1+tau:end))` is a scalar at
-   tau = numel(h) − 1, and `fft(q, M)` of a scalar returns a ROW (1×M); `Kf .* Qf`
-   then expands to M×M (2^19 × 2^19, "4096 GB" error, line 213). Triggered when the
-   lag range reaches the filter length, (Lmax+1)·n ≥ numel(h), i.e. long time bins
-   (low f_out) with excision on; f_out = 2 kHz crashed, 100 kHz and 1 MHz run fine.
-   Proposed fix: `Qf = fft(q, M, 1)` (line 203; one line, used by both the mean and the
-   C products), and optionally stop the loop at tau = numel(h) − 1 (higher lags have C = 0). Not fixed yet (validated code):
-   design note + rerun of `tests/testBlankingWeights.m` plus a long-bin case.
+10. **[done 12 Oct] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
+   `fft(q, M)` of the scalar q at τ = numel(h) − 1 returned a row → an M×M array. Fixed with
+   `fft(q, M, 1)`; `tests/testBlankingWeights.m` test 4 (long bins) added; Claude's and Jasper's
+   runs 12 Oct: all passed (§5.18); validated. Left open: the lag array's memory grows ∝ bin length (~14 GB per
+   blanked channel at 2 kHz for 0.1 s; §5.18). Fix only when long bins are needed.
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
@@ -2367,7 +2386,7 @@ per day).
 |---|---|---|
 | `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
-| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct (§7) |
+| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct; rerun 12 Oct, identical (validated, §7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
 | `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
 | `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
@@ -2387,18 +2406,18 @@ per day).
 | `applyIQmodulation.m` | downconversion to complex baseband | validated |
 | `applyInverseDispersion.m` | coherent dedispersion | validated |
 | `detectPower.m` | square-law detection, optional channels | validated |
-| `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct) | validated (A1a, A1b: 7 Oct) |
-| `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct); 'Weighting','optimal' weighted multi-channel fit (A2c-1, 7 Oct) | validated (noise-free; −5 dB MC; A2a, A2c-1 7 Oct) |
+| `foldProfile.m` | folding with phase model; `NoiseCoeffs`: exact phase-bin covariance for correlated time bins (A1a, 7 Oct); `DataWeights`: per-channel data weights (A1b, 7 Oct); `foldProfile:coverage` warning (9 Oct) | validated (A1a, A1b: 7 Oct; coverage warning 9 Oct) |
+| `estimateTOA.m` | FFTFIT TOAs + uncertainties; channels combined with per-channel noise, all lags (A2a, 7 Oct); 'Weighting','optimal' weighted multi-channel fit (A2c-1, 7 Oct); `estimateTOA:resolution` warning (9 Oct) | validated (noise-free; −5 dB MC; A2a, A2c-1 7 Oct; resolution warning 9 Oct) |
 | `validateTOA.m` | TOA vs ground truth, MC pooling | validated |
 | `detectPulsar.m` | NP detection (known / unknown phase), noise normalization, noise check; channels combined, all lags (A2b, 7 Oct); 'Weighting','optimal' weighted matched filter (A2c-2, 8 Oct) | validated (6 Oct; P_FA via `runH0.m`; A2b 7 Oct; A2c-2 8 Oct) |
 | `combineChannels.m` | channels used for a profile (exclusion rule), their sum and weights; shared by estimateTOA / detectPulsar (A2) | tested via `testChannelTOA` |
-| `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a) | validated (7 Oct) |
+| `blankingWeights.m` | blanking mask → exact W, V, X(L) per detected bin; mean with the true channel spectrum (A3a); long-bin fix (12 Oct) | validated (7 Oct; long-bin fix 12 Oct, Jasper's run) |
 | `blankChannels.m` | mask → blanked copies of the channel IQ files (B1) | validated (8 Oct) |
 | `detectRFI.m` | per-channel multi-scale power threshold, exact thresholds, guard → mask (B2); frequency guard for strong events (B5b-2); event list for periodicRFI (B6-1) | validated (8 Oct; B6-1 with B6) |
 | `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | validated (8 Oct, Jasper's run of testPeriodicRFI) |
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
-| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; 3d Claude's run) |
+| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; incl. 3d: Jasper's run, 12 Oct) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
@@ -2410,10 +2429,10 @@ per day).
 | `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | validated (6 Oct) |
 | `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Jasper's run, 6 Oct) |
 | `tests/makeFoldReference.m` | saves the pre-A1 reference folds (`data/mc/foldRef_pre3c.mat`) | run 6 Oct |
-| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking | passes (Jasper's run, 7 Oct) |
+| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking; test 7: coverage warning (9 Oct) | passes (Jasper's run, 7 Oct; test 7: Jasper's run, 9 Oct) |
 | `tests/makeToaReference.m` | saves pre-A2 estimateTOA / detectPulsar outputs (`data/mc/toaRef_preA2.mat`) | run 7 Oct |
-| `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio | passes (Jasper's run, 7 Oct) |
-| `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs) | passes (Jasper's run, 7 Oct) |
+| `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio; test 7: resolution warning (9 Oct) | passes (Jasper's run, 7 Oct; test 7: Jasper's run, 9 Oct) |
+| `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs); test 4: long time bins (12 Oct) | passes (Jasper's run, 7 Oct; with test 4: Jasper's run, 12 Oct) |
 | `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data; A2c-2 (tests 6–10): detection default, explicit H0 matrices, H0 / H1 Monte Carlo, blanked data | passes (Jasper's run, 7 and 8 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
 | `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |

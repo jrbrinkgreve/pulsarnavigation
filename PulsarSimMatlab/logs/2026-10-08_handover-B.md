@@ -43,7 +43,7 @@ Previous handover (block A): `2026-10-08_overview.md`.
 | B5d | `'noise'` RFI type (band-limited Gaussian, LTE-like); LTE cases in `runRFITest` | 9750461 |
 | docs | site created (by a separate session) and updated for B6 / B5d | 9da0f49, a0f9198, 5a6ae63 |
 
-Validated by Jasper's runs: B1–B4, B5a, B5b-2, B5c, B6. Pending: B5d (`testRfiNoise`).
+Validated by Jasper's runs: B1–B4, B5a, B5b-2 (`testDetectRFI` 3d: Jasper's run recorded 12 Oct), B5c, B6. Pending: B5d (`testRfiNoise`).
 
 ## Where things stand
 

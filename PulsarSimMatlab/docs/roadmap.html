@@ -33,7 +33,7 @@ periodic mask off by default, open items parked with designs. C not started yet 
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
 <tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span> (A3b, a multi-seed Monte Carlo with blanking, optional)</td></tr>
-<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge written">written</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
+<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
 <tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
@@ -63,7 +63,7 @@ pulses detected, trial periods from strong pulses.</li>
 <li><b>Parked: per-channel noise calibration</b> — measure each channel's noise level on the data instead of assuming a flat spectrum (a change
 to the validated TOA / detection noise model, design note first). Justified by B5e: TOA error bars 3.4 % too small with narrow
 Inmarsat-like carriers; it also removes the dense false flags that fed the periodic-mask bug.</li>
-<li><b>B5e</b> <span class="badge written">done 9 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in
+<li><b>B5e</b> <span class="badge validated">done 9 Oct, validated 12 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in
 <code>pipelineParams</code> (<a href="receiver.html#realistic">receiver</a>, <a href="results.html#b5e">results</a>). Frequencies verified online on 8 Oct: GPS L2 1227.6, GLONASS G2
 ~1246, BeiDou B3 1268.52, Galileo E6 1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32 1452–1496 (EU),
 Inmarsat downlink 1525–1559, BeiDou B1 1561.1, GPS L1 1575.42, GLONASS G1 ~1598–1606 MHz; 1400–1427 MHz is protected for radio astronomy.</li>
@@ -95,7 +95,7 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><td><span class="badge todo">todo</span> Factor the chain into one function</td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code>.</td></tr>
 <tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
 <tr><td><span class="badge todo">todo</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: retire or update.</td></tr>
-<tr><td><span class="badge todo">todo</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct. At lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returns a row, so <code>Kf .* Qf</code> expands to an M×M array and the run stops. Happens when (Lmax+1)·n ≥ numel(h): low <code>f_out</code> (2 kHz) with excision on; 100 kHz and 1 MHz are fine. Fix: <code>fft(q, M, 1)</code> (line 203), then rerun <code>testBlankingWeights</code> plus a long-bin case.</td></tr>
+<tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Still open: the lag array's memory grows with the bin length (~14 GB per blanked channel at 2 kHz for 0.1 s); fix only when long bins are needed.</td></tr>
 <tr><td>Deferred: phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR.</td></tr>
 </table></div>
 

@@ -37,11 +37,11 @@ channelizeIQ → detectRFI → [periodicRFI if periodicMask] → blankChannels �
 | B3 | excision in `main.m` (`excision = true`, default) | f4181f5 | Jasper |
 | B4 | `runRFITest.m`: each RFI type with / without excision | f4181f5 | Jasper |
 | B5a | radar `RiseTime` (0.1 µs default) | 724501d | Jasper |
-| B5b / B5b-2 | `runLockedRadar.m`; `detectRFI` frequency guard (`FreqGuard` 7) | 724501d | Jasper |
+| B5b / B5b-2 | `runLockedRadar.m`; `detectRFI` frequency guard (`FreqGuard` 7) | 724501d | Jasper (`testDetectRFI` 3d: Jasper's run 12 Oct) |
 | B5c | rotating antenna for any RFI type | 9b959f0 | Jasper |
 | B6 | `periodicRFI` (periodic mask); **default off since 9 Oct** | 2082540 | Jasper (testPeriodicRFI) |
 | B5d | `'noise'` RFI type (LTE) | 9750461 | Jasper (`testRfiNoise`, 9 Oct: all passed) |
-| B5e | realistic scenario (`rfiList`, `rfiRealistic`), `runRFITest` cases 14–15, per-channel noise check, periodic hook | f019a8a | Claude's runs at Jasper's request |
+| B5e | realistic scenario (`rfiList`, `rfiRealistic`), `runRFITest` cases 14–15, per-channel noise check, periodic hook | f019a8a | Claude's runs at Jasper's request; rerun 12 Oct, identical |
 | close | `periodicMask` default false; this handover | (this commit) | – |
 
 Defaults: `frontEnd 'channels'`, `weighting 'optimal'`, `excision true` (detectRFI windows 1–16
@@ -135,8 +135,8 @@ check in `runRFITest` compares with the median channel and is invalid under heav
 ## Pending runs (Jasper)
 
 - ~~`run('tests/testRfiNoise.m')` (B5d)~~ done 9 Oct: all passed.
-- Optional: `runRFITest` with `runCases = [1 13 14 15]` (~10 min) to validate B5e yourself
-  (now without the periodic mask by default — matches the B5e table in notes §7).
+- ~~Optional: `runRFITest` with `runCases = [1 13 14 15]` (~10 min) to validate B5e~~ done 12 Oct
+  (Claude's run at Jasper's request): every number of the B5e table reproduced (notes §7).
 
 ## How to run (RFI)
 

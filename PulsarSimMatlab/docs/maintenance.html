@@ -47,7 +47,7 @@ then the notes; fix the site.</p>
 <h2>Discrepancies found while writing the docs</h2>
 <div class="table-wrap"><table>
 <tr><th>Date</th><th>Where</th><th>What</th><th>Status</th></tr>
-<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16)</td></tr>
+<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16); notes §5.2 still said 8 in one place, fixed 12 Oct 2026</td></tr>
 </table></div>
 
 <h2>Changelog</h2>
@@ -64,12 +64,15 @@ history, roadmap, home); B5d (<code>'noise'</code> type, LTE results, the flat-s
 status strip (the per-block table kept, collapsible), sections grouped by purpose. New home-page styles in <code>style.css</code>.</td></tr>
 <tr><td>9 Oct 2026</td><td><code>d501ea7</code></td><td><code>applyDispersionStream</code> help text fixed (<code>MaxMemoryGB</code> default 16); discrepancy closed.
 Rerun <code>tools/make_api.py</code> after that commit so <code>api.html</code> shows the new help text.</td></tr>
+<tr><td>9 Oct 2026</td><td><code>2f6eddc</code></td><td>f_out study: <code>foldProfile:coverage</code> and <code>estimateTOA:resolution</code> warnings documented (fold, toa: callouts; tests: test 7 of <code>testFoldWeights</code> and <code>testChannelTOA</code>, <code>expSamplingRate</code>). Row added 12 Oct (missing from this changelog).</td></tr>
 <tr><td>9 Oct 2026</td><td><code>f019a8a</code></td><td>Realistic scenario (B5e) documented with its commit: receiver (realistic list), parameters (<code>rfiList</code>,
 <code>rfiRealistic</code>), scripts (<code>runRFITest</code> cases 14–15, per-channel check, periodic hook), results (B5e), limits and excision
 (lopsided channels quantified; periodic-mask false emitters), roadmap, history, home.</td></tr>
 <tr><td>9 Oct 2026</td><td><code>cbecd1d</code></td><td>Block B closed, <code>periodicMask</code> default false: parameters, excision, limits, results, roadmap, home, history
 (decisions, log list); block-B handover linked.</td></tr>
 <tr><td>9 Oct 2026</td><td><code>70b4e96</code></td><td>B5d validated (Jasper's run of <code>testRfiNoise</code>): receiver, tests, roadmap, home.</td></tr>
+<tr><td>9 Oct 2026</td><td><code>0656e60</code></td><td>Binning demo <code>demoBinningMatchedFilter</code> registered on the tests page. Row added 12 Oct (missing from this changelog).</td></tr>
+<tr><td>12 Oct 2026</td><td>after <code>849ccf5</code></td><td><code>blankingWeights</code> long-bin fix (excision: note; tests: test 4; roadmap: done); B5e validated by a rerun (home, roadmap, results, receiver); home commit line updated; changelog rows for <code>2f6eddc</code> and <code>0656e60</code> added. Rerun <code>tools/make_api.py</code> after the commit.</td></tr>
 </table></div>
 
 </main>

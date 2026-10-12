@@ -200,7 +200,7 @@ for j = 1:nChan
     Acc = zeros(M, 1);                              % mean: sum_d wR(d) F(keep.keep_d) F(q_d)
     for tau = 0:max(nTau, nR + 1) - 1
         q  = h(1:end-tau) .* conj(h(1+tau:end));    % l = -nF .. nP-tau
-        Qf = fft(q, M);
+        Qf = fft(q, M, 1);                          % dim 1: q is a scalar at tau = numel(h)-1
         if tau <= nR
             if tau == 0
                 Acc = Acc + wR(1) * (Kf .* Qf);

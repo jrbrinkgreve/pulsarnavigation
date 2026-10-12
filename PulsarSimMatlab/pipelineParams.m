@@ -98,8 +98,8 @@ subintPeriods = 1;     % turns per sub-integration; aim for SNR >= 6-7 per sub-i
                        % (threshold sweep 6 Oct: 92 % / 100 % usable TOAs at SNR 6 / 7.5;
                        % turns needed N = (7 / SNR per turn)^2, SNR per turn ~ 373*rho here)
 frontEnd      = 'channels';  % 'channels' (default since 8 Oct): the channelized front end
-                             % (channelizeIQ -> dedisperseChannels -> detectChannels; where RFI
-                             % excision will go, block B), or 'fullband': the reference path
+                             % (channelizeIQ -> dedisperseChannels -> detectChannels; RFI
+                             % excision runs here, block B), or 'fullband': the reference path
 weighting     = 'optimal';   % channel path: how estimateTOA / detectPulsar combine channels:
                              % 'optimal' (weights 1/variance, all channels) or 'equal'
 chanWidth     = 3.125e6;     % [Hz] channel width of the channelized front end
