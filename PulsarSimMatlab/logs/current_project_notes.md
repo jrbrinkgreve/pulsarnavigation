@@ -1964,7 +1964,8 @@ pointers; details of finished work are in §7 and the session logs.)*
 
 **Status 8 Oct 2026: block A complete** (validated, committed `27b2367`; `main.m` runs the
 channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview.md`.
-**Block B closed 9 Oct: `logs/2026-10-09_handover-B-closed.md`** (state, open items with ready
+**Week of 12 Oct: review week (understand and refine the whole pipeline, stage by stage; C not
+started): `logs/2026-10-12_handover-review-week.md`.** **Block B closed 9 Oct: `logs/2026-10-09_handover-B-closed.md`** (state, open items with ready
 designs, periodic mask default off, pending runs). Earlier handover:
 **`logs/2026-10-08_handover-B.md`** (state of block B,
 the open decision "measure first or fix first", pending runs, how to run, conventions).
@@ -2168,8 +2169,9 @@ barycentric corrections, navigation solution).
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.
-9. **[todo] Legacy `envelopeReconstruction` and `plotEnvelope`** (now in `old/`): retire
-   or update to `binTime0` and `'ieee-le'`.
+9. **[done 12 Oct] Legacy `envelopeReconstruction` and `plotEnvelope`**: kept in `old/` as
+   legacy (Jasper), with the other `old/` files; no active code calls them and `old/` is not on
+   the path. Not updated (`binTime0`, `'ieee-le'`).
 10. **[done 12 Oct] Bug in `blankingWeights`: crash for long time bins (found 9 Oct, f_out sweep).**
    `fft(q, M)` of the scalar q at τ = numel(h) − 1 returned a row → an M×M array. Fixed with
    `fft(q, M, 1)`; `tests/testBlankingWeights.m` test 4 (long bins) added; Claude's and Jasper's
