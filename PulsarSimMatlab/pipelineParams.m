@@ -1,7 +1,9 @@
 %PIPELINEPARAMS  Parameters of the synthetic pipeline (script).
 %{
-Shared by main.m and runMonteCarlo.m, so every script uses the same
-values. Run as a script (`pipelineParams;`): the variables land directly
+Shared by main.m and the run scripts (runMonteCarlo, runSNRSweep, runH0,
+runRFITest, runLockedRadar), so every script uses the same values. The unit
+tests use their own frozen copy (tests/testParams.m, data in data/test/).
+Run as a script (`pipelineParams;`): the variables land directly
 in the caller's workspace. Needs functions/ on the path (rfiSource) and
 MATLAB's current folder = PulsarSimMatlab (dataDir is relative).
 
@@ -22,7 +24,7 @@ L    = 100e-3;               % [s]  total signal length
 seed = 42;              % RNG seed of the pulsar signal
 
 % --- Receiver (known to the observer)
-fLow        = 1.2e9;    % [Hz] lower edge of observed RF band
+fLow        = 1.2e9;    % [Hz] lower edge of observed RF band  
 fHigh       = 1.6e9;    % [Hz] upper edge of observed RF band
 fLO         = 1.3e9;    % [Hz] local oscillator
 fs          = 800e6;    % [Hz] IQ sample rate
@@ -136,10 +138,10 @@ fileIQ        = fullfile(dataDir, "test_rx_IQ.dat");
 fileDedisp    = fullfile(dataDir, "test_IQ_dedispersed.dat");
 fileEnvelope  = fullfile(dataDir, "test_envelope.dat");
 fileFold      = fullfile(dataDir, "test_fold.mat");
-% channelized front end (frontEnd = 'channels'); the unit tests in tests/ use these files too
+% channelized front end (frontEnd = 'channels'); the unit tests use their own copies in data/test/
 chanDir        = fullfile(dataDir, "chan");
 fileChanIQ     = fullfile(chanDir, "test_rx_IQ_chan");             % channelizeIQ (base name)
-% with excision: own files, so the unblanked ones (the tests' reference) stay
+% with excision: own files, so the unblanked ones stay (for comparison)
 fileChanBlank   = fullfile(chanDir, "test_rx_IQ_chan_blanked");          % blankChannels (base name)
 fileChanDedispB = fullfile(chanDir, "test_dedispB_chan");                % dedisperseChannels, blanked
 fileChanPowerB  = fullfile(chanDir, "test_dedispB_chan_power.dat");      % detectChannels, blanked

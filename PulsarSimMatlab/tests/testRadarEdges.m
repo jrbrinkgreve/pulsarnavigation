@@ -2,7 +2,7 @@ function testRadarEdges()
 %TESTRADAREDGES  Unit tests for B5a: radar pulses with raised-cosine edges ('RiseTime').
 %{
 Run from the PulsarSimMatlab folder: run('tests/testRadarEdges.m'). ~5 s.
-Needs data/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m, made with the
+Needs data/test/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m, made with the
 code of f4181f5, before B5a).
 
   1. Regression: all five RFI types with 'RiseTime' 0 for the radar give the
@@ -26,7 +26,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testRadarEdges');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() cleanFolder(tmp));

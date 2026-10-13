@@ -116,10 +116,10 @@ Uncertainties:
 
 Note on optimality: FFTFIT weights bins by the template derivative, which
 is optimal for white (receiver-dominated) noise. With pure self-noise
-(variance proportional to the profile squared, as in the current noise-free
-synthetic data) a flatter weighting such as the power centroid is more
-precise; once receiver noise dominates (the realistic case) FFTFIT is the
-better estimator.
+(variance proportional to the profile squared: noise-free synthetic data,
+SNRdB = Inf) a flatter weighting such as the power centroid is more
+precise (phase D: FFTFIT 1.5x the optimum at +10 dB, 2.4x at +20 dB); once
+receiver noise dominates (the realistic case) FFTFIT is the better estimator.
 %}
 
 arguments
@@ -309,116 +309,116 @@ function r = fitOne(ch, c)
 N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
 p = ch.p; Pc = ch.Pc; W = ch.W; W2 = ch.W2; WX = ch.WX; have = ch.have;
 nLag = size(WX, 3);
-        r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, ...
-                   'a', NaN, 'redChi2', NaN);
-        if ~any(have), return; end
-        if ~all(have)                                       % fill gaps circularly
-            idx = find(have);
-            xi  = [idx - N; idx; idx + N];
-            yi  = repmat(p(idx), 3, 1);
-            p(~have) = interp1(xi, yi, find(~have), 'linear');
-            if size(Pc, 2) > 1                              % the channels likewise
-                Pc(~have, :) = interp1(xi, repmat(Pc(idx, :), 3, 1), find(~have), 'linear');
-            end
-        end
-        P = fft(p);
-        X = P(k + 1) .* conj(Sk);
-
-        % Coarse: band-limited upsampled cross-correlation
-        M = c.M;
-        spec = zeros(M, 1);
-        spec(k + 1) = X;
-        cc = real(ifft(spec));
-        [~, im] = max(cc);
-        tau = (im - 1) / M;
-        if tau >= 0.5, tau = tau - 1; end
-
-        % Refine: Newton on C'(tau) = 0
-        w1 = 2*pi*k;
-        for it = 1:50
-            e  = exp(1i * w1 * tau);
-            c1 = real(sum(1i * w1 .* X .* e));
-            c2 = real(sum(-(w1.^2) .* X .* e));
-            if c2 >= 0, return; end                         % not a maximum
-            d = -c1 / c2;
-            d = max(min(d, 1/M), -1/M);                     % stay near the coarse peak
-            tau = tau + d;
-            if abs(d) < 1e-14, break; end
-        end
-        e  = exp(1i * w1 * tau);
-        c2 = real(sum(-(w1.^2) .* X .* e));
-        b  = real(sum(X .* e)) / sumS2;
-        a  = (real(P(1)) - b * real(S(1))) / N;
-        tau = mod(tau + 0.5, 1) - 0.5;
-
-        % Fitted model on the phase grid (sum and, for the noise, per channel:
-        % a_c, b_c by the same projection, tau fixed; they add up to a, b)
-        shape = real(ifft(S .* exp(-2i*pi*ksg*tau)));
-        m = a + b * shape;
-        onP = (m - a) > c.onFrac * max(m - a);
-        if size(Pc, 2) == 1
-            mC = m;
-        else
-            PC = fft(Pc);
-            bC = real(sum(PC(k + 1, :) .* conj(Sk) .* e, 1)) / sumS2;
-            aC = (real(PC(1, :)) - bC * real(S(1))) / N;
-            mC = aC + bC .* shape;                          % [N x nChan used]
-        end
-
-        % Noise model: variance of each profile bin and covariance with bin j+d,
-        % summed over the (independent) channels, lags d = 1..nLag
-        if strcmp(c.model, 'radiometer')
-            sTB = abs(mC) ./ sqrt(ch.B * c.binDt);          % per time bin, per channel
-            v   = sum(sTB.^2 .* W2 ./ W.^2, 2);
-            cv  = zeros(N, nLag);
-            for lg = 1:nLag
-                cv(:, lg) = sum(sTB .* circshift(sTB, -lg) .* WX(:, :, lg) ./ ...
-                    (W .* circshift(W, -lg)), 2);
-            end
-        else
-            res = p - m;
-            off = ~onP & have;
-            if nnz(off) < 10, return; end
-            v0 = mean(res(off).^2);
-            v  = v0 * ones(N, 1);
-            cv = zeros(N, nLag);
-            for lg = 1:nLag
-                offN = off & circshift(off, -lg);
-                resN = circshift(res, -lg);
-                cv(:, lg) = mean(res(offN) .* resN(offN)) * ones(N, 1);
-            end
-        end
-        v(~have | ~isfinite(v)) = 0;
-        for lg = 1:nLag
-            cl = cv(:, lg);
-            cl(~have | ~circshift(have, -lg) | ~isfinite(cl)) = 0;
-            cv(:, lg) = cl;
-        end
-
-        % tau: C'(tau) = sum_j d_j p_j
-        D = zeros(N, 1);
-        D(k + 1) = 1i * w1 .* conj(Sk) .* exp(1i * w1 * tau);
-        dvec = real(fft(D));
-        varC1 = sum(dvec.^2 .* v);
-        % b: C(tau) = sum_j c_j p_j
-        Cv = zeros(N, 1);
-        Cv(k + 1) = conj(Sk) .* exp(1i * w1 * tau);
-        cvec = real(fft(Cv));
-        varC0 = sum(cvec.^2 .* v);
-        for lg = 1:nLag
-            varC1 = varC1 + 2*sum(dvec .* circshift(dvec, -lg) .* cv(:, lg));
-            varC0 = varC0 + 2*sum(cvec .* circshift(cvec, -lg) .* cv(:, lg));
-        end
-
-        use = onP & have & v > 0;
-        r.ok      = true;
-        r.tau     = tau;
-        r.tauErr  = sqrt(max(varC1, 0)) / abs(c2);
-        r.b       = b;
-        r.bErr    = sqrt(max(varC0, 0)) / sumS2;
-        r.a       = a;
-        r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
+r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, ...
+           'a', NaN, 'redChi2', NaN);
+if ~any(have), return; end
+if ~all(have)                                       % fill gaps circularly
+    idx = find(have);
+    xi  = [idx - N; idx; idx + N];
+    yi  = repmat(p(idx), 3, 1);
+    p(~have) = interp1(xi, yi, find(~have), 'linear');
+    if size(Pc, 2) > 1                              % the channels likewise
+        Pc(~have, :) = interp1(xi, repmat(Pc(idx, :), 3, 1), find(~have), 'linear');
     end
+end
+P = fft(p);
+X = P(k + 1) .* conj(Sk);
+
+% Coarse: band-limited upsampled cross-correlation
+M = c.M;
+spec = zeros(M, 1);
+spec(k + 1) = X;
+cc = real(ifft(spec));
+[~, im] = max(cc);
+tau = (im - 1) / M;
+if tau >= 0.5, tau = tau - 1; end
+
+% Refine: Newton on C'(tau) = 0
+w1 = 2*pi*k;
+for it = 1:50
+    e  = exp(1i * w1 * tau);
+    c1 = real(sum(1i * w1 .* X .* e));
+    c2 = real(sum(-(w1.^2) .* X .* e));
+    if c2 >= 0, return; end                         % not a maximum
+    d = -c1 / c2;
+    d = max(min(d, 1/M), -1/M);                     % stay near the coarse peak
+    tau = tau + d;
+    if abs(d) < 1e-14, break; end
+end
+e  = exp(1i * w1 * tau);
+c2 = real(sum(-(w1.^2) .* X .* e));
+b  = real(sum(X .* e)) / sumS2;
+a  = (real(P(1)) - b * real(S(1))) / N;
+tau = mod(tau + 0.5, 1) - 0.5;
+
+% Fitted model on the phase grid (sum and, for the noise, per channel:
+% a_c, b_c by the same projection, tau fixed; they add up to a, b)
+shape = real(ifft(S .* exp(-2i*pi*ksg*tau)));
+m = a + b * shape;
+onP = (m - a) > c.onFrac * max(m - a);
+if size(Pc, 2) == 1
+    mC = m;
+else
+    PC = fft(Pc);
+    bC = real(sum(PC(k + 1, :) .* conj(Sk) .* e, 1)) / sumS2;
+    aC = (real(PC(1, :)) - bC * real(S(1))) / N;
+    mC = aC + bC .* shape;                          % [N x nChan used]
+end
+
+% Noise model: variance of each profile bin and covariance with bin j+d,
+% summed over the (independent) channels, lags d = 1..nLag
+if strcmp(c.model, 'radiometer')
+    sTB = abs(mC) ./ sqrt(ch.B * c.binDt);          % per time bin, per channel
+    v   = sum(sTB.^2 .* W2 ./ W.^2, 2);
+    cv  = zeros(N, nLag);
+    for lg = 1:nLag
+        cv(:, lg) = sum(sTB .* circshift(sTB, -lg) .* WX(:, :, lg) ./ ...
+            (W .* circshift(W, -lg)), 2);
+    end
+else
+    res = p - m;
+    off = ~onP & have;
+    if nnz(off) < 10, return; end
+    v0 = mean(res(off).^2);
+    v  = v0 * ones(N, 1);
+    cv = zeros(N, nLag);
+    for lg = 1:nLag
+        offN = off & circshift(off, -lg);
+        resN = circshift(res, -lg);
+        cv(:, lg) = mean(res(offN) .* resN(offN)) * ones(N, 1);
+    end
+end
+v(~have | ~isfinite(v)) = 0;
+for lg = 1:nLag
+    cl = cv(:, lg);
+    cl(~have | ~circshift(have, -lg) | ~isfinite(cl)) = 0;
+    cv(:, lg) = cl;
+end
+
+% tau: C'(tau) = sum_j d_j p_j
+D = zeros(N, 1);
+D(k + 1) = 1i * w1 .* conj(Sk) .* exp(1i * w1 * tau);
+dvec = real(fft(D));
+varC1 = sum(dvec.^2 .* v);
+% b: C(tau) = sum_j c_j p_j
+Cv = zeros(N, 1);
+Cv(k + 1) = conj(Sk) .* exp(1i * w1 * tau);
+cvec = real(fft(Cv));
+varC0 = sum(cvec.^2 .* v);
+for lg = 1:nLag
+    varC1 = varC1 + 2*sum(dvec .* circshift(dvec, -lg) .* cv(:, lg));
+    varC0 = varC0 + 2*sum(cvec .* circshift(cvec, -lg) .* cv(:, lg));
+end
+
+use = onP & have & v > 0;
+r.ok      = true;
+r.tau     = tau;
+r.tauErr  = sqrt(max(varC1, 0)) / abs(c2);
+r.b       = b;
+r.bErr    = sqrt(max(varC0, 0)) / sumS2;
+r.a       = a;
+r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
+end
 
 
 % =====================================================================================

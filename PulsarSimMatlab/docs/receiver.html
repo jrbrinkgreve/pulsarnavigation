@@ -14,6 +14,62 @@
 4 GHz stream to complex baseband samples, as an analog I/Q receiver with an ADC would.</p>
 <p class="meta">Run by <code>runStage.receiver</code> · rerun this alone to change the SNR, the RFI or the noise seed.</p>
 
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 234" role="img" aria-label="Receiver block diagram: noise and RFI added at RF, then mixing, low-pass and decimation">
+  <defs>
+    <marker id="ar-rx" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <rect class="box sky" x="10" y="74" width="130" height="50" rx="7"/>
+  <text class="ttl" x="75" y="95" text-anchor="middle">dispersed sky</text>
+  <text class="sub" x="75" y="112" text-anchor="middle">real, 4 GHz</text>
+
+  <rect class="box rx" x="160" y="6" width="150" height="46" rx="7"/>
+  <text class="ttl" x="235" y="25" text-anchor="middle">receiver noise</text>
+  <text class="sub" x="235" y="42" text-anchor="middle">white, σ_n from snrDB</text>
+  <rect class="box rx" x="160" y="146" width="150" height="46" rx="7"/>
+  <text class="ttl" x="235" y="165" text-anchor="middle">RFI sources</text>
+  <text class="sub" x="235" y="182" text-anchor="middle">INR each, × antenna g(t)</text>
+
+  <circle cx="235" cy="99" r="14" class="box rx"/>
+  <text class="ttl" x="235" y="104" text-anchor="middle">+</text>
+  <path class="line" marker-end="url(#ar-rx)" d="M140 99 H219"/>
+  <path class="line" marker-end="url(#ar-rx)" d="M235 52 V83"/>
+  <path class="line" marker-end="url(#ar-rx)" d="M235 146 V115"/>
+  <text class="mono" x="307" y="120" text-anchor="middle">test_rx.dat</text>
+  <path class="line" marker-end="url(#ar-rx)" d="M249 99 H364"/>
+
+  <circle cx="380" cy="99" r="14" class="box rx"/>
+  <text class="ttl" x="380" y="104" text-anchor="middle">×</text>
+  <rect class="box rx" x="315" y="10" width="130" height="46" rx="7"/>
+  <text class="ttl" x="380" y="29" text-anchor="middle">LO 1.3 GHz</text>
+  <text class="sub" x="380" y="46" text-anchor="middle">2·e^(−i2π f_LO t)</text>
+  <path class="line" marker-end="url(#ar-rx)" d="M380 56 V83"/>
+
+  <rect class="box rx" x="420" y="70" width="190" height="58" rx="7"/>
+  <text class="ttl" x="515" y="90" text-anchor="middle">low-pass</text>
+  <text class="sub" x="515" y="106" text-anchor="middle">2049-tap Kaiser sinc, 360 MHz;</text>
+  <text class="sub" x="515" y="120" text-anchor="middle">delay 1024 samples removed</text>
+  <path class="line" marker-end="url(#ar-rx)" d="M394 99 H418"/>
+
+  <rect class="box rx" x="640" y="74" width="80" height="50" rx="7"/>
+  <text class="ttl" x="680" y="96" text-anchor="middle">↓ 5</text>
+  <text class="sub" x="680" y="113" text-anchor="middle">every 5th</text>
+  <path class="line" marker-end="url(#ar-rx)" d="M610 99 H638"/>
+
+  <path class="line" marker-end="url(#ar-rx)" d="M720 99 H748"/>
+  <text class="mono" x="752" y="95">test_rx_IQ.dat</text>
+  <text class="sub" x="752" y="112">complex, 800 MHz</text>
+
+  <path class="thin" d="M160 202 V208 H310 V202"/>
+  <text class="sub" x="235" y="226" text-anchor="middle">stage 3 · addNoiseAndRFI</text>
+  <path class="thin" d="M366 202 V208 H720 V202"/>
+  <text class="sub" x="543" y="226" text-anchor="middle">stage 4 · applyIQmodulation</text>
+</svg>
+<figcaption>The simulated receiver. Stage 3 adds noise and interference at RF, after dispersion (they never pass through the interstellar
+medium). Stage 4 is an ideal analog I/Q receiver with an ADC: mix with the LO, low-pass, keep every 5th sample on the global grid.</figcaption>
+</figure>
 <h2 id="noise">3 · <code>addNoiseAndRFI</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = addNoiseAndRFI(inFile, outFile, fs, 'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, 'RFI', rfi, 'Seed', noiseSeed)</div>
 <p class="meta"><a href="api.html#addnoiseandrfi">Full interface and help text of <code>addNoiseAndRFI</code> →</a></p>
@@ -62,7 +118,7 @@ power in the analysis band (0 dB = as much as the whole in-band noise).</p>
 <tr><th>Type</th><th>Models</th><th>Parameters</th></tr>
 <tr><td><code>'cw'</code></td><td>carrier</td><td><code>Freq</code>, <code>Drift</code> [Hz/s], <code>Phase</code></td></tr>
 <tr><td><code>'bpsk'</code></td><td>GNSS-like spread spectrum: random ±1 rectangular chips</td><td><code>Freq</code>, <code>ChipRate</code></td></tr>
-<tr><td><code>'pulsed'</code></td><td>radar: pulses with an optional linear chirp</td><td><code>Freq</code>, <code>PulseWidth</code>, <code>PRF</code>, <code>ChirpBW</code>, <code>StartTime</code>, <code>RiseTime</code> (default 0.1 µs)</td></tr>
+<tr><td><code>'pulsed'</code></td><td>radar: pulses with an optional linear chirp</td><td><code>Freq</code>, <code>PulseWidth</code>, <code>PRF</code>, <code>ChirpBW</code>, <code>StartTime</code> (a phase: pulses at <code>StartTime</code> + <var>k</var>/PRF for every integer <var>k</var>, also before it), <code>RiseTime</code> (default 0.1 µs)</td></tr>
 <tr><td><code>'impulse'</code></td><td>broadband white bursts at Poisson times</td><td><code>Rate</code>, <code>Duration</code></td></tr>
 <tr><td><code>'noise'</code></td><td>band-limited Gaussian noise: an LTE / OFDM downlink (B5d)</td><td><code>Freq</code> (centre), <code>Bandwidth</code></td></tr>
 </table></div>
@@ -105,7 +161,9 @@ so it looks like extra receiver noise with a raised level in its band. The <code
 noise, filtered by a Kaiser band-pass centred on <code>Freq</code> (−6 dB at <code>Freq</code> ± <code>Bandwidth</code>/2, transition 5 % of the bandwidth,
 60 dB stopband). The white noise comes from counter-based random substreams indexed by absolute sample, also before the first
 sample, and the filter overlaps the block edges, so the result does not depend on the block size. Its power is set from the
-filter's own Σ<var>h</var>², so the INR is exact.</p>
+filter's own Σ<var>h</var>², so the INR is exact. The filtering runs at the full RF rate (a 2 MHz source needs ~1.4·10⁵ taps, a
+200 kHz carrier ~1.4·10⁶), so each source's filter spectrum is computed once and kept for all full blocks (13 Oct 2026,
+bit-identical; 67–134 MB of memory per source).</p>
 <div class="callout why"><span class="ttl">What it shows</span>
 <p>No power or kurtosis test can find Gaussian RFI. Its only signature is the higher level in its channels, which the optimal
 TOA fit already handles (weights 1/level²). In <code>runRFITest</code> (20 MHz at 1472 MHz) it costs 2–3 % SNR and is not flagged. But
@@ -154,7 +212,7 @@ ADC (not modelled). Results: <a href="results.html#b5e">results</a>.</p>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
-<dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. Warns below −60 dB (the pulse would be below single-precision resolution).</dd>
+<dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. No lower SNR limit: the noise dithers the float32 rounding, so even a pulse far below single-precision resolution survives on average (the old warning below −60 dB was removed 13 Oct 2026).</dd>
 <dt>Info</dt><dd>noiseStd, noisePSD, noisePowerBand, snrDB, snrDefinition, noiseAddedAt, rfi (with computed amplitudes and parameters), prediction, seed</dd>
 </dl>
 
@@ -200,6 +258,86 @@ its mirror at −300…+100: a mirrored mapping would put half the band outside 
 <p>This needs <var>f</var><sub>s</sub> = 800 MHz (decimation <var>D</var> = 5 from 4 GHz) so that +300 MHz fits inside the flat passband
 (cutoff 0.9·400 = 360 MHz). The original reference configuration was <var>f</var><sub>LO</sub> = 1.4 GHz, <var>f</var><sub>s</sub> = 500 MHz, <var>D</var> = 8.</p>
 
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 410" role="img" aria-label="Spectra through the IQ stage: RF band, mixing with the LO, low-pass and decimation to complex baseband">
+  <text class="ttl" x="60" y="22">1 · RF: real samples at f_in = 4 GHz</text>
+  <path class="axis" d="M60 100 H820"/>
+  <path class="axis" d="M60.0 100 v5"/>
+  <text class="sub" x="60.0" y="118" text-anchor="middle">-2</text>
+  <path class="axis" d="M136.0 100 v5"/>
+  <text class="sub" x="136.0" y="118" text-anchor="middle">-1.6</text>
+  <path class="axis" d="M212.0 100 v5"/>
+  <text class="sub" x="212.0" y="118" text-anchor="middle">-1.2</text>
+  <path class="axis" d="M440.0 100 v5"/>
+  <text class="sub" x="440.0" y="118" text-anchor="middle">0</text>
+  <path class="axis" d="M668.0 100 v5"/>
+  <text class="sub" x="668.0" y="118" text-anchor="middle">1.2</text>
+  <path class="axis" d="M744.0 100 v5"/>
+  <text class="sub" x="744.0" y="118" text-anchor="middle">1.6</text>
+  <path class="axis" d="M820.0 100 v5"/>
+  <text class="sub" x="820.0" y="118" text-anchor="middle">2</text>
+  <text class="sub" x="826" y="104.0">GHz</text>
+  <rect class="fillsoft" x="668.0" y="52.0" width="76.0" height="48.0" /><path class="curve" d="M668.0 100.0 V52.0 H744.0 V100.0" />
+  <rect class="fillsoft" x="136.0" y="52.0" width="76.0" height="48.0" /><path class="curve" d="M136.0 100.0 V52.0 H212.0 V100.0" />
+  <text class="sub" x="662.3" y="73.0" text-anchor="end">the band</text>
+  <text class="sub" x="174.0" y="46.0" text-anchor="middle">its mirror (a real signal)</text>
+  <path class="curve4" d="M687.0 100.0 V32.8"/>
+  <text class="sub" x="693.0" y="40.8">f_LO = 1.3</text>
+  <text class="ttl" x="60" y="150">2 · × 2·e^(−i2π f_LO t): every frequency moves down by 1.3 GHz, then the low-pass</text>
+  <path class="axis" d="M60 232 H820"/>
+  <path class="axis" d="M60.0 232 v5"/>
+  <text class="sub" x="60.0" y="250" text-anchor="middle">-2</text>
+  <path class="axis" d="M371.6 232 v5"/>
+  <text class="sub" x="371.6" y="250" text-anchor="middle">-0.36</text>
+  <path class="axis" d="M508.4 232 v5"/>
+  <text class="sub" x="508.4" y="250" text-anchor="middle">0.36</text>
+  <path class="axis" d="M649.0 232 v5"/>
+  <text class="sub" x="649.0" y="250" text-anchor="middle">1.1</text>
+  <path class="axis" d="M725.0 232 v5"/>
+  <text class="sub" x="725.0" y="250" text-anchor="middle">1.5</text>
+  <path class="axis" d="M820.0 232 v5"/>
+  <text class="sub" x="820.0" y="250" text-anchor="middle">2</text>
+  <text class="sub" x="826" y="236.0">GHz</text>
+  <path class="curve3" stroke-dasharray="5 3" d="M369.7 232.0 L371.6 172.0 H508.4 L510.3 232.0"/>
+  <text class="sub" x="364.0" y="187.0" text-anchor="end">low-pass</text>
+  <text class="sub" x="364.0" y="202.0" text-anchor="end">±360 MHz</text>
+  <rect class="fillsoft" x="421.0" y="184.0" width="76.0" height="48.0" /><path class="curve" d="M421.0 232.0 V184.0 H497.0 V232.0" />
+  <rect class="fillfg" x="649.0" y="184.0" width="76.0" height="48.0" opacity="0.5"/><path class="curve" d="M649.0 232.0 V184.0 H725.0 V232.0" opacity="0.5"/>
+  <text class="sub" x="687.0" y="178.0" text-anchor="middle">image: −2.9…−2.5 GHz ≡ +1.1…+1.5</text>
+  <text class="sub" x="687.0" y="266.0" text-anchor="middle">(4 GHz sampling) → removed</text>
+  <text class="lbl" x="459.0" y="206.0" text-anchor="middle">−0.1…+0.3</text>
+  <text class="ttl" x="60" y="290">3 · keep every 5th sample: complex baseband at f_s = 800 MHz (zoomed)</text>
+  <path class="axis" d="M60 382 H820"/>
+  <path class="axis" d="M102.2 382 v5"/>
+  <text class="sub" x="102.2" y="400" text-anchor="middle">-0.4</text>
+  <path class="axis" d="M186.7 382 v5"/>
+  <text class="sub" x="186.7" y="400" text-anchor="middle">-0.3</text>
+  <path class="axis" d="M355.6 382 v5"/>
+  <text class="sub" x="355.6" y="400" text-anchor="middle">-0.1</text>
+  <path class="axis" d="M440.0 382 v5"/>
+  <text class="sub" x="440.0" y="400" text-anchor="middle">0</text>
+  <path class="axis" d="M524.4 382 v5"/>
+  <text class="sub" x="524.4" y="400" text-anchor="middle">0.1</text>
+  <path class="axis" d="M693.3 382 v5"/>
+  <text class="sub" x="693.3" y="400" text-anchor="middle">0.3</text>
+  <path class="axis" d="M777.8 382 v5"/>
+  <text class="sub" x="777.8" y="400" text-anchor="middle">0.4</text>
+  <text class="sub" x="826" y="386.0">GHz</text>
+  <path class="dash" d="M102.2 382.0 V319.0"/>
+  <path class="dash" d="M777.8 382.0 V319.0"/>
+  <text class="sub" x="96.2" y="352.0" text-anchor="end">−f_s/2</text>
+  <text class="sub" x="783.8" y="352.0">+f_s/2</text>
+  <path class="curve4" stroke-dasharray="6 4" d="M186.7 382.0 V344.8 H524.4 V382.0"/>
+  <rect class="fillsoft" x="355.6" y="334.0" width="337.8" height="48.0" /><path class="curve" d="M355.6 382.0 V334.0 H693.3 V382.0" />
+  <text class="sub" x="524.4" y="328.0" text-anchor="middle">the band: f_bb = f_RF − f_LO, −100…+300 MHz</text>
+  <text class="sub" x="271.1" y="360.8" text-anchor="middle">sign error:</text>
+  <text class="sub" x="271.1" y="374.8" text-anchor="middle">−300…+100</text>
+</svg>
+<figcaption>Where the band goes in <code>applyIQmodulation</code> (to scale; amplitudes schematic). 1: a real RF signal has its band at
+±(1.2–1.6) GHz. 2: the complex LO shifts everything down by 1.3 GHz; the band lands at −0.1…+0.3 GHz and the mirror far away (at 4 GHz
+sampling, −2.9…−2.5 GHz is the same as +1.1…+1.5 GHz), where the low-pass (cut-off 360 MHz, 2049 taps) removes it. 3: after keeping every
+5th sample the band sits inside ±400 MHz, off-centre on purpose: a mirrored mapping would move it to −300…+100 MHz and fail visibly.</figcaption>
+</figure>
 <h3>Algorithm</h3>
 <ol>
 <li><var>D</var> = round(<var>f</var><sub>in</sub>/<var>f</var><sub>s</sub>); the achieved rate <var>f</var><sub>in</sub>/<var>D</var> is <code>info.actualFsOut</code>.</li>

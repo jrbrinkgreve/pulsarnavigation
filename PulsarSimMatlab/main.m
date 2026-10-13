@@ -51,7 +51,8 @@ info_rx) is only used by the synthetic stages and the check/plot functions.
 % Run control
 runStage.sky      = false;   % pulsar signal + dispersion (the slow part; independent of noise)
 runStage.receiver = true;    % receiver noise/RFI + IQ (rerun this alone to change SNR or RFI)
-runStage.process  = true;   % dedispersion + detection
+runStage.process  = true;   % dedispersion + detection (channel path: also filterbank,
+                             % excision and blankingWeights)
 runStage.fold     = true;
 runStage.toa      = true;   % TOA estimation + validation (needs the fold)
 
@@ -72,13 +73,15 @@ addpath(fullfile(scriptDir, 'functions'));
 pipelineParams;
 
 % Disk estimate for the streamed files
-% raw + dispersed + receiver (real float32 at f_in), IQ + dedispersed (complex at fs), power
-diskGB = L * (3*f_in*4 + 2*fs*8 + f_out*4) / 1e9;
+% both paths: raw + dispersed + receiver (real float32 at f_in), IQ (complex at fs)
+diskGB = L * (3*f_in*4 + fs*8) / 1e9;
 fullBand = strcmp(frontEnd, 'fullband');
 if ~fullBand && ~strcmp(frontEnd, 'channels')
     error('main:frontEnd', 'frontEnd must be ''fullband'' or ''channels''.');
 end
-if ~fullBand                    % channel IQ + dedispersed (4/3 oversampled) + power per channel
+if fullBand                     % dedispersed (complex at fs) + power
+    diskGB = diskGB + L * (fs*8 + f_out*4) / 1e9;
+else                            % channel IQ + dedispersed (4/3 oversampled) + power per channel
     diskGB = diskGB + L * (2*(fHigh - fLow)*4/3*8 + (fHigh - fLow)/chanWidth*f_out*4) / 1e9;
     if excision                 % blanked channel copies + weights (W, V, X(1..7) per bin)
         diskGB = diskGB + L * ((fHigh - fLow)*4/3*8 + (fHigh - fLow)/chanWidth*f_out*9*4) / 1e9;
@@ -128,7 +131,7 @@ if fullBand
         info_det    = loadInfo(fileEnvelope);
     end
 else
-    if excision                 % own files: the unblanked ones are the tests' reference
+    if excision                 % own files: the unblanked ones stay for comparison
         dcFile = fileChanDedispB; pwFile = fileChanPowerB;
     else
         dcFile = fileChanDedisp;  pwFile = fileChanPower;
@@ -162,6 +165,18 @@ else
         info_dc  = loadInfo(dcFile);
         info_det = loadInfo(pwFile);
         if excision, info_w = loadInfo(fileChanWeight); end
+    end
+end
+if ~runStage.process            % reused files: made from this IQ file, with these settings?
+    if fullBand
+        chain = {fileIQ, info_IQ, ''; fileDedisp, info_dedisp, 'inFile'; fileEnvelope, info_det, 'inFile'};
+        checkProcessing(chain, info_dedisp, info_det, f_out, ephem.DM, refFreq, fLow, fHigh, []);
+    else
+        chain = {fileIQ, info_IQ, ''; fileChanIQ, [], 'inFile'};
+        if excision, chain(end+1, :) = {fileChanBlank, [], 'rawFile'}; end
+        chain = [chain; {dcFile, info_dc, 'inFile'; pwFile, info_det, 'inFile'}];
+        if excision, chain(end+1, :) = {fileChanWeight, info_w, 'powerFile'}; end
+        checkProcessing(chain, info_dc, info_det, f_out, ephem.DM, refFreq, fLow, fHigh, chanWidth);
     end
 end
 
@@ -198,8 +213,12 @@ if runStage.fold
             noiseArgs{:});
     end
 elseif runStage.toa
-    if fullBand, S = load(fileFold, 'fold', 'info'); else, S = load(fileFoldChan, 'fold', 'info'); end
+    if fullBand, foldFile = fileFold; else, foldFile = fileFoldChan; end
+    S = load(foldFile, 'fold', 'info');
     fold = S.fold; info_fold = S.info;                  % reuse the saved fold
+    wFile = '';                                         % data-weight file it must have used
+    if ~fullBand && excision, wFile = fileChanWeight; end
+    checkFold(info_fold, foldFile, info_det, ephem, nBin, subintPeriods, wFile);
 end
 
 % TOA estimation and validation
@@ -229,7 +248,12 @@ if runStage.toa
         nnz(toa.good), nnz(toa.valid), nnz(toa.valid & ~detection.detectedUnknown), ...
         nnz(toa.valid & toa.flagChi2));
 
-    val = validateTOA(toa, info_gen, 'Plot', plots.toa);
+    if any(toa.valid)
+        val = validateTOA(toa, info_gen, 'Plot', plots.toa);
+    else                        % e.g. empty phase bins in every sub-int (foldProfile:coverage)
+        fprintf(['main: no sub-int gave a TOA (0 of %d fitted; see the warnings above), ' ...
+                 'nothing to validate\n'], numel(toa.valid));
+    end
     if any(toa.good) && nnz(toa.good) < nnz(toa.valid)
         toaGood = toa; toaGood.valid = toa.good;          % validate the good TOAs only
         valGood = validateTOA(toaGood, info_gen, 'Plot', false, 'Label', 'good TOAs');
@@ -240,8 +264,10 @@ if runStage.toa
         M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx);
     else
         M = struct('hasNoise', false);
+        chUsed = 'none';
+        if any(toa.valid), chUsed = mat2str(unique(toa.nChanUsed(toa.valid)).'); end
         fprintf('main: channel path, %d channels, weighting ''%s'', excision %d, channels used %s\n', ...
-            info_fold.nChan, weighting, excision, mat2str(unique(toa.nChanUsed(toa.valid)).'));
+            info_fold.nChan, weighting, excision, chUsed);
     end
     if M.hasNoise
         fprintf(['main: predicted best TOA error per sub-int (%d turns) %.4g us, ' ...
@@ -283,4 +309,75 @@ if ~isempty(d)
     warning('main:stale', ['Files on disk were generated with different ' ...
         'parameters (%s). Rerun the corresponding stage.'], strjoin(d, ', '));
 end
+end
+
+function checkProcessing(chain, info_dd, info_det, f_out, DM, refFreq, fLow, fHigh, chanWidth)
+%CHECKPROCESSING  Warn when reused processing files do not belong to this run.
+% chain: rows {file, info (or [] = load it), link field}, from the IQ file to the
+% power (and weight) file. Each file must have been made from the one before it
+% (its link field) and after it (info file at least as new: a rerun receiver makes
+% the older products stale). info_dd: the dedispersion info (DM, refFreq, band,
+% chanWidth); chanWidth [] on the full-band path.
+d = {};
+tPrev = infoTime(chain{1, 1});
+for k = 2:size(chain, 1)
+    [f, info, link] = chain{k, :};
+    [~, n] = fileparts(f);
+    if isempty(info)
+        if isnan(infoTime(f)), d{end+1} = sprintf('%s missing', n); continue; end %#ok<AGROW>
+        info = loadInfo(f);
+    end
+    if ~strcmp(string(info.(link)), string(chain{k-1, 1}))
+        d{end+1} = sprintf('%s not made from %s', n, chain{k-1, 1}); %#ok<AGROW>
+    end
+    t = infoTime(f);
+    if t < tPrev, d{end+1} = sprintf('%s older than its input', n); end %#ok<AGROW>
+    tPrev = t;
+    if strcmp(link, 'powerFile') && (info.N ~= info_det.N || info.Lmax ~= info_det.noise.Lmax)
+        d{end+1} = sprintf('%s: other time bins or lags than the power file', n); %#ok<AGROW>
+    end
+end
+if info_det.binLen ~= round(info_det.fsIn / f_out)
+    d{end+1} = sprintf('f_out (power file: %d samples per bin, this run: %d)', ...
+        info_det.binLen, round(info_det.fsIn / f_out));
+end
+if abs(info_dd.DM - DM) > 1e-12,           d{end+1} = 'DM';      end
+if abs(info_dd.refFreq - refFreq) > 1e-3,  d{end+1} = 'refFreq'; end
+if abs(info_dd.fLow - fLow) > 1e-3 || abs(info_dd.fHigh - fHigh) > 1e-3, d{end+1} = 'band'; end
+if ~isempty(chanWidth) && abs(info_dd.chanWidth - chanWidth) > 1e-3, d{end+1} = 'chanWidth'; end
+if ~isempty(d)
+    warning('main:staleProcessing', ['Reused processing files do not match this run ' ...
+        '(%s). Set runStage.process = true.'], strjoin(d, '; '));
+end
+end
+
+
+function checkFold(info_fold, foldFile, info_det, ephem, nBin, subintPeriods, wFile)
+%CHECKFOLD  Warn when a reused fold was not made from this power file and these
+% settings (phase model, bins, turns per sub-int, data weights; wFile '' = none).
+d = {};
+if ~strcmp(string(info_fold.sourceFile), string(info_det.file)), d{end+1} = 'power file'; end
+f = dir(foldFile);
+if f.datenum < infoTime(info_det.file), d{end+1} = 'older than the power file'; end
+if info_fold.NBin ~= nBin,                   d{end+1} = 'nBin';          end
+if info_fold.subintPeriods ~= subintPeriods, d{end+1} = 'subintPeriods'; end
+if any(abs([info_fold.f0, info_fold.F1, info_fold.TRef] - [ephem.f0, ephem.F1, ephem.TRef]) > ...
+        1e-12 * max(1, abs([ephem.f0, ephem.F1, ephem.TRef])))
+    d{end+1} = 'ephemeris';
+end
+if ~strcmp(string(info_fold.dataWeights), string(wFile)), d{end+1} = 'data weights'; end
+if ~isempty(d)
+    warning('main:staleFold', ['The reused fold does not match this run (%s). ' ...
+        'Set runStage.fold = true.'], strjoin(d, ', '));
+end
+end
+
+
+function t = infoTime(dataFile)
+%INFOTIME  Modification time (datenum) of <dataFile>_info.mat, NaN when missing: the
+% info file is saved after the data, so it marks when the stage finished.
+[d, name] = fileparts(dataFile);
+f = dir(fullfile(d, name + "_info.mat"));
+t = NaN;
+if ~isempty(f), t = f.datenum; end
 end

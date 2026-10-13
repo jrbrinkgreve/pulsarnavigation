@@ -50,6 +50,44 @@ after the end of the file.</li>
 <li><code>fullySupported</code> = [<code>nPast</code> + 1, N − <code>nFuture</code>]: the outputs that saw their complete sweep. The last ~6.3 ms
 did not (the forward stage dropped that energy past the file end); the fold uses only fully supported data.</li>
 </ul>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 270" role="img" aria-label="Overlap-save: each block's buffer holds past, outputs and future samples">
+  <text class="ttl" x="100.0" y="20">the file (N samples)</text>
+  <rect class="box" x="100.0" y="30" width="650.0" height="26" rx="3"/>
+  <rect class="fillwhy" x="110.4" y="30" width="561.6" height="26"/>
+  <rect class="fillwarn" x="672.0" y="30" width="78.0" height="26"/>
+  <text class="sub" x="391.2" y="47" text-anchor="middle">fullySupported = [nPast + 1, N − nFuture]: every output saw its complete sweep</text>
+  <text class="sub" x="711.0" y="47" text-anchor="middle">last ~6.3 ms</text>
+  <text class="sub" x="756.0" y="47">end of file</text>
+  <text class="sub" x="81.6" y="114" text-anchor="end">block 1</text>
+  <rect class="box" x="89.6" y="98" width="10.4" height="24" rx="2"/>
+  <rect class="box proc" x="100.0" y="98" width="195.0" height="24" rx="2"/>
+  <rect class="box" x="295.0" y="98" width="78.0" height="24" rx="2"/>
+  <text class="sub" x="197.5" y="114" text-anchor="middle">outputs kept</text>
+  <text class="sub" x="334.0" y="114" text-anchor="middle">future (nFuture)</text>
+  <text class="sub" x="81.6" y="152" text-anchor="end">block 2</text>
+  <rect class="box" x="284.6" y="136" width="10.4" height="24" rx="2"/>
+  <rect class="box proc" x="295.0" y="136" width="195.0" height="24" rx="2"/>
+  <rect class="box" x="490.0" y="136" width="78.0" height="24" rx="2"/>
+  <text class="sub" x="81.6" y="190" text-anchor="end">block 3</text>
+  <rect class="box" x="479.6" y="174" width="10.4" height="24" rx="2"/>
+  <rect class="box proc" x="490.0" y="174" width="195.0" height="24" rx="2"/>
+  <rect class="box" x="685.0" y="174" width="78.0" height="24" rx="2"/>
+  <text class="sub" x="81.6" y="228" text-anchor="end">block 4</text>
+  <rect class="box" x="674.6" y="212" width="10.4" height="24" rx="2"/>
+  <rect class="box proc" x="685.0" y="212" width="65.0" height="24" rx="2"/>
+  <rect class="box" x="750.0" y="212" width="65.0" height="24" rx="2"/>
+  <text class="sub" x="782.5" y="228" text-anchor="middle">zeros</text>
+  <path class="thin" d="M94.8 96 V86 H119.5"/>
+  <text class="sub" x="123.5" y="90">past (nPast: a guard of 2.5 µs; zeros before the start)</text>
+  <path class="dash" d="M750.0 30 V236"/>
+  <text class="sub" x="100.0" y="258">each block: FFT of the whole buffer → × H_inv(f) → inverse FFT → keep the outputs; the buffer then moves on by the outputs</text>
+</svg>
+<figcaption>Overlap-save in <code>applyInverseDispersion</code> (schematic, not to scale). The filter is non-causal: an output needs up to
+6.3 ms of <em>future</em> input (low frequencies are advanced) and only a short guard of past input. One buffer holds
+[past | outputs | future]; after each FFT block only the outputs whose whole window was inside the buffer are kept. Near the end the
+future is zeros, so the last ~6.3 ms are not fully supported and the fold leaves them out.</figcaption>
+</figure>
 <div class="callout why"><span class="ttl">Why overlap-save here and overlap-add in the forward stage</span>
 <p>Both are exact. Overlap-save suits a non-causal filter with very asymmetric reach (6.3 ms future, a few µs past): one
 buffer holds past, output and future, and each block keeps only the outputs that saw a complete window.</p></div>
@@ -99,8 +137,51 @@ uses <code>channelizeIQ</code> instead.)</li>
 The boxcar is symmetric, so it does not bias arrival times. A trailing partial bin is dropped.</li>
 <li><code>fullySupportedBins</code>: the bins whose samples are all fully supported.</li>
 </ul>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 192" role="img" aria-label="Detected time bins are stamped at the centroid of their samples">
+  <text class="ttl" x="40" y="20">detected time bins (drawn with binLen = 8; the reference uses 800)</text>
+  <path class="axis" d="M50 80 H784"/>
+  <path class="axis" d="M70 76 V84"/><circle cx="70" cy="80" r="4.5" class="dot"/>
+  <text class="sub" x="70" y="100" text-anchor="middle">0</text>
+  <path class="axis" d="M114 76 V84"/><circle cx="114" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M158 76 V84"/><circle cx="158" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M202 76 V84"/><circle cx="202" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M246 76 V84"/><circle cx="246" cy="80" r="4.5" class="dot"/>
+  <text class="sub" x="246" y="100" text-anchor="middle">4</text>
+  <path class="axis" d="M290 76 V84"/><circle cx="290" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M334 76 V84"/><circle cx="334" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M378 76 V84"/><circle cx="378" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M422 76 V84"/><circle cx="422" cy="80" r="4.5" class="dot"/>
+  <text class="sub" x="422" y="100" text-anchor="middle">8</text>
+  <path class="axis" d="M466 76 V84"/><circle cx="466" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M510 76 V84"/><circle cx="510" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M554 76 V84"/><circle cx="554" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M598 76 V84"/><circle cx="598" cy="80" r="4.5" class="dot"/>
+  <text class="sub" x="598" y="100" text-anchor="middle">12</text>
+  <path class="axis" d="M642 76 V84"/><circle cx="642" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M686 76 V84"/><circle cx="686" cy="80" r="4.5" class="dot"/>
+  <path class="axis" d="M730 76 V84"/><circle cx="730" cy="80" r="4.5" class="dot"/>
+  <text class="sub" x="730" y="100" text-anchor="middle">15</text>
+  <text class="sub" x="788" y="84">sample index (at f_s)</text>
+  <path class="thin" d="M51.0 62 V56 H397.0 V62"/>
+  <text class="sub" x="224.0" y="50" text-anchor="middle">bin 1: mean of |z|² over 8 samples</text>
+  <path class="curve" d="M224.0 108 V136"/><path class="dot" d="M219.0 136 l5 8 l5 -8 z"/>
+  <text class="lbl" x="224.0" y="160" text-anchor="middle">t_1</text>
+  <path class="curve4" stroke-dasharray="4 3" d="M70 108 V130"/>
+  <path class="thin" d="M403.0 62 V56 H749.0 V62"/>
+  <text class="sub" x="576.0" y="50" text-anchor="middle">bin 2: mean of |z|² over 8 samples</text>
+  <path class="curve" d="M576.0 108 V136"/><path class="dot" d="M571.0 136 l5 8 l5 -8 z"/>
+  <text class="lbl" x="576.0" y="160" text-anchor="middle">t_2</text>
+  <path class="curve4" stroke-dasharray="4 3" d="M422 108 V130"/>
+  <text class="sub" x="224.0" y="178" text-anchor="middle">t_k = binTime0 + (k−1)·binDt: the centroid of the bin</text>
+  <text class="sub" x="64" y="126" text-anchor="end" fill="var(--todo)">start</text>
+</svg>
+<figcaption>Each bin averages |<var>z</var>|² over <code>binLen</code> samples and is stamped at their centroid,
+<code>binTime0</code> = (<code>binLen</code> − 1)/(2<var>f</var><sub>s</sub>) for bin 1 (0.4994 µs at 800 MHz). A stamp at the bin start (red dashes)
+would label every bin (<code>binLen</code> − 1)/2 samples too early.</figcaption>
+</figure>
 <div class="callout why"><span class="ttl">Why the bin is stamped at its centroid, not its start</span>
-<p>Stamping at the start would delay every TOA by half a bin (0.5 µs). The centroid of a symmetric boxcar is the unbiased
+<p>Stamping at the start would label every bin half a bin before its content, so every TOA would come out half a bin (0.5 µs) early. The centroid of a symmetric boxcar is the unbiased
 time; with linear phase assignment in the fold (<a href="fold.html#assign">fold</a>) it carries through to the TOA.</p></div>
 
 <h3>Options and outputs</h3>

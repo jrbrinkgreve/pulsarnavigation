@@ -168,9 +168,101 @@ Because dedispersion then spreads each blank over its filter length, every detec
 <tr><td><code>runStage.fold</code></td><td>folding</td><td>nBin, sub-int length changed</td></tr>
 <tr><td><code>runStage.toa</code></td><td>TOAs, detection, validation</td><td>always cheap</td></tr>
 </table></div>
-<p>Skipped stages reload their <code>info</code> from disk; <code>checkConsistency</code> warns if those files were made with
-different parameters. <code>plots.*</code> switch the ground-truth check figures (the IQ, detected and fold checks are for the
+<p>Skipped stages reload their <code>info</code> from disk; <code>checkConsistency</code> (sky, receiver), <code>checkProcessing</code>
+and <code>checkFold</code> (13 Oct 2026) warn if those files were made with different parameters or from older inputs. <code>plots.*</code> switch the ground-truth check figures (the IQ, detected and fold checks are for the
 full-band path only).</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">
+  <defs>
+    <marker id="ar-rc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <text class="ttl" x="175" y="18" text-anchor="middle">true: run the stage</text>
+  <text class="ttl" x="430" y="18" text-anchor="middle">switch</text>
+  <text class="ttl" x="685" y="18" text-anchor="middle">false: reuse its files</text>
+  <text class="sub" x="175" y="33" text-anchor="middle">writes each file + its _info.mat</text>
+  <text class="sub" x="685" y="33" text-anchor="middle">reloads the info structs from disk</text>
+
+  <!-- sky -->
+  <rect class="box" x="370" y="46" width="120" height="44" rx="22"/>
+  <text class="fn" x="430" y="73" text-anchor="middle">sky</text>
+  <rect class="box sky" x="10" y="44" width="330" height="48" rx="7"/>
+  <text class="fn" x="175" y="64" text-anchor="middle">generatePulsarSignal</text>
+  <text class="sub" x="175" y="82" text-anchor="middle">→ applyDispersionStream (the slow part)</text>
+  <rect class="box" x="520" y="44" width="330" height="48" rx="7"/>
+  <text class="fn" x="685" y="64" text-anchor="middle">loadInfo</text>
+  <text class="sub" x="685" y="82" text-anchor="middle">test.dat, test_dispersed.dat</text>
+
+  <!-- receiver -->
+  <rect class="box" x="370" y="118" width="120" height="44" rx="22"/>
+  <text class="fn" x="430" y="145" text-anchor="middle">receiver</text>
+  <rect class="box rx" x="10" y="116" width="330" height="48" rx="7"/>
+  <text class="fn" x="175" y="136" text-anchor="middle">addNoiseAndRFI</text>
+  <text class="sub" x="175" y="154" text-anchor="middle">→ applyIQmodulation</text>
+  <rect class="box" x="520" y="116" width="330" height="48" rx="7"/>
+  <text class="fn" x="685" y="136" text-anchor="middle">loadInfo</text>
+  <text class="sub" x="685" y="154" text-anchor="middle">test_rx.dat, test_rx_IQ.dat</text>
+
+  <!-- checkConsistency, always -->
+  <rect class="box warn" x="120" y="186" width="620" height="44" rx="7"/>
+  <text class="fn" x="430" y="204" text-anchor="middle">checkConsistency (always)</text>
+  <text class="sub" x="430" y="221" text-anchor="middle">T, f_in, L, DM, band, SNR, RFI list, fLO, fs, receiver input → warning main:stale</text>
+
+  <!-- process -->
+  <rect class="box" x="370" y="254" width="120" height="44" rx="22"/>
+  <text class="fn" x="430" y="281" text-anchor="middle">process</text>
+  <rect class="box proc" x="10" y="252" width="330" height="48" rx="7"/>
+  <text class="fn" x="175" y="272" text-anchor="middle">dedisperse + detect</text>
+  <text class="sub" x="175" y="290" text-anchor="middle">channels: filterbank, excision, weights too</text>
+  <rect class="box warn" x="520" y="244" width="330" height="64" rx="7"/>
+  <text class="fn" x="685" y="263" text-anchor="middle">loadInfo + checkProcessing</text>
+  <text class="sub" x="685" y="280" text-anchor="middle">each file made from the one before, and newer;</text>
+  <text class="sub" x="685" y="296" text-anchor="middle">f_out, DM, refFreq, band, chanWidth → warning</text>
+
+  <!-- fold -->
+  <rect class="box" x="370" y="334" width="120" height="44" rx="22"/>
+  <text class="fn" x="430" y="361" text-anchor="middle">fold</text>
+  <rect class="box proc" x="10" y="332" width="330" height="48" rx="7"/>
+  <text class="fn" x="175" y="352" text-anchor="middle">foldProfile</text>
+  <text class="sub" x="175" y="370" text-anchor="middle">channels: NoiseCoeffs, or DataWeights with excision</text>
+  <rect class="box warn" x="520" y="324" width="330" height="64" rx="7"/>
+  <text class="fn" x="685" y="343" text-anchor="middle">load the fold + checkFold</text>
+  <text class="sub" x="685" y="360" text-anchor="middle">(only if toa) source file, age, nBin, sub-int,</text>
+  <text class="sub" x="685" y="376" text-anchor="middle">ephemeris, weight file → warning</text>
+
+  <!-- toa -->
+  <rect class="box" x="370" y="414" width="120" height="44" rx="22"/>
+  <text class="fn" x="430" y="441" text-anchor="middle">toa</text>
+  <rect class="box val" x="10" y="404" width="330" height="64" rx="7"/>
+  <text class="fn" x="175" y="423" text-anchor="middle">estimateTOA, detectPulsar</text>
+  <text class="sub" x="175" y="440" text-anchor="middle">good = fitted ∧ detected ∧ χ² ok</text>
+  <text class="sub" x="175" y="456" text-anchor="middle">→ validateTOA (if any TOA was fitted)</text>
+  <rect class="box" x="520" y="412" width="330" height="48" rx="7"/>
+  <text class="fn" x="685" y="441" text-anchor="middle">stop</text>
+
+  <!-- arrows: true left, false right -->
+  <path class="line" marker-end="url(#ar-rc)" d="M370 68 H342"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M370 140 H342"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M370 276 H342"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M370 356 H342"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M370 436 H342"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M490 68 H518"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M490 140 H518"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M490 276 H518"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M490 356 H518"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M490 436 H518"/>
+  <!-- flow down the switch column -->
+  <path class="line" marker-end="url(#ar-rc)" d="M430 90 V116"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M430 162 V184"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M430 230 V252"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M430 298 V332"/>
+  <path class="line" marker-end="url(#ar-rc)" d="M430 378 V412"/>
+</svg>
+<figcaption>One pass of <code>main.m</code>. Each <code>runStage</code> switch either runs its stages (left) or reloads what an earlier run
+wrote (right). Reused files are checked against the current settings (orange boxes); a mismatch gives a warning, not an error,
+so a deliberate reuse still runs. Colours as in the pipeline diagram above.</figcaption>
+</figure>
 
 <h2>Sizes</h2>
 <p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files, plus

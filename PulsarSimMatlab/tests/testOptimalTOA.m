@@ -2,8 +2,8 @@ function testOptimalTOA()
 %TESTOPTIMALTOA  Unit tests for 'Weighting', 'optimal' in estimateTOA (A2c-1) and detectPulsar (A2c-2).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testOptimalTOA.m').
-Needs data/mc/foldRef_pre3c.mat, data/mc/toaRef_preA2.mat and the
-128-channel power file data/chan/test_dedisp_chan_power.dat.
+Needs data/test/mc/foldRef_pre3c.mat, data/test/mc/toaRef_preA2.mat and the
+128-channel power file data/test/chan/test_dedisp_chan_power.dat.
 
   1. Default unchanged: 'equal' (default) bit-identical to the pre-A2 outputs.
   2. Equivalence: one channel with NoiseModel 'offpulse' has uniform weights,
@@ -41,7 +41,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testOptimalTOA');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() delete(fullfile(tmp, '*.dat')));

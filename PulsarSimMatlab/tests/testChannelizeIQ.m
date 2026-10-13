@@ -3,7 +3,7 @@ function testChannelizeIQ()
 %{
 Run from the PulsarSimMatlab folder: run('tests/testChannelizeIQ.m'). ~10 s.
 Synthetic tests write small files to tempdir; test 3 uses the receiver IQ
-file of main.m (data/test_rx_IQ.dat) if it exists.
+file (data/test/test_rx_IQ.dat, tests/makeTestData.m) if it exists.
 
   1. Tones: every channel sample must equal the exact prediction
      A*exp(i*phi) * Hc(df) * exp(i*2*pi*df*t_m), df = f - fc_j, t_m = m*D/fs.
@@ -118,9 +118,9 @@ fprintf('   noise checks: %s\n', passStr(pass));
 if ~pass, fails{end+1} = 'noise'; end
 
 % ---------------------------------------------------------------------------------
-% 3. Real data (receiver IQ of main.m), Parseval over [fLow, fHigh]
+% 3. Real data (the frozen receiver IQ, data/test/), Parseval over [fLow, fHigh]
 % ---------------------------------------------------------------------------------
-dataDir = fullfile(fileparts(mfilename('fullpath')), '..', 'data');
+dataDir = fullfile(fileparts(mfilename('fullpath')), '..', 'data', 'test');   % tests/makeTestData.m
 fileIQ  = fullfile(dataDir, 'test_rx_IQ.dat');
 if isfile(fileIQ)
     infoIQ = loadInfo(fileIQ);

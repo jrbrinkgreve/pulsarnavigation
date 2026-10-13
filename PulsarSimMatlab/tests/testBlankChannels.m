@@ -2,7 +2,7 @@ function testBlankChannels()
 %TESTBLANKCHANNELS  Unit tests for blankChannels (B1): apply a blanking mask to the channel files.
 %{
 Run from the PulsarSimMatlab folder: run('tests/testBlankChannels.m').
-Uses the seed-43 channel files of tests/testDetectChannels.m (data/chan/
+Uses the seed-43 channel files of tests/testDetectChannels.m (data/test/chan/
 test_rx_IQ_chan_*, test_dedisp_chan_*); makes them first if they are
 missing. Writes ~1 GB of temporary files to tempdir (deleted on the way).
 
@@ -23,7 +23,7 @@ missing. Writes ~1 GB of temporary files to tempdir (deleted on the way).
      and info = info_chan apart from the file names and the added fields.
   5. Interface: loadInfo(outBase) returns the info; dedisperseChannels runs
      on it with the same grid as the unblanked run; every channel without
-     blanks gives a dedispersed file bit-identical to data/chan/
+     blanks gives a dedispersed file bit-identical to data/test/chan/
      test_dedisp_chan_*; in channel 128 the blanks at the file ends change
      the dedispersed output only within the filter's reach (nPast,
      nFuture) and leave it unchanged (rounding) everywhere else.
@@ -33,7 +33,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 chanDir = fullfile(dataDir, 'chan');
 tmp = fullfile(tempdir, 'testBlankChannels');
 if ~isfolder(tmp), mkdir(tmp); end

@@ -2,9 +2,9 @@ function testChannelTOA()
 %TESTCHANNELTOA  Unit tests for estimateTOA (A2a) and detectPulsar (A2b) on channelized folds.
 %{
 Run from the PulsarSimMatlab folder: run('tests/testChannelTOA.m'). ~5 s (measured).
-Needs data/mc/toaRef_preA2.mat (tests/makeToaReference.m), the frozen folds
-of data/mc/foldRef_pre3c.mat and the 128-channel power file
-data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
+Needs data/test/mc/toaRef_preA2.mat (tests/makeToaReference.m), the frozen folds
+of data/test/mc/foldRef_pre3c.mat and the 128-channel power file
+data/test/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
 
   1. Regression: on single-channel (full-band) folds estimateTOA reproduces
      the pre-A2 outputs bit for bit (linear, 'offpulse', MinCoverage 0.3 with
@@ -53,7 +53,7 @@ tempdir (deleted at the end).
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testChannelTOA');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() delete(fullfile(tmp, '*.dat')));

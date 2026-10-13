@@ -18,7 +18,8 @@ Inputs:
   A          [V]   noise std dev at the peak of the envelope
   L          [s]   total signal length
   dutycycle  [%]   pulse FWHM as percent of T (default 5). Which profile
-                   the FWHM refers to is set by EnvelopeMode.
+                   the FWHM refers to is set by EnvelopeMode. Warns above
+                   20: wider than real pulsars (which stay below ~20 %).
 
 Name-value options:
   'Seed'          RNG seed (integer in [0, 2^32-1]). If omitted, a seed
@@ -46,7 +47,8 @@ Output:
 Envelope notes:
   Pulse centres are at (k+0.5)*T, so the first pulse peaks at T/2 and
   the signal starts near zero. The envelope is a periodic sum of
-  Gaussians, evaluated per sample over all pulses within ~6 sigma, and
+  Gaussians, evaluated per sample over all pulses within 11.75 sigma
+  (every term above 1e-30 of the peak; at 5 % duty only the nearest), and
   normalised by its exact peak value, so overlapping pulses (large
   dutycycle) keep their true shape instead of being clipped. Time is
   computed in double precision; only the final samples are single.
@@ -95,17 +97,19 @@ else
     FWHM_amplitude = FWHM;
     FWHM_power     = FWHM / sqrt(2);
 end
-if dutycycle > 50
+if dutycycle > 20                       % real pulsars stay below ~20 % (Jasper, 13 Oct 2026)
     warning('generatePulsarSignal:overlap', ...
-        'dutycycle = %g%%: pulses overlap strongly; envelope never nears zero.', ...
+        'dutycycle = %g%%: wider than real pulsars (below ~20%%); neighbouring pulses overlap.', ...
         dutycycle);
 end
 
 % Neighbouring pulses to include per sample. Each sample is assigned its
 % nearest pulse k0, which is at most T/2 away; pulse k0+j is then at
-% least (|j|-0.5)*T away, so |j| <= 6*sigma/T + 0.5 covers everything
-% within 6 sigma.
-nNeighbors = max(1, ceil(6*sigma/T + 0.5));
+% least (|j|-0.5)*T away. Neighbours whose Gaussian stays below 1e-30 of the
+% peak everywhere ((|j|-0.5)*T > 11.75*sigma) are left out. At 5 % duty
+% that is all of them (bit-identical: where they would change G in double
+% precision, the float32 envelope is 0 anyway; checked 13 Oct 2026).
+nNeighbors = floor(sqrt(2*log(1e30)) * sigma/T + 0.5);
 kk         = -nNeighbors:nNeighbors;
 peakNorm   = sum(exp(-0.5*(kk*T/sigma).^2));   % exact peak of periodic sum
 

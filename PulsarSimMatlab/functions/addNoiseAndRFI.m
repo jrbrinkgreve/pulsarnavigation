@@ -106,10 +106,10 @@ else
     sigN = 0; snrDB = Inf;
 end
 PnBand = sigN^2 * B / (fs/2);                       % receiver-noise power in the band
-if sigN > 0 && snrDB < -60
-    warning('addNoiseAndRFI:weak', ['SNR %.1f dB: the pulse is below single-precision ' ...
-        'resolution of the noise in the RF file; results may be limited by rounding.'], snrDB);
-end
+% No lower limit on SNRdB from float32: the noise dithers the rounding of each sample, so
+% the rounding error averages to zero, is uncorrelated with the pulse and adds white noise
+% ~145 dB below the noise power, even when the pulse is below the rounding step. (Until
+% 13 Oct 2026 a warning 'addNoiseAndRFI:weak' below -60 dB claimed otherwise.)
 
 % ---- RFI sources ---------------------------------------------------------------------
 rfi = opts.RFI(:);
@@ -125,12 +125,12 @@ Nx = floor(fInfo.bytes / 4);
 tTotal = Nx / fs;
 
 src = struct('type', {}, 'label', {}, 'amp', {}, 'r', {}, 'rs', {}, ...
-             'evStart', {}, 'evLen', {}, 'h', {}, 'def', {});
+             'evStart', {}, 'evLen', {}, 'h', {}, 'Hf', {}, 'NfStd', {}, 'def', {});
 for s = 1:nR
     d = rfi(s);
     INR = 10^(d.INRdB/10);
     e = struct('type', d.type, 'label', d.label, 'amp', NaN, 'r', NaN, 'rs', [], ...
-               'evStart', [], 'evLen', [], 'h', [], 'def', d);
+               'evStart', [], 'evLen', [], 'h', [], 'Hf', [], 'NfStd', 0, 'def', d);
     if ~strcmp(d.type, 'impulse')
         if d.freq <= 0 || d.freq >= fs/2
             error('addNoiseAndRFI:freq', 'RFI "%s": Freq must lie in (0, fs/2).', d.label);
@@ -140,6 +140,9 @@ for s = 1:nR
         if strcmp(d.type, 'noise')                  % band-pass filter for white noise,
             h = noiseBandpass(d.freq, d.bandwidth, fs);   % scaled to power INR * PnBand
             e.h = h * sqrt(INR * PnBand / sum(h.^2));
+            M = numel(e.h);                         % its spectrum for a full block, once
+            e.NfStd = 2^nextpow2(opts.BlockSize + 2*M - 2);   % (FFT size of rfiBlock)
+            e.Hf = fft(e.h(:), e.NfStd);
         end
     else
         e.amp = sqrt(INR) * sigN;                   % white burst: same in-band ratio
@@ -251,7 +254,7 @@ info.snrDefinition = 'pulse-peak signal PSD / receiver-noise PSD in the band (S_
 info.noiseStd      = sigN;
 info.noisePSD      = sigN^2 / fs;                   % two-sided, per Hz
 info.noisePowerBand = PnBand;
-info.rfi           = rmfield(src, {'rs', 'h', 'def'});
+info.rfi           = rmfield(src, {'rs', 'h', 'Hf', 'NfStd', 'def'});
 if nR > 0
     [info.rfi.params] = src.def;
 end
@@ -348,7 +351,8 @@ switch d.type
         end
         w  = w(m0 - c0*CH + 1 : m1 - c0*CH + 1);
         Nf = 2^nextpow2(numel(w) + M - 1);
-        y  = real(ifft(fft(w(:), Nf) .* fft(e.h(:), Nf)));
+        if Nf == e.NfStd, Hf = e.Hf; else, Hf = fft(e.h(:), Nf); end   % full blocks: cached
+        y  = real(ifft(fft(w(:), Nf) .* Hf));
         x  = y(M : M + n - 1).';
 end
 

@@ -2,7 +2,7 @@ function testRfiGating()
 %TESTRFIGATING  Unit tests for B5c-1: rotating antenna (rfiSource 'ScanPeriod' etc.).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testRfiGating.m'). ~10 s.
-Needs data/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m).
+Needs data/test/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m).
 
 The source power is multiplied by g(t) = max(exp(-4 ln2 (dt/BeamWidth)^2),
 10^(SidelobeDB/10)), dt = time from the nearest beam passage (BeamTime +
@@ -25,7 +25,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testRfiGating');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() cleanFolder(tmp));

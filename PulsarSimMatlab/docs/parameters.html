@@ -98,6 +98,8 @@ put in to test robustness.</p>
 </table></div>
 
 <h2 id="files">7. Files</h2>
+<p>The unit tests do not use these: <code>tests/testParams.m</code> defines the same names with every path under
+<code>data/test/</code> (a frozen copy made once by <code>tests/makeTestData.m</code>; <a href="tests.html#run">tests</a>).</p>
 <div class="table-wrap"><table>
 <tr><th>Variable</th><th>Path</th><th>Written by</th></tr>
 <tr><td><code>fileRaw</code></td><td><code>data/test.dat</code></td><td><code>generatePulsarSignal</code> (can be deleted after dispersion; only <code>plotDispersionCheck</code> reads it)</td></tr>
@@ -108,7 +110,7 @@ put in to test robustness.</p>
 <tr><td><code>fileEnvelope</code></td><td><code>data/test_envelope.dat</code></td><td><code>detectPower</code> (full band)</td></tr>
 <tr><td><code>fileFold</code></td><td><code>data/test_fold.mat</code></td><td><code>foldProfile</code> (full band)</td></tr>
 <tr><td><code>fileChanIQ</code></td><td><code>data/chan/test_rx_IQ_chan</code> (base)</td><td><code>channelizeIQ</code></td></tr>
-<tr><td><code>fileChanDedisp</code>, <code>fileChanPower</code></td><td><code>data/chan/test_dedisp_chan</code>, <code>…_power.dat</code></td><td>channel path without excision (also the unit tests' reference)</td></tr>
+<tr><td><code>fileChanDedisp</code>, <code>fileChanPower</code></td><td><code>data/chan/test_dedisp_chan</code>, <code>…_power.dat</code></td><td>channel path without excision</td></tr>
 <tr><td><code>fileChanBlank</code></td><td><code>data/chan/test_rx_IQ_chan_blanked</code> (base)</td><td><code>blankChannels</code></td></tr>
 <tr><td><code>fileChanDedispB</code>, <code>fileChanPowerB</code></td><td><code>data/chan/test_dedispB_chan</code>, <code>…_power.dat</code></td><td>channel path with excision</td></tr>
 <tr><td><code>fileChanWeight</code></td><td><code>data/chan/test_dedispB_chan_weights.dat</code></td><td><code>blankingWeights</code></td></tr>

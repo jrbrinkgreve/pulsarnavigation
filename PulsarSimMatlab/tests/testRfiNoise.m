@@ -2,7 +2,7 @@ function testRfiNoise()
 %TESTRFINOISE  Unit tests for B5d: the 'noise' RFI type (band-limited Gaussian, LTE-like).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testRfiNoise.m'). ~20 s.
-Needs data/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m).
+Needs data/test/mc/rfiRef_preB5a.mat (tests/makeRfiReference.m).
 The RFI alone = (noise + RFI) - (noise only), same seed. Source: 20 MHz at
 1472 MHz (inside LTE band 32), INR 0 dB, 2.5 ms of 4 GHz data.
 
@@ -23,7 +23,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testRfiNoise');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() cleanFolder(tmp));

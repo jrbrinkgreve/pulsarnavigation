@@ -86,6 +86,61 @@ prototype, fold it into <var>K</var> bins, do one <var>K</var>-point inverse FFT
 sample index (in double). It is the same arithmetic as <var>K</var> separate mix–filter–decimate receivers at about 1/<var>K</var> of the cost.
 Prototype: a Kaiser-windowed sinc (same design as the IQ filter), cutoff <var>f</var><sub>s</sub>/(2<var>D</var>), 80 dB stopband → 3853 taps
 (16 per branch).</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 290" role="img" aria-label="Polyphase filterbank: weight a frame by the prototype, fold it into 256 bins, one inverse FFT, phase correction, keep the 128 in-band channels">
+  <defs>
+    <marker id="ar-pfb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <text class="ttl" x="10" y="18">IQ stream x(n) at f_s = 800 MHz (test_rx_IQ.dat)</text>
+  <path class="axis" d="M10 48 H850"/>
+  <path class="thin" d="M10 44 V52 M60 44 V52 M110 44 V52 M160 44 V52 M210 44 V52 M260 44 V52 M310 44 V52 M360 44 V52 M410 44 V52 M460 44 V52 M510 44 V52 M560 44 V52 M610 44 V52 M660 44 V52 M710 44 V52 M760 44 V52 M810 44 V52"/>
+  <rect class="fillsoft" x="140" y="30" width="512" height="36" rx="3"/>
+  <rect x="140" y="30" width="512" height="36" rx="3" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
+  <rect x="164" y="64" width="512" height="10" rx="2" fill="none" stroke="var(--fg-muted)" stroke-width="1" stroke-dasharray="4 3"/>
+  <text class="sub" x="396" y="44" text-anchor="middle">frame of L = 16 × 256 = 4096 samples, centred on sample m·D + G</text>
+  <text class="sub" x="420" y="94">dashed: the frame of output m+1, D = 192 samples later</text>
+
+
+  <rect class="box proc" x="10" y="130" width="150" height="62" rx="7"/>
+  <text class="ttl" x="85" y="152" text-anchor="middle">× prototype</text>
+  <text class="sub" x="85" y="169" text-anchor="middle">3853-tap Kaiser sinc,</text>
+  <text class="sub" x="85" y="183" text-anchor="middle">padded to 4096</text>
+  <rect class="box proc" x="185" y="130" width="150" height="62" rx="7"/>
+  <text class="ttl" x="260" y="152" text-anchor="middle">fold</text>
+  <text class="sub" x="260" y="169" text-anchor="middle">add the 16 segments of</text>
+  <text class="sub" x="260" y="183" text-anchor="middle">256: u_m(p), p = 0…255</text>
+  <rect class="box proc" x="360" y="130" width="150" height="62" rx="7"/>
+  <text class="ttl" x="435" y="152" text-anchor="middle">inverse FFT</text>
+  <text class="sub" x="435" y="169" text-anchor="middle">256 points: all 256</text>
+  <text class="sub" x="435" y="183" text-anchor="middle">channel slots at once</text>
+  <rect class="box proc" x="535" y="130" width="150" height="62" rx="7"/>
+  <text class="ttl" x="610" y="152" text-anchor="middle">phase correction</text>
+  <text class="sub" x="610" y="169" text-anchor="middle">e^(−i2π(k+½)(mD+G)/K),</text>
+  <text class="sub" x="610" y="183" text-anchor="middle">from the absolute index</text>
+  <rect class="box proc" x="710" y="130" width="140" height="62" rx="7"/>
+  <text class="ttl" x="780" y="152" text-anchor="middle">keep 128</text>
+  <text class="sub" x="780" y="169" text-anchor="middle">the slots inside</text>
+  <text class="sub" x="780" y="183" text-anchor="middle">1.2–1.6 GHz</text>
+  <path class="line" marker-end="url(#ar-pfb)" d="M200 76 V106 H85 V128"/>
+  <path class="line" marker-end="url(#ar-pfb)" d="M160 161 H183"/>
+  <path class="line" marker-end="url(#ar-pfb)" d="M335 161 H358"/>
+  <path class="line" marker-end="url(#ar-pfb)" d="M510 161 H533"/>
+  <path class="line" marker-end="url(#ar-pfb)" d="M685 161 H708"/>
+
+  <path class="line" marker-end="url(#ar-pfb)" d="M780 192 V218"/>
+  <rect class="box" x="560" y="220" width="290" height="56" rx="7"/>
+  <text class="mono" x="705" y="242" text-anchor="middle">…_ch001.dat … _ch128.dat</text>
+  <text class="sub" x="705" y="260" text-anchor="middle">sample m of every channel, at f_s/D = 4.17 MHz</text>
+  <text class="sub" x="10" y="232">K = f_s / ChanWidth = 256 slots; D = 3/4 · K = 192 (oversampled 4/3).</text>
+  <text class="sub" x="10" y="250">Same numbers as 256 separate mix → low-pass → keep every D-th</text>
+  <text class="sub" x="10" y="268">receivers, for about 1/256 of the arithmetic.</text>
+</svg>
+<figcaption>One output time <var>m</var> of <code>channelizeIQ</code>. The frame is weighted by the prototype low-pass, folded into
+<var>K</var> = 256 bins and inverse-transformed once; the phase factor (computed in double from the absolute sample index) turns each FFT
+slot into exactly the mixed, filtered and decimated channel. Frames overlap heavily (192 of 4096 samples are new each time).</figcaption>
+</figure>
 
 <h3>Options and outputs</h3>
 <dl class="facts">

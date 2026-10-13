@@ -17,7 +17,8 @@ Why per channel: the chirp kernel only has to span the sweep from the
 channel to RefFreq at the channel rate (DM 100, bottom channel: 126 ms x
 4.17 MHz ~ 5e5 samples) instead of the full-band sweep at 800 MHz (~1e8
 samples): this solves the processing-side memory problem at high DM.
-Later, RFI excision acts on the channel files before this stage.
+With RFI excision (main.m 'excision') this stage runs on the blanked channel
+files of blankChannels; blankingWeights then gives the exact data weights.
 
   info = dedisperseChannels(info_chan, outBase, DM)
   info = dedisperseChannels(info_chan, outBase, DM, 'RefFreq', 1.6e9, 'EdgeFrac', 0.02)

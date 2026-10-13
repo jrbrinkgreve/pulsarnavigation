@@ -271,6 +271,22 @@ svg .dash { stroke: var(--fg-muted); stroke-width: 1.2; stroke-dasharray: 5 4; f
 svg .fn { font-family: var(--mono); font-size: 13px; font-weight: 600; }
 svg .sub { font-size: 11.5px; fill: var(--fg-muted); }
 svg a:hover .box { stroke-width: 2.2; }
+svg .box.warn { fill: var(--bg-warn); stroke: var(--todo); }
+svg .fillwarn { fill: var(--warn); opacity: 0.18; stroke: none; }
+svg .fillwhy { fill: var(--why); opacity: 0.16; stroke: none; }
+svg .fillfg { fill: var(--fg-muted); opacity: 0.25; stroke: none; }
+svg .grid { stroke: var(--border); stroke-width: 1; fill: none; }
+svg .thin { stroke: var(--fg-muted); stroke-width: 1; fill: none; }
+svg .curve4 { stroke: var(--todo); stroke-width: 2; fill: none; }
+svg .dot { fill: var(--accent); }
+svg .dot2 { fill: var(--warn); }
+svg .lbl { font-size: 12px; }
+svg .ttl { font-size: 13px; font-weight: 600; }
+svg .mono { font-family: var(--mono); font-size: 12px; }
+svg .ok { fill: var(--ok); }
+svg .bad { fill: var(--todo); }
+figure .wide { min-width: 640px; }
+figure.scroll { overflow-x: auto; }
 
 /* prev / next at the bottom of each page */
 .pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 3em; padding-top: 1em; border-top: 1px solid var(--border); font-size: 0.92rem; }

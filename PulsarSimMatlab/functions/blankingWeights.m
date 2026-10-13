@@ -32,8 +32,9 @@ into the band. The MEAN is therefore computed with the true R_x:
   w(a) = E|y(a)|^2 / (the same without blanking),
 one extra FFT of the mask product per lag d (the q_d are the q_tau above).
 White input (R_x = delta) is the simple form above; the true spectrum lowers
-the power of nearly empty bins (valid fraction < 1 %) by ~4 % (A3a). V and X
-keep the white form (error bars only; ~1-2 % in heavily blanked bins).
+the power of nearly empty bins (valid fraction < 1 %) by ~1 %, by <= 0.07 %
+for W >= 0.1 (A3a; an earlier "~4 %" was over-stated). V and X keep the
+white form (error bars only; ~1-2 % in heavily blanked bins).
 
   info = blankingWeights(info_chan, info_dc, info_det, mask, outFile)
 
@@ -118,8 +119,9 @@ end
 
 [d0, name] = fileparts(outFile);
 if ~isempty(d0) && ~isfolder(d0), mkdir(d0); end
-impIn  = fullfile(tempdir, sprintf('%s_imp_in.dat', name));
-impOut = fullfile(tempdir, sprintf('%s_imp_out.dat', name));
+tmpBase = tempname;                                 % unique: runs at the same time do not collide
+impIn  = [tmpBase '_imp_in.dat'];
+impOut = [tmpBase '_imp_out.dat'];
 cleanImp = onCleanup(@() deleteFiles({impIn, impOut}));
 
 Y = zeros(nChan, nQ, nb, 'single');                 % the weight file, in memory

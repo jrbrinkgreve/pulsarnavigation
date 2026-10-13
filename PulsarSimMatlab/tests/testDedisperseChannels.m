@@ -2,12 +2,12 @@ function testDedisperseChannels()
 %TESTDEDISPERSECHANNELS  Unit tests for dedisperseChannels (+ applyInverseDispersion option).
 %{
 Run from the PulsarSimMatlab folder: run('tests/testDedisperseChannels.m').
-Needs main.m's receiver files (data/test_rx_IQ.dat, data/test_IQ_dedispersed.dat,
-seed 43 reference). Writes channel files to data/chan/ (~1.3 GB) and
+Needs the frozen receiver files (data/test/test_rx_IQ.dat, data/test/test_IQ_dedispersed.dat,
+seed 43 reference). Writes channel files to data/test/chan/ (~1.3 GB) and
 temporary files to tempdir. Takes ~15 s.
 
   1. Regression: applyInverseDispersion with default options (the full-band
-     path of main.m) reproduces data/test_IQ_dedispersed.dat bit for bit
+     path of main.m) reproduces data/test/test_IQ_dedispersed.dat bit for bit
      after the AllowRefOutsideBand change.
   2. Commutation: channelize(full-band dedispersed) and
      dedisperseChannels(channelize(IQ)) apply the same linear filters in a
@@ -40,7 +40,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;                                   % fLow, fHigh, refFreq, ephem, f_out, nBin, ...
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testDedisperseChannels');
 if ~isfolder(tmp), mkdir(tmp); end
 chanDir = fullfile(dataDir, 'chan');
@@ -108,7 +108,7 @@ template = gaussianTemplate(nBin, ephem.profileFWHM);
 foldArgs = {'F1', ephem.F1, 'TRef', ephem.TRef, 'NBin', nBin, 'SubintPeriods', subintPeriods, ...
             'SaveFile', false, 'Verbose', false};
 
-% Full-band reference (same data, same settings as main.m)
+% Full-band reference (same data, same settings as the frozen full-band files)
 detR = detectPower(fileDedisp, fullfile(tmp, 'ref_env.dat'), info_ref.fs, info_ref.fLO, f_out, ...
     'FullySupported', info_ref.fullySupported, 'SaveInfo', false, 'Verbose', false);
 [ifR, foldR] = foldProfile(detR, fullfile(tmp, 'ref_fold.mat'), ephem.f0, foldArgs{:});

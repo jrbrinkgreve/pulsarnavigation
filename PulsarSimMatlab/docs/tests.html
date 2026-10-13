@@ -14,26 +14,114 @@
 (bit-identical where nothing should change), algebra (code = independently computed formula) and physics (measured noise
 = predicted noise, within a predicted σ).</p>
 
-<h2>How to run</h2>
-<pre><code>run('tests/testChannelizeIQ.m')</code></pre>
+<h2 id="run">How to run</h2>
+<pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
+run('tests/testChannelizeIQ.m')     % one test
+run('tests/runAllTests.m')          % all 14 unit tests, in order, summary at the end (6–9 min)</code></pre>
 <p>From the <code>PulsarSimMatlab</code> folder. Every test is a function (own workspace), prints PASS/FAIL lines and its
-numbers, and can be run one after another in one MATLAB session.</p>
+numbers, and can be run one after another in one MATLAB session. <code>runAllTests</code> (13 Oct 2026) does exactly that: the tests
+that write the shared channel files first, each test in its own try/catch (a failure does not stop the rest), then a table
+PASS / FAIL, run time and the first line of each error, and an error at the end if any test failed. A subset:
+<code>runAllTests(["testRfiNoise" "testRadarEdges"])</code> (with <code>tests/</code> on the path; run in dependency order). Not run:
+the <code>demo*</code>, <code>exp*</code> and <code>make*</code> files; a new <code>test*.m</code> that is not in its list runs last, with a note.</p>
 <div class="callout why"><span class="ttl">Why tests are functions, not scripts</span>
 <p>As scripts they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
 cleanup ran at once and changed the folder back, and the next test failed with "Unrecognized function 'pipelineParams'". It only showed
 when several tests ran in one session, the way Jasper runs them (<a href="lessons.html">bugs and lessons</a> #11).</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Where the unit tests get their data: main.m's seed-43 files are frozen once into data/test by makeTestData; the tests read only that, with testParams">
+  <defs>
+    <marker id="ar-td" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <rect class="box" x="10" y="20" width="150" height="56" rx="7"/>
+  <text class="mono" x="85" y="43" text-anchor="middle">pipelineParams.m</text>
+  <text class="sub" x="85" y="61" text-anchor="middle">edit freely</text>
+  <rect class="box proc" x="185" y="20" width="120" height="56" rx="7"/>
+  <text class="mono" x="245" y="43" text-anchor="middle">main.m</text>
+  <text class="sub" x="245" y="61" text-anchor="middle">run* scripts</text>
+  <rect class="box rx" x="330" y="20" width="160" height="56" rx="7"/>
+  <text class="mono" x="410" y="43" text-anchor="middle">data/</text>
+  <text class="sub" x="410" y="61" text-anchor="middle">rewritten by every run</text>
+  <rect class="box warn" x="515" y="14" width="160" height="68" rx="7"/>
+  <text class="mono" x="595" y="36" text-anchor="middle">makeTestData</text>
+  <text class="sub" x="595" y="53" text-anchor="middle">run once; checks that data/</text>
+  <text class="sub" x="595" y="68" text-anchor="middle">is the seed-43 reference</text>
+  <rect class="box val" x="700" y="14" width="150" height="68" rx="7"/>
+  <text class="mono" x="775" y="36" text-anchor="middle">data/test/</text>
+  <text class="sub" x="775" y="53" text-anchor="middle">frozen copy, 2.2 GB;</text>
+  <text class="sub" x="775" y="68" text-anchor="middle">refuses to overwrite</text>
+  <path class="line" marker-end="url(#ar-td)" d="M160 48 H183"/>
+  <path class="line" marker-end="url(#ar-td)" d="M305 48 H328"/>
+  <path class="line" marker-end="url(#ar-td)" d="M490 48 H513"/>
+  <path class="line" marker-end="url(#ar-td)" d="M675 48 H698"/>
+
+  <rect class="box val" x="515" y="122" width="160" height="56" rx="7"/>
+  <text class="mono" x="595" y="145" text-anchor="middle">tests/testParams.m</text>
+  <text class="sub" x="595" y="163" text-anchor="middle">frozen settings, paths there</text>
+  <rect class="box proc" x="700" y="122" width="150" height="56" rx="7"/>
+  <text class="mono" x="775" y="145" text-anchor="middle">runAllTests</text>
+  <text class="sub" x="775" y="163" text-anchor="middle">or any single test</text>
+  <path class="line" marker-end="url(#ar-td)" d="M775 82 V120"/>
+  <path class="line" marker-end="url(#ar-td)" d="M675 150 H698"/>
+  <text class="sub" x="10" y="108">The tests never read pipelineParams or main's files: a main run with other settings</text>
+  <text class="sub" x="10" y="124">cannot change what they check. main.m and a test session at the same time are safe.</text>
+
+  <text class="ttl" x="10" y="214">Order in runAllTests: the tests that write shared files run before those that read them</text>
+  <rect class="box" x="10" y="226" width="140" height="90" rx="7"/>
+  <text class="sub" x="80" y="246" text-anchor="middle">1 · generator</text>
+  <text class="sub" x="80" y="264" text-anchor="middle">own files in tempdir</text>
+  <rect class="box proc" x="172" y="226" width="160" height="90" rx="7"/>
+  <text class="sub" x="252" y="246" text-anchor="middle">2 · channelizeIQ,</text>
+  <text class="sub" x="252" y="262" text-anchor="middle">dedisperseChannels</text>
+  <text class="sub" x="252" y="284" text-anchor="middle">rewrite the channel sets</text>
+  <text class="sub" x="262" y="300" text-anchor="middle">in data/test/chan/</text>
+  <rect class="box proc" x="354" y="226" width="130" height="90" rx="7"/>
+  <text class="sub" x="419" y="246" text-anchor="middle">3 · detectChannels</text>
+  <text class="sub" x="419" y="268" text-anchor="middle">rewrites the</text>
+  <text class="sub" x="419" y="284" text-anchor="middle">channel power file</text>
+  <rect class="box" x="506" y="226" width="180" height="90" rx="7"/>
+  <text class="sub" x="596" y="246" text-anchor="middle">4 · fold, TOA, optimal,</text>
+  <text class="sub" x="596" y="262" text-anchor="middle">blanking, blankChannels</text>
+  <text class="sub" x="596" y="284" text-anchor="middle">read them (and the</text>
+  <text class="sub" x="606" y="300" text-anchor="middle">references in data/test/mc/)</text>
+  <rect class="box" x="708" y="226" width="142" height="90" rx="7"/>
+  <text class="sub" x="779" y="246" text-anchor="middle">5 · the RFI tests</text>
+  <text class="sub" x="779" y="268" text-anchor="middle">own data in tempdir,</text>
+  <text class="sub" x="779" y="284" text-anchor="middle">RFI reference in</text>
+  <text class="sub" x="779" y="300" text-anchor="middle">data/test/mc/</text>
+  <path class="line" marker-end="url(#ar-td)" d="M150 271 H170"/>
+  <path class="line" marker-end="url(#ar-td)" d="M332 271 H352"/>
+  <path class="line" marker-end="url(#ar-td)" d="M484 271 H504"/>
+  <path class="line" marker-end="url(#ar-td)" d="M686 271 H706"/>
+</svg>
+<figcaption>Since 13 Oct 2026 the unit tests have their own frozen data. <code>makeTestData</code> copies <code>main.m</code>'s seed-43 files
+once, after checking along the info chain that they are the reference configuration; the infos in the copy point into
+<code>data/test/</code>. Rewriting the channel files in steps 2 and 3 reproduces the same contents, so a single test can also run on its
+own. Never run two test sessions at once: they share <code>data/test/chan/</code>.</figcaption>
+</figure>
 <div class="callout warn"><span class="ttl">Order and shared files</span>
 <ul>
-<li>Several tests need <code>main.m</code>'s files (seed 43, −5 dB, <var>L</var> = 0.1 s, fs 800 MHz) and the channel files that
-<code>testDedisperseChannels</code> / <code>testDetectChannels</code> write to <code>data/chan/</code>; they make them first if missing.</li>
+<li>The tests have their own frozen data and settings (13 Oct 2026): <code>tests/testParams.m</code> (used instead of
+<code>pipelineParams</code>: seed 42/43, −5 dB, no RFI, <var>L</var> = 0.1 s, fLO 1.3 GHz, fs 800 MHz, f_out 1 MHz, nBin 2048, 128 × 3.125 MHz)
+and <code>data/test/</code>, made once by <code>tests/makeTestData.m</code> from <code>main.m</code>'s seed-43 files (it checks they are that
+configuration first). So <code>main.m</code> runs with other settings, or edits to <code>pipelineParams</code>, no longer change what the tests
+check. Before, a <code>main.m</code> run with another SNR or RFI rewrote their input (<code>data/test_rx_IQ.dat</code>, <code>data/chan/</code>)
+and broke the bit-for-bit regressions or silently changed the data. All 14 tests pass on the frozen data
+(<span class="badge validated">Jasper's run of <code>runAllTests</code>, 13 Oct, 6.8 min</span>).</li>
+<li><code>testDedisperseChannels</code> / <code>testDetectChannels</code> rewrite the channel files in <code>data/test/chan/</code> (the same
+contents); a single test that needs them finds them there.</li>
 <li>The <code>make*Reference.m</code> scripts are not tests: they froze outputs of old code (at a named commit) for the regression checks. Do not rerun them with new code.</li>
-<li>Never run two test sessions at once: they share <code>data/chan/</code>.</li>
+<li>Never run two test sessions at once: they share <code>data/test/chan/</code> and their tempdir folders. <code>main.m</code> at the same
+time is fine (it does not touch <code>data/test/</code>).</li>
 <li>A result counts as <span class="badge validated">validated</span> only after Jasper's own run.</li>
 </ul></div>
 
 <h2>The tests</h2>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>Unit</th><th>Time</th><th>Status</th></tr>
+<tr><td><a href="#gen"><code>testGeneratePulsarSignal</code></a></td><td><code>generatePulsarSignal</code> (stage 1; review R1)</td><td>~4 s</td><td><span class="badge validated">passes (Jasper's run, 13 Oct)</span></td></tr>
 <tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
@@ -56,6 +144,9 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
 <tr><td><code>makeFoldReference</code></td><td>four folds: full band linear / nearest / 3 turns per sub-int, 128 channels</td><td><code>foldProfile</code> of e852da6 (pre-A1)</td><td><code>data/mc/foldRef_pre3c.mat</code></td></tr>
 <tr><td><code>makeToaReference</code></td><td><code>estimateTOA</code> / <code>detectPulsar</code> outputs in five cases</td><td>code of 918cae3 (pre-A2)</td><td><code>data/mc/toaRef_preA2.mat</code></td></tr>
 <tr><td><code>makeRfiReference</code></td><td>20 µs of noise + all five RFI types</td><td>code of f4181f5 (pre-B5a)</td><td><code>data/mc/rfiRef_preB5a.mat</code></td></tr>
+<tr><td><code>makeTestData</code> (13 Oct)</td><td>the tests' input: <code>main.m</code>'s seed-43 IQ, dedispersed and power files, the test channel files,
+and copies of the three references above</td><td>a copy (checks the configuration of <code>testParams</code> first)</td><td><code>data/test/</code> (the tests read
+the references from <code>data/test/mc/</code>)</td></tr>
 </table></div>
 
 <h2 id="chan"><code>testChannelizeIQ</code></h2>
@@ -91,7 +182,7 @@ result that killed the "g(<var>w</var>)" idea and led to exact per-bin weights.<
 
 <h2 id="foldw"><code>testFoldWeights</code></h2>
 <ol>
-<li><b>Regression:</b> without new options the four reference folds bit for bit.</li>
+<li><b>Regression:</b> without new options the four reference folds bit for bit (the info's <code>sourceFile</code> by file name only, since the inputs moved to <code>data/test/</code>).</li>
 <li><b>Algebra:</b> awkward synthetic geometry (f0 100.3 Hz, F1 −0.5 Hz/s, 4096 bins, chunks of 1000), exaggerated coefficients:
 <code>weight2</code>/<code>weightX</code> = <var>A</var>ᵀ<var>CA</var> from the explicit assignment matrix, to 6·10⁻¹⁶.</li>
 <li><b>Physics:</b> 128-channel data, measured phase-bin variance and lag-1/2 covariance: new model −1.4σ / +0.6σ / −0.1σ, old model −13.1σ / +5.9σ.</li>
@@ -159,6 +250,16 @@ alone; scored with the sources' parameters. (1) Noise only: no emitter. (2) Impu
 372.9992 ± 0.0018 Hz (true 373), predicted pulse times within 0.4 samples of the truth, all pulses blanked. (4) Rotating radar seen only
 through −35 dB sidelobes: found from <code>detectRFI</code>'s 42 % of the pulses; with the prediction 100 % blanked, radar energy left
 0.48 → 8.8·10⁻⁶.</p>
+
+<h2 id="gen"><code>testGeneratePulsarSignal</code></h2>
+<p>Stage 1, the synthetic pulsar (13 Oct 2026). The ground truth is computed independently: the envelope as an exact periodic sum of 21
+Gaussian images, not the generator's nearest pulse. (1) Format and ground truth, with binary-exact numbers so the 13th pulse centre lies on the
+last sample. (2) The folded mean of <var>x</var>² in 1 µs bins against <var>A</var>²·<var>G</var>, with the exact per-bin σ
+(var(<var>x</var>²) = 2(<var>A</var>²<var>G</var>)² for Gaussian <var>x</var>): residuals mean 0 / std 1, pulse centre to ±17 ns, width
+to ±0.1 % (FWHM 49.92 µs for 50 µs nominal). (3) <code>'amplitude'</code> mode: power FWHM / √2. (4) The widest real pulses (20 % duty; pulsars stay below ~20 %), all bins: halfway
+between pulses the neighbours' tails overlap, which checks the generator's sum over neighbours (a copy without it fails this check).
+(5) Same seed identical; other block sizes bit for bit identical (<code>randn</code> drawn in pieces = one piece); <var>A</var> scales
+exactly (normal floats); global RNG untouched; the clock seed reproduces the file. (6) Bad inputs refused; 25 % warns (wider than real pulsars), 20 % does not.</p>
 
 <h2 id="noise"><code>testRfiNoise</code></h2>
 <p>(1) The other RFI types = the pre-B5a reference bit for bit. (2) Block size 10⁶ + 3 = one block bit for bit. (3) Power = INR × the

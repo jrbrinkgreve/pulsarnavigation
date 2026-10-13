@@ -2,7 +2,7 @@ function testBlankingWeights()
 %TESTBLANKINGWEIGHTS  Unit tests for blankingWeights (A3a): exact data weights from a mask.
 %{
 Run from the PulsarSimMatlab folder: run('tests/testBlankingWeights.m').
-Uses the seed-43 channel files of tests/testDetectChannels.m (data/chan/
+Uses the seed-43 channel files of tests/testDetectChannels.m (data/test/chan/
 test_rx_IQ_chan_*, test_dedisp_chan_*, test_dedisp_chan_power.dat). Writes
 ~1.5 GB of temporary files to tempdir (deleted on the way and at the end).
 
@@ -56,7 +56,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testBlankingWeights');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() cleanFolder(tmp));

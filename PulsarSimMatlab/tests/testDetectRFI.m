@@ -6,7 +6,7 @@ Makes its own noise-only and noise + RFI channel files (0.05 s through the
 real receiver chain: addNoiseAndRFI on a zero sky signal -> applyIQmodulation
 -> channelizeIQ; the same noise seed, so noise + RFI minus noise only is the
 RFI alone, channel by channel; ~2.5 GB in tempdir, deleted on the way), and
-uses the seed-43 channel files (data/chan/test_rx_IQ_chan_*: -5 dB pulsar,
+uses the seed-43 channel files (data/test/chan/test_rx_IQ_chan_*: -5 dB pulsar,
 no RFI) for test 2.
 
   1. Noise only:
@@ -57,7 +57,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testDetectRFI');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() cleanFolder(tmp));
@@ -129,7 +129,7 @@ t2 = tic;
 chanP = loadInfo(fullfile(dataDir, 'chan', 'test_rx_IQ_chan'));
 info_rx = loadInfo(fileRx);
 if ~(isempty(info_rx.rfi) && isfinite(info_rx.snrDB))
-    error('testDetectRFI:data', 'Test 2 needs the seed-43 files without RFI (main.m, rfiOn = false).');
+    error('testDetectRFI:data', 'Test 2 needs the seed-43 files without RFI (data/test/, tests/makeTestData.m).');
 end
 info_gen = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);

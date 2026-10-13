@@ -2,14 +2,15 @@ function testFoldWeights()
 %TESTFOLDWEIGHTS  Unit tests for the noise covariance (A1a) and data weights (A1b) in foldProfile.
 %{
 Run from the PulsarSimMatlab folder: run('tests/testFoldWeights.m'). ~7 s (measured; tests 1-3 ~1.5 s).
-Needs data/mc/foldRef_pre3c.mat (tests/makeFoldReference.m), the full-band
-power data/test_envelope.dat (main.m) and the 128-channel power file
-data/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
+Needs data/test/mc/foldRef_pre3c.mat (tests/makeFoldReference.m), the full-band
+power data/test/test_envelope.dat (frozen) and the 128-channel power file
+data/test/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
 
   1. Regression: without NoiseCoeffs, foldProfile reproduces the four
      reference folds made before A1 bit for bit (all fold fields and the
-     info fields that existed then). The inputs must be the files the
-     references were made from (same seeds -> same files).
+     info fields that existed then; sourceFile by file name only, as the
+     frozen inputs moved from data/ to data/test/). The inputs must be the
+     files the references were made from (same seeds -> same files).
   2. Algebra: weight2 and weightX against the explicit covariance of the
      phase-bin sums, Q = A' * C * A per sub-integration (A: assignment of
      time bins to phase bins; C: banded time-bin covariance, V on the
@@ -53,7 +54,7 @@ tempdir (deleted at the end).
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 tmp = fullfile(tempdir, 'testFoldWeights');
 if ~isfolder(tmp), mkdir(tmp); end
 cleanTmp = onCleanup(@() delete(fullfile(tmp, '*.dat')));   % ~0.5 GB of weight files
@@ -74,9 +75,11 @@ cs = {'A', detA, {'SubintPeriods', subintPeriods},                     'full ban
 for i = 1:size(cs, 1)
     [ifo, fo] = foldProfile(cs{i, 2}, 'x', ephem.f0, base{:}, cs{i, 3}{:});
     r  = ref.(cs{i, 1});
-    fn = setdiff(fieldnames(r.info), {'elapsed'});
+    fn = setdiff(fieldnames(r.info), {'elapsed', 'sourceFile'});
     sameFold = isequaln(fo, r.fold);
-    sameInfo = all(cellfun(@(f) isequaln(ifo.(f), r.info.(f)), fn));
+    [~, nNow, eNow] = fileparts(string(ifo.sourceFile)); [~, nRef, eRef] = fileparts(string(r.info.sourceFile));
+    sameInfo = all(cellfun(@(f) isequaln(ifo.(f), r.info.(f)), fn)) && ...
+        nNow + eNow == nRef + eRef;                      % the folder moved: data/ -> data/test/
     fprintf('1%s. regression, %s: fold bit-identical %d, info %d: %s\n', lower(cs{i, 1}), ...
         cs{i, 4}, sameFold, sameInfo, passStr(sameFold && sameInfo));
     if ~(sameFold && sameInfo)

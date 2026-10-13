@@ -7,7 +7,9 @@ step, what has been validated (with numbers), what went wrong along the way, and
 still to do.
 
 This file tracks the **current state** of the code (started 30 September 2026 as
-`2026-09-30_project_notes.md`). **Last updated: 12 October 2026** (`blankingWeights` long-bin
+`2026-09-30_project_notes.md`). **Last updated: 13 October 2026** (code review: minor fixes,
+reuse checks in `main`, `runAllTests`, generator test, frozen test data in `data/test/`;
+§10 item 12, `2026-10-13_code-review.md`; docs: 19 diagrams). Before: 12 October 2026 (`blankingWeights` long-bin
 crash fixed, §10 item 10; B5e cases rerun, §7; stale text fixed; `2026-10-12_overview.md`).
 Earlier updates, in order: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
@@ -160,19 +162,30 @@ TOA threshold sweeps down to −25 dB, long H0 run (all in §7).
 Skipped stages reload their `info` from disk; `checkConsistency` warns when files on disk
 were made with different parameters (T, f_in, L, DM, band, SNR, receiver input, fLO, fs,
 RFI sources; the RFI check since 5 Oct, `isequaln` on `info_rx.rfi.params` vs `rfi`).
+Since 13 Oct also the reused processing and fold files: `checkProcessing` (each product made
+from the file before it, via `inFile` / `rawFile` / `powerFile`, and its info file at least as
+new as its input's; f_out (samples per bin), DM, refFreq, band, chanWidth; weight file vs power
+file) and `checkFold` (power file, age, nBin, subintPeriods, ephemeris, data-weight file);
+warnings `main:staleProcessing` / `main:staleFold`. Not checked: the excision and periodic-mask
+options (not stored in the infos).
 `plots.*` switch the check figures; `closeFigures` runs `close all`.
 
 **Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
 (reload `<name>_info.mat`), `gaussianTemplate(nBin, fwhmTurns)` (periodic Gaussian,
 peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
-product of raised-cosine edge tapers). **Local function in main**: `checkConsistency`.
+product of raised-cosine edge tapers). **Local functions in main**: `checkConsistency`,
+`checkProcessing`, `checkFold`, `infoTime`.
 **Detection** (processing, after `estimateTOA` in main and `runSNRSweep`):
 `detectPulsar` (§5.13); main defines `toa.good = valid & detectedUnknown & ~flagChi2`
 and runs `validateTOA` also on the good TOAs only.
 
 **Disk use** ≈ L·(3·f_in·4 + 2·fs·8 + f_out·4) bytes: for L = 1 s at fs = 500 MHz about
 56 GB (three 16 GB RF files, two 4 GB complex files, 4 MB power); at fs = 800 MHz about
-61 GB. `test.dat` can be deleted after dispersion (only `plotDispersionCheck` needs it).
+61 GB. Channel path (main's default): the same RF and IQ files, no full-band dedispersed
+or power file, plus 128 channel files, their dedispersed copies and the channel power
+(+ blanked copies and the weight file with excision): ≈ 7.2 GB at L = 0.1 s, 800 MHz,
+f_out 1 MHz (main's printed estimate counts this since 13 Oct; before it also added the
+full-band files). `test.dat` can be deleted after dispersion (only `plotDispersionCheck` needs it).
 The MC adds rx + IQ + dedispersed files in `data/mc/` (≈ 2.9 GB at L = 0.1 s, 800 MHz).
 
 ---
@@ -231,9 +244,12 @@ not of real pulsars, whose spectra fall as a power law).
   (`'amplitude'` mode: amplitude G, power FWHM smaller by √2).
 - Pulse centres at (k + 0.5)·T (first pulse at T/2, signal starts near zero) →
   `info.pulseCenters` = ground truth.
-- Periodic sum over `nNeighbors = max(1, ceil(6σ/T + 0.5))` neighbours, nearest pulse
-  **per sample** (`k0 = round(t/T − 0.5)`), normalized by the exact peak value
-  (`peakNorm`) → no clipping for overlapping pulses.
+- Periodic sum over `nNeighbors = floor(11.75σ/T + 0.5)` neighbours (every Gaussian above
+  1e-30 of the peak; at 5 % none; until 13 Oct `max(1, ceil(6σ/T + 0.5))`, bit-identical
+  output, ~10 % faster), nearest pulse **per sample** (`k0 = round(t/T − 0.5)`),
+  normalized by the exact peak value (`peakNorm`) → no clipping for overlapping pulses.
+- Warning `generatePulsarSignal:overlap` above 20 % duty (wider than real pulsars, which
+  stay below ~20 %; Jasper, 13 Oct; was > 50 %).
 - N = round(L·f_in) + 1 (inclusive endpoint → file lengths end in …001).
 - Blocks of 4e6 samples (1001 blocks for 1 s).
 - Options: `Seed`, `EnvelopeMode`, `BlockSize`, `SaveInfo`, `Verbose`.
@@ -242,6 +258,10 @@ not of real pulsars, whose spectra fall as a power law).
 FWHM_amplitude, pulseCenters, nPulses, seed, rngType, bytesWritten, elapsed.
 
 Progress (with `Verbose`) is printed about every 10 % of the blocks.
+
+**Tests (`tests/testGeneratePulsarSignal.m`, 13 Oct, review item R1; ~4 s; validated: Jasper's run 13 Oct: the 13 tests and testGeneratePulsarSignal all passed;
+test 4 then changed from 40 % to 20 % and the warning lowered to > 20 %: Jasper's run of `runAllTests` 13 Oct, passed).** (1) format and ground truth (binary-exact T = 1/1024 s, f_in = 2^27 Hz: the 13th pulse centre on the last sample); (2) power profile, 5 %, 200 pulses at 100 MHz: folded mean x² in 1 µs bins vs A²·G from an independent exact periodic sum (21 images), exact per-bin σ: residuals mean +0.11 ± 0.08, std 0.97 ± 0.06; centre 0.500015 ± 0.000017 turns; width −0.3σ (FWHM 49.92 µs, nominal 50); (3) 'amplitude' mode, power FWHM / √2; (4) 20 % duty, the widest real pulses (Jasper: pulsars stay below ~20 %; was 40 %), all bins: the bins halfway between pulses check the neighbour sum (a generator copy without it fails test 4 only: residual std 5.3); (5) same seed identical, BlockSize 333,333 / 7,919 = one block bit for bit, A = 4 exactly 4 × A = 1 for normal floats (subnormals far off-pulse differ by ≤ 3e-45), another seed differs, global RNG untouched, clock seed reproduces; (6) bad mode / seeds refused; 25 % warns, 20 % does not (threshold lowered from 50 % to 20 % on 13 Oct, Jasper; Claude's run: all passed, tests 1–5 unchanged). `randn` drawn in pieces gives the same numbers as in one piece
+(checked for single and double, any split), so the file does not depend on `BlockSize`.
 
 ### 5.2 `applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, ...)` [validated]
 
@@ -338,7 +358,8 @@ receiver-noise power in the analysis band (0 dB = as much as the whole in-band n
 - `'cw'`: carrier, `Freq`, `Drift` [Hz/s], `Phase`.
 - `'bpsk'`: GNSS-like spread spectrum, `Freq`, `ChipRate`; random ±1 rectangular chips.
 - `'pulsed'`: radar, `Freq`, `PulseWidth`, `PRF`, `ChirpBW` (linear chirp in the pulse),
-  `StartTime`, `RiseTime` (B5a, 8 Oct: raised-cosine edges of this duration centred on
+  `StartTime` (a phase: pulses start at StartTime + k/PRF for every integer k, also before
+  it), `RiseTime` (B5a, 8 Oct: raised-cosine edges of this duration centred on
   the nominal edges, so `PulseWidth` = 50 % width; energy (PW − RiseTime/4)·power;
   **default 0.1 µs** = the realistic radar (Jasper); 0 = instant edges, the behaviour
   before 8 Oct, bit for bit). Spectrum: instant edges ~1/f² over tens of MHz;
@@ -355,6 +376,9 @@ receiver-noise power in the analysis band (0 dB = as much as the whole in-band n
   by a Kaiser band-pass (−6 dB at Freq ± Bandwidth/2, transition 5 % of Bandwidth, 60 dB
   stopband) with the overlap of the filter length → independent of the block size;
   power = INR × the in-band noise from the filter's own Σh². ~0.5 s per 1 ms at 4 GHz.
+  The filter spectrum of a full block is computed once per source (13 Oct, bit-identical,
+  −13 % stage time with 3 of 7 sources 'noise'; 67–134 MB per source, ~1.7 GB in
+  `runRFITest` case 15).
 - `'impulse'`: broadband white bursts, Poisson `Rate`, `Duration`.
 Amplitudes: carrier types a = √(2·INR·P_nb) (power a²/2); impulse σ = √INR·σ_n;
 P_nb = σ_n²·B/(fs/2). Phases from absolute sample index; chips from `mrg32k3a`
@@ -405,7 +429,9 @@ stronger and would clip a real ADC (not modelled). `runRFITest` case 15 replaces
 Inmarsat blocks by ten narrow carriers (§7).
 
 **Options:** `Band`, `SNRdB`, `SignalInfo` (info_gen) or `SignalAmp`, `NoiseStd`, `RFI`,
-`Seed`, `BlockSize`, `SaveInfo`, `Verbose`. Warns below −60 dB (single-precision limit).
+`Seed`, `BlockSize`, `SaveInfo`, `Verbose`. No lower SNR limit from float32: the noise
+dithers the rounding, which adds white noise ~145 dB below the noise power, uncorrelated with
+the pulse (the warning `addNoiseAndRFI:weak` below −60 dB said otherwise; removed 13 Oct).
 
 **Info:** noiseStd, noisePSD, noisePowerBand, snrDB, snrDefinition, noiseAddedAt, rfi
 (with computed amplitudes and parameters), prediction, seed.
@@ -1077,7 +1103,9 @@ W = mean of C(a,a)/m0, V and X(L) = (1/n²)·Σ|C|²/m0² over the sample pairs 
 divided by `info_det.noise.radiometer`.
 **Code.** Mask = rows [channel, first, last] (1-based channel samples; clipped,
 overlaps allowed). h per channel: an impulse through `applyInverseDispersion` with the
-channel's settings and its `Nfft` (checked: same nPast/nFuture as `dedisperseChannels`).
+channel's settings and its `Nfft` (checked: same nPast/nFuture as `dedisperseChannels`),
+via two temporary files with unique names (`tempname`, since 13 Oct; before: named after the
+output file, so two runs at once could overwrite each other's).
 Unblanked channels: W = 1 and the unblanked V0, X0 from their own h (= spectrum
 constants to 5e-9). `MinWeight` (default 1e-6): W below it → W = V = X = 0 (and X with
 an empty partner bin). Weight array held in memory (`MaxMemoryGB`; ~0.5 GB for 0.1 s of
@@ -1780,7 +1808,9 @@ r = (1 − f + f(1 + R)²)/L² (§9).
     all tests are functions (own workspace; cleanup when the test ends; `run(...)`
     unchanged). Lessons: run tests the way Jasper does (several in one session); never
     run two test sessions at once — they share the files in `data/chan/` (an
-    overlapping run gave garbage: noise 72× the radiometer value).
+    overlapping run gave garbage: noise 72× the radiometer value). Since 13 Oct (review
+    item 3) the tests share `data/test/chan/` instead; the rule stands, but `main.m` at
+    the same time is now safe (it does not touch `data/test/`).
 
 ---
 
@@ -2177,6 +2207,69 @@ barycentric corrections, navigation solution).
    `fft(q, M, 1)`; `tests/testBlankingWeights.m` test 4 (long bins) added; Claude's and Jasper's
    runs 12 Oct: all passed (§5.18); validated. Lag-array memory (∝ bin length) also fixed 12 Oct
    (bit-identical, Jasper's run, §5.18). Left open: run time ∝ bin length and whole-file processing (§9, design ready).
+11. **[todo] Generator refinements (review week, stage 1, 12 Oct; Jasper: note only, the week
+   is for understanding).** Agreed in principle, not started:
+   - **R1** unit test `tests/testGeneratePulsarSignal.m`: **done 13 Oct** (§5.1; all passed,
+     validated by Jasper's run). Block-size independence confirmed (bit for bit). Overlap
+     warning lowered from > 50 % to > 20 % duty (Jasper, 13 Oct; test 6 checks 25 / 20 %).
+   - **R2** remove the legacy `'amplitude'` mode. Touches the generator, `genEnvMode` in
+     `pipelineParams` (+ the caveat at `ephem.profileFWHM`), the `'EnvelopeMode'` argument in
+     `main`, `runH0`, `runSNRSweep`, and the `info.envelopeMode` branches in `addNoiseAndRFI`,
+     `expectedPowerModel`, `plotFoldCheck` (2×), `plotIQCheck`, `plotDetectedPower`. Option:
+     input side first (keep `info.envelopeMode = 'power'`), drop the downstream branches per stage.
+   - **R3** true pulse offset unknown to the observer: today `ephem.TRef = T/2` is the exact
+     true epoch, so every end-to-end run has true TOA offset 0 (navigation's unknown). Design:
+     generator option `'TimeOffset'` [s] (default 0 = bit-identical, G(t − Δt), truth in
+     `info.timeOffset`), `pipelineParams` `toaOffset`, `main` passes it; `validateTOA` already
+     matches TOAs to the nearest true centre, but must compare `toa.total.timeOffset` with
+     `info_gen.timeOffset` (missing field = 0). Test offsets near ±T/2 (sub-int boundary,
+     phase wrap).
+12. **Code review of the whole codebase (Claude, 12 Oct; 33 candidates; full list with status:
+   `logs/2026-10-13_code-review.md`).** 13 Oct, Jasper: implement the minor and simple ones,
+   validate each. **Done and validated 13 Oct** (Claude's checks; Jasper's run of `testRadarEdges`,
+   `testRfiGating`, `testRfiNoise`, `testBlankingWeights`, `testChannelTOA`: all passed, same numbers): stale or wrong
+   text in `blankingWeights` (~4 % → ~1 %), `dedisperseChannels`, `detectChannels`,
+   `estimateTOA`, `pipelineParams`, `main`, `rfiSource` (`StartTime` is a phase); warning
+   `addNoiseAndRFI:weak` removed (no float32 floor, §5.3); `main` disk estimate per path (§3);
+   `estimateTOA` `fitOne` indentation; `'noise'` filter spectrum cached (§5.3); generator
+   neighbour rule (§5.1); `blankingWeights` unique temp files (§5.18). All bit-identical.
+   Measured and dropped: a larger `channelizeIQ` `BlockOut` (3 %, not worth it). **Item 2 done
+   13 Oct, validated** (Jasper's `main` run 13 Oct with only `runStage.toa`: `checkFold` silent,
+   `checkProcessing` warned "test_rx_IQ_chan_blanked older than its input": the old unit
+   tests had rewritten `data/chan/test_rx_IQ_chan_*` at 12:31, after main's 12:05 blanking.
+   Same contents: all 53.3 M unblanked samples equal the rewritten file bit for bit (Claude's
+   check); TOAs as at 12:05. Cannot recur: the tests now use `data/test/`): `main` checks
+   reused processing and fold files (`checkProcessing`, `checkFold`, §3). **Live case it found:** main's channel-path
+   products in `data/` (blanked power, weights, `test_fold_chan.mat`, 9 Oct 10:49) are from the
+   f_out study at ~99 kHz, not today's f_out 1 MHz → rerun `runStage.process`. **Open, for
+   Jasper to choose:** ~~unit tests read main's data files, which `main` rewrites~~ (item 3, done below); and the
+   performance, structure and validation items of the log. **Item 1 measured, not changed:**
+   `foldProfile` with `DataWeights` grows mildly faster than linear (18× for 10× the data at
+   128 channels), bounded by its 2 GB cap; a touched-cells-only `addTo` (bit-identical) was 35 %
+   slower at 0.1 s and 22 % faster at 1 s → reverted (log: better design if ever needed).
+   **Item 34 done 13 Oct:** `main` no longer stops in `validateTOA` when no TOA is valid (prints a
+   note). `data/` remade at 1 MHz by Jasper's `main` run 13 Oct 12:05 (8 TOAs, 2.956 µs).
+   **Item 30 done 13 Oct:** `tests/runAllTests.m` (one session, dependency order, summary table;
+   all 13 passed, 6.3 min, Claude's run in an isolated copy). **R1 done 13 Oct:**
+   `tests/testGeneratePulsarSignal.m` (§5.1), first in `runAllTests`. Both validated (Jasper's run 13 Oct: the 13 tests and testGeneratePulsarSignal all passed).
+   **Item 3 done and validated 13 Oct** (Jasper's run: `makeTestData`, then `runAllTests` 14/14 in 6.8 min): the unit tests no
+   longer read main's files. `tests/testParams.m` = their frozen settings (the seed-43
+   reference: the same values as `pipelineParams` on 13 Oct), all paths under `data/test/`;
+   `tests/makeTestData.m` (run once) checks that `data/` is that reference (9 checks of the
+   info chain) and copies it there (infos rewritten to `data/test/`; 272 files, 2.2 GB:
+   IQ, full-band dedispersed, envelope, the two channel sets, the channel power file, the
+   three frozen references of `data/mc/`). The 12 tests that read data call `testParams`
+   instead of `pipelineParams`. Effect: `main` runs and `pipelineParams` edits no longer
+   change what the tests check (the cause of the 9 Oct f_out mix-up of item 2). The
+   `make*Reference` scripts still write to `data/mc/`; re-freeze with
+   `makeTestData('Overwrite', true)` only on purpose. `testFoldWeights` now compares the
+   fold info's `sourceFile` by file name (the folds stay bit-identical). Claude's validation
+   in an isolated copy: `runAllTests` 14/14 with everything but `data/test/` moved out of
+   `data/` and `pipelineParams` changed (−20 dB, RFI on, fs 500 MHz, nBin 1024); refusals
+   (`exists`, `source` with `data/test/` untouched, `testParams:noData`) as designed.
+   Jasper made `data/test/` in the repo (13 Oct) and ran `runAllTests` on it: 14/14.
+   Item 2 then validated by Jasper's `main` run (above); item 34 (no valid TOA) checked by
+   Claude only (it does not occur in a normal run).
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
@@ -2406,7 +2499,7 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency`; channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency`, `checkProcessing` / `checkFold` (13 Oct); channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct; rerun 12 Oct, identical (validated, §7) |
 | `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
@@ -2443,6 +2536,10 @@ per day).
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
+| `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |
+| `tests/runAllTests.m` | runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
+| `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
 | `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | validated (6 Oct) |
 | `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Jasper's run, 6 Oct) |
@@ -2451,7 +2548,7 @@ per day).
 | `detectChannels.m` | detectPower per channel → one [nChan × nBins] power file + noise stats (unit 3b) | validated (6 Oct) |
 | `tests/testDetectChannels.m` | spectrum vs filter, layout, fold compatibility, measured V / X | passes (Jasper's run, 6 Oct) |
 | `tests/makeFoldReference.m` | saves the pre-A1 reference folds (`data/mc/foldRef_pre3c.mat`) | run 6 Oct |
-| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking; test 7: coverage warning (9 Oct) | passes (Jasper's run, 7 Oct; test 7: Jasper's run, 9 Oct) |
+| `tests/testFoldWeights.m` | A1a: regression vs reference folds, A'CA algebra, measured fold noise; A1b: constant / random weight streams, fake blanking; test 7: coverage warning (9 Oct); since 13 Oct the regression compares the fold info's `sourceFile` by file name (inputs moved to `data/test/`) | passes (Jasper's run, 7 Oct; test 7: Jasper's run, 9 Oct; 13 Oct on `data/test/`: Jasper's run) |
 | `tests/makeToaReference.m` | saves pre-A2 estimateTOA / detectPulsar outputs (`data/mc/toaRef_preA2.mat`) | run 7 Oct |
 | `tests/testChannelTOA.m` | A2a: full-band regression, error bars vs explicit covariance, per-channel vs summed, blanked TOAs; A2b: detection regression, explicit H0 covariance, noise ratio; test 7: resolution warning (9 Oct) | passes (Jasper's run, 7 Oct; test 7: Jasper's run, 9 Oct) |
 | `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs); test 4: long time bins (12 Oct) | passes (Jasper's run, 7 Oct; with test 4: Jasper's run, 12 Oct) |

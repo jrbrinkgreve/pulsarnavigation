@@ -31,8 +31,9 @@ statistics are validated by its unit tests (exact covariances, Monte Carlo with 
 <p>A later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them with another noise
 realization, main would silently pick it up (<code>checkConsistency</code> does not check the noise seed). Separate folders make that impossible.</p></div>
 <div class="callout warn"><span class="ttl">Never run two of these at once</span>
-<p>Scripts and tests that share files (e.g. <code>data/chan/</code>) corrupt each other's data when run in parallel: an overlapping run once
-gave noise 72× the radiometer value (<a href="lessons.html">bugs and lessons</a> #11).</p></div>
+<p>Scripts and tests that share files (e.g. <code>data/chan/</code>; the unit tests: <code>data/test/chan/</code>) corrupt each other's data when run in parallel: an overlapping run once
+gave noise 72× the radiometer value (<a href="lessons.html">bugs and lessons</a> #11). <code>main.m</code> next to a test session is safe
+since 13 Oct: the tests read only <code>data/test/</code>.</p></div>
 
 <h2 id="main"><code>main.m</code></h2>
 <p>Run control at the top (<code>runStage.*</code>, <code>plots.*</code>, <code>closeFigures</code>), then:</p>
@@ -41,16 +42,16 @@ gave noise 72× the radiometer value (<a href="lessons.html">bugs and lessons</a
 <li>sky (generator + dispersion) or reload; optional <code>plotDispersionCheck</code>;</li>
 <li>receiver (noise/RFI + IQ) or reload; <code>checkConsistency</code>;</li>
 <li>processing: full band (dedispersion + detection) or channels (channelizer → [detectRFI → blankChannels] → dedisperseChannels →
-detectChannels → [blankingWeights]); optional IQ and detection checks (full band);</li>
-<li>fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel path) or reload; optional fold check;</li>
+detectChannels → [blankingWeights]), or reload + <code>checkProcessing</code>; optional IQ and detection checks (full band);</li>
+<li>fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel path) or reload + <code>checkFold</code>; optional fold check;</li>
 <li>TOAs, detection, good TOAs, <code>validateTOA</code> (all and good), the exact optimum (full band).</li>
 </ol>
 <p>Printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel path 8 TOAs, 2.943 µs, SNR 92.3
 (with excision 2.956 µs, 91.9).</p>
 <div class="callout why"><span class="ttl">Why the stages can be skipped</span>
 <p>The sky stage is by far the slowest (random numbers and a 25-million-tap filter at 4 GHz) and does not depend on the noise. Changing
-the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>
-warns when files on disk were made with other parameters.</p></div>
+the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>,
+<code>checkProcessing</code> and <code>checkFold</code> warn when files on disk were made with other parameters or from older inputs.</p></div>
 
 <h2 id="mc"><code>runMonteCarlo.m</code> <span class="badge validated">validated</span></h2>
 <p>The pulsar signal is fixed (sky files from <code>main.m</code>); only the receiver noise changes: seeds <code>seed + (1:nSeeds)</code>, default 10.

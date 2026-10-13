@@ -4,7 +4,7 @@ function testDetectChannels()
 Run from the PulsarSimMatlab folder: run('tests/testDetectChannels.m'). ~1 s (measured;
 + ~6 s once if the channel files have to be made first).
 Uses the dedispersed channels of tests/testDedisperseChannels.m
-(data/chan/test_dedisp_chan_*); makes them first if they are missing.
+(data/test/chan/test_dedisp_chan_*); makes them first if they are missing.
 
   1. powerCovariance (from the channel spectrum) against the same statistics
      computed from the actual impulse response h of a channel's dedispersion
@@ -23,7 +23,7 @@ Errors at the end if any check fails.
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
-pipelineParams;
+run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
 chanDir = fullfile(dataDir, 'chan');
 tmp = fullfile(tempdir, 'testDetectChannels');
 if ~isfolder(tmp), mkdir(tmp); end

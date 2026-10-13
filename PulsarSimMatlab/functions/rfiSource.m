@@ -18,6 +18,9 @@ Types and their parameters:
                                            ChirpBW [Hz] (linear chirp within the
                                            pulse, 0 = plain carrier), StartTime [s],
                                            RiseTime [s] (default 0.1e-6, see below)
+             StartTime is a phase, not a switch-on time: the nominal start
+             (50 % point of the rising edge) of the pulses is StartTime + k/PRF
+             for every integer k, so there are pulses before StartTime too
   'impulse'  broadband bursts              Rate [1/s] (Poisson), Duration [s];
              white noise bursts over the whole sampled band
   'noise'    band-limited Gaussian noise   Freq [Hz] (centre), Bandwidth [Hz]:

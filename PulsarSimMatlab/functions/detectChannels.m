@@ -16,7 +16,8 @@ The info struct also carries what the noise model needs per channel:
     3.125 MHz channel with 0.96 us bins V = 0.888, X(1) = 0.046 (the power
     has a correlation time ~1/B ~ 0.33 us); V + 2*sum(X) -> 1.
     Without blanking these are the same constants in every channel and bin.
-    (Blanking, step 2, will make them per-bin streams computed from the mask.)
+    (With blanking they become per-bin streams computed from the mask by
+    blankingWeights, foldProfile 'DataWeights'.)
 
   info = detectChannels(info_dc, outFile, f_out)
 

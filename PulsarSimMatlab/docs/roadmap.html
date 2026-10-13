@@ -11,7 +11,7 @@
 
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 8 October 2026 (commit <code>9b959f0</code>). Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 13 October 2026 (after commit <code>e7bb4be</code>; the review-week work of 13 Oct is not committed yet). Session-by-session history: <code>logs/</code>.</p>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -27,8 +27,59 @@ B5c (rotating radar), B6 (periodic mask, default on), B5d (LTE-like noise source
 <tr><td>9 Oct</td><td>Decision "measure first" → B5e (realistic L-band scenario): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with
 narrow Inmarsat-like carriers; found a periodic-mask bug (false emitters with dense detections, ~30 % of the data blanked). <b>Block B closed for now</b>:
 periodic mask off by default, open items parked with designs. C not started yet (Jasper).</td></tr>
+<tr><td>12–13 Oct</td><td>Review week: understand and refine the pipeline stage by stage. <code>blankingWeights</code> long-bin crash and lag memory fixed; B5e and
+B5b-2 validated by reruns. Code review of the whole codebase (33 items, <code>logs/2026-10-13_code-review.md</code>): minor fixes, <code>main.m</code> checks
+reused files, <code>runAllTests</code>, a generator unit test, frozen test data (<code>data/test/</code>); diagrams added to these docs.</td></tr>
 </table></div>
 
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 236" role="img" aria-label="Project blocks in order: block 1, A, B and the review week done; C, D and E to come">
+  <defs>
+    <marker id="ar-rm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <text class="ttl" x="10" y="16">done, and now</text>
+  <rect class="box proc" x="10" y="26" width="190" height="74" rx="7"/>
+  <text class="ttl" x="105" y="46" text-anchor="middle">Block 1 · 29 Sep – 6 Oct</text>
+  <text class="sub" x="105" y="64" text-anchor="middle">full-band chain validated:</text>
+  <text class="sub" x="105" y="80" text-anchor="middle">noise, SNR sweep, detection</text>
+  <rect class="box proc" x="225" y="26" width="190" height="74" rx="7"/>
+  <text class="ttl" x="320" y="46" text-anchor="middle">A · 6 – 8 Oct</text>
+  <text class="sub" x="320" y="64" text-anchor="middle">channelized front end, exact</text>
+  <text class="sub" x="320" y="80" text-anchor="middle">noise, optimal weighting</text>
+  <rect class="box proc" x="440" y="26" width="190" height="74" rx="7"/>
+  <text class="ttl" x="535" y="46" text-anchor="middle">B · 8 – 9 Oct</text>
+  <text class="sub" x="535" y="64" text-anchor="middle">RFI excision, closed for now;</text>
+  <text class="sub" x="535" y="80" text-anchor="middle">periodic-mask fix parked</text>
+  <rect class="box val" x="655" y="26" width="195" height="74" rx="7"/>
+  <text class="ttl" x="752" y="46" text-anchor="middle">review week · 12 Oct –</text>
+  <text class="sub" x="752" y="64" text-anchor="middle">understand and refine each</text>
+  <text class="sub" x="752" y="80" text-anchor="middle">stage; code review (13 Oct)</text>
+  <path class="line" marker-end="url(#ar-rm)" d="M200 63 H223"/>
+  <path class="line" marker-end="url(#ar-rm)" d="M415 63 H438"/>
+  <path class="line" marker-end="url(#ar-rm)" d="M630 63 H653"/>
+
+  <text class="ttl" x="10" y="138">next</text>
+  <rect class="box" x="10" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
+  <text class="ttl" x="142" y="168" text-anchor="middle">C · fast simulator</text>
+  <text class="sub" x="142" y="186" text-anchor="middle">draw folded profiles with the validated</text>
+  <text class="sub" x="142" y="202" text-anchor="middle">noise model: hours, not seconds</text>
+  <rect class="box" x="297" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
+  <text class="ttl" x="430" y="168" text-anchor="middle">D · motion and phase</text>
+  <text class="sub" x="430" y="186" text-anchor="middle">relative motion, barycentric phase</text>
+  <text class="sub" x="430" y="202" text-anchor="middle">prediction, clock</text>
+  <rect class="box" x="585" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
+  <text class="ttl" x="718" y="168" text-anchor="middle">E · navigation</text>
+  <text class="sub" x="718" y="186" text-anchor="middle">several pulsars, navigation solution,</text>
+  <text class="sub" x="718" y="202" text-anchor="middle">3×3 array, second polarization</text>
+  <path class="line" marker-end="url(#ar-rm)" d="M752 100 V124 H142 V146"/>
+  <path class="line" marker-end="url(#ar-rm)" d="M275 185 H295"/>
+  <path class="line" marker-end="url(#ar-rm)" d="M562 185 H583"/>
+</svg>
+<figcaption>The blocks in order (details in the tables below). C comes before D because one J0437 TOA at the worst-case design point
+takes ~20 h, far beyond what the voltage-level simulation can produce; D is then needed to fold coherently across passes.</figcaption>
+</figure>
 <h2>The labels</h2>
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
@@ -96,6 +147,8 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Lag-array memory fixed the same day (bit-identical). Still open: run time ∝ bin length, and whole-file processing (<code>blankingWeights</code>, <code>detectRFI</code>, <code>periodicRFI</code>; L = 1 s already exceeds the 4 GB default): "excision for long data", when real data is close.</td></tr>
+<tr><td><span class="badge todo">todo</span> Generator refinements (review, 12 Oct)</td><td>R1 done 13 Oct: <code>tests/testGeneratePulsarSignal.m</code> (power profile against an exact periodic sum, ground truth, reproducibility; same file for any <code>BlockSize</code>, confirmed; passes, Jasper's run 13 Oct). The overlap warning now comes above 20 % duty (was 50 %; real pulsars stay below ~20 %). Noted, not started: R2: remove the legacy <code>'amplitude'</code> mode (generator, <code>pipelineParams</code>, three drivers, five downstream functions). R3: a true pulse offset unknown to the observer (<code>'TimeOffset'</code>; today every end-to-end run has true offset 0 because <code>ephem.TRef</code> is the exact true epoch); <code>validateTOA</code> then compares the whole-fold offset with the truth.</td></tr>
+<tr><td><span class="badge written">in progress 13 Oct</span> Code review (12–13 Oct)</td><td>Claude went through the whole codebase: 33 candidates (full list with status: <code>logs/2026-10-13_code-review.md</code>, notes §10 item 12). Done 13 Oct, all bit-identical (validated: Claude's checks and Jasper's test runs, 13 Oct; commit pending): stale and wrong help texts, the <code>addNoiseAndRFI:weak</code> warning removed (the noise dithers float32 rounding: no −60 dB floor), <code>main</code>'s disk estimate per path, <code>'noise'</code> RFI filter spectrum computed once per source, generator neighbour rule, unique temporary files in <code>blankingWeights</code>. Then <code>main</code> checks reused processing and fold files (<code>checkProcessing</code>, <code>checkFold</code>; validated by Jasper's run): it found main's channel-path products in <code>data/</code> to be from the 99 kHz f_out study, and later that the old unit tests had rewritten main's channel files (same contents). Measured and not changed: <code>foldProfile</code> with data weights grows only mildly faster than linear (bounded by its 2 GB cap; a bit-identical rewrite was slower at 0.1 s). Open, for Jasper: performance, structure and validation items. Also done: <code>main</code> reports instead of stopping when no TOA is valid; <code>tests/runAllTests.m</code> runs all unit tests in one session with a summary (all passed, 6.3 min); the tests have their own frozen settings and data (<code>tests/testParams.m</code>, <code>data/test/</code> made once by <code>tests/makeTestData.m</code>), so <code>main.m</code> runs no longer change what they check (validated: Jasper's run, 14/14 on the frozen data).</td></tr>
 <tr><td>Deferred: phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR.</td></tr>
 </table></div>
 

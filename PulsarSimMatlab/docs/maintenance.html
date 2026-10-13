@@ -21,7 +21,11 @@ internet: open <code>docs/index.html</code> in a browser.</li>
 <li><code>api.html</code> (function reference) is <b>generated</b> by <code>docs/tools/make_api.py</code> from the committed code (git HEAD):
 signatures, every argument with its default, full help texts, script headers, legacy files. Never edit it by hand. Run
 <code>python3 docs/tools/make_api.py</code> after each commit that touches <code>functions/</code> or a script (<code>--worktree</code> reads uncommitted files instead).</li>
-<li>Formulas are plain text with HTML sub/superscripts. Figures are inline SVG that use the theme colours.</li>
+<li>Formulas are plain text with HTML sub/superscripts. Figures are inline SVG that use the theme colours (the <code>svg</code> classes in
+<code>style.css</code>), so they follow the light/dark toggle. Plots are computed by <code>docs/tools/figures/gen_*.py</code> from the code's
+formulas and constants or from a results table (list and use: <code>tools/figures/README.md</code>); flowcharts are written by hand in the page.
+Wide figures sit in <code>&lt;figure class="scroll"&gt;</code> with <code>&lt;svg class="wide"&gt;</code>: on a phone they scroll sideways instead of
+shrinking the text.</li>
 <li>Components: <code>.callout.why</code> (motivation), <code>.callout.warn</code> (caveats), <code>.callout.note</code>, <code>.badge.validated / .written / .todo</code>,
 <code>.sig</code> (function signature), <code>.eq</code> (formula block).</li>
 </ul>
@@ -40,6 +44,7 @@ then the notes; fix the site.</p>
 <li>Add new results to <a href="results.html">validation record</a> (or the stage page) and new tests to <a href="tests.html">unit tests</a>.</li>
 <li>New or changed parameters: <a href="parameters.html">parameters</a>. New decisions: the decision log in <a href="history.html#decisions">development history</a>.</li>
 <li>Update <a href="roadmap.html">status and roadmap</a> and the status table on the <a href="index.html">home page</a>.</li>
+<li>If a figure shows what changed: rerun its generator in <code>docs/tools/figures/</code> and replace the <code>&lt;figure&gt;</code> block, or edit the flowchart.</li>
 <li>Update the "checked against commit" line on the home page and add a line to the changelog below.</li>
 <li>Uncommitted work in progress gets at most a short "in progress" note, until it is validated and committed.</li>
 </ol>
@@ -47,7 +52,10 @@ then the notes; fix the site.</p>
 <h2>Discrepancies found while writing the docs</h2>
 <div class="table-wrap"><table>
 <tr><th>Date</th><th>Where</th><th>What</th><th>Status</th></tr>
-<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16); notes §5.2 still said 8 in one place, fixed 12 Oct 2026</td></tr>
+<tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16); notes §5.2 still said 8 in one place, fixed 12 Oct 2026; the sky page still called the help text out of date, fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td><code>addNoiseAndRFI</code> options on the receiver page</td><td>still said it warns below −60 dB; the warning was removed in the code review (13 Oct)</td><td>fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td>full-band page, bin time stamps</td><td>said a stamp at the bin start would <em>delay</em> every TOA by half a bin; it would make them half a bin <em>early</em> (the label is before the content)</td><td>fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td>scenario page, figure of merit</td><td>said "others 5000+"; from the page's own table B1937+21 is 300, J1713+0747 3700, J2145−0750 4300 (5000+ holds for the normal pulsars, as in the notes)</td><td>fixed 13 Oct 2026</td></tr>
 </table></div>
 
 <h2>Changelog</h2>
@@ -75,6 +83,13 @@ Rerun <code>tools/make_api.py</code> after that commit so <code>api.html</code> 
 <tr><td>12 Oct 2026</td><td><code>f40df46</code></td><td><code>blankingWeights</code> long-bin fix (excision: note; tests: test 4; roadmap: done); B5e validated by a rerun (home, roadmap, results, receiver); home commit line updated; changelog rows for <code>2f6eddc</code> and <code>0656e60</code> added. <code>api.html</code> regenerated after that commit.</td></tr>
 <tr><td>12 Oct 2026</td><td><code>62e8d06</code></td><td><code>blankingWeights</code> lag-array memory fix (bit-identical): excision (note), roadmap (open item), limits (excision on long files). <code>api.html</code> regenerated after that commit.</td></tr>
 <tr><td>12 Oct 2026</td><td>after <code>e947d4b</code></td><td>Legacy code item closed (kept in <code>old/</code>): roadmap.</td></tr>
+<tr><td>13 Oct 2026</td><td>after <code>e7bb4be</code>, uncommitted</td><td>Code review, minor fixes (log <code>2026-10-13_code-review.md</code>): sky (generator neighbour rule), receiver (<code>StartTime</code> is a phase; <code>'noise'</code> filter spectrum computed once), roadmap (review item). Then item 2: conventions, pipeline, scripts (<code>checkProcessing</code> / <code>checkFold</code> in <code>main.m</code>); item 30: tests (<code>runAllTests</code>); R1: tests (<code>testGeneratePulsarSignal</code>), roadmap; item 3: tests, conventions, parameters, scripts (frozen test data <code>data/test/</code>, <code>testParams</code>, <code>makeTestData</code>); sky, tests (generator warning above 20 % duty, was 50 %). Diagrams added (see the row below). Rerun <code>tools/make_api.py</code> after the commit (help texts changed).</td></tr>
+<tr><td>13 Oct 2026</td><td>after <code>e7bb4be</code>, uncommitted</td><td>Diagrams (Jasper's request): 19 new figures on 14 pages. Flowcharts: pipeline (run control in
+<code>main.m</code>), conventions (ground-truth rule, info-struct chain and its checks), receiver (block diagram), full band (overlap-save, bin time
+stamps), channels (polyphase filterbank), detection (good-TOA gates), tests (test data and order), roadmap (blocks). Computed plots
+(<code>tools/figures/</code>): sky (power profile and neighbour sum, dispersion delay and taper), receiver (spectra through the IQ stage), excision (one
+channel step by step), fold (folding), TOA (FFTFIT), detection (T0 and Tmax under H0 / H1), results (SNR sweep, threshold sweep), scenario (pulsar
+map). Text fixed while drawing: bin-stamp sign (full band), "others 5000+" (scenario), roadmap status line and timeline (12–13 Oct).</td></tr>
 </table></div>
 
 </main>
