@@ -2316,6 +2316,20 @@ barycentric corrections, navigation solution).
    (`~/.Trash/PulsarSimMatlab-orphans-2026-10-13`, restorable until emptied). Kept:
    `data/chan/test_dedisp_chan_*` is not an orphan (the source `makeTestData` copies when
    re-freezing, and `makeFoldReference` reads it); `data/mc/` kept.
+   **Deeper analysis 13 Oct** (`2026-10-13_deep-analysis.md`; read-only, independent numpy
+   checks, nothing changed). Findings:
+   - item 3 explains the whole 2.2 % channel-vs-full-band error-bar gap (pulsar-only taper
+     1.1 % + `ChannelGain` 1 in six edge channels 1.0 %; a realistic receiver: 0.37 %);
+   - default excision blanks bright pulsars (≥ 0 dB) and noise-free runs;
+   - `MaxRedChi2` 2 is 130σ on the channel path (B5e's χ² 1.22 passes);
+   - "−54 dB" is −51 dB for J0437 in `snrDB` terms (the simulator at −54 dB: ~62 h per TOA);
+   - the Rice factor is misread as a trial count on three docs pages (true ~60 trials);
+   - item 5: no usable guard recovers turn 0;
+   - `fitOptimal`'s convergence flag is dropped;
+   - SNR per turn 360·ρ on the default path (the rule says 373·ρ).
+
+   Confirmed: every key constant, the formulas page, the ground-truth rule, no timing offset,
+   full determinism. For Jasper to choose.
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR

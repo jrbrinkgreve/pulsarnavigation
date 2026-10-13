@@ -53,7 +53,9 @@
 <dt>ratio (rms/pred)</dt><dd>rms of actual TOA errors / rms of stated errors; 1 = honest.</dd>
 <dt>reduced χ²</dt><dd>Mean squared normalized fit residual on-pulse; ≫ 1 flags a wrong profile.</dd>
 <dt>RFI</dt><dd>Radio-frequency interference: man-made signals in the band.</dd>
-<dt>Rice factor</dt><dd>√λ₂/2π = 5.51: roughly the number of independent phase trials per turn for this template.</dd>
+<dt>Rice factor</dt><dd>√λ₂/2π = 5.51: the mean number of up-crossings of the mean level per turn by the matched-filter
+output, for this template. Not a number of independent trials: at the threshold η = 4.15 the phase search acts like ~60
+independent trials (that number grows with η, ≈ 5.51·η·√(2π)).</dd>
 <dt>rise time</dt><dd>Duration of a radar pulse's raised-cosine edge (0.1 µs default).</dd>
 <dt>sandwich covariance</dt><dd><var>A</var>⁻¹<var>BA</var>⁻¹: honest parameter covariance when fit weights are not the exact inverse covariance.</dd>
 <dt>scintillation</dt><dd>Fading from multipath interference in the turbulent interstellar plasma.</dd>

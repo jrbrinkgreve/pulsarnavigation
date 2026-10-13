@@ -36,6 +36,13 @@ low priority.</p></div>
 <div class="eq">SNR = (<var>S</var><sub>mean</sub>/SEFD)·√(<var>n</var><sub>pol</sub>·<var>B</var>·<var>t</var>)·√((<var>P</var> − <var>W</var><sub>eq</sub>)/<var>W</var><sub>eq</sub>)</div>
 <p>with <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub> (margin for wings and components), ρ = <var>S</var><sub>peak</sub>/SEFD, σ<sub>TOA</sub> = √2·(<var>W</var><sub>50</sub>/2.355)/7. Catalogue
 fluxes are averages; low-DM pulsars scintillate by a factor ~2 or more either way.</p>
+<div class="callout note"><span class="ttl">Two conventions for ρ</span>
+<p>The ρ in this table uses <var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/<var>W</var><sub>eq</sub> with the margin
+<var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub>. The simulator's <code>snrDB</code> is the peak of a Gaussian of FWHM <var>W</var><sub>50</sub>,
+<var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/(1.0645·<var>W</var><sub>50</sub>): 2.7 dB higher for the same pulsar. In
+<code>snrDB</code> terms J0437's worst case is about −51 dB (−47 dB nominal), so the design target "−54 dB" carries a ~3 dB margin.
+Do not combine the two: the simulator's own pulsar (10 ms, 5 %, one polarization) at <code>snrDB</code> −54 needs ~62 h per TOA at
+SNR 7, not the 20 h of the J0437 row.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nom / worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
 <tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9 / <b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>

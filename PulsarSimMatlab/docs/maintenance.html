@@ -58,6 +58,19 @@ then the notes; fix the site.</p>
 <tr><td>13 Oct 2026</td><td>parameters page, commit line</td><td>said "Values as committed in <code>9b959f0</code>"; the values were current, but
 <code>9b959f0</code> never touched <code>pipelineParams.m</code> (found in the full read-through, item 6)</td><td>fixed 13 Oct 2026: checked line by line, now
 "checked against <code>8a756ec</code>"; the checklist above now names that line</td></tr>
+<tr><td>13 Oct 2026</td><td>detection, glossary, physics: the Rice factor</td><td>called √λ₂/2π = 5.51 "roughly the number of independent phase trials per
+turn"; it is the up-crossing rate of the mean level per turn. At η = 4.15 the phase search acts like ~60 independent trials (5.5 trials would give
+η = 3.57). Code and threshold were right (deep analysis, section 7)</td><td>fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td>physics page</td><td>RFI table listed the noise-like type (LTE) as "(planned)" (exists since 8 Oct, B5d); "a sample rate equal to the
+bandwidth of interest (800 MHz)" (the bandwidth is 400 MHz; 800 MHz is for the off-centre LO and the filter margin)</td><td>fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td>limits page</td><td>"Receiver noise does not pass the dispersion taper: &lt; 1 % in SNR" (true for the full band, +0.4 %; on the default
+channel path +2.5 %, the whole 2.2 % gap to the full band); disk "~61 GB per second" (full band only; channel path ~63, with excision ~72 GB)</td><td>fixed
+13 Oct 2026; the channels page now gives both reasons for the channel path's result (one TOA fewer, 2.2 % larger error bars)</td></tr>
+<tr><td>13 Oct 2026</td><td>scenario page; formulas, fold, results (373·ρ)</td><td>ρ there uses <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub>, 2.7 dB below the
+simulator's <code>snrDB</code> for the same pulsar, never stated; 373·ρ is the flat-band value (368·ρ full band, 360·ρ channel path with the real tapers)</td><td>fixed
+13 Oct 2026: a callout on the scenario page, qualifiers on the three pages</td></tr>
+<tr><td>13 Oct 2026</td><td>roadmap, code-review row</td><td>still says "commit pending" (committed as <code>0499da7</code>)</td><td>open: the page is being edited
+by another session; fix with its next commit</td></tr>
 <tr><td>13 Oct 2026</td><td>scenario page, figure of merit</td><td>said "others 5000+"; from the page's own table B1937+21 is 300, J1713+0747 3700, J2145−0750 4300 (5000+ holds for the normal pulsars, as in the notes)</td><td>fixed 13 Oct 2026</td></tr>
 </table></div>
 
@@ -102,6 +115,10 @@ after the commit (adds <code>checkSkyFiles</code>).</td></tr>
 why 9 vs 8 complete turns; the unblanked channel files are the re-freeze source, not the tests' input); this page (checklist names the
 parameters commit line; discrepancy row). Code: <code>main.m</code> comments on which <code>plots.*</code> are full band only (no
 <code>api.html</code> change).</td></tr>
+<tr><td>13 Oct 2026</td><td>after <code>1b65f5a</code></td><td>Deep analysis, docs errors (text only, log <code>2026-10-13_deep-analysis.md</code>): detection, glossary, physics
+(Rice factor is an up-crossing rate, not a trial count); physics (noise-like RFI exists; 800 MHz vs the 400 MHz band); limits (the pulsar-only taper costs
++2.5 % on the channel path; disk per path); channels (why one TOA fewer and 2.2 % larger error bars); scenario (two ρ conventions); formulas, fold, results
+(373·ρ is the flat-band value). No code change.</td></tr>
 </table></div>
 
 </main>

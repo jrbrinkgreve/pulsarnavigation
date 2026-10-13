@@ -254,8 +254,10 @@ to the 1 µs of the full-band path.</p></div>
 <h2>Result: channel path vs full band (A4, 8 Oct)</h2>
 <p>Seed 43, −5 dB: full band unchanged (9 TOAs, 2.880 µs, SNR 93.4); channels with optimal weighting 8 TOAs, 2.943 µs, SNR 92.3,
 reduced χ² 1.008, all detected, noise ratio 0.990, total offset +0.12 ± 0.98 µs (full band −0.21 ± 0.96). Per sub-int differences
-0.26σ rms. The channel path has one TOA fewer because its fully-supported range is shorter (channelizer and per-channel filter
-reach).</p>
+0.26σ rms. The channel path has one TOA fewer because its fully-supported range is shorter: the per-channel dedispersion guard
+(20/62.5 kHz = 320 µs) leaves the first 0.32 ms of the file out, and the file starts exactly on a turn boundary, so turn 0 is
+incomplete (both paths lose the last turn to the 6.3 ms sweep). Its error bars are 2.2 % larger because the simulator tapers only
+the pulsar at the band edges (see <a href="limits.html">limitations</a>); with a realistic receiver the difference would be 0.37 %.</p>
 
 </main>
 <script src="nav.js"></script>

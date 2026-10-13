@@ -40,8 +40,9 @@ clock well enough to predict where the pulse is, so one test suffices.</p>
 pessimistic. Rice (1944) gives the expected number of upcrossings of level η by a smooth stationary Gaussian process; the maximum
 exceeds η if <var>T</var> starts above it or crosses it:</p>
 <div class="eq"><var>P</var>(<var>T</var><sub>max</sub> &gt; η) ≈ <var>Q</var>(η) + (√λ₂/2π)·e<sup>−η²/2</sup>, &nbsp; λ₂ = Σ(2π<var>k</var>)²|<var>S</var><sub>k</sub>|² / Σ|<var>S</var><sub>k</sub>|² (<var>k</var> ≥ 1)</div>
-<p>For the 5 % Gaussian template √λ₂/2π = 5.51 (the "Rice factor", roughly the number of independent phase trials per turn), and
-η = 4.15 at <var>P</var><sub>FA</sub> = 10⁻³ (solved with <code>fzero</code>). In the tail, crossings are rare, so the approximation is tight.</p>
+<p>For the 5 % Gaussian template √λ₂/2π = 5.51 (the "Rice factor": the mean number of up-crossings of the mean level per turn), and
+η = 4.15 at <var>P</var><sub>FA</sub> = 10⁻³ (solved with <code>fzero</code>). In terms of independent trials, <var>P</var><sub>FA</sub>/<var>Q</var>(η) ≈ 61
+at that threshold: the phase search costs as much as ~60 independent tests, not 5.5 (5.5 independent trials would give η = 3.57). In the tail, crossings are rare, so the approximation is tight.</p>
 
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 236" role="img" aria-label="Distributions of the detection statistics under H0 and H1, with the thresholds for a false-alarm probability of 1e-3">
