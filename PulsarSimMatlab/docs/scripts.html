@@ -25,11 +25,13 @@ their parameters from <code>pipelineParams.m</code> and must be run with MATLAB'
 </table></div>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> predate the channelized front end and always run the <b>full-band</b>
-path, whatever <code>frontEnd</code> says. <code>runRFITest</code> and <code>runLockedRadar</code> run the <b>channel</b> path. The channel path's
+path, whatever <code>frontEnd</code> says. Since 13 Oct they say so: a warning (<code>…:fullBandOnly</code>) when <code>frontEnd</code> is not
+<code>'fullband'</code>, and (<code>…:noExcision</code>) when RFI is on, because the full band has no excision. <code>runRFITest</code> and
+<code>runLockedRadar</code> run the <b>channel</b> path. The channel path's
 statistics are validated by its unit tests (exact covariances, Monte Carlo with the exact noise model) rather than by these long runs.</p></div>
 <div class="callout why"><span class="ttl">Why each experiment writes its own files</span>
 <p>A later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them with another noise
-realization, main would silently pick it up (<code>checkConsistency</code> does not check the noise seed). Separate folders make that impossible.</p></div>
+realization, main would pick it up (<code>checkConsistency</code> notices another noise seed only since 13 Oct). Separate folders keep main's files untouched.</p></div>
 <div class="callout warn"><span class="ttl">Never run two of these at once</span>
 <p>Scripts and tests that share files (e.g. <code>data/chan/</code>; the unit tests: <code>data/test/chan/</code>) corrupt each other's data when run in parallel: an overlapping run once
 gave noise 72× the radiometer value (<a href="lessons.html">bugs and lessons</a> #11). <code>main.m</code> next to a test session is safe
@@ -57,8 +59,9 @@ the SNR, RFI or processing only needs the later stages. Each skipped stage reloa
 <p>The pulsar signal is fixed (sky files from <code>main.m</code>); only the receiver noise changes: seeds <code>seed + (1:nSeeds)</code>, default 10.
 The spread of TOAs between realizations is exactly what the error bars claim to describe, so the pooled <var>z</var> = (TOA − truth)/σ must be N(0,1).</p>
 <ul>
-<li>Built-in check: seed 1 = main's <code>noiseSeed</code>, so its TOAs must equal main's.</li>
-<li>Errors if the sky files do not match the parameters (T, L, f_in, seed, DM, band).</li>
+<li>Built-in check: seed 1 = main's <code>noiseSeed</code>, so its TOAs must equal main's with <code>frontEnd = 'fullband'</code>.</li>
+<li>Errors if the sky files do not match the parameters (<code>checkSkyFiles</code>: T, f_in, L, A, dutycycle, envelope mode, seed, DM, band,
+refFreq; before 13 Oct only T, L, f_in, seed, DM, band).</li>
 <li>Full-band stage calls as in <code>main.m</code>, <code>'Verbose', false</code>; <code>validateTOA</code> pools all TOAs.</li>
 </ul>
 <p>Result (−5 dB, 90 TOAs): rms/pred 0.950 ± 0.075, χ²<sub>red</sub> 0.91, 72 % within 1σ.</p>
@@ -71,7 +74,7 @@ The spread of TOAs between realizations is exactly what the error bars claim to 
 <ul>
 <li>Top: <code>nReal</code> (10), <code>snrList</code> ([−25 −20 −15 −10 −5 0 10 20] dB), <code>replotOnly</code> (redraw from <code>data/mc/snrSweep.mat</code>).</li>
 <li>Per realization <var>j</var>: new sky with pulsar seed <code>seed + 100(j−1)</code>, noise seed = pulsar seed + 1 (<var>j</var> = 1 = main's 42/43, a built-in
-check). The same sky and noise seed for every SNR (noise only rescaled: common random numbers, smoother curves; TOAs within one
+check with <code>frontEnd = 'fullband'</code>). The same sky and noise seed for every SNR (noise only rescaled: common random numbers, smoother curves; TOAs within one
 SNR point stay independent).</li>
 <li>Per SNR: pooled <code>validateTOA</code>, robust σ = 1.4826·median|err|, outlier fraction |<var>z</var>| &gt; 5, <code>detectPulsar</code>.</li>
 <li>A true <b>H0 pass</b> per realization: zero sky (generator with A = 0) + receiver noise, only <code>detectPulsar</code>.</li>
@@ -98,7 +101,8 @@ nothing beyond lag 1. The noise model is complete; the earlier hint was a fluctu
 <h2 id="rfi"><code>runRFITest.m</code> (B4) <span class="badge validated">validated</span></h2>
 <p>For each case (noise only; each source of <code>rfiScenario</code> alone; all five) the receiver stage runs with that RFI and main's noise seed
 (so the noise is the same in every case), then the channel path twice: without and with excision, both with optimal weighting. A table:
-blanked fraction, good TOAs, median SNR, median TOA error, rms/pred, median χ², total offset. Requires <code>frontEnd = 'channels'</code>.</p>
+blanked fraction, good TOAs, median SNR, median TOA error, rms/pred, median χ², total offset. Requires <code>frontEnd = 'channels'</code>;
+stops if main's sky files do not match the parameters (<code>checkSkyFiles</code>, 13 Oct).</p>
 <p>Results: <a href="excision.html#results">RFI excision</a>.</p>
 <p><b>Rotating radar cases (B5c-2, 8 Oct):</b> cases 8–11 use the scenario radar on a rotating antenna (10 s scan, 39 ms beam): one beam
 passage centred in the file (−30 dB floor), and sidelobes only (beam 5 s away) at −25 / −30 / −35 dB. For pulsed sources the table adds,
@@ -119,7 +123,8 @@ covering them (ground truth, for labels only), and the periodic emitters found. 
 compares with the median channel, not with the blanking-aware model). Results: <a href="results.html#b5e">results</a>.</p>
 
 <h2 id="locked"><code>runLockedRadar.m</code> (B5b)</h2>
-<p>A radar with PRF 400 Hz = 4·<var>f</var><sub>0</sub>, one pulse per turn on the pulse flank: what excision leaves of it folds coherently into the profile.</p>
+<p>A radar with PRF 400 Hz = 4·<var>f</var><sub>0</sub>, one pulse per turn on the pulse flank: what excision leaves of it folds coherently into the profile.
+Stops if main's sky files do not match the parameters (<code>checkSkyFiles</code>, 13 Oct).</p>
 <ol>
 <li>Receiver runs: reference (no radar) and with the locked radar (0.1 µs and instant edges). Radar run − reference = the radar alone (the chain is linear).</li>
 <li>Per case: mask from the full data; reference, radar-only and full data all go through the same blanking, dedispersion, detection and fold with the same weights.</li>

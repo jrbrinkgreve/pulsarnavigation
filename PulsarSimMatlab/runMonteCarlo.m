@@ -7,8 +7,13 @@ the same receiver and processing stages as main.m, and all TOAs are
 pooled in validateTOA. For correct error bars the pooled normalized
 errors (TOA - truth)/toaErr are N(0,1): rms ratio ~1, |z| < 1 for ~68 %.
 
+Full-band path only (it predates the channelized front end): frontEnd,
+excision and weighting are not used, and there is no RFI excision. A warning
+says so when pipelineParams asks for the channel path or has RFI on.
+
 Check: seed i = 1 equals main's noiseSeed (seed + 1), so its TOAs must be
-identical to those of main.m with the same parameters.
+identical to those of main.m with frontEnd = 'fullband' and the same
+parameters.
 
 Needs: the sky files (runStage.sky in main.m at least once with the
 current parameters). Parameters come from pipelineParams.m. Intermediate
@@ -32,12 +37,21 @@ mcFold       = fullfile(mcDir, "mc_fold.mat");    % not saved (SaveFile false)
 % Sky files from main.m; refuse if they were made with other parameters
 info_gen  = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);
-if abs(info_gen.T - T) > 1e-12 || abs(info_gen.L - L) > 1e-12 || ...
-        abs(info_gen.fs - f_in) > 1e-3 || info_gen.seed ~= seed || ...
-        abs(info_disp.DM - DM) > 1e-12 || ...
-        abs(info_disp.fLow - fLow) > 1e-3 || abs(info_disp.fHigh - fHigh) > 1e-3
-    error('runMonteCarlo:stale', ['Sky files do not match pipelineParams ' ...
-        '(T, L, f_in, seed, DM or band). Run main.m with runStage.sky = true first.']);
+d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
+    DM, fLow, fHigh, refFreq);
+if ~isempty(d)
+    error('runMonteCarlo:stale', ['Sky files do not match pipelineParams (%s). ' ...
+        'Run main.m with runStage.sky = true first.'], strjoin(d, ', '));
+end
+% full-band path only: say so when pipelineParams asks for more (13 Oct 2026)
+if ~strcmp(frontEnd, 'fullband')
+    warning('runMonteCarlo:fullBandOnly', ['runMonteCarlo runs the full-band path only: ' ...
+        'frontEnd = ''%s'', excision and weighting are ignored (its TOAs match main.m''s ' ...
+        'only with frontEnd = ''fullband'').'], frontEnd);
+end
+if ~isempty(rfi)
+    warning('runMonteCarlo:noExcision', ['RFI is on (rfiOn) but the full-band path has no ' ...
+        'excision: the RFI goes into the TOAs unremoved.']);
 end
 
 template = gaussianTemplate(nBin, ephem.profileFWHM);

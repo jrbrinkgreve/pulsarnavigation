@@ -25,10 +25,15 @@ self-noise would otherwise be identical in every realization and missing
 from the scatter. Per realization j the sky (generator + dispersion) is
 made once and reused for all SNR values (it does not depend on SNR):
   pulsar seed = seed + 100*(j-1),  noise seed = pulsar seed + 1
-so j = 1 equals main.m (42 / 43): at -5 dB its TOAs must match main.
+so j = 1 equals main.m (42 / 43): at -5 dB its TOAs must match main.m's with
+frontEnd = 'fullband'.
 The same noise seed is used for every SNR of a realization (the noise is
 only rescaled), which makes the curves smoother; TOAs of one SNR point
 stay independent across realizations.
+
+Full-band path only (it predates the channelized front end): frontEnd,
+excision and weighting are not used, and there is no RFI excision. A warning
+says so when pipelineParams asks for the channel path or has RFI on.
 
 Parameters come from pipelineParams.m (snrDB and seed are overridden
 here). Files go to data/mc with a sweep_ prefix and are overwritten.
@@ -61,6 +66,16 @@ if replotOnly
     S = load(swResult, 'res');
     plotSweep(S.res);
     return
+end
+% full-band path only: say so when pipelineParams asks for more (13 Oct 2026)
+if ~strcmp(frontEnd, 'fullband')
+    warning('runSNRSweep:fullBandOnly', ['runSNRSweep runs the full-band path only: ' ...
+        'frontEnd = ''%s'', excision and weighting are ignored (its TOAs match main.m''s ' ...
+        'only with frontEnd = ''fullband'').'], frontEnd);
+end
+if ~isempty(rfi)
+    warning('runSNRSweep:noExcision', ['RFI is on (rfiOn) but the full-band path has no ' ...
+        'excision: the RFI goes into the TOAs and the H0 passes unremoved.']);
 end
 
 template = gaussianTemplate(nBin, ephem.profileFWHM);

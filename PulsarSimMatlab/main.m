@@ -115,7 +115,9 @@ else
     info_rx = loadInfo(fileRx);
     info_IQ = loadInfo(fileIQ);
 end
-checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB, rfi);
+checkConsistency(info_gen, info_disp, info_rx, info_IQ, ...
+    T, f_in, L, A, dutycycle, genEnvMode, seed, DM, fLow, fHigh, refFreq, ...   % sky
+    snrDB, noiseSeed, rfi, fLO, fs, filterOrder);                               % receiver
 
 % Processing (uses only the ephemeris 'ephem' and receiver settings)
 if fullBand
@@ -282,16 +284,12 @@ end
 % ======================================================================
 %  Local functions
 %  ======================================================================
-function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, DM, fLow, fHigh, fLO, fs, snrDB, rfi)
+function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, A, dutycycle, ...
+    genEnvMode, seed, DM, fLow, fHigh, refFreq, snrDB, noiseSeed, rfi, fLO, fs, filterOrder)
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
-d = {};
-if abs(info_gen.T - T) > 1e-12,       d{end+1} = 'T';    end
-if abs(info_gen.fs - f_in) > 1e-3,    d{end+1} = 'f_in'; end
-if abs(info_gen.L - L) > 1e-12,       d{end+1} = 'L';    end
-if abs(info_disp.DM - DM) > 1e-12,    d{end+1} = 'DM';   end
-if abs(info_disp.fLow - fLow) > 1e-3 || abs(info_disp.fHigh - fHigh) > 1e-3
-    d{end+1} = 'band';
-end
+% Sky files: checkSkyFiles (also used by the run scripts); then the receiver files.
+d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
+    DM, fLow, fHigh, refFreq);
 if ~(isequal(info_rx.snrDB, snrDB) || (isinf(snrDB) && info_rx.noiseStd == 0))
     d{end+1} = 'snrDB';
 end
@@ -301,10 +299,16 @@ if isfield(info_rx, 'rfi') && ~isempty(info_rx.rfi), rxRFI = [info_rx.rfi.params
 if ~(isempty(rxRFI) && isempty(rfi)) && ~isequaln(rxRFI, rfi)   % isequaln: NaN parameters match
     d{end+1} = 'RFI';
 end
+% the seed only matters with receiver noise (RFI needs noise too: addNoiseAndRFI:ref)
+if info_rx.noiseStd > 0 && info_rx.seed ~= noiseSeed
+    d{end+1} = 'noiseSeed';
+end
 if abs(info_IQ.fLO - fLO) > 1e-3,     d{end+1} = 'fLO';  end
 if abs(info_IQ.actualFsOut - f_in/round(f_in/fs)) > 1e-3
     d{end+1} = 'fs';
 end
+M = filterOrder + 1; M = M + (mod(M, 2) == 0);       % filter length as applyIQmodulation makes it
+if info_IQ.filterLen ~= M,            d{end+1} = 'filterOrder'; end
 if ~isempty(d)
     warning('main:stale', ['Files on disk were generated with different ' ...
         'parameters (%s). Rerun the corresponding stage.'], strjoin(d, ', '));

@@ -18,6 +18,10 @@ Per pass: zero sky (generator with A = 0, made once) + receiver noise
 same processing as main.m, then detectPulsar. With L = 0.1 s and 1 turn per
 sub-int: 9 complete sub-ints per pass, about 8 s per pass.
 
+Full-band path only (it predates the channelized front end): frontEnd,
+excision and weighting are not used, and there is no RFI excision. A warning
+says so when pipelineParams asks for the channel path or has RFI on.
+
 Parameters from pipelineParams.m; files in data/mc with an h0_ prefix.
 %}
 
@@ -38,6 +42,17 @@ h0Dedisp   = fullfile(mcDir, "h0_dedisp.dat");
 h0Envelope = fullfile(mcDir, "h0_envelope.dat");
 h0Fold     = fullfile(mcDir, "h0_fold.mat");     % not saved (SaveFile false)
 h0Result   = fullfile(mcDir, "h0Run.mat");
+
+% full-band path only: say so when pipelineParams asks for more (13 Oct 2026)
+if ~strcmp(frontEnd, 'fullband')
+    warning('runH0:fullBandOnly', ['runH0 runs the full-band path only: frontEnd = ''%s'', ' ...
+        'excision and weighting are ignored (H0 statistics of the full band, equal weighting).'], ...
+        frontEnd);
+end
+if ~isempty(rfi)
+    warning('runH0:noExcision', ['RFI is on (rfiOn) but the full-band path has no excision: ' ...
+        'the noise-only passes contain the RFI unremoved.']);
+end
 
 template = gaussianTemplate(nBin, ephem.profileFWHM);
 c = template / max(template); c = c - mean(c);  % zero-mean template, as in detectPulsar

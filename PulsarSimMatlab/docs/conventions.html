@@ -134,8 +134,9 @@ file. The next stage takes its input file and sample rate from that struct (<cod
 <div class="callout why"><span class="ttl">Why</span>
 <p>Passing parameters by hand between stages invites mismatches (the wrong sample rate after decimation, the wrong LO).
 Chaining through <code>info</code> means each stage describes exactly what it wrote. It also makes stale files detectable:
-<code>main.m</code>'s <code>checkConsistency</code> warns when files on disk were made with different parameters (T, f_in, L,
-DM, band, SNR, receiver input, fLO, fs, RFI sources); since 13 Oct 2026 <code>checkProcessing</code> and <code>checkFold</code> do the same
+<code>main.m</code>'s <code>checkConsistency</code> warns when files on disk were made with different parameters (sky, via
+<code>checkSkyFiles</code>: T, f_in, L, A, dutycycle, envelope mode, seed, DM, band, refFreq; receiver: SNR, receiver input, RFI sources,
+noise seed, fLO, fs, filter order; the sky parameters A to refFreq, the noise seed and the filter order since 13 Oct 2026); since 13 Oct 2026 <code>checkProcessing</code> and <code>checkFold</code> do the same
 for reused processing and fold files (made from the file before them, not older than it, same f_out, DM, refFreq, band,
 chanWidth, nBin, turns per sub-int, ephemeris and data weights).</p></div>
 
@@ -163,7 +164,7 @@ chanWidth, nBin, turns per sub-int, ephemeris and data weights).</p></div>
   <path class="line" marker-end="url(#ar-ic)" d="M410 54 H448"/>
   <path class="line" marker-end="url(#ar-ic)" d="M630 54 H668"/>
   <path class="thin" d="M10 90 V96 H850 V90"/>
-  <text class="sub" x="430" y="112" text-anchor="middle">checkConsistency: T, f_in, L, DM, band, SNR, RFI, fLO, fs; test_rx.dat made from test_dispersed.dat</text>
+  <text class="sub" x="430" y="112" text-anchor="middle">checkConsistency: T, f_in, L, A, duty, seed, DM, band, refFreq, SNR, noise seed, RFI, fLO, fs, filter; inputs chained</text>
 
   <!-- row 2: channel path with excision -->
   <path class="line" marker-end="url(#ar-ic)" d="M760 78 V124 H95 V146"/>
@@ -251,8 +252,8 @@ land in their workspace. The unit tests are the exception: they run their own fr
 (truth) and observation parameters (receiver, processing) for real data. The tests must not follow edits: their
 bit-for-bit regressions belong to one fixed configuration.</p></div>
 <p>Monte Carlo and test scripts write to their own files (<code>data/mc/</code>, <code>data/rfi/</code>, <code>data/locked/</code>), so a later
-<code>main.m</code> run with skipped stages never picks up a Monte Carlo realization (<code>checkConsistency</code> does not check
-the noise seed).</p>
+<code>main.m</code> run with skipped stages never picks up a Monte Carlo realization (and since 13 Oct <code>checkConsistency</code>
+would also notice another noise seed).</p>
 
 <h2 id="regress">9. Bit-identical regressions</h2>
 <p>When a function gains a new option, the default behaviour must reproduce the old output <b>bit for bit</b>. Reference

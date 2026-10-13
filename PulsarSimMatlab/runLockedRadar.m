@@ -47,6 +47,12 @@ doPlot = true;
 lkDir = fullfile(dataDir, "locked");
 info_gen  = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);
+d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
+    DM, fLow, fHigh, refFreq);
+if ~isempty(d)
+    error('runLockedRadar:stale', ['Sky files do not match pipelineParams (%s). ' ...
+        'Run main.m with runStage.sky = true first.'], strjoin(d, ', '));
+end
 template  = gaussianTemplate(nBin, ephem.profileFWHM);
 rxArgs = {'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, 'Seed', noiseSeed, 'Verbose', false};
 iqArgs = {'FilterOrder', filterOrder, 'Band', [fLow fHigh], 'Verbose', false};

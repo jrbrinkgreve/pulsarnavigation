@@ -9,7 +9,9 @@ still to do.
 This file tracks the **current state** of the code (started 30 September 2026 as
 `2026-09-30_project_notes.md`). **Last updated: 13 October 2026** (code review: minor fixes,
 reuse checks in `main`, `runAllTests`, generator test, frozen test data in `data/test/`;
-§10 item 12, `2026-10-13_code-review.md`; docs: 19 diagrams). Before: 12 October 2026 (`blankingWeights` long-bin
+§10 item 12, `2026-10-13_code-review.md`; docs: 19 diagrams; then the full read-through
+`2026-10-13_full-review.md`: all sky and receiver parameters in the reuse check (`checkSkyFiles`),
+full-band-only warnings in the experiment scripts). Before: 12 October 2026 (`blankingWeights` long-bin
 crash fixed, §10 item 10; B5e cases rerun, §7; stale text fixed; `2026-10-12_overview.md`).
 Earlier updates, in order: 5 October 2026 (§9: physical-fidelity and
 scintillation assessment; bandpass review and exact radiometer optimum in
@@ -160,8 +162,13 @@ TOA threshold sweeps down to −25 dB, long H0 run (all in §7).
 `runStage.receiver` (noise/RFI + IQ; rerun alone to change SNR or RFI),
 `runStage.process` (dedispersion + detection), `runStage.fold`, `runStage.toa`.
 Skipped stages reload their `info` from disk; `checkConsistency` warns when files on disk
-were made with different parameters (T, f_in, L, DM, band, SNR, receiver input, fLO, fs,
-RFI sources; the RFI check since 5 Oct, `isequaln` on `info_rx.rfi.params` vs `rfi`).
+were made with different parameters: the sky files via `checkSkyFiles` (T, f_in, L, A,
+dutycycle, genEnvMode, seed, DM, band, refFreq, dispersed file made from the generator file),
+then the receiver files (SNR, receiver input, RFI sources: since 5 Oct, `isequaln` on
+`info_rx.rfi.params` vs `rfi`; noiseSeed when there is noise; fLO, fs, filterOrder). A, dutycycle,
+genEnvMode, seed, refFreq, noiseSeed and filterOrder only since 13 Oct (full read-through, item 1):
+before, e.g. a changed `refFreq` with reused sky files shifted every TOA by τ(old) − τ(new)
+(1.6 → 1.4 GHz at DM 5: −2.48 ms, below `validateTOA`'s T/4 warning) without a warning.
 Since 13 Oct also the reused processing and fold files: `checkProcessing` (each product made
 from the file before it, via `inFile` / `rawFile` / `powerFile`, and its info file at least as
 new as its input's; f_out (samples per bin), DM, refFreq, band, chanWidth; weight file vs power
@@ -173,7 +180,9 @@ options (not stored in the infos).
 **Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
 (reload `<name>_info.mat`), `gaussianTemplate(nBin, fwhmTurns)` (periodic Gaussian,
 peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
-product of raised-cosine edge tapers). **Local functions in main**: `checkConsistency`,
+product of raised-cosine edge tapers), `checkSkyFiles(info_gen, info_disp, ...)` (13 Oct:
+the sky parameters in which the files on disk differ from `pipelineParams`; `main` warns,
+`runMonteCarlo`, `runRFITest` and `runLockedRadar` stop). **Local functions in main**: `checkConsistency`,
 `checkProcessing`, `checkFold`, `infoTime`.
 **Detection** (processing, after `estimateTOA` in main and `runSNRSweep`):
 `detectPulsar` (§5.13); main defines `toa.good = valid & detectedUnknown & ~flagChi2`
@@ -843,9 +852,14 @@ z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
 
 **Code.**
 - `nSeeds` at the top (default 10); noise seeds `seed + (1:nSeeds)`. Seed 1 equals
-  main's `noiseSeed = seed + 1`, so its TOAs must be identical to main's (built-in check).
+  main's `noiseSeed = seed + 1`, so its TOAs must be identical to main's with
+  `frontEnd = 'fullband'` (built-in check).
 - `pipelineParams;` for all parameters; `info_gen`, `info_disp` via `loadInfo`. Errors
-  if the sky files do not match T, L, f_in, seed, DM or band.
+  (`runMonteCarlo:stale`) if the sky files do not match (`checkSkyFiles`; before 13 Oct only
+  T, L, f_in, seed, DM and band).
+- Full-band path only (it predates the channelized front end): since 13 Oct it warns
+  (`runMonteCarlo:fullBandOnly`) when `frontEnd` is not `'fullband'` (excision and weighting
+  are ignored), and (`runMonteCarlo:noExcision`) when RFI is on: the full band has no excision.
 - Per seed: the same stage calls as `main.m` (`addNoiseAndRFI` → `applyIQmodulation` →
   `applyInverseDispersion` → `detectPower` → `foldProfile` → `estimateTOA`), with
   `'Verbose', false`, fold not saved, intermediate files in `data/mc/` (overwritten each
@@ -865,7 +879,9 @@ every realization and missing from the scatter.
 - Top: `nReal` (10), `snrList` ([−25 −20 −15 −10 −5 0 10 20] dB), `replotOnly` (true:
   only redraw the figure from `data/mc/snrSweep.mat`).
 - Outer loop j: new sky (generator + dispersion) with pulsar seed `seed + 100·(j−1)`,
-  noise seed = pulsar seed + 1 (j = 1 = main's 42/43: built-in check). Inner loop over
+  noise seed = pulsar seed + 1 (j = 1 = main's 42/43: built-in check, with
+  `frontEnd = 'fullband'`; full-band path only, warnings `runSNRSweep:fullBandOnly` /
+  `:noExcision` as in `runMonteCarlo`, 13 Oct). Inner loop over
   `snrList`, same sky and same noise seed (noise only rescaled: common random numbers,
   so SNR points are correlated, TOAs within one point are independent across j).
 - Same stage calls as `main.m`; files `data/mc/sweep_*` (main's / MC files untouched).
@@ -964,7 +980,8 @@ exceedance rates at several P_FA, and the correlation of `normProfile` between p
 
 **Code.** `nPass` (100) passes; zero sky (generator with A = 0, made once,
 `h0_zero.dat`); per pass receiver noise (`'NoiseStd'` 1, seed `seed + 10000 + i`, no
-overlap with the sweeps) → same processing as main → `detectPulsar` (9 complete turns per
+overlap with the sweeps) → main's full-band processing → `detectPulsar` (full band only;
+since 13 Oct warnings `runH0:fullBandOnly` / `:noExcision` as in `runMonteCarlo`; 9 complete turns per
 pass at L = 0.1 s). Collects T0, Tmax, noiseRatio, the circular autocorrelation of each
 `normProfile` (FFT) and the model lag-1 correlation WX/√(W2_j·W2_{j+1}). Implied T0 std
 from the measured correlation: √(Σ R_c·r / Σ R_c·r_model), R_c = template
@@ -2270,6 +2287,15 @@ barycentric corrections, navigation solution).
    Jasper made `data/test/` in the repo (13 Oct) and ran `runAllTests` on it: 14/14.
    Item 2 then validated by Jasper's `main` run (above); item 34 (no valid TOA) checked by
    Claude only (it does not occur in a normal run).
+   **Full read-through 13 Oct** (`2026-10-13_full-review.md`, 9 findings beyond the 33): **items 1
+   and 2 done 13 Oct** (Claude's checks; item 1 in `main` validated by Jasper's `main` run 13 Oct:
+   no warnings; the script parts of items 1–2: Claude's checks only). Item 1: `checkConsistency` now
+   checks every sky and receiver parameter (new `functions/checkSkyFiles.m`, also used by
+   `runMonteCarlo`, `runRFITest`, `runLockedRadar`, which stop on a mismatch; §3). Item 2:
+   `runMonteCarlo`, `runSNRSweep`, `runH0` run the full band only and now warn when `frontEnd`
+   is not `'fullband'` or RFI is on (no excision); their headers no longer claim to match
+   `main.m` with the channel path. Items 3–9 (edge-channel taper, out-of-band receiver noise,
+   per-channel guard costing the first turn, stale text, orphan files) open, for Jasper.
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
@@ -2491,7 +2517,7 @@ per day).
 - **Parameters in one script** (`pipelineParams.m`): main and the MC cannot drift apart.
   Later split into simulation vs observation parameters for real data.
 - **MC on separate files** (`data/mc/`): a later main run with skipped stages never
-  picks up an MC realization (`checkConsistency` does not check the noise seed).
+  picks up an MC realization (`checkConsistency` checks the noise seed only since 13 Oct).
 
 ---
 
@@ -2499,15 +2525,16 @@ per day).
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency`, `checkProcessing` / `checkFold` (13 Oct); channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency` (sky part via `checkSkyFiles`, all sky and receiver parameters since 13 Oct), `checkProcessing` / `checkFold` (13 Oct); channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
 | `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
-| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct; rerun 12 Oct, identical (validated, §7) |
-| `runLockedRadar.m` | B5b: radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
-| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA | validated (−5 dB) |
-| `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure | validated (−25…+20 dB) |
+| `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); stops if main's sky files do not match (`checkSkyFiles`, 13 Oct); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct; rerun 12 Oct, identical (validated, §7) |
+| `runLockedRadar.m` | B5b (stops if main's sky files do not match, `checkSkyFiles`, 13 Oct): radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
+| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA; full band only (warns otherwise, 13 Oct); sky files checked (`checkSkyFiles`) | validated (−5 dB) |
+| `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure; full band only (warns otherwise, 13 Oct) | validated (−25…+20 dB) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
 | `gaussianTemplate.m` | periodic Gaussian TOA template | moved from main |
 | `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
+| `checkSkyFiles.m` | sky parameters in which reused sky files differ from `pipelineParams` (T, f_in, L, A, dutycycle, envelope mode, seed, DM, band, refFreq, dispersion input); used by `main` (warning) and `runMonteCarlo`, `runRFITest`, `runLockedRadar` (stop) | 13 Oct, full read-through item 1; Claude's checks; in `main` validated by Jasper's run 13 Oct (no warnings) |
 | `generatePulsarSignal.m` | pulsar signal + ground truth | validated |
 | `applyDispersionStream.m` | ISM dispersion (incl. `makeDispersionKernel`, `chooseBlockSize`) | validated |
 | `addNoiseAndRFI.m` | receiver noise + RFI at RF, SNR predictions | noise validated (−5 dB, MC); RFI validated (5 Oct) |
@@ -2533,7 +2560,7 @@ per day).
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
 | `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; incl. 3d: Jasper's run, 12 Oct) |
-| `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation | validated (6 Oct) |
+| `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation; full band only (warns otherwise, 13 Oct) | validated (6 Oct) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
 | `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |

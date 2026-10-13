@@ -90,6 +90,11 @@ stamps), channels (polyphase filterbank), detection (good-TOA gates), tests (tes
 (<code>tools/figures/</code>): sky (power profile and neighbour sum, dispersion delay and taper), receiver (spectra through the IQ stage), excision (one
 channel step by step), fold (folding), TOA (FFTFIT), detection (T0 and Tmax under H0 / H1), results (SNR sweep, threshold sweep), scenario (pulsar
 map). Text fixed while drawing: bin-stamp sign (full band), "others 5000+" (scenario), roadmap status line and timeline (12–13 Oct).</td></tr>
+<tr><td>13 Oct 2026</td><td>(not committed yet)</td><td>Full read-through (log <code>2026-10-13_full-review.md</code>), items 1 and 2: conventions (the
+parameters <code>checkConsistency</code> compares, now via the new <code>checkSkyFiles</code>; the info-chain diagram label; noise seed), scripts
+(sky check in <code>runMonteCarlo</code>, <code>runRFITest</code>, <code>runLockedRadar</code>; full-band-only warnings of <code>runMonteCarlo</code>,
+<code>runSNRSweep</code>, <code>runH0</code>; their "matches main" checks need <code>frontEnd = 'fullband'</code>). <code>api.html</code> to be regenerated
+after the commit.</td></tr>
 </table></div>
 
 </main>
