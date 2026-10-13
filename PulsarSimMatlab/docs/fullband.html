@@ -10,46 +10,52 @@
 <main>
 
 <h1>Stages 5–6 · Full-band front end</h1>
-<p class="lede">The original processing path: one coherent dedispersion filter over the whole 400 MHz band, then
-square-law detection into 1 µs bins. It is simple, exact, and the validated reference that the channelized path is
-compared against.</p>
-<p class="meta">Selected with <code>frontEnd = 'fullband'</code> in <code>pipelineParams.m</code>. Default since 8 Oct 2026 is
+<p class="lede">The original processing path. One coherent dedispersion filter over the whole 400 MHz band, then square-law
+detection into 1 µs bins. It is simple and exact, and it is the validated reference the channelized path is compared against.</p>
+<p class="meta">Selected with <code>frontEnd = 'fullband'</code> in <code>pipelineParams.m</code>. The default since 8 Oct 2026 is
 <code>'channels'</code> (<a href="channels.html">channelized front end</a>).</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#dedisp"><code>applyInverseDispersion</code></a>: <a href="#dedisp-short">in short</a> · <a href="#dedisp-phys">physics</a> ·
+<a href="#dedisp-how">how it works</a> · <a href="#refoutside">reference outside the band</a> · <a href="#dedisp-why">design choices</a></li>
+<li><a href="#detect"><code>detectPower</code></a>: <a href="#detect-short">in short</a> · <a href="#detect-phys">physics</a> ·
+<a href="#detect-how">how it works</a> · <a href="#detect-why">design choices</a> · <a href="#detect-valid">validation</a></li>
+</ol></div>
 
 <h2 id="dedisp">5 · <code>applyInverseDispersion</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, 'RefFreq', refFreq)</div>
 <p class="meta"><a href="api.html#applyinversedispersion">Full interface and help text of <code>applyInverseDispersion</code> →</a></p>
 
-<h3>Purpose</h3>
-<p>Remove interstellar dispersion from complex baseband data, exactly: the inverse of
-<a href="sky.html#disp"><code>applyDispersionStream</code></a>, using only the catalogue DM and the receiver settings.</p>
+<h3 id="dedisp-short">In short</h3>
+<p>It undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied, so
+every frequency comes out at the time it would have at 1.6 GHz. It uses only the catalogue DM and the receiver settings.</p>
 
-<h3>Physics</h3>
-<p>For every FFT bin with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band:</p>
+<h3 id="dedisp-phys">The physics</h3>
+<p>For every FFT bin, with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band, the filter is</p>
 <div class="eq"><var>H</var><sub>inv</sub>(<var>f</var>) = <var>W</var>(<var>f</var>) · exp(−<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)² / (<var>f</var>·<var>f</var><sub>ref</sub>²)), &nbsp; 0 outside the band</div>
-<p>Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies are <em>advanced</em> by up to 6.3 ms, so the filter is
-non-causal (it needs future samples). Because it acts on voltages, it removes dispersion exactly at every frequency.</p>
-<div class="callout why"><span class="ttl">Why the same <var>W</var> and <var>f</var><sub>ref</sub> as the forward stage</span>
-<p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a
-constant shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>): harmless for relative timing, but a TOA definition. The taper
-<var>W</var> (8 MHz raised-cosine edges) keeps the filter's impulse response short, so the guard and the leakage check work.</p></div>
-
-<h3>Algorithm</h3>
 <ul>
-<li><b>Checks:</b> band strictly inside <var>f</var><sub>LO</sub> ± <var>f</var><sub>s</sub>/2; <var>f</var><sub>ref</sub> in the band (unless <code>AllowRefOutsideBand</code>).</li>
-<li><b>Overlap:</b> <code>nFuture</code> = ⌈(τ(<var>f</var><sub>Low</sub>) − τ(<var>f</var><sub>ref</sub>))·<var>f</var><sub>s</sub>⌉ + <var>g</var> and <code>nPast</code> = ⌈(τ(<var>f</var><sub>ref</sub>) − τ(<var>f</var><sub>High</sub>))·<var>f</var><sub>s</sub>⌉ + <var>g</var>,
-guard <var>g</var> = 2.5 µs·<var>f</var><sub>s</sub>. Reference run at 500 MHz: 3,152,472 and 1250 samples.</li>
-<li><b>Filter on the FFT grid:</b> written directly for the in-band signed bins (in chunks, phase in double). Complex data,
-so no Hermitian symmetry.</li>
-<li><b>Leakage check:</b> one inverse FFT of <var>H</var>; the energy outside lags [−<code>nFuture</code>, +<code>nPast</code>] must be tiny
-(reference run 0; warning above 10⁻⁶). This proves the overlap is long enough.</li>
-<li><b>FFT size:</b> candidates from 2<sup>nextpow2(2·overlap)</sup> up to the whole file, cost <var>n</var><sub>blocks</sub>·<var>N</var><sub>fft</sub>·log₂<var>N</var><sub>fft</sub>,
-56 bytes per sample, within <code>MaxMemoryGB</code> (4). Reference run: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s for 1 s of data.</li>
-<li><b>Overlap-save</b> with one preallocated buffer [past | outputs | future], shifted each block; zeros before the start and
-after the end of the file.</li>
-<li><code>fullySupported</code> = [<code>nPast</code> + 1, N − <code>nFuture</code>]: the outputs that saw their complete sweep. The last ~6.3 ms
-did not (the forward stage dropped that energy past the file end); the fold uses only fully supported data.</li>
+<li>It is the forward chirp with the opposite sign. Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies
+are moved <em>earlier</em>, by up to 6.3 ms.</li>
+<li>Moving something earlier needs input from the future, so the filter is <b>non-causal</b>: each output needs up to 6.3 ms of later
+input.</li>
+<li>Because it acts on the voltage, it removes dispersion exactly at every frequency, even inside a narrow channel. What it does to
+noise and RFI is shown on the <a href="receiver.html#noise">receiver page</a>: impulses become inverse sweeps.</li>
 </ul>
+
+<h3 id="dedisp-how">How it works</h3>
+<ol>
+<li><b>Check the inputs:</b> the band must lie inside <var>f</var><sub>LO</sub> ± <var>f</var><sub>s</sub>/2, and <var>f</var><sub>ref</sub> inside the
+band (unless <code>AllowRefOutsideBand</code>).</li>
+<li><b>Work out how far the filter reaches:</b> into the future, the whole sweep plus a guard (<code>nFuture</code>); into the past, only
+the guard (<code>nPast</code>), because <var>f</var><sub>ref</sub> is the top of the band.</li>
+<li><b>Write the filter directly on the FFT grid,</b> for the bins inside the band, with the phase in double precision. The data are
+complex, so there is no symmetry to use.</li>
+<li><b>Check the reach:</b> one inverse FFT of the filter shows how much of its response falls outside [−<code>nFuture</code>,
++<code>nPast</code>]. That leakage must be tiny (0 in the reference run; warning above 10⁻⁶). This proves the overlap is long enough.</li>
+<li><b>Stream with overlap-save:</b> one buffer holds [past | outputs | future]. Each FFT block keeps only the outputs whose whole
+window was inside the buffer, then the buffer shifts on.</li>
+<li><b>Mark the fully supported outputs:</b> samples <code>nPast</code> + 1 to <var>N</var> − <code>nFuture</code> saw their complete sweep.</li>
+</ol>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 270" role="img" aria-label="Overlap-save: each block's buffer holds past, outputs and future samples">
   <text class="ttl" x="100.0" y="20">the file (N samples)</text>
@@ -88,17 +94,205 @@ did not (the forward stage dropped that energy past the file end); the fold uses
 [past | outputs | future]; after each FFT block only the outputs whose whole window was inside the buffer are kept. Near the end the
 future is zeros, so the last ~6.3 ms are not fully supported and the fold leaves them out.</figcaption>
 </figure>
-<div class="callout why"><span class="ttl">Why overlap-save here and overlap-add in the forward stage</span>
-<p>Both are exact. Overlap-save suits a non-causal filter with very asymmetric reach (6.3 ms future, a few µs past): one
-buffer holds past, output and future, and each block keeps only the outputs that saw a complete window.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 268" role="img" aria-label="Fully supported parts of the 0.1 s file after dedispersion, for the full band and the channel path, and the complete turns they contain">
+  <path class="axis" d="M130 190 H820"/>
+  <path class="axis" d="M130.0 190 v5"/>
+  <text class="sub" x="130.0" y="208" text-anchor="middle">0</text>
+  <path class="axis" d="M199.0 190 v5"/>
+  <text class="sub" x="199.0" y="208" text-anchor="middle">10</text>
+  <path class="axis" d="M268.0 190 v5"/>
+  <text class="sub" x="268.0" y="208" text-anchor="middle">20</text>
+  <path class="axis" d="M337.0 190 v5"/>
+  <text class="sub" x="337.0" y="208" text-anchor="middle">30</text>
+  <path class="axis" d="M406.0 190 v5"/>
+  <text class="sub" x="406.0" y="208" text-anchor="middle">40</text>
+  <path class="axis" d="M475.0 190 v5"/>
+  <text class="sub" x="475.0" y="208" text-anchor="middle">50</text>
+  <path class="axis" d="M544.0 190 v5"/>
+  <text class="sub" x="544.0" y="208" text-anchor="middle">60</text>
+  <path class="axis" d="M613.0 190 v5"/>
+  <text class="sub" x="613.0" y="208" text-anchor="middle">70</text>
+  <path class="axis" d="M682.0 190 v5"/>
+  <text class="sub" x="682.0" y="208" text-anchor="middle">80</text>
+  <path class="axis" d="M751.0 190 v5"/>
+  <text class="sub" x="751.0" y="208" text-anchor="middle">90</text>
+  <path class="axis" d="M820.0 190 v5"/>
+  <text class="sub" x="820.0" y="208" text-anchor="middle">100</text>
+  <text class="sub" x="475.0" y="224" text-anchor="middle">time in the file [ms]</text>
+  <text class="sub" x="164.5" y="34" text-anchor="middle">turn 0</text>
+  <path class="grid" d="M130.0 40 V190"/>
+  <path class="dot" d="M161.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="233.5" y="34" text-anchor="middle">turn 1</text>
+  <path class="grid" d="M199.0 40 V190"/>
+  <path class="dot" d="M230.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="302.5" y="34" text-anchor="middle">turn 2</text>
+  <path class="grid" d="M268.0 40 V190"/>
+  <path class="dot" d="M299.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="371.5" y="34" text-anchor="middle">turn 3</text>
+  <path class="grid" d="M337.0 40 V190"/>
+  <path class="dot" d="M368.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="440.5" y="34" text-anchor="middle">turn 4</text>
+  <path class="grid" d="M406.0 40 V190"/>
+  <path class="dot" d="M437.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="509.5" y="34" text-anchor="middle">turn 5</text>
+  <path class="grid" d="M475.0 40 V190"/>
+  <path class="dot" d="M506.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="578.5" y="34" text-anchor="middle">turn 6</text>
+  <path class="grid" d="M544.0 40 V190"/>
+  <path class="dot" d="M575.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="647.5" y="34" text-anchor="middle">turn 7</text>
+  <path class="grid" d="M613.0 40 V190"/>
+  <path class="dot" d="M644.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="716.5" y="34" text-anchor="middle">turn 8</text>
+  <path class="grid" d="M682.0 40 V190"/>
+  <path class="dot" d="M713.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="785.5" y="34" text-anchor="middle">turn 9</text>
+  <path class="grid" d="M751.0 40 V190"/>
+  <path class="dot" d="M782.5 50.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <text class="sub" x="122" y="54" text-anchor="end">pulse centres</text>
+  <text class="lbl" x="122" y="87" text-anchor="end">full band</text>
+  <rect class="box proc" x="130.0" y="72" width="646.5" height="22"/>
+  <rect class="fillwarn" x="130" y="72" width="1.5" height="22"/>
+  <rect class="fillwarn" x="776.5" y="72" width="43.5" height="22"/>
+  <path class="line" d="M132.0 102 H197.0"/>
+  <path class="line" d="M201.0 102 H266.0"/>
+  <path class="line" d="M270.0 102 H335.0"/>
+  <path class="line" d="M339.0 102 H404.0"/>
+  <path class="line" d="M408.0 102 H473.0"/>
+  <path class="line" d="M477.0 102 H542.0"/>
+  <path class="line" d="M546.0 102 H611.0"/>
+  <path class="line" d="M615.0 102 H680.0"/>
+  <path class="line" d="M684.0 102 H749.0"/>
+  <text class="sub" x="772.5" y="116" text-anchor="end">turns 0–8 complete: 9 TOAs</text>
+  <text class="lbl" x="122" y="145" text-anchor="end">channel path</text>
+  <rect class="box proc" x="132.2" y="130" width="642.1" height="22"/>
+  <rect class="fillwarn" x="130" y="130" width="2.2" height="22"/>
+  <rect class="fillwarn" x="774.3" y="130" width="45.7" height="22"/>
+  <path class="line" d="M201.0 160 H266.0"/>
+  <path class="line" d="M270.0 160 H335.0"/>
+  <path class="line" d="M339.0 160 H404.0"/>
+  <path class="line" d="M408.0 160 H473.0"/>
+  <path class="line" d="M477.0 160 H542.0"/>
+  <path class="line" d="M546.0 160 H611.0"/>
+  <path class="line" d="M615.0 160 H680.0"/>
+  <path class="line" d="M684.0 160 H749.0"/>
+  <text class="sub" x="770.3" y="174" text-anchor="end">turns 1–8 complete: 8 TOAs</text>
+  <rect class="box proc" x="130" y="233" width="18" height="10"/><text class="sub" x="154" y="242">fully supported</text>
+  <rect class="fillwarn" x="260" y="233" width="18" height="10"/><text class="sub" x="284" y="242">not: the last 6.3 ms (sweep incomplete); on the channel path also the first 0.32 ms (guard)</text>
+  <path class="line" d="M130 256 h18"/><text class="sub" x="154" y="260">complete turns: one TOA each</text>
+</svg>
+<figcaption>The 0.1 s file of <code>main.m</code> after dedispersion (notes §4). Green: output samples that saw their complete dispersion
+sweep (<code>fullySupported</code>). Orange: samples that did not. At the end the low frequencies of the last 6.3 ms were delayed past the
+end of the file in stage 2; at the start the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see; 0.32 ms per
+channel). The fold uses only green data and the TOA fit only complete turns (lines), so the full band gives 9 TOAs
+and the channel path 8: the file starts exactly on a turn boundary, so the 0.32 ms channel guard leaves turn 0 with only 96.8 % of its
+phase bins covered, below <code>MinCoverage</code> = 1.</figcaption>
+</figure>
+<details><summary>Exact formulas and numbers</summary>
+<ul>
+<li><code>nFuture</code> = max(⌈(τ(<var>f</var><sub>Low</sub>) − τ(<var>f</var><sub>ref</sub>))·<var>f</var><sub>s</sub>⌉, 0) + <var>g</var>, <code>nPast</code> =
+max(⌈(τ(<var>f</var><sub>ref</sub>) − τ(<var>f</var><sub>High</sub>))·<var>f</var><sub>s</sub>⌉, 0) + <var>g</var>, guard <var>g</var> = ⌈20/edge width·<var>f</var><sub>s</sub>⌉ (2.5 µs).
+At 800 MHz: about 5.04 million and 2000 samples. In the original 500 MHz run: 3,152,472 and 1250.</li>
+<li>FFT size: powers of two from 2<sup>nextpow2(2·overlap)</sup> up to the whole file, the one with the lowest cost
+<var>n</var><sub>blocks</sub>·<var>N</var><sub>fft</sub>·log₂<var>N</var><sub>fft</sub> within <code>MaxMemoryGB</code> (4), at 56 bytes per FFT sample.
+Original 1 s run at 500 MHz: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s. For the 0.1 s file at 800 MHz the rule gives 2²⁵ (85 % useful,
+3 blocks, 1.9 GB).</li>
+<li>Zeros before the start and after the end of the file. <code>fullySupported</code> = [<code>nPast</code> + 1, <var>N</var> − <code>nFuture</code>].</li>
+</ul>
+</details>
 
 <h3 id="refoutside"><code>AllowRefOutsideBand</code> (6 Oct 2026)</h3>
-<p>Added for the channelized front end. Default false: <var>f</var><sub>ref</sub> must lie in [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]. True: any
-<var>f</var><sub>ref</sub> &gt; 0, so every 3.125 MHz channel can be referenced to the top of the <em>whole</em> band. The filter formula is
-exact for any <var>f</var><sub>ref</sub> (its phase splits into the 1/<var>f</var> dispersion term, a linear term = pure delay, and a
-constant); a reference above the band only adds a pure advance, so all the overlap moves to the future side.
-<code>nFuture</code>/<code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, unchanged inside the band. Regression: the full-band path reproduces
-<code>test_IQ_dedispersed.dat</code> bit for bit.</p>
+<p>Added for the channelized front end, so that every 3.125 MHz channel can be referenced to the top of the <em>whole</em> band.</p>
+<ul>
+<li>Default false: <var>f</var><sub>ref</sub> must lie in [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]. True: any <var>f</var><sub>ref</sub> &gt; 0.</li>
+<li>The filter formula is exact for any <var>f</var><sub>ref</sub>. Its phase splits into the 1/<var>f</var> dispersion term, a linear term
+(a pure delay) and a constant. A reference above the band only adds a pure advance, so all the overlap moves to the future side.</li>
+<li><code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. Regression: the full-band
+path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</li>
+</ul>
+
+<h3 id="dedisp-why">Design choices</h3>
+
+<div class="callout why"><span class="ttl">Coherent dedispersion of the voltage, not shifting sub-bands</span>
+<p><b>Alternative:</b> incoherent dedispersion: split the band into channels, detect each, and shift each channel by its delay.</p>
+<p><b>Why not:</b> the delay also changes inside each channel, so a shift leaves a smear: 75 µs in a 3.125 MHz channel at DM 5, 1.5 ms
+at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse. Filtering the voltage removes the sweep at every frequency,
+with no smear at all. This is why the channel path also dedisperses each channel coherently.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Smear left inside one channel by incoherent dedispersion, against channel width, for DM 5 and DM 100">
+  <path class="axis" d="M90 290 H610"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M90 290.0 h-5"/>
+  <text class="sub" x="82" y="294.0" text-anchor="end">0.1</text>
+  <path class="axis" d="M90 248.3 h-5"/>
+  <text class="sub" x="82" y="252.3" text-anchor="end">1</text>
+  <path class="axis" d="M90 206.7 h-5"/>
+  <text class="sub" x="82" y="210.7" text-anchor="end">10</text>
+  <path class="axis" d="M90 165.0 h-5"/>
+  <text class="sub" x="82" y="169.0" text-anchor="end">100</text>
+  <path class="axis" d="M90 123.3 h-5"/>
+  <text class="sub" x="82" y="127.3" text-anchor="end">1000</text>
+  <path class="axis" d="M90 81.7 h-5"/>
+  <text class="sub" x="82" y="85.7" text-anchor="end">10⁴</text>
+  <path class="axis" d="M90 40.0 h-5"/>
+  <text class="sub" x="82" y="44.0" text-anchor="end">10⁵</text>
+  <text class="sub" x="90" y="32" text-anchor="start">smear inside the channel [µs]</text>
+  <path class="axis" d="M90.0 290 v5"/><text class="sub" x="90.0" y="308" text-anchor="middle">0.01</text>
+  <path class="axis" d="M203.0 290 v5"/><text class="sub" x="203.0" y="308" text-anchor="middle">0.1</text>
+  <path class="axis" d="M316.0 290 v5"/><text class="sub" x="316.0" y="308" text-anchor="middle">1</text>
+  <path class="axis" d="M429.0 290 v5"/><text class="sub" x="429.0" y="308" text-anchor="middle">10</text>
+  <path class="axis" d="M542.0 290 v5"/><text class="sub" x="542.0" y="308" text-anchor="middle">100</text>
+  <text class="sub" x="350.0" y="324" text-anchor="middle">channel width at 1.2 GHz [MHz]</text>
+  <path class="curve" d="M90.0 274.2 L91.7 273.5 L93.5 272.9 L95.2 272.2 L97.0 271.6 L98.7 270.9 L100.4 270.3 L102.2 269.7 L103.9 269.0 L105.7 268.4 L107.4 267.7 L109.1 267.1 L110.9 266.5 L112.6 265.8 L114.3 265.2 L116.1 264.5 L117.8 263.9 L119.6 263.2 L121.3 262.6 L123.0 262.0 L124.8 261.3 L126.5 260.7 L128.3 260.0 L130.0 259.4 L131.7 258.8 L133.5 258.1 L135.2 257.5 L137.0 256.8 L138.7 256.2 L140.4 255.6 L142.2 254.9 L143.9 254.3 L145.7 253.6 L147.4 253.0 L149.1 252.3 L150.9 251.7 L152.6 251.1 L154.3 250.4 L156.1 249.8 L157.8 249.1 L159.6 248.5 L161.3 247.9 L163.0 247.2 L164.8 246.6 L166.5 245.9 L168.3 245.3 L170.0 244.7 L171.7 244.0 L173.5 243.4 L175.2 242.7 L177.0 242.1 L178.7 241.4 L180.4 240.8 L182.2 240.2 L183.9 239.5 L185.7 238.9 L187.4 238.2 L189.1 237.6 L190.9 237.0 L192.6 236.3 L194.3 235.7 L196.1 235.0 L197.8 234.4 L199.6 233.8 L201.3 233.1 L203.0 232.5 L204.8 231.8 L206.5 231.2 L208.3 230.5 L210.0 229.9 L211.7 229.3 L213.5 228.6 L215.2 228.0 L217.0 227.3 L218.7 226.7 L220.4 226.1 L222.2 225.4 L223.9 224.8 L225.7 224.1 L227.4 223.5 L229.1 222.8 L230.9 222.2 L232.6 221.6 L234.3 220.9 L236.1 220.3 L237.8 219.6 L239.6 219.0 L241.3 218.4 L243.0 217.7 L244.8 217.1 L246.5 216.4 L248.3 215.8 L250.0 215.2 L251.7 214.5 L253.5 213.9 L255.2 213.2 L257.0 212.6 L258.7 212.0 L260.4 211.3 L262.2 210.7 L263.9 210.0 L265.7 209.4 L267.4 208.7 L269.1 208.1 L270.9 207.5 L272.6 206.8 L274.3 206.2 L276.1 205.5 L277.8 204.9 L279.6 204.3 L281.3 203.6 L283.0 203.0 L284.8 202.3 L286.5 201.7 L288.3 201.1 L290.0 200.4 L291.7 199.8 L293.5 199.1 L295.2 198.5 L297.0 197.8 L298.7 197.2 L300.4 196.6 L302.2 195.9 L303.9 195.3 L305.7 194.6 L307.4 194.0 L309.1 193.4 L310.9 192.7 L312.6 192.1 L314.3 191.4 L316.1 190.8 L317.8 190.2 L319.6 189.5 L321.3 188.9 L323.0 188.2 L324.8 187.6 L326.5 187.0 L328.3 186.3 L330.0 185.7 L331.7 185.0 L333.5 184.4 L335.2 183.8 L337.0 183.1 L338.7 182.5 L340.4 181.8 L342.2 181.2 L343.9 180.6 L345.7 179.9 L347.4 179.3 L349.1 178.6 L350.9 178.0 L352.6 177.4 L354.3 176.7 L356.1 176.1 L357.8 175.4 L359.6 174.8 L361.3 174.2 L363.0 173.5 L364.8 172.9 L366.5 172.2 L368.3 171.6 L370.0 171.0 L371.7 170.3 L373.5 169.7 L375.2 169.1 L377.0 168.4 L378.7 167.8 L380.4 167.1 L382.2 166.5 L383.9 165.9 L385.7 165.2 L387.4 164.6 L389.1 163.9 L390.9 163.3 L392.6 162.7 L394.3 162.0 L396.1 161.4 L397.8 160.8 L399.6 160.1 L401.3 159.5 L403.0 158.8 L404.8 158.2 L406.5 157.6 L408.3 156.9 L410.0 156.3 L411.7 155.7 L413.5 155.0 L415.2 154.4 L417.0 153.8 L418.7 153.1 L420.4 152.5 L422.2 151.9 L423.9 151.2 L425.7 150.6 L427.4 150.0 L429.1 149.3 L430.9 148.7 L432.6 148.1 L434.3 147.4 L436.1 146.8 L437.8 146.2 L439.6 145.5 L441.3 144.9 L443.0 144.3 L444.8 143.6 L446.5 143.0 L448.3 142.4 L450.0 141.7 L451.7 141.1 L453.5 140.5 L455.2 139.9 L457.0 139.2 L458.7 138.6 L460.4 138.0 L462.2 137.4 L463.9 136.7 L465.7 136.1 L467.4 135.5 L469.1 134.9 L470.9 134.2 L472.6 133.6 L474.3 133.0 L476.1 132.4 L477.8 131.7 L479.6 131.1 L481.3 130.5 L483.0 129.9 L484.8 129.3 L486.5 128.7 L488.3 128.0 L490.0 127.4 L491.7 126.8 L493.5 126.2 L495.2 125.6 L497.0 125.0 L498.7 124.4 L500.4 123.8 L502.2 123.1 L503.9 122.5 L505.7 121.9 L507.4 121.3 L509.1 120.7 L510.9 120.1 L512.6 119.5 L514.3 118.9 L516.1 118.3 L517.8 117.7 L519.6 117.1 L521.3 116.5 L523.0 116.0 L524.8 115.4 L526.5 114.8 L528.3 114.2 L530.0 113.6 L531.7 113.0 L533.5 112.4 L535.2 111.9 L537.0 111.3 L538.7 110.7 L540.4 110.1 L542.2 109.6 L543.9 109.0 L545.7 108.4 L547.4 107.9 L549.1 107.3 L550.9 106.8 L552.6 106.2 L554.3 105.7 L556.1 105.1 L557.8 104.6 L559.6 104.0 L561.3 103.5 L563.0 103.0 L564.8 102.4 L566.5 101.9 L568.3 101.4 L570.0 100.8 L571.7 100.3 L573.5 99.8 L575.2 99.3 L577.0 98.8 L578.7 98.3 L580.4 97.8 L582.2 97.3 L583.9 96.8 L585.7 96.3 L587.4 95.8 L589.1 95.4 L590.9 94.9 L592.6 94.4 L594.3 94.0 L596.1 93.5 L597.8 93.0 L599.6 92.6 L601.3 92.2 L603.0 91.7 L604.8 91.3 L606.5 90.9 L608.3 90.4 L610.0 90.0"/>
+  <path class="curve2" d="M90.0 219.9 L91.7 219.3 L93.5 218.7 L95.2 218.0 L97.0 217.4 L98.7 216.7 L100.4 216.1 L102.2 215.5 L103.9 214.8 L105.7 214.2 L107.4 213.5 L109.1 212.9 L110.9 212.2 L112.6 211.6 L114.3 211.0 L116.1 210.3 L117.8 209.7 L119.6 209.0 L121.3 208.4 L123.0 207.8 L124.8 207.1 L126.5 206.5 L128.3 205.8 L130.0 205.2 L131.7 204.6 L133.5 203.9 L135.2 203.3 L137.0 202.6 L138.7 202.0 L140.4 201.3 L142.2 200.7 L143.9 200.1 L145.7 199.4 L147.4 198.8 L149.1 198.1 L150.9 197.5 L152.6 196.9 L154.3 196.2 L156.1 195.6 L157.8 194.9 L159.6 194.3 L161.3 193.6 L163.0 193.0 L164.8 192.4 L166.5 191.7 L168.3 191.1 L170.0 190.4 L171.7 189.8 L173.5 189.2 L175.2 188.5 L177.0 187.9 L178.7 187.2 L180.4 186.6 L182.2 186.0 L183.9 185.3 L185.7 184.7 L187.4 184.0 L189.1 183.4 L190.9 182.7 L192.6 182.1 L194.3 181.5 L196.1 180.8 L197.8 180.2 L199.6 179.5 L201.3 178.9 L203.0 178.3 L204.8 177.6 L206.5 177.0 L208.3 176.3 L210.0 175.7 L211.7 175.1 L213.5 174.4 L215.2 173.8 L217.0 173.1 L218.7 172.5 L220.4 171.8 L222.2 171.2 L223.9 170.6 L225.7 169.9 L227.4 169.3 L229.1 168.6 L230.9 168.0 L232.6 167.4 L234.3 166.7 L236.1 166.1 L237.8 165.4 L239.6 164.8 L241.3 164.2 L243.0 163.5 L244.8 162.9 L246.5 162.2 L248.3 161.6 L250.0 160.9 L251.7 160.3 L253.5 159.7 L255.2 159.0 L257.0 158.4 L258.7 157.7 L260.4 157.1 L262.2 156.5 L263.9 155.8 L265.7 155.2 L267.4 154.5 L269.1 153.9 L270.9 153.3 L272.6 152.6 L274.3 152.0 L276.1 151.3 L277.8 150.7 L279.6 150.0 L281.3 149.4 L283.0 148.8 L284.8 148.1 L286.5 147.5 L288.3 146.8 L290.0 146.2 L291.7 145.6 L293.5 144.9 L295.2 144.3 L297.0 143.6 L298.7 143.0 L300.4 142.4 L302.2 141.7 L303.9 141.1 L305.7 140.4 L307.4 139.8 L309.1 139.2 L310.9 138.5 L312.6 137.9 L314.3 137.2 L316.1 136.6 L317.8 136.0 L319.6 135.3 L321.3 134.7 L323.0 134.0 L324.8 133.4 L326.5 132.8 L328.3 132.1 L330.0 131.5 L331.7 130.8 L333.5 130.2 L335.2 129.5 L337.0 128.9 L338.7 128.3 L340.4 127.6 L342.2 127.0 L343.9 126.3 L345.7 125.7 L347.4 125.1 L349.1 124.4 L350.9 123.8 L352.6 123.2 L354.3 122.5 L356.1 121.9 L357.8 121.2 L359.6 120.6 L361.3 120.0 L363.0 119.3 L364.8 118.7 L366.5 118.0 L368.3 117.4 L370.0 116.8 L371.7 116.1 L373.5 115.5 L375.2 114.8 L377.0 114.2 L378.7 113.6 L380.4 112.9 L382.2 112.3 L383.9 111.6 L385.7 111.0 L387.4 110.4 L389.1 109.7 L390.9 109.1 L392.6 108.5 L394.3 107.8 L396.1 107.2 L397.8 106.5 L399.6 105.9 L401.3 105.3 L403.0 104.6 L404.8 104.0 L406.5 103.4 L408.3 102.7 L410.0 102.1 L411.7 101.5 L413.5 100.8 L415.2 100.2 L417.0 99.6 L418.7 98.9 L420.4 98.3 L422.2 97.6 L423.9 97.0 L425.7 96.4 L427.4 95.7 L429.1 95.1 L430.9 94.5 L432.6 93.8 L434.3 93.2 L436.1 92.6 L437.8 91.9 L439.6 91.3 L441.3 90.7 L443.0 90.1 L444.8 89.4 L446.5 88.8 L448.3 88.2 L450.0 87.5 L451.7 86.9 L453.5 86.3 L455.2 85.6 L457.0 85.0 L458.7 84.4 L460.4 83.8 L462.2 83.1 L463.9 82.5 L465.7 81.9 L467.4 81.3 L469.1 80.6 L470.9 80.0 L472.6 79.4 L474.3 78.8 L476.1 78.2 L477.8 77.5 L479.6 76.9 L481.3 76.3 L483.0 75.7 L484.8 75.1 L486.5 74.4 L488.3 73.8 L490.0 73.2 L491.7 72.6 L493.5 72.0 L495.2 71.4 L497.0 70.8 L498.7 70.2 L500.4 69.5 L502.2 68.9 L503.9 68.3 L505.7 67.7 L507.4 67.1 L509.1 66.5 L510.9 65.9 L512.6 65.3 L514.3 64.7 L516.1 64.1 L517.8 63.5 L519.6 62.9 L521.3 62.3 L523.0 61.7 L524.8 61.2 L526.5 60.6 L528.3 60.0 L530.0 59.4 L531.7 58.8 L533.5 58.2 L535.2 57.7 L537.0 57.1 L538.7 56.5 L540.4 55.9 L542.2 55.4 L543.9 54.8 L545.7 54.2 L547.4 53.7 L549.1 53.1 L550.9 52.6 L552.6 52.0 L554.3 51.5 L556.1 50.9 L557.8 50.4 L559.6 49.8 L561.3 49.3 L563.0 48.7 L564.8 48.2 L566.5 47.7 L568.3 47.2 L570.0 46.6 L571.7 46.1 L573.5 45.6 L575.2 45.1 L577.0 44.6 L578.7 44.1 L580.4 43.6 L582.2 43.1 L583.9 42.6 L585.7 42.1 L587.4 41.6 L589.1 41.1 L590.9 40.7 L592.6 40.2"/>
+  <path class="curve2" d="M100 48.5 h18"/><text class="sub" x="124" y="52.5">DM 100 (the design target)</text>
+  <path class="curve" d="M100 64.5 h18"/><text class="sub" x="124" y="68.5">DM 5 (the simulation)</text>
+  <path class="dash" d="M90 135.9 H610"/>
+  <text class="sub" x="96" y="130.9">simulated pulse, FWHM 0.5 ms</text>
+  <path class="dash" d="M90 158.8 H610"/>
+  <text class="sub" x="96" y="153.8">J0437, W50 0.141 ms</text>
+  <path class="thin" d="M371.9 40 V290"/>
+  <text class="sub" x="375.9" y="52">the pipeline's channels: 3.125 MHz</text>
+  <path class="dot" d="M367.9 170.3 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <path class="dot2" d="M367.9 116.1 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <text class="ttl" x="632" y="58">If channels were only shifted</text>
+  <text class="sub" x="632" y="75">Each channel would keep its own</text>
+  <text class="sub" x="632" y="92">sweep: 75 µs in a 3.125 MHz</text>
+  <text class="sub" x="632" y="109">channel at DM 5, 1.5 ms at DM 100,</text>
+  <text class="sub" x="632" y="126">more than a millisecond pulsar's</text>
+  <text class="sub" x="632" y="143">whole pulse.</text>
+  <text class="sub" x="632" y="160"></text>
+  <text class="ttl" x="632" y="177">Dedispersing the voltage</text>
+  <text class="sub" x="632" y="194">removes the sweep at every</text>
+  <text class="sub" x="632" y="211">frequency: no smear at all, in any</text>
+  <text class="sub" x="632" y="228">channel width (stages 5 and 5b).</text>
+</svg>
+<figcaption>What incoherent dedispersion would leave behind: shifting a channel by one delay leaves the sweep <em>inside</em> it, here at the
+bottom of the band, where it is largest (τ(1.2 GHz) − τ(1.2 GHz + width), the code's constant). The dots are the pipeline's 3.125 MHz
+channels. Filtering the voltage with the inverse chirp, as <code>applyInverseDispersion</code> does, leaves no smear at any width.</figcaption>
+</figure>
+
+<div class="callout why"><span class="ttl">The same constant, DM, reference and taper as the forward stage</span>
+<p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a constant
+shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>). That is harmless for relative timing, but it changes what a TOA means.
+The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check work. (That
+the simulation and the observer share one <code>refFreq</code> is noted as D2 on the <a href="roadmap.html">roadmap</a>.)</p></div>
+
+<div class="callout why"><span class="ttl">Overlap-save here, overlap-add in the forward stage</span>
+<p>Both are exact. Overlap-save suits a filter with a very lopsided, non-causal reach (6.3 ms into the future, a few µs into the past):
+one buffer holds past, outputs and future, and each block keeps only the outputs that saw a complete window. The forward filter only
+reaches forward, where overlap-add is the natural fit (<a href="sky.html#disp-why">sky page</a>).</p></div>
+
+<div class="callout why"><span class="ttl">A leakage check instead of a designed kernel</span>
+<p>Stage 2 builds a kernel in time and cuts it to length. Here the filter is applied directly as <var>H</var> on each block's FFT grid, so
+there is nothing to cut. What can go wrong is the opposite: a response that reaches further than the overlap and wraps around inside
+the block. The leakage check measures exactly that, on every run.</p></div>
+
+<div class="callout why"><span class="ttl">Only fully supported data go on</span>
+<p>The last 6.3 ms lack part of their sweep: stage 2 dropped the energy that would arrive after the end of the file, and a real
+observation stops the same way. Folding those samples would give a profile that is too weak at low frequencies there. So the
+fully supported range travels with the data, and the fold uses only that (timeline figure above).</p></div>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
@@ -106,37 +300,33 @@ constant); a reference above the band only adds a pure advance, so all the overl
 <dt>Info</dt><dd>dedispersion parameters, refFreq, edgeWidth, nPast, nFuture, Nfft, leakage, <b>fullySupported</b>, refOutsideBand, …</dd>
 </dl>
 <div class="callout warn"><span class="ttl">Not checked internally</span>
-<p>The stage trusts its inputs: the DM (a wrong DM leaves a residual sweep), the reference-frequency convention vs the TOA
-definition, the receiver's frequency mapping (no spectral inversion assumed) and the true sample rate (passed through the
-info chain). See <a href="limits.html">limitations</a>.</p></div>
+<p>The stage trusts its inputs: the DM (a wrong DM leaves a residual sweep), the reference-frequency convention against the TOA
+definition, the receiver's frequency mapping (no spectral inversion assumed) and the true sample rate (passed through the info chain).
+See <a href="limits.html">limitations</a>.</p></div>
 
 <h2 id="detect">6 · <code>detectPower</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = detectPower(inFile, outFile, fs, fLO, f_out, 'FullySupported', info_dedisp.fullySupported)</div>
 <p class="meta"><a href="api.html#detectpower">Full interface and help text of <code>detectPower</code> →</a></p>
 
-<h3>Purpose</h3>
-<p>Square-law detection: |<var>z</var>|² averaged over time bins of 1/<var>f</var><sub>out</sub> (1 µs). This is where the data rate collapses
-(800 M complex samples/s → 1 M power values/s), so everything downstream is cheap.</p>
+<h3 id="detect-short">In short</h3>
+<p>It squares the dedispersed voltage, |<var>z</var>|² = I² + Q², and averages it over time bins of 1 µs. Here the data rate collapses,
+from 800 million complex samples per second to 1 million power values, so everything after this is cheap.</p>
 
-<h3>Physics</h3>
-<p>After dedispersion the pulse is still noise; only its variance carries the signal. |<var>z</var>|² = I² + Q² estimates the variance,
-and a profile-weighted sum of |<var>z</var>|² is the optimal (Neyman–Pearson) statistic for variance-modulated Gaussian noise.
-So square-law detection, then folding, then matched filtering is the optimal order. Per 1 µs bin the noise is
-1/√(<var>B</var><sub>n</sub>·Δ<var>t</var>) ≈ 1/√390 ≈ 5.1 % of the mean.</p>
+<h3 id="detect-phys">The physics</h3>
+<p>After dedispersion the pulse is still noise; only its variance carries the signal (see the <a href="sky.html#gen-phys">voltage figure</a>).
+|<var>z</var>|² estimates the variance. For noise whose variance follows a known profile, a profile-weighted sum of |<var>z</var>|² is the
+optimal (Neyman–Pearson) test statistic. So the optimal order is: square, then fold, then match the template.</p>
+<p>Each 1 µs bin averages about <var>B</var><sub>n</sub>·Δ<var>t</var> ≈ 390 independent samples, so its noise is 1/√390 ≈ 5.1 % of its mean
+(the radiometer equation).</p>
 
-<h3>Algorithm</h3>
-<ul>
-<li><code>binLen</code> = round(<var>f</var><sub>s</sub>/<var>f</var><sub>out</sub>) samples per bin (500 at 500 MHz, 800 at 800 MHz).</li>
-<li><b>Fast path</b> (one channel, no band): I² + Q² straight from the raw read, no complex arrays, no square root, sums in double.</li>
-<li><b>Channelized path</b> (<code>NChan</code> &gt; 1 with <code>Band</code>): rectangular non-overlapping FFT frames whose length divides
-<code>binLen</code> (≥ 8 FFT bins per channel), |<var>Z</var>|² summed into channels by one matrix (Parseval normalization), so
-channels of a full-baseband band sum exactly to the total. Up to ~32 clean channels at 1 µs bins. (The 128-channel front end
-uses <code>channelizeIQ</code> instead.)</li>
-<li><b>Timing:</b> bin <var>k</var> (1-based) is stamped at the centroid of its samples,
-<var>t</var><sub>k</sub> = <var>T</var><sub>0</sub> + ((<var>k</var>−1)·<code>binLen</code> + (<code>binLen</code>−1)/2)/<var>f</var><sub>s</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.
-The boxcar is symmetric, so it does not bias arrival times. A trailing partial bin is dropped.</li>
-<li><code>fullySupportedBins</code>: the bins whose samples are all fully supported.</li>
-</ul>
+<h3 id="detect-how">How it works</h3>
+<ol>
+<li><b>Bin length:</b> <code>binLen</code> = round(<var>f</var><sub>s</sub>/<var>f</var><sub>out</sub>) samples, a whole number (800 at 800 MHz).</li>
+<li><b>Square and average:</b> I² + Q² straight from the raw read (no complex arrays, no square root), summed in double, divided by
+<code>binLen</code>. A trailing partial bin is dropped.</li>
+<li><b>Time stamp:</b> each bin is stamped at the centroid of its samples, <var>t</var><sub>k</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.</li>
+<li><b>Support:</b> <code>fullySupportedBins</code> are the bins whose samples are all fully supported.</li>
+</ol>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 192" role="img" aria-label="Detected time bins are stamped at the centroid of their samples">
   <text class="ttl" x="40" y="20">detected time bins (drawn with binLen = 8; the reference uses 800)</text>
@@ -180,9 +370,116 @@ The boxcar is symmetric, so it does not bias arrival times. A trailing partial b
 <code>binTime0</code> = (<code>binLen</code> − 1)/(2<var>f</var><sub>s</sub>) for bin 1 (0.4994 µs at 800 MHz). A stamp at the bin start (red dashes)
 would label every bin (<code>binLen</code> − 1)/2 samples too early.</figcaption>
 </figure>
-<div class="callout why"><span class="ttl">Why the bin is stamped at its centroid, not its start</span>
-<p>Stamping at the start would label every bin half a bin before its content, so every TOA would come out half a bin (0.5 µs) early. The centroid of a symmetric boxcar is the unbiased
-time; with linear phase assignment in the fold (<a href="fold.html#assign">fold</a>) it carries through to the TOA.</p></div>
+<details><summary>Exact formulas, and the old channelized mode</summary>
+<ul>
+<li><var>t</var><sub>k</sub> = <var>T</var><sub>0</sub> + ((<var>k</var>−1)·<code>binLen</code> + (<code>binLen</code>−1)/2)/<var>f</var><sub>s</sub>;
+<code>binTime0</code> = (<code>binLen</code> − 1)/(2<var>f</var><sub>s</sub>) = 0.4994 µs at 800 MHz.</li>
+<li>Channelized mode (<code>NChan</code> &gt; 1 with <code>Band</code>): rectangular, non-overlapping FFT frames whose length divides
+<code>binLen</code> (≥ 8 FFT bins per channel); |<var>Z</var>|² summed into channels by one matrix (Parseval normalization), so the channels
+of a full-baseband band sum exactly to the total. Up to ~32 clean channels at 1 µs bins. The 128-channel front end uses
+<a href="channels.html"><code>channelizeIQ</code></a> instead.</li>
+</ul>
+</details>
+
+<h3 id="detect-why">Design choices</h3>
+
+<div class="callout why"><span class="ttl">Square first, then fold, then match the template</span>
+<p>The pulsar is noise, so its information is in the variance. Squaring turns variance into a mean; folding adds up the turns; the
+template match weights each phase by how much pulse it holds. For variance-modulated Gaussian noise that order is optimal
+(Neyman–Pearson). Everything linear (dedispersion, RFI blanking, later beamforming) must happen before the square, because after it the
+phase is gone.</p></div>
+
+<div class="callout why"><span class="ttl">Average <em>every</em> sample into the bin (integrate and dump)</span>
+<p><b>Alternative:</b> keep one squared sample per bin, as a simple power detector followed by a slow ADC would.</p>
+<p><b>Why not:</b> that throws away most of the data, and its SNR then grows with <var>f</var><sub>out</sub>. Averaging all samples reaches the
+radiometer limit at any <var>f</var><sub>out</sub>: the information is set by bandwidth × time, not by the bin rate (shown 9 Oct, see
+<code>tests/expSamplingRate.m</code>). This also matters for the small-antenna hardware: integrate before decimating.</p></div>
+
+<div class="callout why"><span class="ttl">1 µs bins (<var>f</var><sub>out</sub> = 1 MHz)</span>
+<p>Because every bin averages all its samples, a finer bin does not add sensitivity; <var>f</var><sub>out</sub> is a resolution and
+cost knob. Two limits set it:</p>
+<ul>
+<li>bins must be much finer than the pulse, below about W/5 = 100 µs, or the error bars become too small (figure);</li>
+<li>with <code>NBin</code> = 2048 and one turn per sub-int, every phase bin needs data: bins of at most 4.9 µs.</li>
+</ul>
+<p>1 µs is far inside both, and still collapses the data rate 800-fold. A 9 Oct trial with 10 µs bins and 2048 phase bins gave no TOAs at
+all; the fold now warns about that (<code>foldProfile:coverage</code>).</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Measured SNR and error-bar honesty against detected bin width: flat for fine bins, worse for bins coarser than a fifth of the pulse">
+  <path class="axis" d="M80 236 H410"/>
+  <path class="axis" d="M80 46 V236"/>
+  <path class="axis" d="M80 213.6 h-5"/>
+  <text class="sub" x="72" y="217.6" text-anchor="end">80</text>
+  <path class="axis" d="M80 157.8 h-5"/>
+  <text class="sub" x="72" y="161.8" text-anchor="end">85</text>
+  <path class="axis" d="M80 101.9 h-5"/>
+  <text class="sub" x="72" y="105.9" text-anchor="end">90</text>
+  <path class="axis" d="M80 46.0 h-5"/>
+  <text class="sub" x="72" y="50.0" text-anchor="end">95</text>
+  <text class="sub" x="80" y="38" text-anchor="start">SNR per sub-int</text>
+  <path class="axis" d="M110.1 236 v5"/><text class="sub" x="110.1" y="254" text-anchor="middle">1</text>
+  <path class="axis" d="M210.1 236 v5"/><text class="sub" x="210.1" y="254" text-anchor="middle">10</text>
+  <path class="axis" d="M310.0 236 v5"/><text class="sub" x="310.0" y="254" text-anchor="middle">100</text>
+  <path class="axis" d="M410.0 236 v5"/><text class="sub" x="410.0" y="254" text-anchor="middle">1000</text>
+  <text class="sub" x="245.0" y="270" text-anchor="middle">width of a detected time bin [µs]</text>
+  <text class="ttl" x="80" y="20">a · sensitivity: flat once the bins resolve the pulse</text>
+  <rect class="fillwarn" x="310.0" y="46" width="100.0" height="190"/>
+  <path class="dash" d="M310.0 46 V236"/>
+  <text class="sub" x="312.1" y="230">coarser than W/5</text>
+  <path class="dash" d="M178.9 46 V236"/>
+  <path class="curve" d="M379.9 192.4 L340.1 87.4 L310.0 79.5 L261.9 85.1 L210.1 80.6 L163.2 79.5 L108.3 78.4"/>
+  <path class="dot" d="M376.4 192.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M336.6 87.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M306.5 79.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M258.4 85.1 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M206.6 80.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M159.7 79.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M104.8 78.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="114.3" y="94.4">main.m: 0.96 µs</text>
+  <text class="sub" x="373.9" y="196.4" text-anchor="end">−11 %</text>
+  <path class="axis" d="M500 236 H830"/>
+  <path class="axis" d="M500 46 V236"/>
+  <path class="axis" d="M500 208.9 h-5"/>
+  <text class="sub" x="492" y="212.9" text-anchor="end">1</text>
+  <path class="axis" d="M500 141.0 h-5"/>
+  <text class="sub" x="492" y="145.0" text-anchor="end">1.5</text>
+  <path class="axis" d="M500 73.1 h-5"/>
+  <text class="sub" x="492" y="77.1" text-anchor="end">2</text>
+  <text class="sub" x="500" y="38" text-anchor="start">rms error ÷ stated error</text>
+  <path class="axis" d="M530.1 236 v5"/><text class="sub" x="530.1" y="254" text-anchor="middle">1</text>
+  <path class="axis" d="M630.1 236 v5"/><text class="sub" x="630.1" y="254" text-anchor="middle">10</text>
+  <path class="axis" d="M730.0 236 v5"/><text class="sub" x="730.0" y="254" text-anchor="middle">100</text>
+  <path class="axis" d="M830.0 236 v5"/><text class="sub" x="830.0" y="254" text-anchor="middle">1000</text>
+  <text class="sub" x="665.0" y="270" text-anchor="middle">width of a detected time bin [µs]</text>
+  <text class="ttl" x="500" y="20">b · error bars: honest only for fine bins</text>
+  <rect class="fillwarn" x="730.0" y="46" width="100.0" height="190"/>
+  <path class="dash" d="M730.0 46 V236"/>
+  <text class="sub" x="732.1" y="230">coarser than W/5</text>
+  <path class="dash" d="M598.9 46 V236"/>
+  <path class="curve" d="M799.9 116.6 L760.1 67.7 L730.0 198.0 L681.9 204.8 L630.1 203.4 L583.2 203.4 L528.3 203.4"/>
+  <path class="dot" d="M796.4 116.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M756.6 67.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M726.5 198.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M678.4 204.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M626.6 203.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M579.7 203.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M524.8 203.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="602.9" y="73.1">≤ 4.9 µs: every one of</text>
+  <text class="sub" x="602.9" y="86.1">2048 phase bins filled</text>
+  <text class="sub" x="602.9" y="99.1">in one turn</text>
+  <text class="sub" x="768.1" y="71.7">2× too small</text>
+</svg>
+<figcaption>The <var>f</var><sub>out</sub> sweep of 9 Oct (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
+<var>f</var><sub>out</sub>; <code>logs/2026-10-09_fout-study.md</code>). a: once a bin is finer than about a fifth of the pulse (W/5 = 100 µs),
+finer bins add no sensitivity: every bin averages <em>all</em> its samples, so the noise in a sum of bins does not change. b: coarse
+bins also smear the pulse, which the template does not know about, so the error bars become too small. The second dashed line is the
+coverage limit for <code>NBin</code> = 2048 with one turn per sub-int. <code>main.m</code> uses 0.96 µs (orange dot), well inside both limits.</figcaption>
+</figure>
+
+<div class="callout why"><span class="ttl">The bin is stamped at its centroid, not its start</span>
+<p>Stamping at the start would label every bin half a bin before its content, so every TOA would come out half a bin (0.5 µs) early.
+The centroid of a symmetric boxcar is the unbiased time. With linear phase assignment in the fold (<a href="fold.html#assign">fold</a>)
+it carries through to the TOA.</p></div>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
@@ -191,12 +488,12 @@ time; with linear phase assignment in the fold (<a href="fold.html#assign">fold<
 <dt>Info</dt><dd>layout, nChan, N (bins), fs = actualFout, fsIn, binLen, binDt, binTime0, chanFreqs, chanEdges, chanFftBins, frameLen, chanMeanPower, samplesDropped, fullySupportedBins</dd>
 </dl>
 
-<h3>Validation</h3>
+<h3 id="detect-valid">Validation</h3>
 <ul>
-<li>Noise-free, <var>L</var> = 1 s: normalized residual of 127,512 on-pulse bins mean −0.0016, std 1.0015 (expected 0 ± 0.0028, 1 ± 0.0020);
-per-pulse centroid offsets rms 0.301 µs vs 0.277 µs expected.</li>
-<li>−5 dB: noise baseline 1.232 vs 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
-<li>Run time 1.2 s per second of data (I/O bound).</li>
+<li>Noise-free, <var>L</var> = 1 s: the normalized residual of 127,512 on-pulse bins has mean −0.0016 and std 1.0015 (expected 0 ± 0.0028
+and 1 ± 0.0020); per-pulse centroid offsets rms 0.301 µs against 0.277 µs expected.</li>
+<li>−5 dB: noise baseline 1.232 against 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
+<li>Run time 1.2 s per second of data (limited by reading the file).</li>
 </ul>
 <p>Details in the <a href="results.html">validation record</a>.</p>
 

@@ -357,10 +357,13 @@ Gaussian power profile p(t), incl. self-noise, flat band B = fHigh − fLow, ρ 
 
 | snrDB = −20 | predicted |
 |---|---|
-| SNR per pulse | 3.88 |
-| SNR per 10-turn sub-integration | 12.3 |
-| SNR all ~100 pulses | 38.8 |
-| best TOA error per pulse / sub-int / file | 77 µs / 24.5 µs / 7.7 µs |
+| SNR per pulse | 3.85 |
+| SNR per 10-turn sub-integration | 12.2 |
+| SNR all ~100 pulses | 38.5 |
+| best TOA error per pulse / sub-int / file | 77.8 µs / 24.6 µs / 7.78 µs |
+
+(Corrected 13 Oct 2026: the table showed 3.88 / 12.3 / 38.8 / 77 µs, the values without
+self-noise; `predictPerformance` includes it, as recomputed with its formula.)
 
 These come from `predictPerformance` with a **flat** band B = 400 MHz: a quick
 approximation (labelled as such in the print and in `info.prediction.note`), useful for
@@ -2204,7 +2207,10 @@ barycentric corrections, navigation solution).
    | 5 (now) | 6.3 ms | 2^26 → 3 GB (run uses 2^28, 11.8 GB) | 2^24 → 0.9 GB |
    | 30 | 37.8 ms | 2^29 → 24 GB | 2^26 → 3.8 GB |
    | 60 | 75.6 ms | 2^30 → **47 GB** (kernel design grid alone ~17 GB) | 2^27 → 7.5 GB (above the 4 GB default `MaxMemoryGB`) |
-   | 100 | 126 ms | ~2^31 → **~94 GB** (extrapolated ×2) | ~2^28 → ~15 GB (extrapolated) |
+   | 100 | 126 ms | 2^30 → **47 GB** (as at DM 60: the minimum 2·Nk − 2 = 1.008e9 still fits 2^30) | 2^28 → 15 GB |
+
+   (DM 100 row corrected 13 Oct 2026: it said ~2^31 → ~94 GB, "extrapolated ×2"; the code's own sizing
+   rule gives 2^30 for every DM from ~54 to ~106. Same conclusion: above the 24 GB machine.)
 
    → the forward dispersion in `applyDispersionStream` is the blocker on the 24 GB
    machine; dedispersion is feasible with a raised `MaxMemoryGB`. Also: L must be well
@@ -2216,7 +2222,7 @@ barycentric corrections, navigation solution).
    at 4 GHz RF); channelized (sub-band) dispersion and dedispersion with short per-channel
    kernels (standard in pulsar software). **Processing side decided (6 Oct): channelized
    front end** (agreed order item 1; per-channel kernels ~1e4 samples instead of ~1e8).
-   **Generator side still open** (forward dispersion ~94 GB at DM 100): memory-efficient
+   **Generator side still open** (forward dispersion ~47 GB at DM 60–100): memory-efficient
    FFT, dispersion at complex baseband, or per-channel generation; only a simulation
    problem.
 6. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
@@ -2349,7 +2355,7 @@ barycentric corrections, navigation solution).
 
    Docs errors fixed in `27ce31f` / `ac9ae3f` (Rice factor, LTE "planned", 800 MHz, limits
    "< 1 %", channels result, scenario ρ conventions, 373·ρ, sweep file names). Open:
-   - the roadmap's "commit pending" (another session is editing `roadmap.html`);
+   - the roadmap's "commit pending": fixed 13 Oct (docs rewrite session, `2026-10-13_docs-rationale.md`);
    - whether the 1 Oct noise runs validate the noise versions of `plotDetectedPower` /
      `plotFoldCheck` (Jasper);
    - items 3, 4, 8, the χ² threshold, a bright-pulsar excision warning (Jasper).
@@ -2575,6 +2581,61 @@ per day).
   Later split into simulation vs observation parameters for real data.
 - **MC on separate files** (`data/mc/`): a later main run with skipped stages never
   picks up an MC realization (`checkConsistency` checks the noise seed only since 13 Oct).
+
+Added 13 Oct (docs rewrite of the sky page; reasons reconstructed by Claude, confirmed by
+Jasper; docs `sky.html`, "Design choices"):
+- **A voltage at real RF, not detected power or baseband**: the processing must run
+  unchanged on real data, which starts as an antenna voltage; a power-only simulator would
+  skip dispersion, the I/Q receiver, coherent dedispersion and blanking. Real RF also tests
+  the I/Q stage itself (the off-centre LO check depends on it). Price: the slowest stage,
+  and its memory limits the DM.
+- **f_in = 4 GHz**: real sampling needs > 2·1.6 GHz = 3.2 GHz; 4 GHz leaves 0.4 GHz margin
+  and decimates by whole numbers to 800 MHz (D = 5) and the original 500 MHz (D = 8).
+- **One Gaussian component**: the template is known exactly, so TOA errors come from the
+  pipeline, not from template mismatch; real profiles only need another template.
+- **Kernel designed in frequency** (not a time-domain chirp formula, which is a
+  stationary-phase approximation with the taper built in by hand); grid ≥ 2·Nk so wrapped
+  ringing lands in an empty zone; `leak` measures the cut.
+- **Overlap-add in the forward stage**: the kernel reaches only forward (fRef at the top),
+  each input sample is read once; the inverse reaches 6.3 ms into the future and uses
+  overlap-save. Whole-file FFT ~189 GB, direct convolution ~10¹⁷ multiply-adds per second
+  of data.
+- **Late tail dropped**: mirrors a real observation that stops mid-sweep; the processing
+  marks `fullySupported` samples and the fold uses only those.
+
+Added 13 Oct (docs rewrite of the remaining stage pages; reasons reconstructed by Claude,
+confirmed by Jasper; the "Design choices" boxes of each page):
+- **Noise and RFI added at RF, not after the I/Q stage** (receiver): added at baseband they
+  would bypass the I/Q filter, which a real receiver's noise and interference pass through.
+- **SNR as a ratio of spectral densities at the pulse peak** (receiver): an SNR per sample,
+  per time bin or after folding depends on choices made later (bandwidth, bin width, fold
+  length); the PSD ratio describes only the sky and the antenna.
+- **INR relative to all receiver-noise power in the band** (receiver): total power is the one
+  measure that means the same for a carrier (infinite per Hz, one channel), an LTE block and a
+  200 ns burst; it is also what a link budget gives (the realistic list's levels).
+- **A few simple RFI types, not a recording** (receiver): a recording has no ground truth;
+  each type isolates one time-frequency signature, matching how the processing treats it:
+  intermittent (pulsed, impulse) → blanked; continuous (cw, bpsk, noise) → down-weighted.
+- **I/Q as mix–low-pass–decimate, not a whole-file FFT** (receiver): bounded memory and
+  streaming like every stage, and the receiver's timing conventions (LO phase, filter delay,
+  sample grid) stay explicit; an unremoved 256 ns delay was a real bug (#5).
+- **I/Q low-pass: 80 dB, 2049 taps** (receiver): the receiver noise is white over all
+  frequencies, so this filter limits it; after decimation by 5 four alias copies fold onto
+  each in-band frequency (unfiltered: 5× the noise), at −80 dB each adds ≤ ~10⁻⁸. 2049 taps
+  give a 9.8 MHz transition (flat to ±355 MHz), cheap with FFT convolution.
+- **Only fully supported samples folded** (full band): a partly supported sample lacks part of
+  its sweep (low frequencies), so folding it would bias the profile there.
+- **128 channels of 3.125 MHz** (channels): a trade-off. Narrower channels blur short RFI in
+  time (~1/B) and lower B·Δt (correlated bins); wider ones cost more band per down-weighted
+  carrier/GNSS channel and lengthen each channel's filter. At 3.125 MHz a 2 µs radar pulse is
+  ~8 samples in ~2 channels, a carrier costs 1/128 of the band, 800 MHz/3.125 MHz = 256 slots.
+- **Turns cut halfway between pulses** (fold): with `ephem.TRef` at a pulse centre the cut at
+  φ = k + ½ is off-pulse, so every sub-int holds whole pulses and the pulse sits at phase 0.
+- **The fold stores weights, not σ²** (fold): `weight`, `weight2`, `weightX` describe how the
+  data were combined; the consumers apply their own noise model (radiometer or off-pulse), so
+  one fold serves both and never needs the true noise level.
+- **Monte Carlo runs and sweeps, not one `main.m` run, validate error bars** (validation): the
+  rms ratio is uncertain by ~1/√(2n): ±25 % with 8 TOAs, ±7.5 % with 90.
 
 ---
 

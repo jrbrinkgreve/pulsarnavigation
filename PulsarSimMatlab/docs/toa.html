@@ -28,6 +28,16 @@ fitted together with inverse-variance weights.</p>
 <li><a href="#valid">Validation</a></li>
 </ol></div>
 
+<div class="callout note"><span class="ttl">In short: what <code>estimateTOA</code> does, step by step</span>
+<ol>
+<li><b>Correlate</b> each folded profile with the template, in the Fourier domain, so that any shift can be tried, not only whole bins.</li>
+<li><b>Find the peak</b>: a coarse search on a fine grid, then Newton steps to 10⁻¹⁴ turns. The shift τ is the TOA's offset from the
+ephemeris.</li>
+<li><b>Error bar</b>: how much the noise moves the peak, from a noise model that uses only the fitted profile and the fold's weights.</li>
+<li><b>Quality flag</b>: χ² of the residuals on the pulse, which catches profiles that are not template-shaped.</li>
+<li><b>Channels</b>: on the channel path all 128 channels are fitted at once, each weighted by how noisy it is.</li>
+</ol></div>
+
 <h2 id="model">1. The model and the TOA definition</h2>
 <div class="eq"><var>p</var>(φ) = <var>a</var> + <var>b</var>·<var>s</var>(φ − τ) + noise</div>
 <p><var>s</var> = template (peak 1 at phase 0), <var>a</var> = baseline, <var>b</var> = pulse amplitude, τ = phase offset from the ephemeris prediction.</p>
@@ -129,6 +139,39 @@ outliers) and that the template is right (otherwise χ² catches it). Hence <a h
 <div class="callout why"><span class="ttl">Why threshold 2</span>
 <p>Far above the clean scatter and the known high-SNR excess (1.05–1.1), far below what a radar does (939–1625). It deliberately does
 not react to moderate RFI (χ² ~1.3 with a carrier), whose TOAs are still valid.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 280" role="img" aria-label="Reduced chi-squared of the TOA fit: the clean distribution, the measured cases and the threshold 2">
+  <path class="axis" d="M60 230 H840"/>
+  <path class="axis" d="M60.0 230 v5"/><text class="sub" x="60.0" y="248" text-anchor="middle">0.3</text>
+  <path class="axis" d="M103.3 230 v5"/><text class="sub" x="103.3" y="248" text-anchor="middle">0.5</text>
+  <path class="axis" d="M162.0 230 v5"/><text class="sub" x="162.0" y="248" text-anchor="middle">1</text>
+  <path class="axis" d="M220.7 230 v5"/><text class="sub" x="220.7" y="248" text-anchor="middle">2</text>
+  <path class="axis" d="M298.3 230 v5"/><text class="sub" x="298.3" y="248" text-anchor="middle">5</text>
+  <path class="axis" d="M357.0 230 v5"/><text class="sub" x="357.0" y="248" text-anchor="middle">10</text>
+  <path class="axis" d="M552.0 230 v5"/><text class="sub" x="552.0" y="248" text-anchor="middle">100</text>
+  <path class="axis" d="M747.0 230 v5"/><text class="sub" x="747.0" y="248" text-anchor="middle">1000</text>
+  <path class="axis" d="M840.0 230 v5"/><text class="sub" x="840.0" y="248" text-anchor="middle">3000</text>
+  <text class="sub" x="450.0" y="264" text-anchor="middle">reduced χ² of the fit (on-pulse bins, log scale)</text>
+  <path class="fillsoft" d="M132.2 230 L132.2 229.9 L132.6 229.9 L133.0 229.9 L133.4 229.9 L133.7 229.9 L134.1 229.8 L134.5 229.8 L134.9 229.8 L135.3 229.7 L135.7 229.7 L136.1 229.6 L136.5 229.6 L136.9 229.5 L137.3 229.4 L137.6 229.3 L138.0 229.2 L138.4 229.1 L138.8 229.0 L139.2 228.8 L139.6 228.7 L140.0 228.5 L140.4 228.3 L140.8 228.0 L141.2 227.8 L141.6 227.5 L141.9 227.2 L142.3 226.8 L142.7 226.4 L143.1 226.0 L143.5 225.5 L143.9 225.0 L144.3 224.4 L144.7 223.7 L145.1 223.1 L145.5 222.3 L145.8 221.5 L146.2 220.7 L146.6 219.7 L147.0 218.7 L147.4 217.7 L147.8 216.6 L148.2 215.4 L148.6 214.1 L149.0 212.7 L149.4 211.3 L149.7 209.9 L150.1 208.3 L150.5 206.7 L150.9 205.1 L151.3 203.3 L151.7 201.6 L152.1 199.8 L152.5 197.9 L152.9 196.0 L153.3 194.1 L153.6 192.2 L154.0 190.3 L154.4 188.4 L154.8 186.5 L155.2 184.6 L155.6 182.8 L156.0 181.0 L156.4 179.3 L156.8 177.7 L157.2 176.1 L157.5 174.6 L157.9 173.3 L158.3 172.1 L158.7 170.9 L159.1 170.0 L159.5 169.1 L159.9 168.5 L160.3 168.0 L160.7 167.6 L161.1 167.4 L161.5 167.4 L161.8 167.5 L162.2 167.9 L162.6 168.3 L163.0 169.0 L163.4 169.8 L163.8 170.8 L164.2 171.9 L164.6 173.1 L165.0 174.5 L165.4 176.0 L165.7 177.6 L166.1 179.3 L166.5 181.1 L166.9 183.0 L167.3 184.9 L167.7 186.9 L168.1 188.9 L168.5 190.9 L168.9 192.9 L169.3 195.0 L169.6 197.0 L170.0 199.0 L170.4 200.9 L170.8 202.9 L171.2 204.7 L171.6 206.5 L172.0 208.3 L172.4 210.0 L172.8 211.6 L173.2 213.1 L173.5 214.6 L173.9 215.9 L174.3 217.2 L174.7 218.4 L175.1 219.6 L175.5 220.6 L175.9 221.6 L176.3 222.5 L176.7 223.3 L177.1 224.0 L177.4 224.7 L177.8 225.3 L178.2 225.9 L178.6 226.4 L179.0 226.9 L179.4 227.3 L179.8 227.6 L180.2 227.9 L180.6 228.2 L181.0 228.5 L181.4 228.7 L181.7 228.9 L182.1 229.1 L182.5 229.2 L182.9 229.3 L183.3 229.4 L183.7 229.5 L184.1 229.6 L184.5 229.7 L184.9 229.7 L185.3 229.8 L185.6 229.8 L186.0 229.8 L186.4 229.9 L186.8 229.9 L187.2 229.9 L187.6 229.9 L187.6 230 Z"/>
+  <path class="curve" d="M132.2 229.9 L132.6 229.9 L133.0 229.9 L133.4 229.9 L133.7 229.9 L134.1 229.8 L134.5 229.8 L134.9 229.8 L135.3 229.7 L135.7 229.7 L136.1 229.6 L136.5 229.6 L136.9 229.5 L137.3 229.4 L137.6 229.3 L138.0 229.2 L138.4 229.1 L138.8 229.0 L139.2 228.8 L139.6 228.7 L140.0 228.5 L140.4 228.3 L140.8 228.0 L141.2 227.8 L141.6 227.5 L141.9 227.2 L142.3 226.8 L142.7 226.4 L143.1 226.0 L143.5 225.5 L143.9 225.0 L144.3 224.4 L144.7 223.7 L145.1 223.1 L145.5 222.3 L145.8 221.5 L146.2 220.7 L146.6 219.7 L147.0 218.7 L147.4 217.7 L147.8 216.6 L148.2 215.4 L148.6 214.1 L149.0 212.7 L149.4 211.3 L149.7 209.9 L150.1 208.3 L150.5 206.7 L150.9 205.1 L151.3 203.3 L151.7 201.6 L152.1 199.8 L152.5 197.9 L152.9 196.0 L153.3 194.1 L153.6 192.2 L154.0 190.3 L154.4 188.4 L154.8 186.5 L155.2 184.6 L155.6 182.8 L156.0 181.0 L156.4 179.3 L156.8 177.7 L157.2 176.1 L157.5 174.6 L157.9 173.3 L158.3 172.1 L158.7 170.9 L159.1 170.0 L159.5 169.1 L159.9 168.5 L160.3 168.0 L160.7 167.6 L161.1 167.4 L161.5 167.4 L161.8 167.5 L162.2 167.9 L162.6 168.3 L163.0 169.0 L163.4 169.8 L163.8 170.8 L164.2 171.9 L164.6 173.1 L165.0 174.5 L165.4 176.0 L165.7 177.6 L166.1 179.3 L166.5 181.1 L166.9 183.0 L167.3 184.9 L167.7 186.9 L168.1 188.9 L168.5 190.9 L168.9 192.9 L169.3 195.0 L169.6 197.0 L170.0 199.0 L170.4 200.9 L170.8 202.9 L171.2 204.7 L171.6 206.5 L172.0 208.3 L172.4 210.0 L172.8 211.6 L173.2 213.1 L173.5 214.6 L173.9 215.9 L174.3 217.2 L174.7 218.4 L175.1 219.6 L175.5 220.6 L175.9 221.6 L176.3 222.5 L176.7 223.3 L177.1 224.0 L177.4 224.7 L177.8 225.3 L178.2 225.9 L178.6 226.4 L179.0 226.9 L179.4 227.3 L179.8 227.6 L180.2 227.9 L180.6 228.2 L181.0 228.5 L181.4 228.7 L181.7 228.9 L182.1 229.1 L182.5 229.2 L182.9 229.3 L183.3 229.4 L183.7 229.5 L184.1 229.6 L184.5 229.7 L184.9 229.7 L185.3 229.8 L185.6 229.8 L186.0 229.8 L186.4 229.9 L186.8 229.9 L187.2 229.9 L187.6 229.9"/>
+  <text class="sub" x="64" y="188.3">clean profile:</text>
+  <text class="sub" x="64" y="202.3">1 ± 0.09</text>
+  <rect class="fillwarn" x="220.7" y="70" width="619.3" height="160"/>
+  <path class="curve4" d="M220.7 50 V230"/>
+  <text class="lbl" x="226.7" y="62">threshold 2: flagged above</text>
+  <path class="curve2" stroke-width="5" d="M166.1 86 H170.0"/>
+  <text class="sub" x="158.1" y="90" text-anchor="end">high-SNR excess</text>
+  <path class="dot2" d="M161.3 110 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <text class="sub" x="157.3" y="114" text-anchor="end">lopsided LTE channels</text>
+  <path class="dot2" d="M180.2 134 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <text class="sub" x="176.2" y="138" text-anchor="end">with a carrier</text>
+  <path class="curve2" stroke-width="5" d="M741.6 86 H788.1"/>
+  <text class="sub" x="733.6" y="90" text-anchor="end">radar in the profile (full band, 5 Oct)</text>
+</svg>
+<figcaption>Why the χ² flag sits at 2. Blue: the distribution of the reduced χ² for a clean profile (~260 on-pulse bins). Orange: values seen in
+the validation runs. The threshold is far above clean profiles and the small known excesses, so it does not throw away good TOAs, and
+far below a radar spike in the profile, which it must catch. A carrier (~1.3) is deliberately not flagged: those TOAs are still valid.</figcaption>
+</figure>
 
 <h2 id="channels">5. Combining channels: equal weights (A2a, 7 Oct)</h2>
 <p>For a fold with channels, <code>'Weighting','equal'</code> (the default) sums the channel profiles: <var>p</var> = Σ<sub>c</sub> prof<sub>c</sub>. Shared helper
@@ -167,6 +210,173 @@ The weights ignore neighbour covariances (correlation ~0.26, small loss); the er
 even when the fit's weights are not exactly the inverse covariance; the plain <var>A</var>⁻¹ would only be right if they were.</p></div>
 <p>A side benefit seen in B4: weighting by 1/level² is a built-in notch for narrowband RFI. A carrier that cut the full-band SNR to
 74 leaves the channel path at 92.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Weight of each channel in the optimal TOA fit with the illustrative RFI: the carrier and GNSS channels get almost no weight">
+  <path class="axis" d="M90 260 H810"/>
+  <path class="axis" d="M90 40 V260"/>
+  <path class="axis" d="M90.0 260 v5"/>
+  <text class="sub" x="90.0" y="278" text-anchor="middle">1200</text>
+  <path class="axis" d="M270.0 260 v5"/>
+  <text class="sub" x="270.0" y="278" text-anchor="middle">1300</text>
+  <path class="axis" d="M450.0 260 v5"/>
+  <text class="sub" x="450.0" y="278" text-anchor="middle">1400</text>
+  <path class="axis" d="M630.0 260 v5"/>
+  <text class="sub" x="630.0" y="278" text-anchor="middle">1500</text>
+  <path class="axis" d="M810.0 260 v5"/>
+  <text class="sub" x="810.0" y="278" text-anchor="middle">1600</text>
+  <path class="axis" d="M90 260.0 h-5"/>
+  <text class="sub" x="82" y="264.0" text-anchor="end">0.0001</text>
+  <path class="axis" d="M90 221.9 h-5"/>
+  <text class="sub" x="82" y="225.9" text-anchor="end">0.001</text>
+  <path class="axis" d="M90 183.9 h-5"/>
+  <text class="sub" x="82" y="187.9" text-anchor="end">0.01</text>
+  <path class="axis" d="M90 145.8 h-5"/>
+  <text class="sub" x="82" y="149.8" text-anchor="end">0.1</text>
+  <path class="axis" d="M90 107.7 h-5"/>
+  <text class="sub" x="82" y="111.7" text-anchor="end">1</text>
+  <text class="sub" x="450.0" y="294" text-anchor="middle">channel frequency [MHz]</text>
+  <text class="sub" x="90" y="32" text-anchor="start">weight of the channel in the TOA fit (clean channel = 1)</text>
+  <rect class="box sky" x="90.4" y="108.3" width="4.8" height="151.7"/>
+  <rect class="box sky" x="96.0" y="108.1" width="4.8" height="151.9"/>
+  <rect class="box sky" x="101.7" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="107.3" y="109.0" width="4.8" height="151.0"/>
+  <rect class="box sky" x="112.9" y="109.2" width="4.8" height="150.8"/>
+  <rect class="box sky" x="118.5" y="108.0" width="4.8" height="152.0"/>
+  <rect class="box sky" x="124.2" y="112.9" width="4.8" height="147.1"/>
+  <rect class="box sky" x="129.8" y="125.1" width="4.8" height="134.9"/>
+  <rect class="box sky" x="135.4" y="133.3" width="4.8" height="126.7"/>
+  <rect class="box sky" x="141.0" y="131.5" width="4.8" height="128.5"/>
+  <rect class="box sky" x="146.7" y="120.9" width="4.8" height="139.1"/>
+  <rect class="box sky" x="152.3" y="110.1" width="4.8" height="149.9"/>
+  <rect class="box sky" x="157.9" y="108.2" width="4.8" height="151.8"/>
+  <rect class="box sky" x="163.5" y="109.4" width="4.8" height="150.6"/>
+  <rect class="box sky" x="169.2" y="108.5" width="4.8" height="151.5"/>
+  <rect class="box sky" x="174.8" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="180.4" y="108.2" width="4.8" height="151.8"/>
+  <rect class="box sky" x="186.0" y="108.2" width="4.8" height="151.8"/>
+  <rect class="box sky" x="191.7" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="197.3" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="202.9" y="108.0" width="4.8" height="152.0"/>
+  <rect class="box sky" x="208.5" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="214.2" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="219.8" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="225.4" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="231.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="236.7" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="242.3" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="247.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="253.5" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="259.1" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="264.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="270.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="276.0" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="281.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="287.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="292.9" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="298.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="304.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="309.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="315.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="321.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="326.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="332.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="337.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="343.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="349.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="354.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="360.4" y="230.9" width="4.8" height="29.1"/>
+  <rect class="box sky" x="366.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="371.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="377.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="382.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="388.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="394.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="399.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="405.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="411.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="416.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="422.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="427.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="433.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="439.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="444.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="450.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="456.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="461.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="467.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="472.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="478.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="484.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="489.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="495.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="501.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="506.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="512.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="517.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="523.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="529.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="534.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="540.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="546.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="551.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="557.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="562.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="568.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="574.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="579.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="585.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="591.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="596.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="602.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="607.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="613.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="619.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="624.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="630.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="636.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="641.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="647.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="652.9" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="658.5" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="664.1" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="669.8" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="675.4" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="681.0" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="686.6" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="692.3" y="107.7" width="4.8" height="152.3"/>
+  <rect class="box sky" x="697.9" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="703.5" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="709.1" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="714.8" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="720.4" y="107.8" width="4.8" height="152.2"/>
+  <rect class="box sky" x="726.0" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="731.6" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="737.3" y="108.0" width="4.8" height="152.0"/>
+  <rect class="box sky" x="742.9" y="108.2" width="4.8" height="151.8"/>
+  <rect class="box sky" x="748.5" y="108.7" width="4.8" height="151.3"/>
+  <rect class="box sky" x="754.1" y="110.6" width="4.8" height="149.4"/>
+  <rect class="box sky" x="759.8" y="141.8" width="4.8" height="118.2"/>
+  <rect class="box sky" x="765.4" y="188.7" width="4.8" height="71.3"/>
+  <rect class="box sky" x="771.0" y="111.6" width="4.8" height="148.4"/>
+  <rect class="box sky" x="776.6" y="108.9" width="4.8" height="151.1"/>
+  <rect class="box sky" x="782.3" y="108.3" width="4.8" height="151.7"/>
+  <rect class="box sky" x="787.9" y="108.1" width="4.8" height="151.9"/>
+  <rect class="box sky" x="793.5" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="799.1" y="107.9" width="4.8" height="152.1"/>
+  <rect class="box sky" x="804.8" y="107.8" width="4.8" height="152.2"/>
+  <path class="thin" d="M765.8 66.9 V186.7"/>
+  <text class="sub" x="771.8" y="62.9" text-anchor="end">GNSS L1 (−10 dB): weight 0.007</text>
+  <path class="thin" d="M139.7 66.9 V131.3"/>
+  <text class="sub" x="133.7" y="62.9" text-anchor="start">GNSS L2 (−15 dB): weight 0.2</text>
+  <path class="thin" d="M362.3 66.9 V228.9"/>
+  <text class="sub" x="356.3" y="62.9" text-anchor="start">carrier (−5 dB): weight 0.0006</text>
+</svg>
+<figcaption>The built-in notch of optimal weighting, worked out for the illustrative scenario's three continuous sources (expected levels
+from their INRs, not a measurement). The fit weights each channel by 1/level², so the carrier's channel gets about 1/1700 of a clean
+channel's weight and is in effect left out, which costs only ~0.4 % of the SNR (one channel of 128); with all three sources the loss is
+~3 %. This is why constant-envelope RFI needs no excision on the channel path (<a href="excision.html#results">excision results</a>: SNR
+91.9 with the carrier, against 74 on the full band, where it cannot be separated from the rest of the band).</figcaption>
+</figure>
 
 <h2 id="template">7. The template</h2>
 <p><code>main.m</code> uses <code>gaussianTemplate(nBin, ephem.profileFWHM)</code>: a periodic Gaussian, peak 1 at bin 1 (images at −2…+2 turns summed).

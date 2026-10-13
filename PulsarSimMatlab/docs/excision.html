@@ -29,12 +29,117 @@ fold exactly how much valid data and noise every detected bin still contains. Bl
 <li><a href="#limits">Limits</a></li>
 </ol></div>
 
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 200" role="img" aria-label="The excision chain: detectRFI makes a mask; blankChannels zeroes the masked samples; blankingWeights tells the fold what blanking did to each bin">
+  <defs>
+    <marker id="ar-ex" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <rect class="box proc" x="10" y="30" width="125" height="40" rx="6"/>
+  <text class="fn" x="72" y="55" text-anchor="middle">channelizeIQ</text>
+  <rect class="box proc" x="195" y="30" width="125" height="40" rx="6"/>
+  <text class="fn" x="257" y="55" text-anchor="middle">blankChannels</text>
+  <rect class="box proc" x="370" y="30" width="155" height="40" rx="6"/>
+  <text class="fn" x="447" y="55" text-anchor="middle">dedisperseChannels</text>
+  <rect class="box proc" x="560" y="30" width="130" height="40" rx="6"/>
+  <text class="fn" x="625" y="55" text-anchor="middle">detectChannels</text>
+  <rect class="box proc" x="730" y="30" width="120" height="40" rx="6"/>
+  <text class="fn" x="790" y="55" text-anchor="middle">foldProfile</text>
+  <rect class="box proc" x="95" y="120" width="115" height="40" rx="6"/>
+  <text class="fn" x="152" y="145" text-anchor="middle">detectRFI</text>
+  <rect class="box" stroke-dasharray="5 3" x="245" y="120" width="120" height="40" rx="6"/>
+  <text class="fn" x="305" y="145" text-anchor="middle">periodicRFI</text>
+  <rect class="box proc" x="560" y="120" width="140" height="40" rx="6"/>
+  <text class="fn" x="630" y="145" text-anchor="middle">blankingWeights</text>
+  <path class="line" marker-end="url(#ar-ex)" d="M135 50 H193"/>
+  <path class="line" marker-end="url(#ar-ex)" d="M320 50 H368"/>
+  <path class="line" marker-end="url(#ar-ex)" d="M525 50 H558"/>
+  <path class="line" marker-end="url(#ar-ex)" d="M690 50 H728"/>
+  <text class="sub" x="164" y="44" text-anchor="middle">voltages</text>
+  <text class="sub" x="344" y="44" text-anchor="middle">blanked</text>
+  <text class="sub" x="708" y="44" text-anchor="middle">power</text>
+  <path class="line" marker-end="url(#ar-ex)" d="M60 70 V140 H93"/>
+  <path class="line" marker-end="url(#ar-ex)" d="M175 120 L230 72"/>
+  <text class="sub" x="214" y="104">mask</text>
+  <path class="line" stroke-dasharray="5 3" marker-end="url(#ar-ex)" d="M210 140 H243"/>
+  <path class="line" stroke-dasharray="5 3" marker-end="url(#ar-ex)" d="M300 120 L285 72"/>
+  <text class="sub" x="300" y="96">predicted pulses</text>
+  <path class="line" marker-end="url(#ar-ex)" d="M152 160 V182 H610 V162"/>
+  <text class="sub" x="380" y="194" text-anchor="middle">the same mask: which input samples are zero</text>
+  <path class="line" marker-end="url(#ar-ex)" d="M625 70 V118"/>
+  <text class="sub" x="632" y="100">time grid</text>
+  <path class="line" marker-end="url(#ar-ex)" d="M700 140 H790 V72"/>
+  <text class="sub" x="712" y="156">W, V, X(L) per bin</text>
+  <text class="sub" x="712" y="170">→ 'DataWeights'</text>
+  <text class="sub" x="10" y="20">raw channels stay untouched; the chain writes blanked copies</text>
+</svg>
+<figcaption>The excision chain in <code>main.m</code> (channel path, <code>excision = true</code>). <code>detectRFI</code> finds RFI in the raw channel
+voltages and makes a mask; <code>periodicRFI</code> (dashed: off by default since 9 Oct) can add predicted pulses to it. The same mask goes
+to <code>blankChannels</code>, which zeroes those samples, and to <code>blankingWeights</code>, which works out what that zeroing does to every
+detected bin after dedispersion, so that the fold can weight each bin correctly.</figcaption>
+</figure>
+
 <h2 id="why">1. Why blank, and why here</h2>
 <div class="callout why"><span class="ttl">Blank, do not subtract</span>
 <p>At −5 dB one radar pulse carries about the energy of one pulsar pulse; at −54 dB it carries the energy of ~80,000. Any
 subtraction leaves a residual proportional to the RFI; even 99.9 % suppression would leave more radar than pulsar. Zeroed
 samples carry no RFI, no noise and no pulsar: weight 0, nothing left over. Zeroing (rather than deleting) keeps the regular
 time grid that coherent dedispersion needs.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Energy of one radar pulse and what subtraction would leave, in units of one pulsar pulse, against SNR">
+  <path class="axis" d="M90 290 H810"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M90.0 290 v5"/>
+  <text class="sub" x="90.0" y="308" text-anchor="middle">-60</text>
+  <path class="axis" d="M162.0 290 v5"/>
+  <text class="sub" x="162.0" y="308" text-anchor="middle">-54</text>
+  <path class="axis" d="M330.0 290 v5"/>
+  <text class="sub" x="330.0" y="308" text-anchor="middle">-40</text>
+  <path class="axis" d="M450.0 290 v5"/>
+  <text class="sub" x="450.0" y="308" text-anchor="middle">-30</text>
+  <path class="axis" d="M570.0 290 v5"/>
+  <text class="sub" x="570.0" y="308" text-anchor="middle">-20</text>
+  <path class="axis" d="M690.0 290 v5"/>
+  <text class="sub" x="690.0" y="308" text-anchor="middle">-10</text>
+  <path class="axis" d="M750.0 290 v5"/>
+  <text class="sub" x="750.0" y="308" text-anchor="middle">-5</text>
+  <path class="axis" d="M810.0 290 v5"/>
+  <text class="sub" x="810.0" y="308" text-anchor="middle">0</text>
+  <path class="axis" d="M90 267.3 h-5"/>
+  <text class="sub" x="82" y="271.3" text-anchor="end">10⁻⁴</text>
+  <path class="axis" d="M90 221.8 h-5"/>
+  <text class="sub" x="82" y="225.8" text-anchor="end">10⁻²</text>
+  <path class="axis" d="M90 176.4 h-5"/>
+  <text class="sub" x="82" y="180.4" text-anchor="end">1</text>
+  <path class="axis" d="M90 130.9 h-5"/>
+  <text class="sub" x="82" y="134.9" text-anchor="end">100</text>
+  <path class="axis" d="M90 85.5 h-5"/>
+  <text class="sub" x="82" y="89.5" text-anchor="end">10⁴</text>
+  <path class="axis" d="M90 40.0 h-5"/>
+  <text class="sub" x="82" y="44.0" text-anchor="end">10⁶</text>
+  <text class="sub" x="450.0" y="324" text-anchor="middle">snrDB</text>
+  <text class="sub" x="90" y="32" text-anchor="start">energy, in units of one pulsar pulse</text>
+  <path class="fillwhy" d="M90 176.4 H810 V290 H90 Z"/>
+  <path class="dash" d="M90 176.4 H810"/>
+  <text class="sub" x="102.0" y="205.9">below one pulsar pulse: harmless</text>
+  <path class="curve4" d="M90.0 51.4 L93.0 51.9 L96.0 52.5 L99.0 53.1 L102.0 53.6 L105.0 54.2 L108.0 54.8 L111.0 55.3 L114.0 55.9 L117.0 56.5 L120.0 57.0 L123.0 57.6 L126.0 58.2 L129.0 58.8 L132.0 59.3 L135.0 59.9 L138.0 60.5 L141.0 61.0 L144.0 61.6 L147.0 62.2 L150.0 62.7 L153.0 63.3 L156.0 63.9 L159.0 64.4 L162.0 65.0 L165.0 65.6 L168.0 66.1 L171.0 66.7 L174.0 67.3 L177.0 67.8 L180.0 68.4 L183.0 69.0 L186.0 69.5 L189.0 70.1 L192.0 70.7 L195.0 71.2 L198.0 71.8 L201.0 72.4 L204.0 73.0 L207.0 73.5 L210.0 74.1 L213.0 74.7 L216.0 75.2 L219.0 75.8 L222.0 76.4 L225.0 76.9 L228.0 77.5 L231.0 78.1 L234.0 78.6 L237.0 79.2 L240.0 79.8 L243.0 80.3 L246.0 80.9 L249.0 81.5 L252.0 82.0 L255.0 82.6 L258.0 83.2 L261.0 83.8 L264.0 84.3 L267.0 84.9 L270.0 85.5 L273.0 86.0 L276.0 86.6 L279.0 87.2 L282.0 87.7 L285.0 88.3 L288.0 88.9 L291.0 89.4 L294.0 90.0 L297.0 90.6 L300.0 91.1 L303.0 91.7 L306.0 92.3 L309.0 92.8 L312.0 93.4 L315.0 94.0 L318.0 94.5 L321.0 95.1 L324.0 95.7 L327.0 96.2 L330.0 96.8 L333.0 97.4 L336.0 98.0 L339.0 98.5 L342.0 99.1 L345.0 99.7 L348.0 100.2 L351.0 100.8 L354.0 101.4 L357.0 101.9 L360.0 102.5 L363.0 103.1 L366.0 103.6 L369.0 104.2 L372.0 104.8 L375.0 105.3 L378.0 105.9 L381.0 106.5 L384.0 107.0 L387.0 107.6 L390.0 108.2 L393.0 108.8 L396.0 109.3 L399.0 109.9 L402.0 110.5 L405.0 111.0 L408.0 111.6 L411.0 112.2 L414.0 112.7 L417.0 113.3 L420.0 113.9 L423.0 114.4 L426.0 115.0 L429.0 115.6 L432.0 116.1 L435.0 116.7 L438.0 117.3 L441.0 117.8 L444.0 118.4 L447.0 119.0 L450.0 119.5 L453.0 120.1 L456.0 120.7 L459.0 121.3 L462.0 121.8 L465.0 122.4 L468.0 123.0 L471.0 123.5 L474.0 124.1 L477.0 124.7 L480.0 125.2 L483.0 125.8 L486.0 126.4 L489.0 126.9 L492.0 127.5 L495.0 128.1 L498.0 128.6 L501.0 129.2 L504.0 129.8 L507.0 130.3 L510.0 130.9 L513.0 131.5 L516.0 132.0 L519.0 132.6 L522.0 133.2 L525.0 133.8 L528.0 134.3 L531.0 134.9 L534.0 135.5 L537.0 136.0 L540.0 136.6 L543.0 137.2 L546.0 137.7 L549.0 138.3 L552.0 138.9 L555.0 139.4 L558.0 140.0 L561.0 140.6 L564.0 141.1 L567.0 141.7 L570.0 142.3 L573.0 142.8 L576.0 143.4 L579.0 144.0 L582.0 144.5 L585.0 145.1 L588.0 145.7 L591.0 146.2 L594.0 146.8 L597.0 147.4 L600.0 148.0 L603.0 148.5 L606.0 149.1 L609.0 149.7 L612.0 150.2 L615.0 150.8 L618.0 151.4 L621.0 151.9 L624.0 152.5 L627.0 153.1 L630.0 153.6 L633.0 154.2 L636.0 154.8 L639.0 155.3 L642.0 155.9 L645.0 156.5 L648.0 157.0 L651.0 157.6 L654.0 158.2 L657.0 158.8 L660.0 159.3 L663.0 159.9 L666.0 160.5 L669.0 161.0 L672.0 161.6 L675.0 162.2 L678.0 162.7 L681.0 163.3 L684.0 163.9 L687.0 164.4 L690.0 165.0 L693.0 165.6 L696.0 166.1 L699.0 166.7 L702.0 167.3 L705.0 167.8 L708.0 168.4 L711.0 169.0 L714.0 169.5 L717.0 170.1 L720.0 170.7 L723.0 171.2 L726.0 171.8 L729.0 172.4 L732.0 173.0 L735.0 173.5 L738.0 174.1 L741.0 174.7 L744.0 175.2 L747.0 175.8 L750.0 176.4 L753.0 176.9 L756.0 177.5 L759.0 178.1 L762.0 178.6 L765.0 179.2 L768.0 179.8 L771.0 180.3 L774.0 180.9 L777.0 181.5 L780.0 182.0 L783.0 182.6 L786.0 183.2 L789.0 183.8 L792.0 184.3 L795.0 184.9 L798.0 185.5 L801.0 186.0 L804.0 186.6 L807.0 187.2 L810.0 187.7"/>
+  <path class="curve4" d="M474.0 47.9 h18"/><text class="sub" x="498.0" y="51.9">one radar pulse</text>
+  <path class="curve2" d="M90.0 119.5 L93.0 120.1 L96.0 120.7 L99.0 121.3 L102.0 121.8 L105.0 122.4 L108.0 123.0 L111.0 123.5 L114.0 124.1 L117.0 124.7 L120.0 125.2 L123.0 125.8 L126.0 126.4 L129.0 126.9 L132.0 127.5 L135.0 128.1 L138.0 128.6 L141.0 129.2 L144.0 129.8 L147.0 130.3 L150.0 130.9 L153.0 131.5 L156.0 132.0 L159.0 132.6 L162.0 133.2 L165.0 133.8 L168.0 134.3 L171.0 134.9 L174.0 135.5 L177.0 136.0 L180.0 136.6 L183.0 137.2 L186.0 137.7 L189.0 138.3 L192.0 138.9 L195.0 139.4 L198.0 140.0 L201.0 140.6 L204.0 141.1 L207.0 141.7 L210.0 142.3 L213.0 142.8 L216.0 143.4 L219.0 144.0 L222.0 144.5 L225.0 145.1 L228.0 145.7 L231.0 146.2 L234.0 146.8 L237.0 147.4 L240.0 148.0 L243.0 148.5 L246.0 149.1 L249.0 149.7 L252.0 150.2 L255.0 150.8 L258.0 151.4 L261.0 151.9 L264.0 152.5 L267.0 153.1 L270.0 153.6 L273.0 154.2 L276.0 154.8 L279.0 155.3 L282.0 155.9 L285.0 156.5 L288.0 157.0 L291.0 157.6 L294.0 158.2 L297.0 158.8 L300.0 159.3 L303.0 159.9 L306.0 160.5 L309.0 161.0 L312.0 161.6 L315.0 162.2 L318.0 162.7 L321.0 163.3 L324.0 163.9 L327.0 164.4 L330.0 165.0 L333.0 165.6 L336.0 166.1 L339.0 166.7 L342.0 167.3 L345.0 167.8 L348.0 168.4 L351.0 169.0 L354.0 169.5 L357.0 170.1 L360.0 170.7 L363.0 171.2 L366.0 171.8 L369.0 172.4 L372.0 173.0 L375.0 173.5 L378.0 174.1 L381.0 174.7 L384.0 175.2 L387.0 175.8 L390.0 176.4 L393.0 176.9 L396.0 177.5 L399.0 178.1 L402.0 178.6 L405.0 179.2 L408.0 179.8 L411.0 180.3 L414.0 180.9 L417.0 181.5 L420.0 182.0 L423.0 182.6 L426.0 183.2 L429.0 183.8 L432.0 184.3 L435.0 184.9 L438.0 185.5 L441.0 186.0 L444.0 186.6 L447.0 187.2 L450.0 187.7 L453.0 188.3 L456.0 188.9 L459.0 189.4 L462.0 190.0 L465.0 190.6 L468.0 191.1 L471.0 191.7 L474.0 192.3 L477.0 192.8 L480.0 193.4 L483.0 194.0 L486.0 194.5 L489.0 195.1 L492.0 195.7 L495.0 196.2 L498.0 196.8 L501.0 197.4 L504.0 198.0 L507.0 198.5 L510.0 199.1 L513.0 199.7 L516.0 200.2 L519.0 200.8 L522.0 201.4 L525.0 201.9 L528.0 202.5 L531.0 203.1 L534.0 203.6 L537.0 204.2 L540.0 204.8 L543.0 205.3 L546.0 205.9 L549.0 206.5 L552.0 207.0 L555.0 207.6 L558.0 208.2 L561.0 208.8 L564.0 209.3 L567.0 209.9 L570.0 210.5 L573.0 211.0 L576.0 211.6 L579.0 212.2 L582.0 212.7 L585.0 213.3 L588.0 213.9 L591.0 214.4 L594.0 215.0 L597.0 215.6 L600.0 216.1 L603.0 216.7 L606.0 217.3 L609.0 217.8 L612.0 218.4 L615.0 219.0 L618.0 219.5 L621.0 220.1 L624.0 220.7 L627.0 221.2 L630.0 221.8 L633.0 222.4 L636.0 223.0 L639.0 223.5 L642.0 224.1 L645.0 224.7 L648.0 225.2 L651.0 225.8 L654.0 226.4 L657.0 226.9 L660.0 227.5 L663.0 228.1 L666.0 228.6 L669.0 229.2 L672.0 229.8 L675.0 230.3 L678.0 230.9 L681.0 231.5 L684.0 232.0 L687.0 232.6 L690.0 233.2 L693.0 233.8 L696.0 234.3 L699.0 234.9 L702.0 235.5 L705.0 236.0 L708.0 236.6 L711.0 237.2 L714.0 237.7 L717.0 238.3 L720.0 238.9 L723.0 239.4 L726.0 240.0 L729.0 240.6 L732.0 241.1 L735.0 241.7 L738.0 242.3 L741.0 242.8 L744.0 243.4 L747.0 244.0 L750.0 244.5 L753.0 245.1 L756.0 245.7 L759.0 246.2 L762.0 246.8 L765.0 247.4 L768.0 248.0 L771.0 248.5 L774.0 249.1 L777.0 249.7 L780.0 250.2 L783.0 250.8 L786.0 251.4 L789.0 251.9 L792.0 252.5 L795.0 253.1 L798.0 253.6 L801.0 254.2 L804.0 254.8 L807.0 255.3 L810.0 255.9"/>
+  <path class="curve2" d="M474.0 63.9 h18"/><text class="sub" x="498.0" y="67.9">left after 99.9 % subtraction</text>
+  <path class="curve" d="M90.0 142.3 L93.0 142.8 L96.0 143.4 L99.0 144.0 L102.0 144.5 L105.0 145.1 L108.0 145.7 L111.0 146.2 L114.0 146.8 L117.0 147.4 L120.0 148.0 L123.0 148.5 L126.0 149.1 L129.0 149.7 L132.0 150.2 L135.0 150.8 L138.0 151.4 L141.0 151.9 L144.0 152.5 L147.0 153.1 L150.0 153.6 L153.0 154.2 L156.0 154.8 L159.0 155.3 L162.0 155.9 L165.0 156.5 L168.0 157.0 L171.0 157.6 L174.0 158.2 L177.0 158.8 L180.0 159.3 L183.0 159.9 L186.0 160.5 L189.0 161.0 L192.0 161.6 L195.0 162.2 L198.0 162.7 L201.0 163.3 L204.0 163.9 L207.0 164.4 L210.0 165.0 L213.0 165.6 L216.0 166.1 L219.0 166.7 L222.0 167.3 L225.0 167.8 L228.0 168.4 L231.0 169.0 L234.0 169.5 L237.0 170.1 L240.0 170.7 L243.0 171.2 L246.0 171.8 L249.0 172.4 L252.0 173.0 L255.0 173.5 L258.0 174.1 L261.0 174.7 L264.0 175.2 L267.0 175.8 L270.0 176.4 L273.0 176.9 L276.0 177.5 L279.0 178.1 L282.0 178.6 L285.0 179.2 L288.0 179.8 L291.0 180.3 L294.0 180.9 L297.0 181.5 L300.0 182.0 L303.0 182.6 L306.0 183.2 L309.0 183.8 L312.0 184.3 L315.0 184.9 L318.0 185.5 L321.0 186.0 L324.0 186.6 L327.0 187.2 L330.0 187.7 L333.0 188.3 L336.0 188.9 L339.0 189.4 L342.0 190.0 L345.0 190.6 L348.0 191.1 L351.0 191.7 L354.0 192.3 L357.0 192.8 L360.0 193.4 L363.0 194.0 L366.0 194.5 L369.0 195.1 L372.0 195.7 L375.0 196.2 L378.0 196.8 L381.0 197.4 L384.0 198.0 L387.0 198.5 L390.0 199.1 L393.0 199.7 L396.0 200.2 L399.0 200.8 L402.0 201.4 L405.0 201.9 L408.0 202.5 L411.0 203.1 L414.0 203.6 L417.0 204.2 L420.0 204.8 L423.0 205.3 L426.0 205.9 L429.0 206.5 L432.0 207.0 L435.0 207.6 L438.0 208.2 L441.0 208.8 L444.0 209.3 L447.0 209.9 L450.0 210.5 L453.0 211.0 L456.0 211.6 L459.0 212.2 L462.0 212.7 L465.0 213.3 L468.0 213.9 L471.0 214.4 L474.0 215.0 L477.0 215.6 L480.0 216.1 L483.0 216.7 L486.0 217.3 L489.0 217.8 L492.0 218.4 L495.0 219.0 L498.0 219.5 L501.0 220.1 L504.0 220.7 L507.0 221.2 L510.0 221.8 L513.0 222.4 L516.0 223.0 L519.0 223.5 L522.0 224.1 L525.0 224.7 L528.0 225.2 L531.0 225.8 L534.0 226.4 L537.0 226.9 L540.0 227.5 L543.0 228.1 L546.0 228.6 L549.0 229.2 L552.0 229.8 L555.0 230.3 L558.0 230.9 L561.0 231.5 L564.0 232.0 L567.0 232.6 L570.0 233.2 L573.0 233.8 L576.0 234.3 L579.0 234.9 L582.0 235.5 L585.0 236.0 L588.0 236.6 L591.0 237.2 L594.0 237.7 L597.0 238.3 L600.0 238.9 L603.0 239.4 L606.0 240.0 L609.0 240.6 L612.0 241.1 L615.0 241.7 L618.0 242.3 L621.0 242.8 L624.0 243.4 L627.0 244.0 L630.0 244.5 L633.0 245.1 L636.0 245.7 L639.0 246.2 L642.0 246.8 L645.0 247.4 L648.0 248.0 L651.0 248.5 L654.0 249.1 L657.0 249.7 L660.0 250.2 L663.0 250.8 L666.0 251.4 L669.0 251.9 L672.0 252.5 L675.0 253.1 L678.0 253.6 L681.0 254.2 L684.0 254.8 L687.0 255.3 L690.0 255.9 L693.0 256.5 L696.0 257.0 L699.0 257.6 L702.0 258.2 L705.0 258.8 L708.0 259.3 L711.0 259.9 L714.0 260.5 L717.0 261.0 L720.0 261.6 L723.0 262.2 L726.0 262.7 L729.0 263.3 L732.0 263.9 L735.0 264.4 L738.0 265.0 L741.0 265.6 L744.0 266.1 L747.0 266.7 L750.0 267.3 L753.0 267.8 L756.0 268.4 L759.0 269.0 L762.0 269.5 L765.0 270.1 L768.0 270.7 L771.0 271.2 L774.0 271.8 L777.0 272.4 L780.0 273.0 L783.0 273.5 L786.0 274.1 L789.0 274.7 L792.0 275.2 L795.0 275.8 L798.0 276.4 L801.0 276.9 L804.0 277.5 L807.0 278.1 L810.0 278.6"/>
+  <path class="curve" d="M474.0 79.9 h18"/><text class="sub" x="498.0" y="83.9">left after 99.99 % subtraction</text>
+  <path class="dot" d="M158.5 65.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M158.5 133.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="170.0" y="69.0">~80,000</text>
+  <text class="sub" x="170.0" y="149.2">~80</text>
+  <path class="curve3" stroke-width="3" d="M90 288 H810"/>
+  <text class="sub" x="102.0" y="282">blanked: exactly 0 left, at every SNR (drawn at the bottom)</text>
+</svg>
+<figcaption>Why the excision stage blanks: the energy of one radar pulse in units of one pulsar pulse
+(equal at −5 dB, then growing as 1/ρ), and what a subtraction of 99.9 % or 99.99 % would leave. At the design target both leftovers are
+still above the pulsar (decision 8 Oct, Jasper).</figcaption>
+</figure>
 <div class="callout why"><span class="ttl">Before dedispersion, per channel</span>
 <p>In a 3.125 MHz channel before dedispersion, a 2 µs radar pulse is ~8 samples in about 2 channels. After dedispersion it is
 spread over thousands of samples and mixed with good data. So excision works on the raw channel voltages, and the cost of a
@@ -111,9 +216,22 @@ every detected bin, and the fold weights each bin by it.</figcaption>
 <div class="sig">[mask, info] = detectRFI(info_chan, ...)</div>
 <p class="meta"><a href="api.html#detectrfi">Full interface and help text of <code>detectRFI</code> →</a></p>
 
-<h3>Purpose</h3>
-<p>Flag samples in the raw channel files whose power is too high to be noise or pulsar, using only the channel data and the
-channelizer settings (ground-truth rule). Output: a mask of rows [channel, first, last] (1-based channel samples).</p>
+<h3>In short</h3>
+<p>It flags samples in the raw channel files whose power is too high to be noise or pulsar. It uses only the channel data and the
+channelizer settings (ground-truth rule). The output is a mask: rows [channel, first, last] in 1-based channel samples.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>Power:</b> square each channel sample, <var>p</var> = |<var>x</var>|².</li>
+<li><b>Baseline:</b> the typical power of each channel, per 16 ms block, from the median (robust against the RFI it is looking for).</li>
+<li><b>Windows:</b> average the power over windows of 1, 2, 4, 8 and 16 samples. Short windows catch short strong bursts, long ones
+longer weaker bursts.</li>
+<li><b>Test:</b> flag a window if its mean exceeds η<sub><var>n</var></sub> × the baseline. The thresholds are exact for noise, at a
+false-flag probability of 10⁻⁶ per window.</li>
+<li><b>Mask:</b> widen every flag by a guard of 10 samples and merge overlaps. A strong event (+20 dB) is also blanked in 7 channels on
+each side (the frequency guard).</li>
+<li><b>Second pass:</b> recompute the baseline without the flagged samples, and test again.</li>
+</ol>
+<p>The sections below give the details and the reasons.</p>
 
 <h3>The statistic</h3>
 <p>Per channel, power <var>p</var> = |<var>x</var>|² of the raw channel samples, averaged over windows of <var>n</var> = 1, 2, 4, 8, 16 samples
@@ -148,6 +266,57 @@ those channels little weight instead (see <a href="#results">results</a>).</p></
 <p>The pulsar itself raises the power on-pulse. At −5 dB by 32 %: 256-sample windows blanked 14 % of the on-pulse data. With
 windows ≤ 16 samples (3.8 µs), from −20 dB down no window is triggered by the pulsar (probability ≤ 2.3·10⁻⁶). The target is weak
 signal, where this is safe.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="detectRFI thresholds against window length, compared with the pulsar's peak power at -5 and -20 dB">
+  <path class="axis" d="M90 290 H810"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M90 280.8 h-5"/>
+  <text class="sub" x="82" y="284.8" text-anchor="end">1</text>
+  <path class="axis" d="M90 220.6 h-5"/>
+  <text class="sub" x="82" y="224.6" text-anchor="end">2</text>
+  <path class="axis" d="M90 160.4 h-5"/>
+  <text class="sub" x="82" y="164.4" text-anchor="end">4</text>
+  <path class="axis" d="M90 100.2 h-5"/>
+  <text class="sub" x="82" y="104.2" text-anchor="end">8</text>
+  <path class="axis" d="M90 40.0 h-5"/>
+  <text class="sub" x="82" y="44.0" text-anchor="end">16</text>
+  <text class="sub" x="90" y="32" text-anchor="start">threshold ηₙ (window mean ÷ baseline)</text>
+  <path class="axis" d="M90.0 290 v5"/><text class="sub" x="90.0" y="308" text-anchor="middle">1</text>
+  <path class="axis" d="M180.0 290 v5"/><text class="sub" x="180.0" y="308" text-anchor="middle">2</text>
+  <path class="axis" d="M270.0 290 v5"/><text class="sub" x="270.0" y="308" text-anchor="middle">4</text>
+  <path class="axis" d="M360.0 290 v5"/><text class="sub" x="360.0" y="308" text-anchor="middle">8</text>
+  <path class="axis" d="M450.0 290 v5"/><text class="sub" x="450.0" y="308" text-anchor="middle">16</text>
+  <path class="axis" d="M540.0 290 v5"/><text class="sub" x="540.0" y="308" text-anchor="middle">32</text>
+  <path class="axis" d="M630.0 290 v5"/><text class="sub" x="630.0" y="308" text-anchor="middle">64</text>
+  <path class="axis" d="M720.0 290 v5"/><text class="sub" x="720.0" y="308" text-anchor="middle">128</text>
+  <path class="axis" d="M810.0 290 v5"/><text class="sub" x="810.0" y="308" text-anchor="middle">256</text>
+  <text class="sub" x="450.0" y="324" text-anchor="middle">window length [channel samples, 0.24 µs each]</text>
+  <rect class="fillwhy" x="90" y="40" width="370.0" height="250"/>
+  <text class="sub" x="96" y="240.0">windows used: 1–16</text>
+  <path class="dash" d="M90 257.0 H810"/>
+  <path class="dash" d="M90 280.0 H810"/>
+  <text class="sub" x="466.0" y="251.0">pulsar peak at −5 dB: 1.32 × baseline</text>
+  <text class="sub" x="96" y="274.0">at −20 dB: 1.01</text>
+  <path class="curve" d="M90.0 52.7 L180.0 96.1 L270.0 134.5 L360.0 167.7 L450.0 194.9"/>
+  <path class="curve2" stroke-dasharray="5 3" d="M450.0 194.9 L540.0 217.0 L630.0 233.9 L720.0 246.7 L810.0 256.2"/>
+  <path class="dot" d="M86.5 52.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M176.5 96.1 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M266.5 134.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M356.5 167.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M446.5 194.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M536.5 217.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M626.5 233.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M716.5 246.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M806.5 256.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="98.0" y="56.7">13.82</text>
+  <text class="sub" x="458.0" y="188.9">2.69</text>
+  <text class="sub" x="806.0" y="271.8" text-anchor="end">1.33 at 256: the −5 dB pulse plus noise often exceeds it</text>
+</svg>
+<figcaption>Why the windows stop at 16 samples. The detection threshold of <code>detectRFI</code> at a false-flag probability of 10⁻⁶ against the window length. Blue: the exact
+values the code uses (1–16 samples). Orange: longer windows, from a Gamma distribution with the exact variance (it agrees with the exact
+form to 0.5 % where both exist). The dashed lines are the pulsar's own peak power: at −5 dB it reaches the 256-sample threshold, at
+−20 dB it is far below all of them.</figcaption>
+</figure>
 
 <h3 id="freqguard">Frequency guard (B5b-2, 8 Oct)</h3>
 <p>A <b>strong</b> event (peak sample power ≥ <code>FreqGuardMin</code> = 100 × baseline, i.e. +20 dB) is also blanked, on the same samples,
@@ -180,6 +349,7 @@ over all channels zero within ~10⁻⁶ (10⁻⁴ without the guard).</li>
 <h2 id="blank">3 · <code>blankChannels</code> <span class="badge validated">validated (B1)</span></h2>
 <div class="sig">info_chanB = blankChannels(info_chan, mask, outBase, ...)</div>
 <p class="meta"><a href="api.html#blankchannels">Full interface and help text of <code>blankChannels</code> →</a></p>
+<p><b>In short:</b> it sets the masked samples to exactly zero, in copies of the channel files.</p>
 <p>Writes blanked copies <code>&lt;outBase&gt;_ch###.dat</code> of the channel files: masked samples exactly 0, all other samples bit-exact,
 streamed in blocks (result independent of <code>BlockSize</code>). It never overwrites the raw files. The mask may be unsorted, overlapping
 or partly outside the file: it is clipped and normalized per channel (sorted, merged where overlapping or touching).</p>
@@ -197,6 +367,12 @@ a blanked channel changes only within the filter reach.</p>
 <div class="sig">info_w = blankingWeights(info_chan, info_dc, info_det, mask, outFile, ...)</div>
 <p class="meta"><a href="api.html#blankingweights">Full interface and help text of <code>blankingWeights</code> →</a></p>
 
+<h3>In short</h3>
+<p>After blanking, every channel is dedispersed, and the filter spreads each zeroed stretch over hundreds of output samples. So a
+detected bin is then "partly real". <code>blankingWeights</code> works out, exactly, for every detected bin and channel: how much valid
+data it contains (<var>W</var>), and how large its noise is and how much of it it shares with its neighbours (<var>V</var>,
+<var>X</var>(<var>L</var>)). The fold uses these numbers instead of assuming every bin is complete.</p>
+
 <h3>The physics: blanking before a filter</h3>
 <p>Dedispersion is a filter <var>h</var> spanning hundreds of channel samples. An output sample <var>y</var>(<var>a</var>) = Σ<var>h</var>(<var>l</var>)·<var>x</var>(<var>a</var>−<var>l</var>)
 mixes blanked and valid inputs. For Gaussian input, the covariance of two output samples is</p>
@@ -211,10 +387,116 @@ value (Isserlis again).</li>
 <p class="meta">Long time bins (fixed 12 Oct): when the lag range reaches the filter length, <var>q</var><sub>τ</sub> at the last lag is a single number; the FFT is now taken along dimension 1, so it stays a column (before: an M×M array and a crash). Since 12 Oct each lag is also added into <var>V</var>, <var>X</var> as soon as it is computed, so only one lag is in memory (the weight files are bit-identical to before). Still limited: run time grows with the number of lags, and each channel is processed whole: the weight array is 4.8 GB at <var>L</var> = 1 s, above the 4 GB default <code>MaxMemoryGB</code> (see <a href="limits.html">limits</a>; block processing designed, not built).</p>
 <div class="callout why"><span class="ttl">Why exact streams, not a simple rule g(W)</span>
 <p>The plan was a variance rule between <var>W</var>² and <var>W</var>. Experiment 3a (<code>tests/expBlankingVariance.m</code>) showed neither holds:
-errors up to ±45 %. Physics: in a dispersed channel, lag maps to frequency (it is a chirp), so a blank removes a frequency slice from
+errors of −50 % to +40 % at <var>W</var> = 0.25–0.5, and more in nearly empty bins (figure). Physics: in a dispersed channel, lag maps to frequency (it is a chirp), so a blank removes a frequency slice from
 the affected outputs (fewer independent frequencies, towards <var>W</var>), while within a short bin the samples are partly correlated
 (towards <var>W</var>²). Short blanks spread thin only scale the amplitude (<var>W</var>²). No single rule covers all masks, so every bin
 carries its exact <var>W</var>, <var>V</var>, <var>X</var>(<var>L</var>).</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Experiment 3a: the variance of blanked detected bins against the two simple rules and the exact formula">
+  <path class="axis" d="M90 290 H810"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M90.0 290 v5"/>
+  <text class="sub" x="90.0" y="308" text-anchor="middle">0</text>
+  <path class="axis" d="M270.0 290 v5"/>
+  <text class="sub" x="270.0" y="308" text-anchor="middle">0.25</text>
+  <path class="axis" d="M450.0 290 v5"/>
+  <text class="sub" x="450.0" y="308" text-anchor="middle">0.5</text>
+  <path class="axis" d="M630.0 290 v5"/>
+  <text class="sub" x="630.0" y="308" text-anchor="middle">0.75</text>
+  <path class="axis" d="M810.0 290 v5"/>
+  <text class="sub" x="810.0" y="308" text-anchor="middle">1</text>
+  <path class="axis" d="M90 290.0 h-5"/>
+  <text class="sub" x="82" y="294.0" text-anchor="end">0.3</text>
+  <path class="axis" d="M90 236.0 h-5"/>
+  <text class="sub" x="82" y="240.0" text-anchor="end">0.5</text>
+  <path class="axis" d="M90 162.8 h-5"/>
+  <text class="sub" x="82" y="166.8" text-anchor="end">1</text>
+  <path class="axis" d="M90 89.6 h-5"/>
+  <text class="sub" x="82" y="93.6" text-anchor="end">2</text>
+  <path class="axis" d="M90 46.8 h-5"/>
+  <text class="sub" x="82" y="50.8" text-anchor="end">3</text>
+  <text class="sub" x="450.0" y="324" text-anchor="middle">valid fraction W of the detected bin</text>
+  <text class="sub" x="90" y="32" text-anchor="start">variance ÷ exact variance</text>
+  <path class="dash" d="M90 162.8 H810"/>
+  <path class="dot2" d="M759.7 163.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="760.2" y="154.5" width="6" height="6"/>
+  <path class="dot" d="M759.7 163.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M793.9 164.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="794.4" y="159.4" width="6" height="6"/>
+  <path class="dot" d="M793.9 164.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M183.7 260.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="184.2" y="75.3" width="6" height="6"/>
+  <path class="dot" d="M183.7 157.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M356.5 230.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="357.0" y="123.8" width="6" height="6"/>
+  <path class="dot" d="M356.5 164.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M536.5 200.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="537.0" y="149.0" width="6" height="6"/>
+  <path class="dot" d="M536.5 163.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M680.5 178.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="681.0" y="155.4" width="6" height="6"/>
+  <path class="dot" d="M680.5 162.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M759.7 168.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="760.2" y="158.2" width="6" height="6"/>
+  <path class="dot" d="M759.7 161.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M793.9 164.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="794.4" y="159.5" width="6" height="6"/>
+  <path class="dot" d="M793.9 160.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M183.7 273.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="184.2" y="82.4" width="6" height="6"/>
+  <path class="dot" d="M183.7 159.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M356.5 236.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="357.0" y="133.7" width="6" height="6"/>
+  <path class="dot" d="M356.5 154.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M536.5 200.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="537.0" y="149.1" width="6" height="6"/>
+  <path class="dot" d="M536.5 164.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M680.5 178.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="681.0" y="155.5" width="6" height="6"/>
+  <path class="dot" d="M680.5 165.1 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M759.7 168.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="760.2" y="158.2" width="6" height="6"/>
+  <path class="dot" d="M759.7 160.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M793.9 164.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="794.4" y="159.5" width="6" height="6"/>
+  <path class="dot" d="M793.9 161.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M536.5 166.1 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="537.0" y="129.8" width="6" height="6"/>
+  <path class="dot" d="M536.5 161.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M680.5 163.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="681.0" y="145.6" width="6" height="6"/>
+  <path class="dot" d="M680.5 162.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M759.7 163.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="760.2" y="154.2" width="6" height="6"/>
+  <path class="dot" d="M759.7 162.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M793.9 164.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="794.4" y="159.4" width="6" height="6"/>
+  <path class="dot" d="M793.9 165.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M356.5 230.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="357.0" y="123.8" width="6" height="6"/>
+  <path class="dot" d="M356.5 162.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M536.5 200.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="537.0" y="149.1" width="6" height="6"/>
+  <path class="dot" d="M536.5 163.1 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M680.5 178.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="681.0" y="155.5" width="6" height="6"/>
+  <path class="dot" d="M680.5 162.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M759.7 168.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="760.2" y="158.3" width="6" height="6"/>
+  <path class="dot" d="M759.7 162.7 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot2" d="M793.9 164.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="794.4" y="159.4" width="6" height="6"/>
+  <path class="dot" d="M793.9 163.6 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <rect class="bad" x="560" y="47" width="6" height="6"/><text class="sub" x="572" y="54">rule "var ∝ W" (whole samples lost)</text>
+  <path class="dot" d="M559.5 69 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/><text class="sub" x="572" y="73">measured</text>
+  <path class="dot2" d="M559.5 88 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/><text class="sub" x="572" y="92">rule "var ∝ W²" (amplitude scaled)</text>
+  <text class="sub" x="450.0" y="156.8" text-anchor="middle">exact (blankingWeights)</text>
+</svg>
+<figcaption>Experiment 3a (6 Oct, <code>tests/expBlankingVariance.m</code>, its saved results): the variance of a detected bin after
+blanking and per-channel dedispersion, for three masks at DM 5 and 100, grouped by the bin's valid fraction <var>W</var>. Divided by the
+exact value, the measurement sits on 1; the two simple rules do not, and which one is closer depends on the mask. Groups with
+<var>W</var> &lt; 0.02 (the W rule is 30× too high there) and unblanked bins are left out.</figcaption>
+</figure>
 
 <h3>Code</h3>
 <ul>
@@ -299,6 +581,89 @@ difference of a radar run and a reference run with the same noise; the TOA bias 
 <tr><td><b>0.1 µs, freq. guard 7</b></td><td>on</td><td>0.090 %</td><td>3.7·10⁻⁷</td><td>−0.001 / −0.008 / −0.08 / −2.0</td><td><b>−51.1 dB</b></td></tr>
 <tr><td><b>0.1 µs, freq. guard 7 + periodic mask</b> (B6)</td><td>on</td><td>0.127 %</td><td>1.7·10⁻⁷</td><td>0 / −0.002 / −0.016 / −0.41</td><td><b>−57.9 dB</b></td></tr>
 </table></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="TOA bias from a radar locked to the pulsar against SNR, for each frequency-guard width">
+  <path class="axis" d="M90 290 H560"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M125.2 290 v5"/>
+  <text class="sub" x="125.2" y="308" text-anchor="middle">-54</text>
+  <path class="axis" d="M172.2 290 v5"/>
+  <text class="sub" x="172.2" y="308" text-anchor="middle">-50</text>
+  <path class="axis" d="M289.8 290 v5"/>
+  <text class="sub" x="289.8" y="308" text-anchor="middle">-40</text>
+  <path class="axis" d="M407.2 290 v5"/>
+  <text class="sub" x="407.2" y="308" text-anchor="middle">-30</text>
+  <path class="axis" d="M524.8 290 v5"/>
+  <text class="sub" x="524.8" y="308" text-anchor="middle">-20</text>
+  <path class="axis" d="M90 279.2 h-5"/>
+  <text class="sub" x="82" y="283.2" text-anchor="end">0.001</text>
+  <path class="axis" d="M90 243.5 h-5"/>
+  <text class="sub" x="82" y="247.5" text-anchor="end">0.01</text>
+  <path class="axis" d="M90 207.8 h-5"/>
+  <text class="sub" x="82" y="211.8" text-anchor="end">0.1</text>
+  <path class="axis" d="M90 172.1 h-5"/>
+  <text class="sub" x="82" y="176.1" text-anchor="end">1</text>
+  <path class="axis" d="M90 136.4 h-5"/>
+  <text class="sub" x="82" y="140.4" text-anchor="end">10</text>
+  <path class="axis" d="M90 100.7 h-5"/>
+  <text class="sub" x="82" y="104.7" text-anchor="end">100</text>
+  <path class="axis" d="M90 65.0 h-5"/>
+  <text class="sub" x="82" y="69.0" text-anchor="end">1000</text>
+  <text class="sub" x="325.0" y="324" text-anchor="middle">snrDB</text>
+  <text class="sub" x="90" y="32" text-anchor="start">|TOA bias| from the locked radar [µs]</text>
+  <path class="dash" d="M90 172.1 H560"/>
+  <text class="sub" x="556" y="167.1" text-anchor="end">1 µs</text>
+  <path class="thin" d="M125.2 40 V290"/>
+  <text class="sub" x="129.2" y="52">design target</text>
+  <path class="curve4" stroke-dasharray="5 3" d="M524.8 145.7 L407.2 107.6 L289.8 71.4 L125.2 59.2"/>
+  <path class="dot" d="M521.8 145.7 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M404.2 107.6 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 71.4 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 59.2 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="curve2" d="M524.8 185.9 L407.2 151.0 L289.8 118.8 L125.2 94.7"/>
+  <path class="dot" d="M521.8 185.9 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M404.2 151.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 118.8 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 94.7 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="curve2" d="M524.8 232.8 L407.2 198.7 L289.8 163.0 L125.2 114.5"/>
+  <path class="dot" d="M521.8 232.8 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M404.2 198.7 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 163.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 114.5 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="curve" d="M524.8 262.2 L407.2 229.3 L289.8 193.6 L125.2 143.3"/>
+  <path class="dot" d="M521.8 262.2 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M404.2 229.3 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 193.6 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 143.3 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="curve" d="M524.8 279.2 L407.2 247.0 L289.8 211.3 L125.2 161.4"/>
+  <path class="dot" d="M521.8 279.2 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M404.2 247.0 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 211.3 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 161.4 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="curve3" d="M407.2 268.5 L289.8 236.2 L125.2 185.9"/>
+  <path class="dot" d="M404.2 268.5 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M286.8 236.2 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="dot" d="M122.2 185.9 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
+  <path class="thin" d="M528.8 145.7 L566 145.7"/>
+  <text class="sub" x="570" y="149.7">instant edges, excision on</text>
+  <path class="thin" d="M528.8 185.9 L566 185.9"/>
+  <text class="sub" x="570" y="189.9">excision on, no guard</text>
+  <path class="thin" d="M528.8 232.8 L566 232.8"/>
+  <text class="sub" x="570" y="236.8">frequency guard 3</text>
+  <path class="thin" d="M528.8 262.2 L566 262.2"/>
+  <text class="sub" x="570" y="266.2">frequency guard 5</text>
+  <path class="thin" d="M411.2 268.5 L566 276.2"/>
+  <text class="sub" x="570" y="280.2">guard 7 + periodic mask</text>
+  <path class="thin" d="M528.8 279.2 L566 290.2"/>
+  <text class="sub" x="570" y="294.2">frequency guard 7 (default)</text>
+  <text class="sub" x="568" y="30">excision off: 172–2288 µs</text>
+  <text class="sub" x="568" y="44">(locks on the radar)</text>
+</svg>
+<figcaption>A radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst pulse phase; <code>runLockedRadar.m</code>,
+8 Oct): the TOA bias left after excision, from the table in <a href="#locked">section 6</a>. A fixed leftover in the fold grows as 1/ρ when the pulsar
+gets weaker, so the lines rise roughly ten-fold per 10 dB. Each two extra guard channels cut it 3–4×; guard 7 (the default) keeps it below
+1 µs down to −51 dB, and the periodic mask (B6) to −58 dB. With instant radar edges (dashed) the guard does not help.</figcaption>
+</figure>
 <ul>
 <li>Measured = predicted at −5 dB, so the method holds. Excision alone cuts the bias ~2000× at −5 dB, but a fixed leftover scales as
 1/ρ: 4.9·10⁻⁴ of the baseline is ~120× the −54 dB pulsar peak.</li>
@@ -343,6 +708,116 @@ completely.</p>
 predictable: once the period and the time of one pulse are known, every pulse is known, also those too weak to be seen (the
 −35 dB sidelobes of section 7). RFI with irregular timing (Poisson impulses, PRF jitter) cannot be predicted, but it cannot fold
 coherently either; it is only extra noise. So prediction covers exactly the dangerous case.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 260" role="img" aria-label="periodicRFI: a few detected radar pulses give the period, and every predicted pulse is blanked">
+  <path class="axis" d="M150 210 H830"/>
+  <path class="axis" d="M150.0 210 v5"/>
+  <text class="sub" x="150.0" y="228" text-anchor="middle">0</text>
+  <path class="axis" d="M286.0 210 v5"/>
+  <text class="sub" x="286.0" y="228" text-anchor="middle">10</text>
+  <path class="axis" d="M422.0 210 v5"/>
+  <text class="sub" x="422.0" y="228" text-anchor="middle">20</text>
+  <path class="axis" d="M558.0 210 v5"/>
+  <text class="sub" x="558.0" y="228" text-anchor="middle">30</text>
+  <path class="axis" d="M694.0 210 v5"/>
+  <text class="sub" x="694.0" y="228" text-anchor="middle">40</text>
+  <path class="axis" d="M830.0 210 v5"/>
+  <text class="sub" x="830.0" y="228" text-anchor="middle">50</text>
+  <text class="sub" x="490.0" y="244" text-anchor="middle">time [ms]</text>
+  <text class="lbl" x="140" y="62" text-anchor="end">true radar pulses</text>
+  <text class="sub" x="140" y="76" text-anchor="end">sidelobes, −35 dB</text>
+  <path class="grid" d="M150 66 H830"/>
+  <rect class="fillfg" x="160.7" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="197.2" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="233.7" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="270.1" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="306.6" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="343.0" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="379.5" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="416.0" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="452.4" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="488.9" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="525.4" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="561.8" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="598.3" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="634.7" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="671.2" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="707.7" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="744.1" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="780.6" y="52" width="3" height="20"/>
+  <rect class="fillfg" x="817.0" y="52" width="3" height="20"/>
+  <text class="lbl" x="140" y="114" text-anchor="end">found one by one</text>
+  <text class="sub" x="140" y="128" text-anchor="end">detectRFI: ~42 %</text>
+  <path class="grid" d="M150 118 H830"/>
+  <rect class="bad" x="233.7" y="104" width="3" height="20"/>
+  <rect class="bad" x="270.1" y="104" width="3" height="20"/>
+  <rect class="bad" x="343.0" y="104" width="3" height="20"/>
+  <rect class="bad" x="452.4" y="104" width="3" height="20"/>
+  <rect class="bad" x="525.4" y="104" width="3" height="20"/>
+  <rect class="bad" x="598.3" y="104" width="3" height="20"/>
+  <rect class="bad" x="780.6" y="104" width="3" height="20"/>
+  <rect class="bad" x="817.0" y="104" width="3" height="20"/>
+  <text class="lbl" x="140" y="166" text-anchor="end">predicted, blanked</text>
+  <text class="sub" x="140" y="180" text-anchor="end">periodicRFI: all</text>
+  <path class="grid" d="M150 170 H830"/>
+  <rect class="fillwarn" x="158.2" y="154" width="8" height="24"/>
+  <rect class="bad" x="160.7" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="194.7" y="154" width="8" height="24"/>
+  <rect class="bad" x="197.2" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="231.2" y="154" width="8" height="24"/>
+  <rect class="bad" x="233.7" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="267.6" y="154" width="8" height="24"/>
+  <rect class="bad" x="270.1" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="304.1" y="154" width="8" height="24"/>
+  <rect class="bad" x="306.6" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="340.5" y="154" width="8" height="24"/>
+  <rect class="bad" x="343.0" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="377.0" y="154" width="8" height="24"/>
+  <rect class="bad" x="379.5" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="413.5" y="154" width="8" height="24"/>
+  <rect class="bad" x="416.0" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="449.9" y="154" width="8" height="24"/>
+  <rect class="bad" x="452.4" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="486.4" y="154" width="8" height="24"/>
+  <rect class="bad" x="488.9" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="522.9" y="154" width="8" height="24"/>
+  <rect class="bad" x="525.4" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="559.3" y="154" width="8" height="24"/>
+  <rect class="bad" x="561.8" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="595.8" y="154" width="8" height="24"/>
+  <rect class="bad" x="598.3" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="632.2" y="154" width="8" height="24"/>
+  <rect class="bad" x="634.7" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="668.7" y="154" width="8" height="24"/>
+  <rect class="bad" x="671.2" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="705.2" y="154" width="8" height="24"/>
+  <rect class="bad" x="707.7" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="741.6" y="154" width="8" height="24"/>
+  <rect class="bad" x="744.1" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="778.1" y="154" width="8" height="24"/>
+  <rect class="bad" x="780.6" y="156" width="3" height="20"/>
+  <rect class="fillwarn" x="814.5" y="154" width="8" height="24"/>
+  <rect class="bad" x="817.0" y="156" width="3" height="20"/>
+  <path class="thin" d="M235.2 136 H271.6"/>
+  <text class="sub" x="253.4" y="148" text-anchor="middle">1P</text>
+  <path class="thin" d="M271.6 136 H344.5"/>
+  <text class="sub" x="308.1" y="148" text-anchor="middle">2P</text>
+  <path class="thin" d="M344.5 136 H453.9"/>
+  <text class="sub" x="399.2" y="148" text-anchor="middle">3P</text>
+  <path class="thin" d="M453.9 136 H526.9"/>
+  <text class="sub" x="490.4" y="148" text-anchor="middle">2P</text>
+  <path class="thin" d="M526.9 136 H599.8"/>
+  <text class="sub" x="563.3" y="148" text-anchor="middle">2P</text>
+  <path class="thin" d="M599.8 136 H782.1"/>
+  <text class="sub" x="690.9" y="148" text-anchor="middle">5P</text>
+  <path class="thin" d="M782.1 136 H818.5"/>
+  <text class="sub" x="800.3" y="148" text-anchor="middle">1P</text>
+</svg>
+<figcaption>The idea of <code>periodicRFI</code> (schematic: the scenario radar's PRF, 373 Hz, over 50 ms; which pulses are found is random). Weak
+sidelobe pulses are found only now and then. The gaps between the found ones are whole multiples of the period <var>P</var>, so dividing
+the gaps by 1–8 gives candidate periods; a significance test picks the one the found pulses fit far better than chance. From
+<var>P</var> and one pulse time every pulse is known, and each predicted pulse is blanked with a margin (orange), found or not.</figcaption>
+</figure>
 
 <h3>Method</h3>
 <ol>

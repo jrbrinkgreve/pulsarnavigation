@@ -17,7 +17,16 @@ and how strongly neighbouring bins share noise.</p>
 <p class="meta"><a href="api.html#foldprofile">Full interface and help text of <code>foldProfile</code> →</a></p>
 <p class="meta">Used by both front ends. Channel path adds <code>'NoiseCoeffs'</code> (no excision) or <code>'DataWeights'</code> (with excision).</p>
 
-<h2>Idea</h2>
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#idea">The idea</a></li>
+<li><a href="#how">How it works</a></li>
+<li><a href="#weights">The weights: what each field is for</a></li>
+<li><a href="#noisecoeffs">Correlated time bins (<code>'NoiseCoeffs'</code>)</a> and <a href="#dataweights">data weights per channel (<code>'DataWeights'</code>)</a></li>
+<li><a href="#why">Design choices</a></li>
+<li><a href="#choose">Choosing NBin and the sub-int length</a></li>
+</ol></div>
+
+<h2 id="idea">The idea</h2>
 <p>Phase model from the ephemeris (observer knowledge only):</p>
 <div class="eq">φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>) + ½·<var>F</var><sub>1</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>)²</div>
 <p>With <var>T</var><sub>ref</sub> = first true pulse centre (<var>T</var>/2, from <code>ephem.TRef</code>) and Φ<sub>0</sub> = 0, every true pulse peak is at an
@@ -96,7 +105,18 @@ ephemeris; the integer part is its turn, the rest its place in the profile. Turn
 whole. In the stored fold, bin <var>j</var> is centred at phase (<var>j</var> − 1)/<code>NBin</code> and negative phases wrap to the end, so the
 pulse sits at both ends of the array; it is drawn here from −½ to ½.</figcaption>
 </figure>
-<h2>Algorithm</h2>
+<h2 id="how">How it works</h2>
+<p>In plain steps, for every detected time bin:</p>
+<ol>
+<li><b>Skip</b> it unless it saw the complete dedispersion sweep (<code>fullySupportedBins</code>).</li>
+<li><b>Phase:</b> compute its rotational phase φ from the ephemeris, in double precision.</li>
+<li><b>Turn and place:</b> the nearest whole number of φ is its turn; the rest (between −½ and ½) is its place in the profile. So each turn
+runs from half a turn before its pulse to half a turn after, and the cuts fall between pulses.</li>
+<li><b>Share it</b> between the two nearest phase bins (linear assignment, figure below), and add it to that sub-int's sums.</li>
+<li><b>Divide:</b> the profile of each sub-int is its sum divided by how much data went in. Alongside, keep what is needed to know the
+noise of every phase bin exactly (<a href="#weights">the weights</a>).</li>
+</ol>
+<p>The exact rules:</p>
 <ol>
 <li>Use only <code>fullySupportedBins</code> (data that saw the complete dedispersion sweep).</li>
 <li>Phase per time bin, in double.</li>
@@ -135,6 +155,282 @@ frequency at <code>tRef</code>, <code>tMean</code>, <code>nTimeBins</code>. Thes
 <p>Linear assignment preserves each sample's mean position exactly. <code>'nearest'</code> gave a 0.5 ns bias: the 1 µs time grid and the
 9.765625 µs phase grid repeat identically every turn, so the rounding errors do not average out. The price is that neighbouring
 phase bins share data and their noise is correlated, which the fold tracks explicitly.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Nearest-bin assignment: the rounding errors of the time bins near the pulse are identical in every turn">
+  <path class="axis" d="M90 246 H810"/>
+  <path class="axis" d="M90 46 V246"/>
+  <path class="axis" d="M90.0 246 v5"/>
+  <text class="sub" x="90.0" y="264" text-anchor="middle">-60</text>
+  <path class="axis" d="M210.0 246 v5"/>
+  <text class="sub" x="210.0" y="264" text-anchor="middle">-40</text>
+  <path class="axis" d="M330.0 246 v5"/>
+  <text class="sub" x="330.0" y="264" text-anchor="middle">-20</text>
+  <path class="axis" d="M450.0 246 v5"/>
+  <text class="sub" x="450.0" y="264" text-anchor="middle">0</text>
+  <path class="axis" d="M570.0 246 v5"/>
+  <text class="sub" x="570.0" y="264" text-anchor="middle">20</text>
+  <path class="axis" d="M690.0 246 v5"/>
+  <text class="sub" x="690.0" y="264" text-anchor="middle">40</text>
+  <path class="axis" d="M810.0 246 v5"/>
+  <text class="sub" x="810.0" y="264" text-anchor="middle">60</text>
+  <path class="axis" d="M90 229.3 h-5"/>
+  <text class="sub" x="82" y="233.3" text-anchor="end">-5</text>
+  <path class="axis" d="M90 146.0 h-5"/>
+  <text class="sub" x="82" y="150.0" text-anchor="end">0</text>
+  <path class="axis" d="M90 62.7 h-5"/>
+  <text class="sub" x="82" y="66.7" text-anchor="end">5</text>
+  <text class="sub" x="450.0" y="280" text-anchor="middle">time bin relative to the pulse centre [µs]</text>
+  <text class="sub" x="90" y="38" text-anchor="start">rounding error of its phase position [µs]</text>
+  <path class="dash" d="M90 146.0 H810"/>
+  <path class="dot" d="M92.5 139.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M98.5 155.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M104.5 172.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M110.5 189.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M116.5 205.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M122.5 222.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M128.5 76.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M134.5 93.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M140.5 109.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M146.5 126.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M152.5 143.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M158.5 159.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M164.5 176.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M170.5 193.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M176.5 209.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M182.5 226.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M188.5 80.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M194.5 97.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M200.5 113.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M206.5 130.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M212.5 147.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M218.5 163.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M224.5 180.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M230.5 197.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M236.5 213.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M242.5 67.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M248.5 84.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M254.5 100.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M260.5 117.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M266.5 134.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M272.5 150.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M278.5 167.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M284.5 184.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M290.5 200.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M296.5 217.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M302.5 71.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M308.5 88.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M314.5 104.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M320.5 121.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M326.5 138.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M332.5 154.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M338.5 171.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M344.5 188.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M350.5 204.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M356.5 221.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M362.5 75.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M368.5 92.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M374.5 108.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M380.5 125.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M386.5 142.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M392.5 158.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M398.5 175.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M404.5 192.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M410.5 208.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M416.5 225.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M422.5 79.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M428.5 96.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M434.5 112.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M440.5 129.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M446.5 146.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M452.5 162.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M458.5 179.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M464.5 196.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M470.5 212.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M476.5 66.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M482.5 83.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M488.5 99.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M494.5 116.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M500.5 133.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M506.5 149.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M512.5 166.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M518.5 183.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M524.5 199.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M530.5 216.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M536.5 70.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M542.5 87.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M548.5 103.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M554.5 120.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M560.5 137.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M566.5 153.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M572.5 170.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M578.5 187.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M584.5 203.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M590.5 220.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M596.5 74.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M602.5 91.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M608.5 107.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M614.5 124.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M620.5 141.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M626.5 157.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M632.5 174.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M638.5 191.0 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M644.5 207.7 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M650.5 224.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M656.5 78.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M662.5 94.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M668.5 111.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M674.5 128.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M680.5 144.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M686.5 161.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M692.5 178.3 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M698.5 194.9 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M704.5 211.6 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M710.5 65.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M716.5 82.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M722.5 98.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M728.5 115.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M734.5 132.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M740.5 148.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M746.5 165.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M752.5 182.2 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M758.5 198.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M764.5 215.5 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M770.5 69.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M776.5 86.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M782.5 102.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M788.5 119.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M794.5 136.1 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M800.5 152.8 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot" d="M806.5 169.4 a3.5 3.5 0 1 0 7.0 0 a3.5 3.5 0 1 0 -7.0 0"/>
+  <path class="dot2" d="M94.0 139.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M100.0 155.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M106.0 172.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M112.0 189.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M118.0 205.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M124.0 222.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M130.0 76.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M136.0 93.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M142.0 109.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M148.0 126.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M154.0 143.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M160.0 159.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M166.0 176.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M172.0 193.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M178.0 209.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M184.0 226.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M190.0 80.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M196.0 97.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M202.0 113.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M208.0 130.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M214.0 147.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M220.0 163.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M226.0 180.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M232.0 197.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M238.0 213.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M244.0 67.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M250.0 84.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M256.0 100.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M262.0 117.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M268.0 134.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M274.0 150.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M280.0 167.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M286.0 184.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M292.0 200.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M298.0 217.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M304.0 71.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M310.0 88.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M316.0 104.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M322.0 121.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M328.0 138.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M334.0 154.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M340.0 171.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M346.0 188.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M352.0 204.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M358.0 221.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M364.0 75.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M370.0 92.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M376.0 108.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M382.0 125.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M388.0 142.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M394.0 158.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M400.0 175.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M406.0 192.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M412.0 208.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M418.0 225.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M424.0 79.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M430.0 96.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M436.0 112.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M442.0 129.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M448.0 146.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M454.0 162.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M460.0 179.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M466.0 196.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M472.0 212.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M478.0 66.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M484.0 83.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M490.0 99.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M496.0 116.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M502.0 133.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M508.0 149.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M514.0 166.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M520.0 183.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M526.0 199.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M532.0 216.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M538.0 70.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M544.0 87.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M550.0 103.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M556.0 120.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M562.0 137.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M568.0 153.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M574.0 170.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M580.0 187.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M586.0 203.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M592.0 220.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M598.0 74.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M604.0 91.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M610.0 107.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M616.0 124.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M622.0 141.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M628.0 157.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M634.0 174.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M640.0 191.0 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M646.0 207.7 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M652.0 224.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M658.0 78.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M664.0 94.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M670.0 111.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M676.0 128.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M682.0 144.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M688.0 161.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M694.0 178.3 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M700.0 194.9 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M706.0 211.6 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M712.0 65.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M718.0 82.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M724.0 98.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M730.0 115.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M736.0 132.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M742.0 148.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M748.0 165.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M754.0 182.2 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M760.0 198.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M766.0 215.5 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M772.0 69.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M778.0 86.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M784.0 102.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M790.0 119.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M796.0 136.1 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M802.0 152.8 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <path class="dot2" d="M808.0 169.4 a2.0 2.0 0 1 0 4.0 0 a2.0 2.0 0 1 0 -4.0 0"/>
+  <text class="ttl" x="90" y="20">Nearest-bin assignment: the same rounding errors in every turn</text>
+  <path class="dot" d="M560 31 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/><text class="sub" x="572" y="35">turn 0</text>
+  <path class="dot2" d="M630 31 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0"/><text class="sub" x="642" y="35">turn 7: on top of turn 0</text>
+</svg>
+<figcaption>Why <code>'nearest'</code> was biased. Each 1 µs time bin is put in the nearest of 1024 phase bins (9.77 µs), which moves it by up to
+±4.9 µs. With 10,000 time bins per turn the pattern repeats exactly every turn (turn 7, small dots, lies on top of turn 0), so the
+errors never average out; weighted by the pulse they left a TOA bias of 0.5 ns. Linear assignment splits each time bin between the two
+neighbouring phase bins so that its average position is exact: no rounding error at all.</figcaption>
+</figure>
 
 <h2 id="weights">The weights: what each field is for</h2>
 <p>For phase bin <var>j</var> of one sub-int, sum<sub>j</sub> = Σ<sub>k</sub> <var>a</var><sub>kj</sub>·<var>P</var><sub>k</sub>, with <var>a</var><sub>kj</sub> how much of time bin <var>k</var> went into phase bin <var>j</var>.</p>
@@ -152,8 +448,7 @@ exactly the 0.2484 measured in the long noise-only run.</p>
 neighbours. Ignoring the positive covariance underestimates the variance of any sum over bins (a TOA, a matched filter) by ~1.5×.
 The fold check predicted a centroid scatter of 0.226 µs instead of the correct 0.277 µs until <code>weightX</code> was added
 (<a href="lessons.html">bugs and lessons</a> #8).</p></div>
-<p>σ² itself is <em>not</em> stored in the fold: the consumers (<code>estimateTOA</code>, <code>detectPulsar</code>) compute it from their noise model
-(radiometer equation with the fitted level, or off-pulse residuals). The fold only provides the geometry.</p>
+<p>σ² itself is not stored in the fold; see <a href="#why">design choices</a>.</p>
 
 <h2 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code> (A1a, 7 Oct)</h2>
 <p>In a narrow channel neighbouring detected time bins are correlated (variance <var>V</var>, covariance <var>X</var>(<var>L</var>) at <var>L</var> bins apart, relative
@@ -190,6 +485,26 @@ weighted fold is unbiased (−0.0019 ± 0.0009), a naive fold is off by −0.574
 <var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶; fake blanking unbiased and noise as modelled. Cost: 1.8 s for 0.1 s of 128 channels with weights
 (0.25 s without).</p>
 
+<h2 id="why">Design choices</h2>
+<p>The reasons for linear assignment, <code>weightX</code> and the data weights are with those sections above. Four more:</p>
+<div class="callout why"><span class="ttl">Fold the detected power, after dedispersion</span>
+<p>The pulsar is noise whose power changes with phase, so the profile is a profile of <em>power</em>: square first, then fold, then
+match the template (the optimal order, <a href="fullband.html#detect-why">full-band page</a>). Folding after dedispersion means each
+time bin already holds every frequency of the same instant.</p></div>
+<div class="callout why"><span class="ttl">Cut each turn halfway between pulses</span>
+<p>With <code>ephem.TRef</code> at a pulse centre, the cut at φ = <var>k</var> + ½ falls in the off-pulse region. So every sub-int contains
+whole pulses, and a pulse is never split between two sub-ints. The pulse sits at phase 0, the start of the stored profile (and wraps to
+its end), which is where the TOA fit expects the template.</p></div>
+<div class="callout why"><span class="ttl">Store the geometry, not the noise level</span>
+<p>σ² itself is <em>not</em> stored in the fold: the consumers (<code>estimateTOA</code>, <code>detectPulsar</code>) compute it from their own
+noise model, the radiometer equation with the fitted level or the off-pulse residuals. The fold only stores how the data were combined
+(<code>weight</code>, <code>weight2</code>, <code>weightX</code>). So one fold serves both noise models, and the fold never needs to know the true
+noise level, which only the simulator knows.</p></div>
+<div class="callout why"><span class="ttl">Sub-integrations, not one profile per observation</span>
+<p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model). Sub-ints
+are there to validate the error bars, to see drift (phase-model errors, motion, clock, position error: the navigation signal itself)
+and to catch bad data (notes §12).</p></div>
+
 <h2>Options and outputs</h2>
 <dl class="facts">
 <dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
@@ -197,7 +512,7 @@ weighted fold is unbiased (−0.0019 ± 0.0009), a naive fold is off by −0.574
 <dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
 </dl>
 
-<h2>Choosing NBin and the sub-int length</h2>
+<h2 id="choose">Choosing NBin and the sub-int length</h2>
 <div class="callout why"><span class="ttl">NBin = 2048 is more than enough</span>
 <p>Binning only costs information if bins are coarse compared with the pulse: σ<sub>eff</sub>² ≈ σ<sub>t</sub>² + Δ²/12. For the simulated pulsar
 Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. Rule of thumb NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter
@@ -213,8 +528,67 @@ binDt ≤ 1/(<var>f</var>·NBin), or more turns per sub-int. Main's settings (0.
 <p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model).
 Sub-ints exist to validate error bars, see drift (phase-model errors, motion, clock, position error) and catch bad data. Below SNR ≈ 6
 per sub-int TOAs start to lock onto noise peaks, so the number of turns per sub-int is
-<var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)², with SNR<sub>turn</sub> ≈ 373·ρ here (flat-band value; with the real tapers 368·ρ on the full band and 360·ρ on the channel path, i.e. ~3 % / ~7 % more turns). See <a href="results.html#threshold">threshold sweep</a>. An adaptive
+<var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² (figure below), with SNR<sub>turn</sub> ≈ 373·ρ here (flat-band value; with the real tapers 368·ρ on the full band and 360·ρ on the channel path, i.e. ~3 % / ~7 % more turns). See <a href="results.html#threshold">threshold sweep</a>. An adaptive
 choice from the data is on the roadmap.</p></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Turns per sub-int needed for SNR 6 or 7 against snrDB, with the time for the 10 ms pulsar">
+  <path class="axis" d="M90 290 H650"/>
+  <path class="axis" d="M90 40 V290"/>
+  <path class="axis" d="M90.0 290 v5"/>
+  <text class="sub" x="90.0" y="308" text-anchor="middle">-60</text>
+  <path class="axis" d="M146.0 290 v5"/>
+  <text class="sub" x="146.0" y="308" text-anchor="middle">-54</text>
+  <path class="axis" d="M183.3 290 v5"/>
+  <text class="sub" x="183.3" y="308" text-anchor="middle">-50</text>
+  <path class="axis" d="M276.7 290 v5"/>
+  <text class="sub" x="276.7" y="308" text-anchor="middle">-40</text>
+  <path class="axis" d="M370.0 290 v5"/>
+  <text class="sub" x="370.0" y="308" text-anchor="middle">-30</text>
+  <path class="axis" d="M463.3 290 v5"/>
+  <text class="sub" x="463.3" y="308" text-anchor="middle">-20</text>
+  <path class="axis" d="M556.7 290 v5"/>
+  <text class="sub" x="556.7" y="308" text-anchor="middle">-10</text>
+  <path class="axis" d="M603.3 290 v5"/>
+  <text class="sub" x="603.3" y="308" text-anchor="middle">-5</text>
+  <path class="axis" d="M650.0 290 v5"/>
+  <text class="sub" x="650.0" y="308" text-anchor="middle">0</text>
+  <path class="axis" d="M90 281.4 h-5"/>
+  <text class="sub" x="82" y="285.4" text-anchor="end">1</text>
+  <path class="axis" d="M90 224.5 h-5"/>
+  <text class="sub" x="82" y="228.5" text-anchor="end">100</text>
+  <path class="axis" d="M90 167.5 h-5"/>
+  <text class="sub" x="82" y="171.5" text-anchor="end">10⁴</text>
+  <path class="axis" d="M90 110.5 h-5"/>
+  <text class="sub" x="82" y="114.5" text-anchor="end">10⁶</text>
+  <path class="axis" d="M90 53.6 h-5"/>
+  <text class="sub" x="82" y="57.6" text-anchor="end">10⁸</text>
+  <text class="sub" x="370.0" y="324" text-anchor="middle">snrDB</text>
+  <text class="sub" x="90" y="32" text-anchor="start">turns per sub-int</text>
+  <path class="curve" d="M90.0 38.0 L91.9 39.2 L93.7 40.3 L95.6 41.4 L97.5 42.6 L99.3 43.7 L101.2 44.9 L103.1 46.0 L104.9 47.1 L106.8 48.3 L108.7 49.4 L110.5 50.5 L112.4 51.7 L114.3 52.8 L116.1 54.0 L118.0 55.1 L119.9 56.2 L121.7 57.4 L123.6 58.5 L125.5 59.7 L127.3 60.8 L129.2 61.9 L131.1 63.1 L132.9 64.2 L134.8 65.4 L136.7 66.5 L138.5 67.6 L140.4 68.8 L142.3 69.9 L144.1 71.1 L146.0 72.2 L147.9 73.3 L149.7 74.5 L151.6 75.6 L153.5 76.7 L155.3 77.9 L157.2 79.0 L159.1 80.2 L160.9 81.3 L162.8 82.4 L164.7 83.6 L166.5 84.7 L168.4 85.9 L170.3 87.0 L172.1 88.1 L174.0 89.3 L175.9 90.4 L177.7 91.6 L179.6 92.7 L181.5 93.8 L183.3 95.0 L185.2 96.1 L187.1 97.3 L188.9 98.4 L190.8 99.5 L192.7 100.7 L194.5 101.8 L196.4 103.0 L198.3 104.1 L200.1 105.2 L202.0 106.4 L203.9 107.5 L205.7 108.6 L207.6 109.8 L209.5 110.9 L211.3 112.1 L213.2 113.2 L215.1 114.3 L216.9 115.5 L218.8 116.6 L220.7 117.8 L222.5 118.9 L224.4 120.0 L226.3 121.2 L228.1 122.3 L230.0 123.5 L231.9 124.6 L233.7 125.7 L235.6 126.9 L237.5 128.0 L239.3 129.2 L241.2 130.3 L243.1 131.4 L244.9 132.6 L246.8 133.7 L248.7 134.8 L250.5 136.0 L252.4 137.1 L254.3 138.3 L256.1 139.4 L258.0 140.5 L259.9 141.7 L261.7 142.8 L263.6 144.0 L265.5 145.1 L267.3 146.2 L269.2 147.4 L271.1 148.5 L272.9 149.7 L274.8 150.8 L276.7 151.9 L278.5 153.1 L280.4 154.2 L282.3 155.4 L284.1 156.5 L286.0 157.6 L287.9 158.8 L289.7 159.9 L291.6 161.0 L293.5 162.2 L295.3 163.3 L297.2 164.5 L299.1 165.6 L300.9 166.7 L302.8 167.9 L304.7 169.0 L306.5 170.2 L308.4 171.3 L310.3 172.4 L312.1 173.6 L314.0 174.7 L315.9 175.9 L317.7 177.0 L319.6 178.1 L321.5 179.3 L323.3 180.4 L325.2 181.6 L327.1 182.7 L328.9 183.8 L330.8 185.0 L332.7 186.1 L334.5 187.3 L336.4 188.4 L338.3 189.5 L340.1 190.7 L342.0 191.8 L343.9 192.9 L345.7 194.1 L347.6 195.2 L349.5 196.4 L351.3 197.5 L353.2 198.6 L355.1 199.8 L356.9 200.9 L358.8 202.1 L360.7 203.2 L362.5 204.3 L364.4 205.5 L366.3 206.6 L368.1 207.8 L370.0 208.9 L371.9 210.0 L373.7 211.2 L375.6 212.3 L377.5 213.5 L379.3 214.6 L381.2 215.7 L383.1 216.9 L384.9 218.0 L386.8 219.1 L388.7 220.3 L390.5 221.4 L392.4 222.6 L394.3 223.7 L396.1 224.8 L398.0 226.0 L399.9 227.1 L401.7 228.3 L403.6 229.4 L405.5 230.5 L407.3 231.7 L409.2 232.8 L411.1 234.0 L412.9 235.1 L414.8 236.2 L416.7 237.4 L418.5 238.5 L420.4 239.7 L422.3 240.8 L424.1 241.9 L426.0 243.1 L427.9 244.2 L429.7 245.3 L431.6 246.5 L433.5 247.6 L435.3 248.8 L437.2 249.9 L439.1 251.0 L440.9 252.2 L442.8 253.3 L444.7 254.5 L446.5 255.6 L448.4 256.7 L450.3 257.9 L452.1 259.0 L454.0 260.2 L455.9 261.3 L457.7 262.4 L459.6 263.6 L461.5 264.7 L463.3 265.9 L465.2 267.0 L467.1 268.1 L468.9 269.3 L470.8 270.4 L472.7 271.6 L474.5 272.7 L476.4 273.8 L478.3 275.0 L480.1 276.1 L482.0 277.2 L483.9 278.4 L485.7 279.5 L487.6 280.7 L489.5 281.4 L491.3 281.4 L493.2 281.4 L495.1 281.4 L496.9 281.4 L498.8 281.4 L500.7 281.4 L502.5 281.4 L504.4 281.4 L506.3 281.4 L508.1 281.4 L510.0 281.4 L511.9 281.4 L513.7 281.4 L515.6 281.4 L517.5 281.4 L519.3 281.4 L521.2 281.4 L523.1 281.4 L524.9 281.4 L526.8 281.4 L528.7 281.4 L530.5 281.4 L532.4 281.4 L534.3 281.4 L536.1 281.4 L538.0 281.4 L539.9 281.4 L541.7 281.4 L543.6 281.4 L545.5 281.4 L547.3 281.4 L549.2 281.4 L551.1 281.4 L552.9 281.4 L554.8 281.4 L556.7 281.4 L558.5 281.4 L560.4 281.4 L562.3 281.4 L564.1 281.4 L566.0 281.4 L567.9 281.4 L569.7 281.4 L571.6 281.4 L573.5 281.4 L575.3 281.4 L577.2 281.4 L579.1 281.4 L580.9 281.4 L582.8 281.4 L584.7 281.4 L586.5 281.4 L588.4 281.4 L590.3 281.4 L592.1 281.4 L594.0 281.4 L595.9 281.4 L597.7 281.4 L599.6 281.4 L601.5 281.4 L603.3 281.4 L605.2 281.4 L607.1 281.4 L608.9 281.4 L610.8 281.4 L612.7 281.4 L614.5 281.4 L616.4 281.4 L618.3 281.4 L620.1 281.4 L622.0 281.4 L623.9 281.4 L625.7 281.4 L627.6 281.4 L629.5 281.4 L631.3 281.4 L633.2 281.4 L635.1 281.4 L636.9 281.4 L638.8 281.4 L640.7 281.4 L642.5 281.4 L644.4 281.4 L646.3 281.4 L648.1 281.4 L650.0 281.4"/>
+  <path class="curve2" d="M90.0 41.8 L91.9 43.0 L93.7 44.1 L95.6 45.2 L97.5 46.4 L99.3 47.5 L101.2 48.7 L103.1 49.8 L104.9 50.9 L106.8 52.1 L108.7 53.2 L110.5 54.4 L112.4 55.5 L114.3 56.6 L116.1 57.8 L118.0 58.9 L119.9 60.1 L121.7 61.2 L123.6 62.3 L125.5 63.5 L127.3 64.6 L129.2 65.8 L131.1 66.9 L132.9 68.0 L134.8 69.2 L136.7 70.3 L138.5 71.4 L140.4 72.6 L142.3 73.7 L144.1 74.9 L146.0 76.0 L147.9 77.1 L149.7 78.3 L151.6 79.4 L153.5 80.6 L155.3 81.7 L157.2 82.8 L159.1 84.0 L160.9 85.1 L162.8 86.3 L164.7 87.4 L166.5 88.5 L168.4 89.7 L170.3 90.8 L172.1 92.0 L174.0 93.1 L175.9 94.2 L177.7 95.4 L179.6 96.5 L181.5 97.6 L183.3 98.8 L185.2 99.9 L187.1 101.1 L188.9 102.2 L190.8 103.3 L192.7 104.5 L194.5 105.6 L196.4 106.8 L198.3 107.9 L200.1 109.0 L202.0 110.2 L203.9 111.3 L205.7 112.5 L207.6 113.6 L209.5 114.7 L211.3 115.9 L213.2 117.0 L215.1 118.2 L216.9 119.3 L218.8 120.4 L220.7 121.6 L222.5 122.7 L224.4 123.9 L226.3 125.0 L228.1 126.1 L230.0 127.3 L231.9 128.4 L233.7 129.5 L235.6 130.7 L237.5 131.8 L239.3 133.0 L241.2 134.1 L243.1 135.2 L244.9 136.4 L246.8 137.5 L248.7 138.7 L250.5 139.8 L252.4 140.9 L254.3 142.1 L256.1 143.2 L258.0 144.4 L259.9 145.5 L261.7 146.6 L263.6 147.8 L265.5 148.9 L267.3 150.1 L269.2 151.2 L271.1 152.3 L272.9 153.5 L274.8 154.6 L276.7 155.7 L278.5 156.9 L280.4 158.0 L282.3 159.2 L284.1 160.3 L286.0 161.4 L287.9 162.6 L289.7 163.7 L291.6 164.9 L293.5 166.0 L295.3 167.1 L297.2 168.3 L299.1 169.4 L300.9 170.6 L302.8 171.7 L304.7 172.8 L306.5 174.0 L308.4 175.1 L310.3 176.3 L312.1 177.4 L314.0 178.5 L315.9 179.7 L317.7 180.8 L319.6 182.0 L321.5 183.1 L323.3 184.2 L325.2 185.4 L327.1 186.5 L328.9 187.6 L330.8 188.8 L332.7 189.9 L334.5 191.1 L336.4 192.2 L338.3 193.3 L340.1 194.5 L342.0 195.6 L343.9 196.8 L345.7 197.9 L347.6 199.0 L349.5 200.2 L351.3 201.3 L353.2 202.5 L355.1 203.6 L356.9 204.7 L358.8 205.9 L360.7 207.0 L362.5 208.2 L364.4 209.3 L366.3 210.4 L368.1 211.6 L370.0 212.7 L371.9 213.8 L373.7 215.0 L375.6 216.1 L377.5 217.3 L379.3 218.4 L381.2 219.5 L383.1 220.7 L384.9 221.8 L386.8 223.0 L388.7 224.1 L390.5 225.2 L392.4 226.4 L394.3 227.5 L396.1 228.7 L398.0 229.8 L399.9 230.9 L401.7 232.1 L403.6 233.2 L405.5 234.4 L407.3 235.5 L409.2 236.6 L411.1 237.8 L412.9 238.9 L414.8 240.0 L416.7 241.2 L418.5 242.3 L420.4 243.5 L422.3 244.6 L424.1 245.7 L426.0 246.9 L427.9 248.0 L429.7 249.2 L431.6 250.3 L433.5 251.4 L435.3 252.6 L437.2 253.7 L439.1 254.9 L440.9 256.0 L442.8 257.1 L444.7 258.3 L446.5 259.4 L448.4 260.6 L450.3 261.7 L452.1 262.8 L454.0 264.0 L455.9 265.1 L457.7 266.3 L459.6 267.4 L461.5 268.5 L463.3 269.7 L465.2 270.8 L467.1 271.9 L468.9 273.1 L470.8 274.2 L472.7 275.4 L474.5 276.5 L476.4 277.6 L478.3 278.8 L480.1 279.9 L482.0 281.1 L483.9 281.4 L485.7 281.4 L487.6 281.4 L489.5 281.4 L491.3 281.4 L493.2 281.4 L495.1 281.4 L496.9 281.4 L498.8 281.4 L500.7 281.4 L502.5 281.4 L504.4 281.4 L506.3 281.4 L508.1 281.4 L510.0 281.4 L511.9 281.4 L513.7 281.4 L515.6 281.4 L517.5 281.4 L519.3 281.4 L521.2 281.4 L523.1 281.4 L524.9 281.4 L526.8 281.4 L528.7 281.4 L530.5 281.4 L532.4 281.4 L534.3 281.4 L536.1 281.4 L538.0 281.4 L539.9 281.4 L541.7 281.4 L543.6 281.4 L545.5 281.4 L547.3 281.4 L549.2 281.4 L551.1 281.4 L552.9 281.4 L554.8 281.4 L556.7 281.4 L558.5 281.4 L560.4 281.4 L562.3 281.4 L564.1 281.4 L566.0 281.4 L567.9 281.4 L569.7 281.4 L571.6 281.4 L573.5 281.4 L575.3 281.4 L577.2 281.4 L579.1 281.4 L580.9 281.4 L582.8 281.4 L584.7 281.4 L586.5 281.4 L588.4 281.4 L590.3 281.4 L592.1 281.4 L594.0 281.4 L595.9 281.4 L597.7 281.4 L599.6 281.4 L601.5 281.4 L603.3 281.4 L605.2 281.4 L607.1 281.4 L608.9 281.4 L610.8 281.4 L612.7 281.4 L614.5 281.4 L616.4 281.4 L618.3 281.4 L620.1 281.4 L622.0 281.4 L623.9 281.4 L625.7 281.4 L627.6 281.4 L629.5 281.4 L631.3 281.4 L633.2 281.4 L635.1 281.4 L636.9 281.4 L638.8 281.4 L640.7 281.4 L642.5 281.4 L644.4 281.4 L646.3 281.4 L648.1 281.4 L650.0 281.4"/>
+  <path class="grid" d="M90 224.5 H650"/>
+  <text class="sub" x="656" y="228.5">1 s</text>
+  <path class="grid" d="M90 173.8 H650"/>
+  <text class="sub" x="656" y="177.8">1 min</text>
+  <path class="grid" d="M90 123.2 H650"/>
+  <text class="sub" x="656" y="127.2">1 h</text>
+  <path class="grid" d="M90 83.9 H650"/>
+  <text class="sub" x="656" y="87.9">1 day</text>
+  <path class="dot" d="M142.5 72.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="154.0" y="66.2">design target: 2.2·10⁷ turns ≈ 62 h</text>
+  <path class="dot" d="M273.2 151.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="284.7" y="145.9">−40 dB: 3.5·10⁴ turns ≈ 6 min</text>
+  <path class="dot" d="M459.8 265.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="471.3" y="259.9">−20 dB: 3.5 turns</text>
+  <path class="dot" d="M599.8 281.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="611.3" y="275.4">−5 dB: 1 turn</text>
+  <path class="curve" d="M519.3333333333334 68.47980091355498 h18"/><text class="sub" x="543.3333333333334" y="72.47980091355498">SNR 7 per sub-int</text>
+  <path class="curve2" d="M519.3333333333334 84.47980091355498 h18"/><text class="sub" x="543.3333333333334" y="88.47980091355498">SNR 6</text>
+</svg>
+<figcaption>How long a sub-int must be: the number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated
+10 ms pulsar (grid lines: the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int;
+at the design target one sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
+</figure>
 
 <h2>Limits</h2>
 <div class="callout warn"><span class="ttl">Not stored: covariance between consecutive sub-ints</span>
