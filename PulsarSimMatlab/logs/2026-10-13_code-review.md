@@ -243,7 +243,8 @@ after main's 12:05 blanking (before item 3 the tests wrote there). Contents unch
 date warning on identical data, and it cannot recur (the tests now write only `data/test/`);
 `runStage.process = true` once clears it. Item 34 (no valid TOA) stays Claude's check only.
 Jasper then ran `main.m` with all stages, the sky included (13 Oct). Committed on Jasper's
-request, then `api.html` regenerated. Generator overlap warning
+request as `0499da7`; then `api.html` regenerated and the docs' commit line, changelog and
+roadmap status pointed to `0499da7` (docs commit). Generator overlap warning
 lowered from > 50 % to > 20 % duty (Jasper: yes, 13 Oct): help text, threshold, message;
 test 6 now checks 25 % warns and 20 % does not (Claude's run and Jasper's `runAllTests`: passed, tests 1–5 the same
 numbers; `checkcode`: test clean, generator only its pre-existing `onCleanup` suppression note).

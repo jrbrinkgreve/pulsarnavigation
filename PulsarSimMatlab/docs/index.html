@@ -90,7 +90,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 9 October 2026</h2>
+<h2>Status · 13 October 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
@@ -99,6 +99,9 @@ the part that turns raw antenna voltages into those arrival times.</p>
   <div class="later"><b>D</b>Earth's motion, barycentric phase, clock</div>
   <div class="later"><b>E</b>several pulsars, navigation, array</div>
 </div>
+<p><b>Now (week of 12 Oct): review week.</b> Understanding and refining the pipeline stage by stage before C. Code review of 13 Oct done
+and validated: small fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, a generator unit test, frozen test data, and the
+diagrams on these pages (<a href="roadmap.html">roadmap</a>).</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -112,6 +115,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
 <tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge validated">9 Oct</span></td></tr>
 <tr><td>B5e</td><td>Realistic L-band scenario (<code>rfiList = 'realistic'</code>): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with narrow Inmarsat-like carriers</td><td><span class="badge validated">validated 12 Oct (rerun)</span></td></tr>
 <tr><td>B parked</td><td>Periodic-mask fix; per-channel noise level measured on the data (designs in the block-B handover)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
+<tr><td>Review</td><td>Review week: <code>blankingWeights</code> long-bin fix (12 Oct); code review of the whole codebase (13 Oct, 33 items): fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, generator unit test, frozen test data in <code>data/test/</code></td><td><span class="badge validated">13 Oct</span></td></tr>
 <tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
@@ -179,7 +183,7 @@ See <a href="scripts.html">run scripts</a>.</p>
 <tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
 <tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
 </table></div>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>62e8d06</code> (12 Oct 2026) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>0499da7</code> (13 Oct 2026) ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a> · <a href="maintenance.html">docs maintenance</a></p>
 
 </main>
