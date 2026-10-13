@@ -564,3 +564,40 @@ directions very well, with the clock and the third direction from the slow pulsa
   is coupled to `refFreq`). Since `8a756ec` a `refFreq` that differs between the sky files and
   `pipelineParams` is at least caught by `checkSkyFiles` (warning in `main`, stop in the
   scripts). The coupling itself remains as D2 describes.
+
+## 17. Further: visibility turns integration hours into calendar days
+
+Hours per day above 20° elevation (sidereal) and the days needed for one TOA (scenario
+worst / nominal hours ÷ hours up per day):
+
+| Pulsar | 30° S: up | days per TOA | 52° N: up | days per TOA |
+|---|---|---|---|---|
+| J0437−4715 | 12.3 h | 1.7 / 0.3 | never | – |
+| Vela | 12.1 h | < 0.1 | never | – |
+| B0329+54 | never | – | 19.6 h | 0.2 / < 0.1 |
+| B0950+08 | 8.2 h | 8.2 / 1.5 | 9.0 h | 7.5 / 1.3 |
+| B1749−28 | 10.9 h | 8.8 / 1.7 | never | – |
+| B1642−03 | 9.1 h | 30 / 5.7 | 6.8 h | 41 / 7.7 |
+| B1929+10 | 7.9 h | 73 / 13.5 | 9.5 h | 60 / 11 |
+
+With one beam (~15°) the pulsars are observed one after another, but their daily windows
+interleave. The southern first fix of section 15 (J0437 + Vela + B0950 + B1749, 184 h on
+source, worst case) therefore takes roughly 2–3 weeks of calendar time. A 52° N site has no
+MSP and only one fast normal pulsar (B0329+54): its fix needs the slow ones (≥ 7.5 / 41 /
+60 days each, worst case). This confirms the scenario page's "from Europe … no feasible MSP"
+and puts a calendar number on block E's first fix.
+
+## Status at the end of this round
+
+Committed: `27ce31f` (docs errors and the log) and `ac9ae3f` (wider round, scripts page).
+This section is in the next commit.
+
+Not done:
+- the roadmap's "commit pending" (the parallel session is editing `roadmap.html`);
+- the summary at the top of this log does not yet list sections 13–17. Their highlights:
+  - the Rice threshold is exact by Monte Carlo;
+  - block D needs the pulsar's binary orbit;
+  - the first fix is ~300 km after ~2–3 weeks (worst case, southern site);
+  - docs numbers, defaults and links all check out.
+
+Possible next steps: refresh the summary; a full GDOP / visibility schedule for a chosen site.
