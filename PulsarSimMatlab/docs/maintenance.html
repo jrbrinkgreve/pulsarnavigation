@@ -42,7 +42,7 @@ then the notes; fix the site.</p>
 <li>Update the stage page of that function (options, defaults, outputs, and the "why" if the reasoning changed).</li>
 <li>Update status badges: <span class="badge validated">validated</span> only after Jasper's own run.</li>
 <li>Add new results to <a href="results.html">validation record</a> (or the stage page) and new tests to <a href="tests.html">unit tests</a>.</li>
-<li>New or changed parameters: <a href="parameters.html">parameters</a>. New decisions: the decision log in <a href="history.html#decisions">development history</a>.</li>
+<li>New or changed parameters: <a href="parameters.html">parameters</a> (and its "values checked against commit" line). New decisions: the decision log in <a href="history.html#decisions">development history</a>.</li>
 <li>Update <a href="roadmap.html">status and roadmap</a> and the status table on the <a href="index.html">home page</a>.</li>
 <li>If a figure shows what changed: rerun its generator in <code>docs/tools/figures/</code> and replace the <code>&lt;figure&gt;</code> block, or edit the flowchart.</li>
 <li>Update the "checked against commit" line on the home page and add a line to the changelog below.</li>
@@ -55,6 +55,9 @@ then the notes; fix the site.</p>
 <tr><td>8 Oct 2026</td><td><code>applyDispersionStream.m</code> help text</td><td>says <code>MaxMemoryGB</code> default 8; the <code>arguments</code> block uses 16 (the notes also say 16)</td><td>fixed 9 Oct 2026 (help text now says 16); notes §5.2 still said 8 in one place, fixed 12 Oct 2026; the sky page still called the help text out of date, fixed 13 Oct 2026</td></tr>
 <tr><td>13 Oct 2026</td><td><code>addNoiseAndRFI</code> options on the receiver page</td><td>still said it warns below −60 dB; the warning was removed in the code review (13 Oct)</td><td>fixed 13 Oct 2026</td></tr>
 <tr><td>13 Oct 2026</td><td>full-band page, bin time stamps</td><td>said a stamp at the bin start would <em>delay</em> every TOA by half a bin; it would make them half a bin <em>early</em> (the label is before the content)</td><td>fixed 13 Oct 2026</td></tr>
+<tr><td>13 Oct 2026</td><td>parameters page, commit line</td><td>said "Values as committed in <code>9b959f0</code>"; the values were current, but
+<code>9b959f0</code> never touched <code>pipelineParams.m</code> (found in the full read-through, item 6)</td><td>fixed 13 Oct 2026: checked line by line, now
+"checked against <code>8a756ec</code>"; the checklist above now names that line</td></tr>
 <tr><td>13 Oct 2026</td><td>scenario page, figure of merit</td><td>said "others 5000+"; from the page's own table B1937+21 is 300, J1713+0747 3700, J2145−0750 4300 (5000+ holds for the normal pulsars, as in the notes)</td><td>fixed 13 Oct 2026</td></tr>
 </table></div>
 
@@ -95,6 +98,10 @@ parameters <code>checkConsistency</code> compares, now via the new <code>checkSk
 (sky check in <code>runMonteCarlo</code>, <code>runRFITest</code>, <code>runLockedRadar</code>; full-band-only warnings of <code>runMonteCarlo</code>,
 <code>runSNRSweep</code>, <code>runH0</code>; their "matches main" checks need <code>frontEnd = 'fullband'</code>). <code>api.html</code> regenerated
 after the commit (adds <code>checkSkyFiles</code>).</td></tr>
+<tr><td>13 Oct 2026</td><td>after <code>8a756ec</code></td><td>Full read-through, quick fixes (text only): parameters (commit line checked line by line;
+why 9 vs 8 complete turns; the unblanked channel files are the re-freeze source, not the tests' input); this page (checklist names the
+parameters commit line; discrepancy row). Code: <code>main.m</code> comments on which <code>plots.*</code> are full band only (no
+<code>api.html</code> change).</td></tr>
 </table></div>
 
 </main>

@@ -118,10 +118,10 @@ SKY (synthetic)                      runStage.sky
   2. applyDispersionStream  ─► test_dispersed.dat    real, 4 GHz          [validated]
 RECEIVER (synthetic)                 runStage.receiver
   3. addNoiseAndRFI         ─► test_rx.dat           real, 4 GHz          [validated]
-  4. applyIQmodulation      ─► test_rx_IQ.dat        complex, 500 MHz     [validated*]
+  4. applyIQmodulation      ─► test_rx_IQ.dat        complex, 800 MHz     [validated*]
 PROCESSING                           runStage.process / .fold / .toa
   (frontEnd in pipelineParams, A4 8 Oct: 'channels' (default) or 'fullband')
-  5. applyInverseDispersion ─► test_IQ_dedispersed.dat  complex, 500 MHz  [validated]
+  5. applyInverseDispersion ─► test_IQ_dedispersed.dat  complex, 800 MHz  [validated]
   6. detectPower            ─► test_envelope.dat     power, 1 MHz bins    [validated]
   7. foldProfile            ─► test_fold.mat         profiles             [validated]
   8. estimateTOA            (in memory: toa, info_toa)                    [validated]
@@ -201,39 +201,48 @@ The MC adds rx + IQ + dedispersed files in `data/mc/` (≈ 2.9 GB at L = 0.1 s, 
 
 ## 4. Reference configuration
 
+**The reference set ("seed 43").** Every validation run since 1 Oct uses it; the unit
+tests have it frozen in `tests/testParams.m` (data in `data/test/`, 13 Oct); it is
+`pipelineParams.m` as of 13 Oct. Not to be confused with the **reference scenario** of §11
+(the design target: a real millisecond pulsar at −54 dB with the reference hardware) or
+with the original plan of 30 Sep (end of this section). (Rewritten 13 Oct, full read-through
+item 7: this section used to show the 30 Sep plan as "the reference" and the set below as
+deviations from it.)
+
 | Group | Parameter | Value | Notes |
 |---|---|---|---|
 | Pulsar | T | 10 ms | f0 = 100 Hz |
 | | A | 1 | pulsar noise std at pulse peak (signal scale) |
 | | dutycycle | 5 % | FWHM of the **power** profile = 0.5 ms, σ = 212.3 µs |
 | | genEnvMode | `'power'` | power profile Gaussian with that FWHM |
-| | DM | 5 pc cm⁻³ | |
+| | DM | 5 pc cm⁻³ | sweep across the band τ(1.2 GHz) − τ(1.6 GHz) = 6.302 ms |
 | Simulation | f_in | 4 GHz | real RF sampling |
-| | L | 1 s (0.1 s for quick tests) | 100 pulse centres at 5, 15, …, 995 ms |
+| | L | 0.1 s | 10 pulse centres at 5, 15, …, 95 ms; turn k = [10k, 10k + 10) ms. Complete turns: **9 on the full band** (0–8), **8 on the channel path** (1–8): turn 9 is cut at 93.7 ms (full band) / 93.4 ms (channel path): the last 6.3 ms (+ the guard) lack part of the dispersion sweep and lie outside `fullySupported`; and on the channel path turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard 20/edge width = 20/62.5 kHz; the full band's is 20/8 MHz = 2.5 µs), coverage 0.968 < `MinCoverage` 1 (fold files of 13 Oct). The synthetic file starts exactly on a turn boundary, so any guard longer than ~2.4 µs costs turn 0 |
 | | seed | 42 | pulsar signal |
 | Receiver | band | 1.2–1.6 GHz | B = 400 MHz |
-| | fLO | 1.4 GHz | |
-| | fs | 500 MHz | IQ rate, D = 8 |
+| | fLO | 1.3 GHz | off centre on purpose: band at −100…+300 MHz baseband, which tests the RF↔baseband mapping |
+| | fs | 800 MHz | IQ rate, D = 5 (+300 MHz must lie in the flat passband, cutoff 360 MHz) |
 | | filterOrder | 2048 | 2049-tap IQ low-pass |
-| | snrDB | −20 dB | S_peak/SEFD, see §5.3 |
-| | noiseSeed | seed + 1 | |
-| | rfiOn | false (then true) | scenario in main |
+| | snrDB | −5 dB | ρ = 0.316: SNR per pulse 96.5, best TOA error per pulse 2.892 µs (exact tapers, `expectedPowerModel`; flat-band prediction of `addNoiseAndRFI`: 97.9, 2.85 µs) |
+| | noiseSeed | seed + 1 = 43 | the "seed 43" realization |
+| | rfiOn | false | RFI is studied on purpose (`runRFITest`): illustrative list `rfiScenario` (carrier at 1351.3 MHz since B3, 8 Oct; was 1350 MHz = edge of channels 48/49), realistic list `rfiRealistic` (B5e, 9 Oct) |
 | Processing | refFreq | fHigh = 1.6 GHz | dedispersion reference |
-| | f_out | 1 MHz | 1 µs detection bins |
-| | nBin | 1024 | 9.77 µs phase bins |
-| | subintPeriods | 10 (1 for noise-free tests) | turns per sub-integration; with L = 0.1 s the fold spans turns 0–9 (data ends at 93.7 ms, turn 9 ~37 % covered) → only **one** sub-int / one TOA |
+| | f_out | 1 MHz | 1 µs bins on the full band; 0.96 µs (4 channel samples) on the channel path |
+| | nBin | 2048 | 4.88 µs phase bins |
+| | subintPeriods | 1 | one TOA per complete turn |
+| | frontEnd | `'channels'` | since A4, 8 Oct (Jasper); `'fullband'` = the validated reference path |
+| | chanWidth, weighting | 3.125 MHz (128 channels), `'optimal'` | channel path only |
+| | excision, excisionArgs | true, `{}` | since B3, 8 Oct (Jasper); `detectRFI` defaults |
+| | periodicMask, periodicArgs | false, `{}` | true 8–9 Oct (B6-3: `periodicRFI`'s predicted pulses added to the mask); off since 9 Oct (false emitters with dense detections, §9; Jasper) |
 
-**Current `pipelineParams.m`** (1 Oct 2026) differs from the reference: L = 0.1 s,
-fLO = 1.3 GHz, fs = 800 MHz (D = 5; band at −100…+300 MHz baseband, which also tests
-the RF↔baseband mapping), snrDB = −5 (ρ = 0.316: SNR per pulse 97.9, best TOA error per
-pulse 2.85 µs), subintPeriods = 1, nBin = 2048 (4.88 µs bins). Since A4 (8 Oct):
-frontEnd = 'channels' (128 × 3.125 MHz, chanWidth; default since 8 Oct, Jasper) or
-'fullband' (the reference path), weighting = 'optimal' (channel path only). Since B3
-(8 Oct): excision = true (default, Jasper), excisionArgs = {} (detectRFI defaults); RFI
-scenario carrier at 1351.3 MHz (was 1350 MHz = edge of channels 48/49), full list kept as
-`rfiScenario`. Since B6-3 (8 Oct): periodicMask = true (with excision: periodicRFI's
-predicted pulses added to the mask), periodicArgs = {}. Since 9 Oct: periodicMask = false
-(false emitters with dense detections, §9; Jasper).
+Printed by `main.m` for this set: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel
+path 8 TOAs, 2.943 µs, SNR 92.3; with excision 2.956 µs, 91.9 (§7).
+
+**Original plan (30 Sep 2026, superseded on 1 Oct).** As above except L = 1 s (100 pulse
+centres), fLO = 1.4 GHz, fs = 500 MHz (D = 8), snrDB = −20 dB, nBin = 1024 (9.77 µs phase
+bins), subintPeriods = 10 (1 for noise-free tests; with L = 0.1 s that left a single
+sub-int), RFI scenario later switched on. The noise-free 1 s runs of 29 Sep–1 Oct (§7) used
+it; its −20 dB test was superseded by the SNR and threshold sweeps (§10).
 
 ---
 
@@ -2294,8 +2303,19 @@ barycentric corrections, navigation solution).
    `runMonteCarlo`, `runRFITest`, `runLockedRadar`, which stop on a mismatch; §3). Item 2:
    `runMonteCarlo`, `runSNRSweep`, `runH0` run the full band only and now warn when `frontEnd`
    is not `'fullband'` or RFI is on (no excision); their headers no longer claim to match
-   `main.m` with the channel path. Items 3–9 (edge-channel taper, out-of-band receiver noise,
-   per-channel guard costing the first turn, stale text, orphan files) open, for Jasper.
+   `main.m` with the channel path. Then (Jasper: "continue the quick fixes"), text only:
+   item 6 (parameters page commit line), item 7 (§3 IQ rate 800 MHz; §4 rewritten around the
+   seed-43 set, the 30 Sep plan kept as one paragraph), item 8 in part (`main.m`: which plot
+   switches are full band only); item 5's fact documented (§4, parameters page: why 9 vs 8
+   complete turns; Jasper's question, checked on the fold files). Open, for Jasper: items 3
+   (edge-channel taper), 4 (out-of-band receiver noise), 5 (whether to shorten the per-channel
+   guard), 8 (a channel-path optimum, needs a per-channel `expectedPowerModel`). Item 9 done 13 Oct
+   (Jasper: "delete the orphan files"): `data/test_dispersed_IQ_modulated.dat` + info (30 Sep,
+   nothing reads it) and `data/chan/test_dedispFB_chan_*` (129 files, old tests' 12:31 run; the
+   test now writes to `data/test/chan/`), 789 MB, moved to the Trash
+   (`~/.Trash/PulsarSimMatlab-orphans-2026-10-13`, restorable until emptied). Kept:
+   `data/chan/test_dedisp_chan_*` is not an orphan (the source `makeTestData` copies when
+   re-freezing, and `makeFoldReference` reads it); `data/mc/` kept.
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR

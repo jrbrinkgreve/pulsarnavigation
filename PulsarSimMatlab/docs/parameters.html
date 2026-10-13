@@ -13,7 +13,7 @@
 <p class="lede">Every parameter of the pipeline, its value, what it means, why it has that value, and which stage
 uses it. <code>pipelineParams.m</code> is a script: <code>main.m</code> and every <code>run*.m</code> call it, so they all use the same
 values.</p>
-<p class="meta">Values as committed in <code>9b959f0</code>. Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
+<p class="meta">Values checked against <code>pipelineParams.m</code> at commit <code>8a756ec</code> (13 Oct 2026). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
 uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
 
 <div class="toc"><b>Groups</b><ol>
@@ -117,8 +117,9 @@ put in to test robustness.</p>
 <tr><td><code>fileFoldChan</code></td><td><code>data/test_fold_chan.mat</code></td><td><code>foldProfile</code> (channels)</td></tr>
 </table></div>
 <div class="callout why"><span class="ttl">Why excision writes its own files</span>
-<p>The unblanked channel files are the reference for the unit tests and for with/without comparisons; switching <code>excision</code> never
-overwrites them.</p></div>
+<p>The unblanked channel files are the reference for with/without comparisons, and the source <code>tests/makeTestData.m</code> copies
+when the unit tests' data are re-frozen (the tests themselves read their own copy in <code>data/test/</code> since 13 Oct); switching
+<code>excision</code> never overwrites them.</p></div>
 
 <h2 id="derived">8. Derived quantities (current settings)</h2>
 <div class="table-wrap"><table>
@@ -132,7 +133,9 @@ overwrites them.</p></div>
 <tr><td>Noise bandwidth</td><td>391.6 MHz (full band); 3.0596 MHz per channel</td><td>8 MHz / 2 % edge tapers</td></tr>
 <tr><td>Expected SNR per pulse at −5 dB</td><td>96.5 (exact tapers); measured median 93.4</td><td><a href="validation.html#epm"><code>expectedPowerModel</code></a></td></tr>
 <tr><td>Best TOA error per pulse at −5 dB</td><td>2.892 µs; measured median σ 2.880 µs</td><td>same</td></tr>
-<tr><td>Complete turns in 0.1 s</td><td>9 full band, 8 channel path</td><td>fully-supported range</td></tr>
+<tr><td>Complete turns in 0.1 s</td><td>9 full band (turns 0–8), 8 channel path (1–8)</td><td>fully-supported range: on both paths turn 9 lacks the
+last 6.3 ms (the dispersion sweep); on the channel path turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard,
+20/62.5 kHz; full band 20/8 MHz = 2.5 µs), because the file starts exactly on a turn boundary</td></tr>
 <tr><td>Disk</td><td>~6 GB (full band) + channel and excision files</td><td>printed by <code>main.m</code></td></tr>
 </table></div>
 

@@ -57,10 +57,10 @@ runStage.fold     = true;
 runStage.toa      = true;   % TOA estimation + validation (needs the fold)
 
 plots.dispersion = false;   % raw vs dispersed (reads the big RF files)
-plots.iq         = false;   % dispersed IQ vs dedispersed IQ
-plots.detected   = true;
-plots.fold       = true;
-plots.toa        = true;
+plots.iq         = false;   % dispersed IQ vs dedispersed IQ (full band only)
+plots.detected   = true;    % detected power vs expected (full band only)
+plots.fold       = true;    % folded profile vs expected (full band only)
+plots.toa        = true;    % TOA errors vs ground truth (both paths)
 closeFigures     = true;
 
 if closeFigures, close all; end

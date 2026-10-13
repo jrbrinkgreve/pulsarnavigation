@@ -244,8 +244,81 @@ copies in the session scratchpad.
   - maintenance: a changelog row.
 - `api.html` is to be regenerated after the commit (it reads git HEAD).
 
+Committed on Jasper's request after his `main` run (`8a756ec`); `api.html` regenerated from
+that commit (`d4e6344`).
+
+## Item 5 questioned, then checked; quick fixes 6, 7, 8 (part)
+
+**Item 5.** Jasper: "I don't think this is true; the final turn isn't fully completed +
+dispersion, so it's flagged by FullySupported?" Checked on the saved folds (`data/test_fold.mat`,
+`data/test_fold_chan.mat`): phase coverage per turn
+
+| Turn | Full band | Channel path |
+|---|---|---|
+| 0 | 1.0000 | 0.9683 |
+| 1–8 | 1.0000 | 1.0000 |
+| 9 | 0.3701 | 0.3379 |
+
+The final turn is flagged on both paths, as Jasper says: the full band is supported to
+93.7 ms and the channel path to 93.4 ms, because the last 6.3 ms lack part of the sweep.
+That is why both have fewer than 10. The one-TOA difference is turn 0:
+
+- the channel path's support starts at 0.324 ms (power bin 338), the full band's at 3.5 µs
+  (bin 4);
+- the per-channel guard is 20/62.5 kHz = 320 µs (1334 channel samples, `nPast` in
+  `test_dedispB_chan_info.mat`);
+- the file starts exactly on a turn boundary.
+
+So the finding stands, with the end turn added to the explanation.
+
+**Quick fixes (Jasper: "further continue the quick fixes").** All text only.
+
+- **Item 6.** `docs/parameters.html`: every value checked against `pipelineParams.m`
+  (pulsar, simulation, receiver, noise/RFI, processing and its defaults, ephemeris, files,
+  derived quantities, run control, overrides). The line now says "Values checked against
+  `pipelineParams.m` at commit `8a756ec`". The docs checklist in `maintenance.html` now
+  names that line, and a discrepancy row was added.
+- **Item 7.** Notes §3: IQ and full-band dedispersed files "complex, 800 MHz" (were 500).
+  Notes §4 rewritten:
+  - the reference is now the seed-43 set (= `testParams.m` = `pipelineParams.m` on 13 Oct),
+    as a full table with the dated changes;
+  - the printed `main` results added;
+  - the 30 Sep plan kept as one paragraph;
+  - a pointer that §11's "reference scenario" is a different thing.
+- **Item 8, part.** `main.m` comments now say which `plots.*` switches are full band only
+  (iq, detected, fold) and which work on both paths (toa). The code is byte-identical apart
+  from the comments; `checkcode` is clean. Defaults unchanged.
+- **Item 8, other part, not done.** A best-achievable TOA error on the channel path would
+  need a per-channel version of `expectedPowerModel` (per-channel tapers, optimal channel
+  weighting). That is a new model, not a quick fix.
+- **Item 5's fact documented.** Notes §4 (the L row) and the derived quantities on the
+  parameters page now explain 9 vs 8 complete turns.
+
 ## Next
 
-Committed on Jasper's request after his `main` run; `api.html` regenerated from that commit.
-Items 3–9 stay open for Jasper to choose. Items 6–8 are text. Items 3–5 are modelling
-choices and should be discussed before any change (review week: note, don't implement).
+**Item 9 done** (Jasper: "commit this and delete the orphan files").
+
+- **Moved to the Trash** (`~/.Trash/PulsarSimMatlab-orphans-2026-10-13/`, restorable until
+  Jasper empties it), 789 MB:
+  - `data/test_dispersed_IQ_modulated.dat` + info (30 Sep; no code reads it);
+  - `data/chan/test_dedispFB_chan_*` (128 channel files + info, from the old tests' 12:31
+    run; `testDedisperseChannels` now writes this set to `data/test/chan/`).
+
+  131 files in all.
+- **Kept, correcting the finding above:** `data/chan/test_dedisp_chan_*` is not an orphan.
+  It is the source `tests/makeTestData.m` copies when `data/test/` is re-frozen, and
+  `tests/makeFoldReference.m` reads its power file. `main` also writes it with excision off.
+  Also kept: `data/mc/` (intermediates of the experiments).
+- **Text fixed on the way.** The parameters page said the unblanked channel files are "the
+  reference for the unit tests". Since 13 Oct they are the source of the re-freeze; the
+  tests read `data/test/`.
+
+The quick fixes and item 9 are committed together. Still open for Jasper to choose:
+
+- 3, the edge-channel taper;
+- 4, the out-of-band receiver noise;
+- 5, whether to shorten the per-channel guard;
+- 8, a channel-path optimum (needs a per-channel `expectedPowerModel`).
+
+Items 3–5 are modelling choices and should be discussed before any change (review week:
+note, don't implement).
