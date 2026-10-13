@@ -1890,6 +1890,14 @@ r = (1 − f + f(1 + R)²)/L² (§9).
 - **Timing**: no clock jitter/drift, no relative motion (Doppler), single pulsar only.
   Earth's orbital v/c ≈ 1e-4 → ≈ 100 µs phase drift per second at f0 = 100 Hz: the
   navigation signal itself; needs Doppler terms in the fold phase model (Block 3).
+  **No binary motion of the pulsar** (13 Oct, `2026-10-13_deep-analysis.md` §14): J0437
+  (x = 3.37 lt-s, P_b = 5.74 d) moves its arrival time by ~3 s per 20 h fold (0.15 s/h), against
+  a fold budget of W50/10 ≈ 14 µs; J2145−0750 and J1713+0747 are binaries too. The phase
+  predictor (D) needs a binary model (ELL1 suffices for J0437 at µs), and tests of D need
+  binary motion in the simulator. **Position prior**: δr gives ≤ δr/c, varying daily; J0437's
+  fold needs ≲ 4 km, normal pulsars ~100 km. **First fix** (§15, §17; scenario numbers, no
+  timing noise): ~300 km from 30° S after 184 h on source worst case (~2–3 weeks of calendar
+  time), ~1500 km from 52° N.
 - **Pulse**: stable Gaussian profile, no pulse-to-pulse jitter (a noise floor for bright
   MSPs, not in the low-SNR regime), no profile evolution with frequency, no polarisation. Gaussian-specific places to revisit for real data or other
   shapes: `ephem.profileFWHM` (→ template per pulsar), the generator and
@@ -2330,6 +2338,21 @@ barycentric corrections, navigation solution).
 
    Confirmed: every key constant, the formulas page, the ground-truth rule, no timing offset,
    full determinism. For Jasper to choose.
+   Wider round (same log, §13–17):
+   - the Rice threshold is exact by a 10⁶-profile Monte Carlo with the fold's bin correlation
+     (P_FA 1.00e-3 at η 4.155; 0.95e-4 at the Rice 1e-4 threshold);
+   - **block D must model the pulsar's binary orbit** (J0437: ~3 s per 20 h fold; §9);
+   - the fold needs a position prior of ≲ 4 km for J0437;
+   - a first 4-pulsar fix is ~300 km after ~2–3 weeks (30° S, worst case);
+   - all 109 option defaults, 407 docs links, the docs' recomputable numbers and the figures
+     check out.
+
+   Docs errors fixed in `27ce31f` / `ac9ae3f` (Rice factor, LTE "planned", 800 MHz, limits
+   "< 1 %", channels result, scenario ρ conventions, 373·ρ, sweep file names). Open:
+   - the roadmap's "commit pending" (another session is editing `roadmap.html`);
+   - whether the 1 Oct noise runs validate the noise versions of `plotDetectedPower` /
+     `plotFoldCheck` (Jasper);
+   - items 3, 4, 8, the χ² threshold, a bright-pulsar excision warning (Jasper).
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR

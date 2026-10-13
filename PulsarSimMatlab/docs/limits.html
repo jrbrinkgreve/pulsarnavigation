@@ -58,6 +58,15 @@ receiver (bandpass on pulsar and noise) the channel path would cost 0.37 % (<cod
 wander cannot. Belongs in the phase predictor (D); "what oscillator does the hardware have?" is an open question.</li>
 <li><b>No relative motion.</b> Earth's orbital v/c ≈ 10⁻⁴ → ≈ 100 µs per second of phase drift at 100 Hz. That drift is the navigation signal; it needs
 Doppler terms in the fold phase model (block D, a hard requirement for multi-day folds).</li>
+<li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day orbit
+(projected size 3.37 light-seconds): its orbit moves the arrival time by ~3 s within one 20 h fold (0.15 s per hour), ~2·10⁵× the fold's
+phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. The phase predictor (D) needs a binary timing model
+(circular-orbit ELL1 suffices for J0437 at the µs level), and end-to-end tests of D need binary motion in the simulator.</li>
+<li><b>Position prior for folding.</b> A station position error δr gives a daily-varying delay error up to δr/c, which smears a long fold:
+J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km. A fix from scratch starts from the normal pulsars and refines with J0437.</li>
+<li><b>Navigation expectations</b> (rough, from the scenario numbers, no timing noise): a first 4-pulsar fix from 30° S (J0437, Vela,
+B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7 ms TOAs, after 184 h on source worst case (34 h nominal),
+~2–3 weeks of calendar time with visibility; from 52° N (no MSP) ~1500 km after weeks to months. See <a href="scenario.html">scenario</a>.</li>
 <li><b>Single pulsar.</b></li>
 <li><b>Stable Gaussian profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization. Places to revisit for real profiles:
 <code>ephem.profileFWHM</code> (→ a template per pulsar), the generator and <code>expectedPowerModel</code> profile, the 1 %-of-peak on-pulse threshold in

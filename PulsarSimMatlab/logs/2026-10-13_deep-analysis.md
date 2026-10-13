@@ -35,6 +35,16 @@ MATLAB runs.
    the ground-truth rule, no timing offset (−0.21 / −0.05 µs), full determinism. The design
    rule's 373·ρ is 360·ρ on the default path (~7 % more turns).
 
+9. **Rice threshold exact** (section 13): a 10⁶-profile Monte Carlo with the fold's
+   correlation gives P_FA 1.00e-3 at η 4.155.
+10. **Block D must model the pulsar's binary orbit** (section 14): J0437's orbit moves the
+    arrival time by ~3 s per 20 h fold, against a 14 µs budget; it appears in no plan. The
+    fold also needs a position prior of ≲ 4 km for J0437.
+11. **Navigation expectations** (sections 15, 17): a first 4-pulsar fix is ~300 km after
+    ~2–3 weeks (30° S, worst case), limited by the normal pulsars; ~1500 km from 52° N.
+12. **Wider checks** (section 16): all 109 option defaults, 407 links, the recomputed docs
+    numbers and the figures are right; one more docs error (sweep file names) fixed.
+
 Interaction: fixing item 3/4 with a realistic receiver makes the six edge channels non-flat,
 which is the parked per-channel calibration problem (section 6).
 
@@ -590,14 +600,10 @@ and puts a calendar number on block E's first fix.
 ## Status at the end of this round
 
 Committed: `27ce31f` (docs errors and the log) and `ac9ae3f` (wider round, scripts page).
-This section is in the next commit.
+This section is in the next commit. Later (Jasper: "note these findings"): summary items
+9–12 added at the top; findings recorded in notes §9 (binary orbit, position prior, first
+fix) and §10 (item 12), and on the limits page.
 
-Not done:
-- the roadmap's "commit pending" (the parallel session is editing `roadmap.html`);
-- the summary at the top of this log does not yet list sections 13–17. Their highlights:
-  - the Rice threshold is exact by Monte Carlo;
-  - block D needs the pulsar's binary orbit;
-  - the first fix is ~300 km after ~2–3 weeks (worst case, southern site);
-  - docs numbers, defaults and links all check out.
+Not done: the roadmap's "commit pending" (the parallel session is editing `roadmap.html`).
 
 Possible next steps: refresh the summary; a full GDOP / visibility schedule for a chosen site.
