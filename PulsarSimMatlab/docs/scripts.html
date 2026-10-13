@@ -72,7 +72,7 @@ refFreq; before 13 Oct only T, L, f_in, seed, DM, band).</li>
 <h2 id="sweep"><code>runSNRSweep.m</code> <span class="badge validated">validated</span></h2>
 <p>Phases D and E: TOA precision, error-bar honesty, outliers and detection versus SNR, against the exact optimum.</p>
 <ul>
-<li>Top: <code>nReal</code> (10), <code>snrList</code> ([−25 −20 −15 −10 −5 0 10 20] dB), <code>replotOnly</code> (redraw from <code>data/mc/snrSweep.mat</code>).</li>
+<li>Top: <code>nReal</code> (10), <code>snrList</code> ([−25 −20 −15 −10 −5 0 10 20] dB), <code>replotOnly</code> (redraw from <code>data/mc/snrSweep.mat</code>, the last run's results).</li>
 <li>Per realization <var>j</var>: new sky with pulsar seed <code>seed + 100(j−1)</code>, noise seed = pulsar seed + 1 (<var>j</var> = 1 = main's 42/43, a built-in
 check with <code>frontEnd = 'fullband'</code>). The same sky and noise seed for every SNR (noise only rescaled: common random numbers, smoother curves; TOAs within one
 SNR point stay independent).</li>
@@ -83,7 +83,8 @@ SNR point stay independent).</li>
 <div class="callout why"><span class="ttl">Why a very low SNR is not used as H0</span>
 <p>−50 dB is not "no pulsar": it is a real small-antenna operating point that only needs long integrations. H0 must be a zero sky.</p></div>
 <p>Results: <a href="results.html#sweep">validation record</a>. Variant run on 6 Oct with <code>nReal</code> 20 and −20…−15 dB in 1 dB steps: the
-<a href="results.html#threshold">threshold sweep</a> (results kept in <code>data/mc/snrSweep_phaseDE.mat</code>).</p>
+<a href="results.html#threshold">threshold sweep</a>. Its results are in <code>data/mc/snrSweep.mat</code> (the last run); the phase D/E sweep above
+(−25…+20 dB, 10 realizations) was kept as <code>data/mc/snrSweep_phaseDE.mat</code> before it.</p>
 
 <h2 id="h0"><code>runH0.m</code> <span class="badge validated">validated</span></h2>
 <p>Many independent noise-only profiles to test the H0 side of <code>detectPulsar</code> and the noise covariance model behind it (and behind the

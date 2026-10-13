@@ -452,3 +452,115 @@ All text only. Fixed:
 editing the roadmap and the notes in parallel (Jasper's review-week window: stage 2/3 notes
 D1, D2, N1 and `logs/2026-10-13_review-week.md`, uncommitted). Its changes are left
 untouched and uncommitted; only this session's hunks are committed.
+
+## 13. Detection thresholds: exact Monte Carlo confirms Rice (wider round)
+
+10⁶ noise-only profiles in numpy: 2048 phase bins, Gaussian noise with the fold's
+linear-split correlation (0.25 between neighbours, a 2-tap filter), the zero-mean 5 %
+template, the same discrete search over the 2048 bin shifts as `detectPulsar`:
+
+| Test | η | Measured P_FA | Nominal |
+|---|---|---|---|
+| known phase | 3.090 | 1.06e-3 | 1e-3 |
+| unknown phase, Rice for 1e-3 | 4.155 | **1.00e-3 ± 0.03e-3** (MC threshold 4.156) | 1e-3 |
+| unknown phase, Rice for 1e-4 | 4.676 | 0.95e-4 ± 0.10e-4 (MC threshold 4.664) | 1e-4 |
+| white noise for comparison | 4.155 | 1.07e-3 | 1e-3 |
+
+- The bin correlation smooths T(τ) slightly, so there are fewer up-crossings.
+- Rice is exact at 1e-3 and slightly conservative at 1e-4, and becomes more accurate further
+  into the tail. The limits page's "P_FA 1e-6 by extrapolating Rice tails" is therefore on
+  firm ground for Gaussian fold noise. This complements `runH0` (full band, 10³ profiles) and
+  `testOptimalTOA` test 8.
+
+## 14. Further: what block D's phase predictor must model (J0437, a 20 h fold)
+
+The fold's phase-model error budget for J0437 is W50/10 ≈ 14 µs over the fold
+(W50 = 0.141 ms). Delays of the effects (sinusoidal approximations):
+
+| Effect | Delay amplitude | Max v/c | Change in 1 h | Change in 20 h |
+|---|---|---|---|---|
+| Earth orbit (Roemer) | 499 s | 9.9e-5 | 0.36 s | 7.2 s |
+| Earth rotation (R_E/c) | 21 ms | 1.5e-6 | 5.6 ms | 42 ms |
+| **J0437 binary orbit** (x = 3.367 lt-s, P_b = 5.741 d) | 3.37 s | 4.3e-5 | 0.15 s | **3.0 s** |
+| J2145−0750 binary (x 10.16 lt-s, P_b 6.84 d) | 10.2 s | 1.1e-4 | 0.39 s | 7.6 s |
+| J1713+0747 binary (x 32.3 lt-s, P_b 67.8 d) | 32.3 s | 3.5e-5 | 0.13 s | 2.5 s |
+| clock rate 1e-9 / 1e-10 | – | – | – | 72 / 7.2 µs |
+| station position error 1 / 4 / 40 km | ≤ 3.3 / 13 / 133 µs, varying daily with Earth rotation | | | |
+
+(Binary parameters are approximate catalogue values.)
+
+**New for the plan.** The pulsar's own binary motion is in no note, docs page or roadmap.
+Block D lists Earth's orbit and rotation, station position and the clock. But the primary
+reference pulsar J0437−4715 is a binary: its orbit moves the arrival time by ~3 s within one
+20 h fold, about 2·10⁵ times the budget. Two more pulsars in the scenario table are binaries
+too (J2145−0750, J1713+0747; the others are isolated). So:
+- the D phase predictor needs a binary timing model (circular-orbit ELL1 is enough for
+  J0437 at the µs level; the catalogue parameters are precise enough);
+- end-to-end tests of D need binary motion in the simulator (generator or block C), the same
+  machinery as Earth's Doppler, with a different period and amplitude.
+
+**Position prior (bootstrapping).** A station position error δr makes a daily-varying delay
+error of up to δr/c, which smears a long fold. For J0437 the fold needs the position to
+≲ 4 km (W50/10). Normal pulsars, with W50 of a few ms, tolerate ~100 km. A navigation
+solution from scratch therefore has to start from the wide-pulse pulsars (or a coarse prior)
+and refine with J0437, or search over position like an acceleration search.
+
+**Clock.** A stability of ~1e-10 over a fold keeps the drift within the budget (7 µs in
+20 h); 1e-9 needs a fitted rate (the limits page says so).
+
+## 15. Further: a first 4-pulsar fix from the scenario numbers (block E expectations)
+
+Weighted least squares for 3-D position and the clock. Assumptions:
+- one TOA per pulsar with the scenario's σ_TOA and time per TOA, observed one after the
+  other;
+- directions from the J2000 names;
+- no timing noise or glitches (normal pulsars and Vela have them), visibility ignored.
+
+| Pulsars | 3-D position error | PDOP | Time (worst / nominal) |
+|---|---|---|---|
+| J0437 + Vela + B0950+08 + B1749−28 | 311 km | 3.3 | 184 h / 34 h |
+| J0437 + Vela + B0950+08 + B1642−03 | 313 km | 3.3 | 366 h / 68 h |
+| J0437 + Vela + B1642−03 + B1749−28 | 541 km | 4.6 | 395 h / 74 h |
+| northern only: B0329+54 + B0950+08 + B1642−03 + B1929+10 | 1550 km | 10.8 | 920 h / 171 h |
+
+Reading:
+- The first fix is limited by the normal pulsars' 0.3–0.7 ms TOAs, not by J0437 (12 µs) or
+  Vela. Repeated fixes improve as 1/√N, so ~30 km would need ~100 fixes: about 2 years in the
+  worst case (100 × 184 h), ~5 months nominal (100 × 34 h).
+- The faint MSPs (B1937+21 at 5 µs, J1713+0747, J2145−0750) would fix the geometry
+  precisely but take months to years per TOA (scenario page).
+
+This is a rough expectation, not a design. It suggests that block E's achievable precision
+with this hardware is set by the normal pulsars and by integration time. That is worth
+knowing before D and E are scoped: e.g. averaging many J0437 + Vela TOAs to constrain two
+directions very well, with the clock and the third direction from the slow pulsars.
+
+## 16. Wider round: docs numbers, links, figures, statuses
+
+- **Numbers recomputed from the code's formulas, all right:**
+  - forward kernel 25,229,772 taps; at L = 1 s: Nfft 2^28, block 243,205,685 samples
+    (90.6 %), 17 blocks, 11.8 GB;
+  - full-band dedispersion nPast 2001 / nFuture 5,043,956 (= the info file);
+  - τ(1.6 GHz) 8.103 ms, τ(1.2 GHz) 14.406 ms;
+  - IQ transition 9.8 MHz; channelizer prototype 3853 taps;
+  - `detectRFI` n_eff 15.8, and the Gamma approximation's false-flag excess 1.02 / 1.04 /
+    1.08–1.10 at P_FA 1e-3 / 1e-4 / 1e-6 (help text and excision page).
+- **Option defaults:** all 109 options with defaults (`arguments` blocks) compared with every
+  docs mention "Option (value)": no mismatch, only notation (16 ms = 16e-3, 2²², 10⁻⁶) or
+  context (the glossary's NBin 2048 is main's value).
+- **Links:** all 407 internal links and `#anchors`, and `nav.js`, resolve.
+- **Figures:** `gen_results.py` plots exactly the saved phase D/E sweep
+  (`data/mc/snrSweep_phaseDE.mat`: rms, robust, predicted, optimum per SNR). `gen_scen.py`
+  uses the scenario table.
+- **Docs error found and fixed** (`docs/scripts.html`): it said the threshold sweep's results
+  are in `snrSweep_phaseDE.mat`, but that file holds the phase D/E sweep and
+  `snrSweep.mat` the threshold sweep (checked in the files). Maintenance row added.
+- **Probably stale status, Jasper to decide:** notes §5.10 / §13 and `docs/validation.html`
+  label `plotDetectedPower` and `plotFoldCheck` "noise version written". Notes §7 records
+  their noise versions running at −5 dB on 1 Oct with correct statistics: detected-power
+  residual std 0.9995 (73,604 bins), fold std 0.987 / 0.990. Whether that run counts as
+  validation (rule: Jasper's run) is for Jasper.
+- **Cross-reference to the parallel review-week notes** (stage 2, D2: the truth convention
+  is coupled to `refFreq`). Since `8a756ec` a `refFreq` that differs between the sky files and
+  `pipelineParams` is at least caught by `checkSkyFiles` (warning in `main`, stop in the
+  scripts). The coupling itself remains as D2 describes.
