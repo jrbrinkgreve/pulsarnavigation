@@ -175,6 +175,9 @@ new as its input's; f_out (samples per bin), DM, refFreq, band, chanWidth; weigh
 file) and `checkFold` (power file, age, nBin, subintPeriods, ephemeris, data-weight file);
 warnings `main:staleProcessing` / `main:staleFold`. Not checked: the excision and periodic-mask
 options (not stored in the infos).
+Since 14 Oct: warning `main:brightExcision` on the channel path when `excision` is on and
+`snrDB` > −5 (or Inf, noise-free): `detectRFI` then blanks the pulse itself (§5.20). A
+driver-level check of a simulation setting, like the reuse checks; processing unchanged.
 `plots.*` switch the check figures; `closeFigures` runs `close all`.
 
 **Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
@@ -707,9 +710,15 @@ Receiver noise sees only W_inv, so this is exact for it; when the pulsar dominat
 
 **Outputs** per sub-int: valid, coverage (default `MinCoverage` = 1: complete turns
 only), phase, phaseErr, toa, toaErr, amp, ampErr, baseline, snr (= b/σ_b), redChi2
-(on-pulse bins, model > 1 % of peak), flagChi2, tRef, fRef, turnRef; `toa.total` (whole
-fold): phase, phaseErr, timeOffset (= phase/f0, relative to the ephemeris, **not** an
-absolute TOA), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2.
+(on-pulse bins, model > 1 % of peak), flagChi2, converged, tRef, fRef, turnRef; `toa.total`
+(whole fold): phase, phaseErr, timeOffset (= phase/f0, relative to the ephemeris, **not** an
+absolute TOA), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, converged.
+`converged` (14 Oct 2026; deep analysis §9): 'optimal' iterates fit → weights until τ and b
+change by < 1e-12, at most `MaxIterations` (10); before, its flag was set but dropped, so a
+sub-int that ran all rounds was reported as normal. Now kept per sub-int and for the total
+fold, and the summary counts valid sub-ints that did not converge (their TOA is kept);
+'equal' does not iterate (true). Old outputs bit-identical; main's folds (channel path
+'optimal' and 'equal', full band) all converged; forced to 2 rounds, none did.
 
 **Quality flag** (6 Oct 2026): option `MaxRedChi2` (default 2) → `flagChi2` = redChi2 > 2.
 Red. χ² = Σ (p_j − m_j)²/v_j over the on-pulse bins / (n − 3): normalized residuals
@@ -1245,6 +1254,12 @@ get m up to 1/ln 2 too high → they flag less (intended: not excised; little we
 samples, (3853 − 1)/2/192 → 10), merged. Windows only up to 16 samples (decision 8 Oct):
 at −5 dB the pulse raises the power by 32 % and 256-sample windows blank 14 % of the
 on-pulse data; from −20 dB down no window is triggered by the pulsar (≤ 2.3e-6).
+**Limit: bright pulsars** (deep analysis 13 Oct §4; help text 14 Oct): valid for ρ ≲ 0.3
+(`snrDB` ≤ −5). On the pulse peak, 16-sample windows are flagged 10 % at 0 dB, 63 % at +3 dB,
+almost all from +5 dB; from +10 dB single samples pass 100× and the frequency guard spreads;
+noise-free data flags every on-pulse window. The mask depends on the pulse, which
+`blankingWeights` does not model: TOA unbiased (symmetric), amplitude, SNR, χ² wrong. `main`
+warns (`main:brightExcision`, §3).
 **Frequency guard (B5b-2, 8 Oct).** A strong event (peak sample power ≥ `FreqGuardMin`
 = 100 × baseline, +20 dB) is also blanked, same samples, in `FreqGuard` channels on each
 side (**default 7**, Jasper, from the B5b sweep: 1 µs locked-radar bias only below −51 dB,
@@ -1953,7 +1968,9 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   it removes the highest samples, so the kept noise is slightly truncated; with ~1e-4 of
   clean data flagged this is phase-uniform and negligible at weak SNR, but at −5 dB the
   pulsar triggers flags on-pulse (9e-4 vs 4.5e-5) → pulse amplitude −0.4 % (symmetric, no
-  TOA shift). (b) Radar leftover after excision (energy, all channels): ≈ 0.16 % with
+  TOA shift). Brighter than −5 dB the pulse blanks itself (from 0 dB 10 % of the peak windows,
+  almost all from +5 dB; noise-free: every on-pulse window), so amplitude, SNR and χ² are wrong;
+  `main` warns since 14 Oct (§5.20). (b) Radar leftover after excision (energy, all channels): ≈ 0.16 % with
   instant edges (sinc sidelobes over tens of MHz), 0.010 % with the realistic 0.1 µs edges
   (default since B5a; within ±5 MHz, below threshold per channel), ~0 (< 1e-6) with the
   frequency guard ±7 (default since B5b-2). Unlocked: phase-uniform noise. Locked to the
@@ -2334,12 +2351,14 @@ barycentric corrections, navigation solution).
    checks, nothing changed). Findings:
    - item 3 explains the whole 2.2 % channel-vs-full-band error-bar gap (pulsar-only taper
      1.1 % + `ChannelGain` 1 in six edge channels 1.0 %; a realistic receiver: 0.37 %);
-   - default excision blanks bright pulsars (≥ 0 dB) and noise-free runs;
+   - default excision blanks bright pulsars (≥ 0 dB) and noise-free runs (**done 14 Oct**: limit
+     in `detectRFI`'s help, warning `main:brightExcision`; log `2026-10-14_small-fixes.md`);
    - `MaxRedChi2` 2 is 130σ on the channel path (B5e's χ² 1.22 passes);
    - "−54 dB" is −51 dB for J0437 in `snrDB` terms (the simulator at −54 dB: ~62 h per TOA);
    - the Rice factor is misread as a trial count on three docs pages (true ~60 trials);
    - item 5: no usable guard recovers turn 0;
-   - `fitOptimal`'s convergence flag is dropped;
+   - `fitOptimal`'s convergence flag is dropped (**done 14 Oct**: `toa.converged`, counted in the
+     summary; bit-identical otherwise);
    - SNR per turn 360·ρ on the default path (the rule says 373·ρ).
 
    Confirmed: every key constant, the formulas page, the ground-truth rule, no timing offset,
@@ -2358,7 +2377,7 @@ barycentric corrections, navigation solution).
    - the roadmap's "commit pending": fixed 13 Oct (docs rewrite session, `2026-10-13_docs-rationale.md`);
    - whether the 1 Oct noise runs validate the noise versions of `plotDetectedPower` /
      `plotFoldCheck` (Jasper);
-   - items 3, 4, 8, the χ² threshold, a bright-pulsar excision warning (Jasper).
+   - items 3, 4, 8, the χ² threshold (Jasper). (The bright-pulsar excision warning: done 14 Oct.)
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR

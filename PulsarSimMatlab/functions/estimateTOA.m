@@ -69,7 +69,8 @@ Name-value options:
                 (pulsar spectrum x bandpass, observer knowledge); default
                 1 for every channel.
   'MaxIterations' 'optimal': fit -> weights -> fit until tau and b change
-                by < 1e-12 (default 10 rounds at most).
+                by < 1e-12 (default 10 rounds at most); toa.converged says
+                whether that criterion was met.
   'MinCoverage' fraction of phase bins that must have data (default 1:
                 only complete turns). Missing bins are filled by circular
                 linear interpolation and get zero weight in the noise.
@@ -90,12 +91,14 @@ Outputs:
   toa   struct, per sub-integration (column vectors, NaN when invalid):
           valid, coverage, phase [turns], phaseErr, toa [s], toaErr [s],
           amp (b), ampErr, baseline (a), snr (= b/ampErr), redChi2,
-          flagChi2 (redChi2 > MaxRedChi2), tRef, fRef, turnRef,
-          nChanUsed (channels combined), chanBaseline [nSub x nChan]
-          ('optimal': a_c per channel, NaN where unused)
+          flagChi2 (redChi2 > MaxRedChi2), converged ('optimal': the
+          fit -> weights loop met its criterion within MaxIterations;
+          'equal' does not iterate: true; false when invalid), tRef, fRef,
+          turnRef, nChanUsed (channels combined), chanBaseline
+          [nSub x nChan] ('optimal': a_c per channel, NaN where unused)
         plus toa.total (the whole fold): phase, phaseErr, timeOffset
         [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2,
-        nChanUsed.
+        converged, nChanUsed.
   info  method, noise model, Bnoise, harmonics, template, binResolution
         (max(binDt*f0, 1/NBin) [turns]), templateWidth (narrowest width at
         half maximum [turns]).
@@ -219,6 +222,7 @@ nanv = nan(nSub, 1);
 toa = struct('valid', false(nSub, 1), 'coverage', nanv, 'phase', nanv, ...
     'phaseErr', nanv, 'toa', nanv, 'toaErr', nanv, 'amp', nanv, 'ampErr', nanv, ...
     'baseline', nanv, 'snr', nanv, 'redChi2', nanv, 'flagChi2', false(nSub, 1), ...
+    'converged', false(nSub, 1), ...
     'tRef', fold.subint.tRef, 'fRef', fold.subint.fRef, 'turnRef', fold.subint.turnRef, ...
     'nChanUsed', zeros(nSub, 1), 'chanBaseline', nan(nSub, nChan));
 
@@ -256,6 +260,7 @@ for s = 1:nSub
     toa.snr(s)      = r.b / r.bErr;
     toa.redChi2(s)  = r.redChi2;
     toa.flagChi2(s) = r.redChi2 > opts.MaxRedChi2;
+    toa.converged(s) = r.converged;
 end
 
 % ---- Total fold -------------------------------------------------------------------------
@@ -273,7 +278,7 @@ end
 toa.total = struct('phase', rt.tau, 'phaseErr', rt.tauErr, ...
     'timeOffset', rt.tau / info_fold.f0, 'timeOffsetErr', rt.tauErr / info_fold.f0, ...
     'amp', rt.b, 'ampErr', rt.bErr, 'snr', rt.b / rt.bErr, 'redChi2', rt.redChi2, ...
-    'flagChi2', rt.redChi2 > opts.MaxRedChi2, 'nChanUsed', nUsedT);
+    'flagChi2', rt.redChi2 > opts.MaxRedChi2, 'converged', rt.converged, 'nChanUsed', nUsedT);
 
 info = struct('method', 'FFTFIT (Fourier-domain template matching), Newton-refined', ...
     'noiseModel', model, 'Bnoise', opts.Bnoise, 'binDt', binDt, 'harmonics', K, ...
@@ -295,6 +300,10 @@ if opts.Verbose
         fprintf('  %d sub-int(s) flagged: red. chi2 > %g (profile is not template + noise)\n', ...
             nnz(toa.flagChi2), opts.MaxRedChi2);
     end
+    if any(v & ~toa.converged)
+        fprintf('  %d sub-int(s) not converged in %d rounds (fit -> weights; TOA kept)\n', ...
+            nnz(v & ~toa.converged), opts.MaxIterations);
+    end
     fprintf('  total fold: phase offset %+.3e turns = %+.4f +- %.4f us, SNR %.1f\n', ...
         rt.tau, toa.total.timeOffset*1e6, toa.total.timeOffsetErr*1e6, toa.total.snr);
 end
@@ -310,7 +319,7 @@ N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
 p = ch.p; Pc = ch.Pc; W = ch.W; W2 = ch.W2; WX = ch.WX; have = ch.have;
 nLag = size(WX, 3);
 r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, ...
-           'a', NaN, 'redChi2', NaN);
+           'a', NaN, 'redChi2', NaN, 'converged', false);
 if ~any(have), return; end
 if ~all(have)                                       % fill gaps circularly
     idx = find(have);
@@ -418,6 +427,7 @@ r.b       = b;
 r.bErr    = sqrt(max(varC0, 0)) / sumS2;
 r.a       = a;
 r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
+r.converged = true;                                 % no iteration
 end
 
 
@@ -429,7 +439,7 @@ function r = fitOptimal(Pc, W, W2, WX, B, sGain, c)
 % from the noise model with the current fit, iterated to convergence; see the header.
 N = c.N; nChan = size(Pc, 2);
 r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, 'a', NaN, ...
-           'redChi2', NaN, 'nUsed', 0, 'aC', nan(1, nChan));
+           'redChi2', NaN, 'nUsed', 0, 'aC', nan(1, nChan), 'converged', false);
 if size(W, 2) == 1                                  % shared weights
     W = repmat(W, 1, nChan); W2 = repmat(W2, 1, nChan); WX = repmat(WX, 1, nChan, 1);
 end

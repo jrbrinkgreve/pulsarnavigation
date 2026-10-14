@@ -130,7 +130,9 @@ since 13 Oct: the tests read only <code>data/test/</code>.</p></div>
 <ol>
 <li>paths and <code>pipelineParams;</code>, a disk estimate;</li>
 <li>sky (generator + dispersion) or reload; optional <code>plotDispersionCheck</code>;</li>
-<li>receiver (noise/RFI + IQ) or reload; <code>checkConsistency</code>;</li>
+<li>receiver (noise/RFI + IQ) or reload; <code>checkConsistency</code>; on the channel path with excision, a warning
+(<code>main:brightExcision</code>, since 14 Oct) when the pulsar is brighter than −5 dB or noise-free, because <code>detectRFI</code> then blanks
+the pulse itself (<a href="excision.html#limits">excision limits</a>);</li>
 <li>processing: full band (dedispersion + detection) or channels (channelizer → [detectRFI → blankChannels] → dedisperseChannels →
 detectChannels → [blankingWeights]), or reload + <code>checkProcessing</code>; optional IQ and detection checks (full band);</li>
 <li>fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel path) or reload + <code>checkFold</code>; optional fold check;</li>

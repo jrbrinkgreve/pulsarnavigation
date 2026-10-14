@@ -45,6 +45,15 @@ samples would also flag a bright pulsar (at -5 dB the pulse raises the
 power by 32 %: a 256-sample window on the pulse peak sits at its
 threshold); at the target -25 ... -54 dB the pulsar cannot trigger any
 window.
+Limit: valid for a pulsar at most ~0.3 x the receiver noise (SNRdB <= -5 dB).
+A brighter pulse blanks itself: on the pulse peak 10 % of the 16-sample
+windows are flagged at 0 dB, 63 % at +3 dB, almost all from +5 dB, and from
++10 dB single samples pass 100 x the baseline, so the frequency guard
+blanks neighbouring channels too. Noise-free data (no receiver noise) is
+the extreme case: the baseline is ~0 off the pulse and every on-pulse
+window is flagged. The mask then depends on the pulse itself, which
+blankingWeights does not model: the TOA stays unbiased by symmetry, but
+amplitude, SNR and red. chi^2 are wrong (deep analysis 13 Oct 2026, s. 4).
 
 --- Baseline -------------------------------------------------------------------------
 m per channel and per block of 'BaselineTime' (default 16 ms; slow gain

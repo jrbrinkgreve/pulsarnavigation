@@ -159,7 +159,8 @@ B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7
 </ul>
 
 <h2 id="rfi">RFI excision</h2>
-<p>See <a href="excision.html#limits">RFI excision: limits</a>: data-dependent truncation (−0.4 % pulse amplitude at −5 dB), residual bias from
+<p>See <a href="excision.html#limits">RFI excision: limits</a>: data-dependent truncation (−0.4 % pulse amplitude at −5 dB), bright pulsars (above −5 dB, or noise-free) blanking themselves
+(<code>main.m</code> warns), residual bias from
 an exactly locked radar (0.41 µs at −54 dB with the frequency guard and the periodic mask), the periodic mask for fixed PRFs only (staggered
 PRFs not yet), carrier/GNSS channels with high baselines, windows ≤ 16 samples, noise-like RFI undetectable, assumed 0.1 µs radar rise time.</p>
 <div class="callout warn"><span class="ttl">Flat spectrum within a channel (found 8 Oct, B5d)</span>

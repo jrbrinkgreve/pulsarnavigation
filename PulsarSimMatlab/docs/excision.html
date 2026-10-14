@@ -879,6 +879,13 @@ reported (<code>info.unfitted</code>), and its detected pulses are still blanked
 <ul>
 <li><b>Data-dependent:</b> blanking removes the highest samples, so the kept noise is slightly truncated. Negligible at weak SNR; at
 −5 dB it costs 0.4 % of pulse amplitude.</li>
+<li><b>Bright pulsars blank themselves</b> (deep analysis, 13 Oct). <code>detectRFI</code> is meant for a pulsar at most ~0.3× the
+receiver noise (−5 dB or weaker). On the pulse peak it flags 10 % of the 16-sample windows at 0 dB, 63 % at +3 dB and almost all from
++5 dB. From +10 dB single samples pass 100× the baseline, so the frequency guard blanks neighbouring channels too. Noise-free data is
+the extreme case: every on-pulse window is flagged. The mask then depends on the pulse, which <code>blankingWeights</code> does not
+model: the TOA stays unbiased (the pulse is symmetric), but amplitude, SNR and χ² are wrong. Since 14 Oct <code>main.m</code> warns
+(<code>main:brightExcision</code>) when excision is on and <code>snrDB</code> &gt; −5 dB or noise-free; set <code>excision = false</code> for such
+checks. The weak-signal target is far from this.</li>
 <li><b>Locked RFI:</b> with the frequency guard and the periodic mask, 0.41 µs bias at −54 dB for an exactly locked radar on the
 worst phase (guard alone: 2 µs). The guard width is fixed, not scaled with the event's strength. The periodic mask handles fixed
 PRFs only (section 8).</li>

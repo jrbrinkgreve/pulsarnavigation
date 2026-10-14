@@ -197,7 +197,8 @@ knowledge of the pulsar spectrum × bandpass), and one τ.</p>
 shape uses all channels' information for the one thing that matters, the shift.</p></div>
 <ul>
 <li>Weights 1/variance per bin and channel (radiometer model with the current fit, or per-channel off-pulse residuals), iterated to
-convergence (|Δτ| &lt; 10⁻¹², ≤ <code>MaxIterations</code> 10).</li>
+convergence (|Δτ| &lt; 10⁻¹², ≤ <code>MaxIterations</code> 10). Whether it converged is kept in <code>toa.converged</code>
+(since 14 Oct 2026; before, the flag was dropped). A sub-int that did not converge keeps its TOA, and the summary counts it.</li>
 <li>For fixed τ, <var>a</var><sub>c</sub> and <var>b</var> by weighted least squares; τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ), the weighted matched filter: FFT
 correlations on the upsampled grid, a bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a value-only search stops at ~10⁻¹⁰ turns).</li>
 <li><b>Error bars: sandwich</b> Cov = <var>A</var>⁻¹<var>BA</var>⁻¹, <var>A</var> = <var>J</var>ᵀ<var>WJ</var>, <var>B</var> = <var>J</var>ᵀ<var>W</var>Σ<var>WJ</var>, with the full covariance Σ of every channel (all lags).
@@ -392,8 +393,8 @@ Coarse time bins are the critical side. Main's settings: <var>r</var> = <var>w</
 <h2 id="outputs">8. Options and outputs</h2>
 <dl class="facts">
 <dt>Options</dt><dd><code>NoiseModel</code> (<code>'radiometer'</code> / <code>'offpulse'</code>), <code>Bnoise</code>, <code>Weighting</code> (<code>'equal'</code> default; main passes <code>'optimal'</code> on the channel path), <code>ChannelGain</code>, <code>MaxIterations</code> (10), <code>MinCoverage</code> (1: complete turns only), <code>MaxHarmonic</code>, <code>Upsample</code> (8), <code>OnPulseFrac</code> (0.01), <code>MaxRedChi2</code> (2), <code>Verbose</code></dd>
-<dt>Per sub-int</dt><dd>valid, coverage, phase, phaseErr, <b>toa</b>, <b>toaErr</b>, amp, ampErr, baseline, snr (= <var>b</var>/σ<sub>b</sub>), redChi2, flagChi2, tRef, fRef, turnRef, nChanUsed, chanBaseline</dd>
-<dt><code>toa.total</code></dt><dd>phase, phaseErr, timeOffset (relative to the ephemeris), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, nChanUsed</dd>
+<dt>Per sub-int</dt><dd>valid, coverage, phase, phaseErr, <b>toa</b>, <b>toaErr</b>, amp, ampErr, baseline, snr (= <var>b</var>/σ<sub>b</sub>), redChi2, flagChi2, converged ('optimal': the weight iteration met its criterion; 'equal' does not iterate: true), tRef, fRef, turnRef, nChanUsed, chanBaseline</dd>
+<dt><code>toa.total</code></dt><dd>phase, phaseErr, timeOffset (relative to the ephemeris), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, converged, nChanUsed</dd>
 </dl>
 <p><code>main.m</code> adds <code>toa.good</code> = valid ∧ detected (unknown phase) ∧ ¬flagChi2; see <a href="detection.html#good">good TOAs</a>.</p>
 
