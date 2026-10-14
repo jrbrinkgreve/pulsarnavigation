@@ -85,12 +85,14 @@ Validation:
   - `parameters.html`: the `excision` row;
   - `roadmap.html`: a new row "Small fixes from the deep analysis";
   - `maintenance.html`: a changelog row.
-- After the commit: `python3 docs/tools/make_api.py` (help texts of `estimateTOA` and
-  `detectRFI` changed), and the home page's "checked against commit" line.
+- After the commit: `api.html` regenerated, home page "checked against commit" line (done, see Status).
 
 ## Status
 
-Not committed (Jasper decides). Claude's validation only. Jasper's runs to call it validated:
+Committed on Jasper's request as `6ad5b4c` (only this session's hunks of the shared files `roadmap.html`,
+`limits.html` and the notes; the review-week session's work stays in the working tree). Then
+`api.html` regenerated from `6ad5b4c`, and the home page, roadmap status line and changelog
+pointed to it (docs commit). Claude's validation only. Jasper's runs to call it validated:
 
 - `runAllTests` (or `testChannelTOA` + `testOptimalTOA`) for item 1;
 - a `main` run for item 2, as is (no warning at −5 dB), and optionally with `snrDB = 0` and
