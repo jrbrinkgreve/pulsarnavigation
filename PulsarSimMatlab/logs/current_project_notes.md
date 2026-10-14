@@ -2637,6 +2637,19 @@ confirmed by Jasper; the "Design choices" boxes of each page):
 - **Monte Carlo runs and sweeps, not one `main.m` run, validate error bars** (validation): the
   rms ratio is uncertain by ~1/√(2n): ±25 % with 8 TOAs, ±7.5 % with 90.
 
+Added 14 Oct (docs rewrite of the remaining pages; reasons reconstructed by Claude, confirmed by
+Jasper; docs `physics.html`, `tests.html`, `conventions.html`):
+- **A template fit, not the highest bin** (physics): the highest bin is limited to the bin width
+  and jumps with the noise; the centroid weights the noisy wings and is ~2× noisier than FFTFIT.
+- **Test pass criteria from the predicted σ** (tests): a hand-picked tolerance can be loose enough
+  to hide a real error or tight enough to fail a correct code by chance.
+- **A private stream per random process, not the global generator** (conventions): with one global
+  stream every draw would depend on every other draw.
+- **Headerless float32, not a self-describing format** (conventions): the description of each file
+  (rate, size, format, what it was made from) lives in its `_info.mat`.
+- **Detect → fold → template is also the cheapest order** (physics): detection cuts the data rate
+  ~800× on the full band, and folding turns hours of data into one profile before the fit.
+
 ---
 
 ## 13. File list

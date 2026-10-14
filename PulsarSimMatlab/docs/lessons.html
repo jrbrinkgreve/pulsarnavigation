@@ -13,6 +13,14 @@
 <p class="lede">Bugs found and fixed so far, and what each one taught. Many conventions on
 <a href="conventions.html">Conventions and why</a> exist because of one of these.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>Most bugs were timing or bookkeeping errors that a quick check could not see: a sign shared by the forward and inverse filter, an
+unremoved filter delay, a missing covariance. Each one became a rule. Check each direction against the physics; remove every delay;
+track every correlation; test every branch, the way Jasper runs it. The statistical lessons are about checks themselves: quote their
+uncertainty, and do not trust one seed.</p></div>
+
+<h2 id="bugs">The bugs</h2>
+
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Bug</th><th>Fix</th><th>Lesson</th></tr>
 <tr><td>1</td><td><b>Old dispersion kernel had the wrong sign</b>: τ(<var>f</var>) went into the phase, giving group delay −τ(<var>f</var>) (low frequencies
@@ -44,7 +52,87 @@ its cleanup ran at once and changed the folder → "Unrecognized function 'pipel
 <code>data/chan/</code>; an overlapping run gave noise 72× the radiometer value).</td></tr>
 </table></div>
 
-<h2>Findings that changed the design</h2>
+<h2 id="picture">One lesson in a picture: shared data means correlated noise (#8)</h2>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Bug 8: linear assignment makes neighbouring phase bins share noise; ignoring it makes the variance of a sum of bins up to 1.5 times too small">
+  <defs><marker id="ar-nb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+  <text class="ttl" x="10" y="20">a · one time bin feeds two phase bins</text>
+  <rect class="box" x="40" y="170" width="96" height="60" rx="5"/>
+  <text class="sub" x="88" y="248" text-anchor="middle">phase bin 1</text>
+  <rect class="box" x="140" y="170" width="96" height="60" rx="5"/>
+  <text class="sub" x="188" y="248" text-anchor="middle">phase bin 2</text>
+  <rect class="box" x="240" y="170" width="96" height="60" rx="5"/>
+  <text class="sub" x="288" y="248" text-anchor="middle">phase bin 3</text>
+  <rect class="box" x="340" y="170" width="96" height="60" rx="5"/>
+  <text class="sub" x="388" y="248" text-anchor="middle">phase bin 4</text>
+  <rect class="box rx" x="160" y="60" width="96" height="44" rx="5"/>
+  <text class="sub" x="208" y="78" text-anchor="middle">one detected</text>
+  <text class="sub" x="208" y="94" text-anchor="middle">time bin</text>
+  <path class="line" marker-end="url(#ar-nb)" d="M196 104 L188 166"/>
+  <path class="line" marker-end="url(#ar-nb)" d="M222 104 L280 166"/>
+  <text class="sub" x="150" y="140" text-anchor="end">70 %</text>
+  <text class="sub" x="262" y="140">30 %</text>
+  <path class="curve2" d="M188 200 H288" stroke-dasharray="4 3"/>
+  <text class="sub" x="238" y="194" text-anchor="middle">shared noise</text>
+  <text class="sub" x="40" y="280">Its phase lies between two bin centres, so its power is split</text>
+  <text class="sub" x="40" y="296">by distance (unbiased). Both bins now carry part of the same</text>
+  <text class="sub" x="40" y="312">noise: neighbours are correlated, 0.25 for a fold of many turns.</text>
+  <path class="axis" d="M520 280 H820"/>
+  <path class="axis" d="M520 50 V280"/>
+  <path class="axis" d="M520.0 280 v5"/>
+  <text class="sub" x="520.0" y="298" text-anchor="middle">1</text>
+  <path class="axis" d="M589.2 280 v5"/>
+  <text class="sub" x="589.2" y="298" text-anchor="middle">10</text>
+  <path class="axis" d="M666.2 280 v5"/>
+  <text class="sub" x="666.2" y="298" text-anchor="middle">20</text>
+  <path class="axis" d="M743.1 280 v5"/>
+  <text class="sub" x="743.1" y="298" text-anchor="middle">30</text>
+  <path class="axis" d="M820.0 280 v5"/>
+  <text class="sub" x="820.0" y="298" text-anchor="middle">40</text>
+  <path class="axis" d="M520 247.1 h-5"/>
+  <text class="sub" x="512" y="251.1" text-anchor="end">1.0</text>
+  <path class="axis" d="M520 214.3 h-5"/>
+  <text class="sub" x="512" y="218.3" text-anchor="end">1.1</text>
+  <path class="axis" d="M520 181.4 h-5"/>
+  <text class="sub" x="512" y="185.4" text-anchor="end">1.2</text>
+  <path class="axis" d="M520 148.6 h-5"/>
+  <text class="sub" x="512" y="152.6" text-anchor="end">1.3</text>
+  <path class="axis" d="M520 115.7 h-5"/>
+  <text class="sub" x="512" y="119.7" text-anchor="end">1.4</text>
+  <path class="axis" d="M520 82.9 h-5"/>
+  <text class="sub" x="512" y="86.9" text-anchor="end">1.5</text>
+  <path class="axis" d="M520 50.0 h-5"/>
+  <text class="sub" x="512" y="54.0" text-anchor="end">1.6</text>
+  <text class="sub" x="670.0" y="314" text-anchor="middle">adjacent phase bins summed, k</text>
+  <text class="sub" x="520" y="42" text-anchor="start">true variance ÷ assumed variance</text>
+  <path class="dash" d="M520 247.1 H820"/>
+  <path class="dash" d="M520 82.9 H820"/>
+  <path class="curve4" d="M520.0 247.1 L527.7 165.0 L535.4 137.6 L543.1 123.9 L550.8 115.7 L558.5 110.2 L566.2 106.3 L573.8 103.4 L581.5 101.1 L589.2 99.3 L596.9 97.8 L604.6 96.5 L612.3 95.5 L620.0 94.6 L627.7 93.8 L635.4 93.1 L643.1 92.5 L650.8 92.0 L658.5 91.5 L666.2 91.1 L673.8 90.7 L681.5 90.3 L689.2 90.0 L696.9 89.7 L704.6 89.4 L712.3 89.2 L720.0 88.9 L727.7 88.7 L735.4 88.5 L743.1 88.3 L750.8 88.2 L758.5 88.0 L766.2 87.8 L773.8 87.7 L781.5 87.6 L789.2 87.4 L796.9 87.3 L804.6 87.2 L812.3 87.1 L820.0 87.0"/>
+  <circle cx="520.0" cy="247.1" r="3" class="bad"/>
+  <circle cx="543.1" cy="123.9" r="3" class="bad"/>
+  <circle cx="566.2" cy="106.3" r="3" class="bad"/>
+  <circle cx="589.2" cy="99.3" r="3" class="bad"/>
+  <circle cx="612.3" cy="95.5" r="3" class="bad"/>
+  <circle cx="635.4" cy="93.1" r="3" class="bad"/>
+  <circle cx="658.5" cy="91.5" r="3" class="bad"/>
+  <circle cx="681.5" cy="90.3" r="3" class="bad"/>
+  <circle cx="704.6" cy="89.4" r="3" class="bad"/>
+  <circle cx="727.7" cy="88.7" r="3" class="bad"/>
+  <circle cx="750.8" cy="88.2" r="3" class="bad"/>
+  <circle cx="773.8" cy="87.7" r="3" class="bad"/>
+  <circle cx="796.9" cy="87.3" r="3" class="bad"/>
+  <circle cx="820.0" cy="87.0" r="3" class="bad"/>
+  <text class="sub" x="816" y="263.1" text-anchor="end">old error bars: neighbours independent</text>
+  <text class="sub" x="816" y="74.9" text-anchor="end">→ 1.5: variance 1.5× too small</text>
+  <text class="ttl" x="520" y="20">b · summing neighbours: the missing covariance</text>
+</svg>
+<figcaption>Lesson #8 in one picture. a: linear assignment splits a time bin's power between the two nearest phase bins, which removes
+a timing bias but makes neighbours share noise (schematic, split 70/30 as an example). b: any sum over bins, such as the template fit,
+then has more variance than a model with independent bins predicts: 1 + 2·0.25·(<var>k</var>−1)/<var>k</var>, up to 1.5× for a wide
+pulse. The fold now tracks this covariance (<code>weightX</code>), so the error bars include it.</figcaption>
+</figure>
+
+<h2 id="findings">Findings that changed the design</h2>
 <p>Not bugs, but results that changed a plan:</p>
 <ul>
 <li><b>Narrow-channel noise (6 Oct).</b> The radiometer model assumes independent time bins; in 3.125 MHz channels bins are correlated.
@@ -60,7 +148,7 @@ its cleanup ran at once and changed the folder → "Unrecognized function 'pipel
 <li><b>Rotating-radar sidelobe pulses are missed one by one (B5c).</b> → periodic mask (B6, done: predicted pulses blanked).</li>
 </ul>
 
-<h2>Statistical lessons</h2>
+<h2 id="statistics">Statistical lessons</h2>
 <ul>
 <li><b>Shared realizations make "independent" checks correlated.</b> The phase D ratios (1.03–1.06) and the phase E T0 std (1.10) looked like a
 5–10 % hole in the noise model; they came from the same 10 noise realizations. A long independent H0 run settled it (T0 std 1.008).</li>

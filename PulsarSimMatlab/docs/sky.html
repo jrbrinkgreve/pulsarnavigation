@@ -381,7 +381,7 @@ stream (<code>mt19937ar</code>, seed 42) that nothing else touches. Together thi
 
 <h3>Options and outputs</h3>
 <dl class="facts">
-<dt>Options</dt><dd><code>Seed</code> (private <code>mt19937ar</code> stream; clock-derived and reported if omitted), <code>EnvelopeMode</code> (<code>'power'</code> / <code>'amplitude'</code>), <code>BlockSize</code> (4e6), <code>SaveInfo</code>, <code>Verbose</code> (progress about every 10 %)</dd>
+<dt>Options</dt><dd><code>Seed</code> (private <code>mt19937ar</code> stream; clock-derived and reported if omitted), <code>EnvelopeMode</code> (<code>'power'</code> / <code>'amplitude'</code>), <code>BlockSize</code> (4e6), <code>SaveInfo</code> (true), <code>Verbose</code> (false; progress about every 10 %)</dd>
 <dt>Info</dt><dd>format, N, fs, T, A, L, dutycycle, envelopeMode, sigma, FWHM_power, FWHM_amplitude, <b>pulseCenters</b>, nPulses, seed, rngType, bytesWritten, elapsed</dd>
 </dl>
 <p>The run time is dominated by random-number generation.</p>

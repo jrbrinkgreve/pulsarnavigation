@@ -13,6 +13,12 @@
 <p class="lede">How the pipeline got to its current form, session by session, and every design decision with the
 reason it was taken. The dated logs in <code>logs/</code> have the full detail.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>The full-band chain was built and validated first (block 1, to 6 Oct). The reference scenario then showed the target is ~54 dB
+below the noise and full of interference, so a channelized front end (A) and RFI excision (B) came next, before the fast simulator.
+Since 12 Oct the review week goes through every stage again to understand and refine it. Every design decision is listed below with
+its reason.</p></div>
+
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#timeline">Session by session</a></li>
 <li><a href="#decisions">Decision log</a></li>
@@ -20,6 +26,73 @@ reason it was taken. The dated logs in <code>logs/</code> have the full detail.<
 </ol></div>
 
 <h2 id="timeline">1. Session by session</h2>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 312" role="img" aria-label="Project timeline: block 1, A, B and the review week as bars over the calendar from 29 September to 13 October 2026, with the session days">
+  <defs><marker id="ar-tl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+  <rect class="box sky" x="40.0" y="34" width="421.3" height="20" rx="4"/>
+  <text class="lbl" x="48.0" y="48">Block 1 · full-band chain</text>
+  <text class="sub" x="48.0" y="70">noise-free chain, −5 dB reference, Monte Carlo, SNR sweep, detection; closed 6 Oct</text>
+  <rect class="box proc" x="408.7" y="86" width="158.0" height="20" rx="4"/>
+  <text class="lbl" x="574.7" y="100">A · channelized front end</text>
+  <text class="sub" x="830.0" y="122" text-anchor="end">filterbank, exact noise, data weights, optimal fit; complete 8 Oct</text>
+  <rect class="box rx" x="514.0" y="138" width="105.3" height="20" rx="4"/>
+  <text class="lbl" x="627.3" y="152">B · RFI excision</text>
+  <text class="sub" x="830.0" y="174" text-anchor="end">blank before dedispersion, realistic scenario; closed for now 9 Oct</text>
+  <rect class="box val" x="724.7" y="190" width="105.3" height="20" rx="4"/>
+  <text class="lbl" x="716.7" y="204" text-anchor="end">review week</text>
+  <text class="sub" x="830.0" y="226" text-anchor="end">each stage explained; code review, frozen test data, docs</text>
+  <path class="axis" d="M40 248 H830"/>
+  <path class="axis" d="M40.0 248 v4"/>
+  <path class="axis" d="M92.7 248 v4"/>
+  <path class="axis" d="M145.3 248 v4"/>
+  <path class="axis" d="M198.0 248 v4"/>
+  <path class="axis" d="M250.7 248 v4"/>
+  <path class="axis" d="M303.3 248 v4"/>
+  <path class="axis" d="M356.0 248 v4"/>
+  <path class="axis" d="M408.7 248 v4"/>
+  <path class="axis" d="M461.3 248 v4"/>
+  <path class="axis" d="M514.0 248 v4"/>
+  <path class="axis" d="M566.7 248 v4"/>
+  <path class="axis" d="M619.3 248 v4"/>
+  <path class="axis" d="M672.0 248 v4"/>
+  <path class="axis" d="M724.7 248 v4"/>
+  <path class="axis" d="M777.3 248 v4"/>
+  <path class="axis" d="M830.0 248 v4"/>
+  <circle cx="66.3" cy="240" r="4" class="dot"/>
+  <text class="sub" x="66.3" y="266" text-anchor="middle">29</text>
+  <circle cx="119.0" cy="240" r="4" class="dot"/>
+  <text class="sub" x="119.0" y="266" text-anchor="middle">30</text>
+  <circle cx="171.7" cy="240" r="4" class="dot"/>
+  <text class="sub" x="171.7" y="266" text-anchor="middle">1</text>
+  <circle cx="224.3" cy="240" r="4" class="dot"/>
+  <text class="sub" x="224.3" y="266" text-anchor="middle">2</text>
+  <text class="sub" x="277.0" y="266" text-anchor="middle">3</text>
+  <text class="sub" x="329.7" y="266" text-anchor="middle">4</text>
+  <circle cx="382.3" cy="240" r="4" class="dot"/>
+  <text class="sub" x="382.3" y="266" text-anchor="middle">5</text>
+  <circle cx="435.0" cy="240" r="4" class="dot"/>
+  <text class="sub" x="435.0" y="266" text-anchor="middle">6</text>
+  <circle cx="487.7" cy="240" r="4" class="dot"/>
+  <text class="sub" x="487.7" y="266" text-anchor="middle">7</text>
+  <circle cx="540.3" cy="240" r="4" class="dot"/>
+  <text class="sub" x="540.3" y="266" text-anchor="middle">8</text>
+  <circle cx="593.0" cy="240" r="4" class="dot"/>
+  <text class="sub" x="593.0" y="266" text-anchor="middle">9</text>
+  <text class="sub" x="645.7" y="266" text-anchor="middle">10</text>
+  <text class="sub" x="698.3" y="266" text-anchor="middle">11</text>
+  <circle cx="751.0" cy="240" r="4" class="dot"/>
+  <text class="sub" x="751.0" y="266" text-anchor="middle">12</text>
+  <circle cx="803.7" cy="240" r="4" class="dot"/>
+  <text class="sub" x="803.7" y="266" text-anchor="middle">13</text>
+  <text class="sub" x="92.7" y="282" text-anchor="middle">September</text>
+  <text class="sub" x="487.7" y="282" text-anchor="middle">October 2026</text>
+  <path class="thin" d="M145.3 270 V286"/>
+  <text class="sub" x="40" y="302">dots: days with a session (a dated log in logs/)</text>
+  <text class="ttl" x="40" y="20">From the first chain to the review week</text>
+</svg>
+<figcaption>The project so far on one calendar. Block 1 took a week, most of it validation against the truth. Blocks A and B followed from
+6 to 9 October. The review week (from 12 Oct) adds no new stages: each stage is explained, reviewed and refined.</figcaption>
+</figure>
 
 <h3>29–30 September — the noise-free pipeline</h3>
 <p>All stages built: generator, dispersion, IQ conversion, coherent dedispersion, power detection, folding, TOA fit (FFTFIT). The old
@@ -89,6 +162,22 @@ Labels A–E introduced.</li>
 (0.39 %); worst case narrow noise-like carriers, 3.4 %. Found: the periodic mask accepts false emitters when detections are dense.</li>
 <li>Block B closed for now: the periodic mask off by default; the mask fix and the per-channel noise calibration parked with designs
 (<a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</li>
+<li>A question from a meeting, "does a higher <code>f_out</code> improve detection?", answered with an experiment: no, once the bins
+resolve the pulse; the information is set by <var>B</var>·<var>T</var> (<code>expSamplingRate</code>, <a href="tests.html#samplingrate">tests</a>).</li>
+<li>Jasper's idea to fold the channels without dedispersing them investigated: possible, with a per-channel delay and a smeared
+template; noted, not implemented.</li>
+</ul>
+
+<h3>12–13 October — the review week</h3>
+<ul>
+<li><b>Goal (Jasper):</b> understand and refine the whole pipeline, one stage at a time, before block C. Refinements found along the way
+are noted, not implemented; minor and simple changes are made and validated one by one (13 Oct).</li>
+<li><b>12 Oct:</b> project review finished; <code>blankingWeights</code> crash with long time bins and its lag memory fixed; B5e and B5b-2
+validated by reruns; stage 1 (the generator) reviewed.</li>
+<li><b>13 Oct:</b> code review of the whole codebase (33 items): minor fixes; <code>main.m</code> checks reused processing and fold files;
+<code>runAllTests</code>; a generator unit test; the tests get their own frozen data. Then a full read-through and a deeper analysis
+(docs errors fixed; J0437's binary orbit, the position prior and visibility noted). Stages 2–3 reviewed. These docs rewritten to explain
+<em>why</em> each algorithm is built as it is, with computed figures.</li>
 </ul>
 
 <h2 id="decisions">2. Decision log</h2>
@@ -140,6 +229,12 @@ agreed.</p>
 <tr><td>9 Oct</td><td>Judge lopsided channels by the TOA error bars, not χ²</td><td>χ² counts every channel equally; the fit weights channels by 1/level², small where the RFI is.</td></tr>
 <tr><td>9 Oct</td><td>Close block B for now; periodic mask off by default (Jasper)</td><td>The essentials are done; the rest is second-order against estimated RFI at the wrong SNR and duration. The mask is only needed for radars locked to the pulsar, which Earth's motion (D) makes unlikely over hours; with dense false flags it blanked ~30 % of the data.</td></tr>
 <tr><td>9 Oct</td><td>Do not start C yet (Jasper)</td><td>Jasper decides when.</td></tr>
+<tr><td>9 Oct</td><td><code>f_out</code> stays 1 MHz</td><td>A higher bin rate does not improve detection once the bins resolve the pulse: the information is set by <var>B</var>·<var>T</var> (experiment <code>expSamplingRate</code>).</td></tr>
+<tr><td>9 Oct</td><td>Folding without dedispersion: noted, not implemented (Jasper)</td><td>Just an idea to investigate; the coherent path stays the exact reference.</td></tr>
+<tr><td>12 Oct</td><td>Review week before C; refinements noted, not implemented (Jasper)</td><td>A codebase Jasper fully understands, one stage at a time.</td></tr>
+<tr><td>13 Oct</td><td>Minor and simple changes implemented, each validated right after (Jasper)</td><td>Jasper's instruction: "implement the minor changes, validate each step", later also small logic changes.</td></tr>
+<tr><td>13 Oct</td><td><code>main.m</code> checks reused processing and fold files</td><td>Stale files went unnoticed: the check found channel-path products left from the 99 kHz <code>f_out</code> study.</td></tr>
+<tr><td>13 Oct</td><td>Unit tests get frozen settings and data (<code>data/test/</code>)</td><td>A <code>main.m</code> run with other settings rewrote the tests' input and could break the bit-for-bit regressions or silently change the data.</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -157,7 +252,19 @@ agreed.</p>
 <tr><td><a href="../logs/2026-10-08_excision.md"><code>2026-10-08_excision.md</code></a></td><td>block B: B1–B6</td></tr>
 <tr><td><a href="../logs/2026-10-08_docs.md"><code>2026-10-08_docs.md</code></a></td><td>this documentation site</td></tr>
 <tr><td><a href="../logs/2026-10-09_B5e.md"><code>2026-10-09_B5e.md</code></a></td><td>B5e realistic scenario, lopsided channels, the periodic-mask bug</td></tr>
+<tr><td><a href="../logs/2026-10-08_handover-B.md"><code>2026-10-08_handover-B.md</code></a></td><td>handover at the end of 8 Oct: block B nearly complete</td></tr>
 <tr><td><a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a></td><td>block B closed: state, open items with ready designs</td></tr>
+<tr><td><a href="../logs/2026-10-09_consistency-fixes.md"><code>2026-10-09_consistency-fixes.md</code></a></td><td>stale text fixed after the daily consistency check</td></tr>
+<tr><td><a href="../logs/2026-10-09_fout-study.md"><code>2026-10-09_fout-study.md</code></a></td><td>does a higher <code>f_out</code> improve detection? (no)</td></tr>
+<tr><td><a href="../logs/2026-10-09_dispersed-domain.md"><code>2026-10-09_dispersed-domain.md</code></a></td><td>investigation: fold and fit without dedispersion</td></tr>
+<tr><td><a href="../logs/2026-10-09_project-review.md"><code>2026-10-09_project-review.md</code></a></td><td>project review, started (finished 12 Oct)</td></tr>
+<tr><td><a href="../logs/2026-10-12_overview.md"><code>2026-10-12_overview.md</code></a></td><td>week-start overview and small fixes</td></tr>
+<tr><td><a href="../logs/2026-10-12_handover-review-week.md"><code>2026-10-12_handover-review-week.md</code></a></td><td>the review week: goal, method, state</td></tr>
+<tr><td><a href="../logs/2026-10-12_review-week.md"><code>2026-10-12_review-week.md</code></a></td><td>review week, stage 1 (the generator)</td></tr>
+<tr><td><a href="../logs/2026-10-13_code-review.md"><code>2026-10-13_code-review.md</code></a></td><td>code review of the whole codebase: 33 items and the minor fixes</td></tr>
+<tr><td><a href="../logs/2026-10-13_full-review.md"><code>2026-10-13_full-review.md</code></a></td><td>full read-through: things that look weird</td></tr>
+<tr><td><a href="../logs/2026-10-13_deep-analysis.md"><code>2026-10-13_deep-analysis.md</code></a></td><td>deeper analysis: error-bar gaps, binary orbit, position prior, visibility</td></tr>
+<tr><td><a href="../logs/2026-10-13_docs-rationale.md"><code>2026-10-13_docs-rationale.md</code></a></td><td>these docs: design reasoning, readable pages, figures</td></tr>
 <tr><td><a href="../logs/current_project_notes.md"><code>current_project_notes.md</code></a></td><td>the complete reference, kept up to date with the code</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>

@@ -14,6 +14,11 @@
 <code>run*.m</code> scripts are experiments that run the same stages many times and compare with the truth. All read
 their parameters from <code>pipelineParams.m</code> and must be run with MATLAB's current folder = <code>PulsarSimMatlab</code>.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p><code>main.m</code> runs the pipeline once and compares its TOAs with the truth. One run cannot show whether the error bars are
+honest (8–9 TOAs say little), so the experiments repeat the same stages many times, each time changing one thing on purpose: the
+noise, the pulsar, the signal strength or the interference. Each experiment answers one question.</p></div>
+
 <div class="table-wrap"><table>
 <tr><th>Script</th><th>Question it answers</th><th>Files</th><th>Cost (L = 0.1 s)</th></tr>
 <tr><td><a href="#main"><code>main.m</code></a></td><td>One run through the pipeline; TOAs vs truth</td><td><code>data/</code>, <code>data/chan/</code></td><td>~1 min (sky stage dominates)</td></tr>
@@ -23,14 +28,97 @@ their parameters from <code>pipelineParams.m</code> and must be run with MATLAB'
 <tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case; realistic 3–6 min</td></tr>
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 </table></div>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 276" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
+  <text class="ttl" x="220" y="30" text-anchor="middle">pulsar signal</text>
+  <text class="ttl" x="360" y="30" text-anchor="middle">receiver noise</text>
+  <text class="ttl" x="500" y="30" text-anchor="middle">signal strength</text>
+  <text class="ttl" x="640" y="30" text-anchor="middle">interference</text>
+  <text class="ttl" x="780" y="30" text-anchor="middle">front end</text>
+  <text class="mono" x="10" y="61">main.m</text>
+  <rect class="box" x="153" y="43" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="61" text-anchor="middle">seed 42</text>
+  <rect class="box" x="293" y="43" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="61" text-anchor="middle">seed 43</text>
+  <rect class="box" x="433" y="43" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="61" text-anchor="middle">−5 dB</text>
+  <rect class="box" x="573" y="43" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="61" text-anchor="middle">off (rfiOn)</text>
+  <rect class="box" x="713" y="43" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="61" text-anchor="middle">frontEnd</text>
+  <text class="mono" x="10" y="95">runMonteCarlo</text>
+  <rect class="box" x="153" y="77" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="95" text-anchor="middle">main's</text>
+  <rect class="box proc" x="293" y="77" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="95" text-anchor="middle">10 seeds</text>
+  <rect class="box" x="433" y="77" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="95" text-anchor="middle">−5 dB</text>
+  <rect class="box" x="573" y="77" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="95" text-anchor="middle">none</text>
+  <rect class="box" x="713" y="77" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="95" text-anchor="middle">full band</text>
+  <text class="mono" x="10" y="129">runSNRSweep</text>
+  <rect class="box proc" x="153" y="111" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="129" text-anchor="middle">10 realizations</text>
+  <rect class="box proc" x="293" y="111" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="129" text-anchor="middle">new with each</text>
+  <rect class="box proc" x="433" y="111" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="129" text-anchor="middle">8 values, −25…+20 dB</text>
+  <rect class="box" x="573" y="111" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="129" text-anchor="middle">none</text>
+  <rect class="box" x="713" y="111" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="129" text-anchor="middle">full band</text>
+  <text class="mono" x="10" y="163">runH0</text>
+  <rect class="box proc" x="153" y="145" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="163" text-anchor="middle">none (zero sky)</text>
+  <rect class="box proc" x="293" y="145" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="163" text-anchor="middle">100 seeds</text>
+  <rect class="box" x="433" y="145" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="163" text-anchor="middle">no pulsar</text>
+  <rect class="box" x="573" y="145" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="163" text-anchor="middle">none</text>
+  <rect class="box" x="713" y="145" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="163" text-anchor="middle">full band</text>
+  <text class="mono" x="10" y="197">runRFITest</text>
+  <rect class="box" x="153" y="179" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="197" text-anchor="middle">main's</text>
+  <rect class="box" x="293" y="179" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="197" text-anchor="middle">main's seed</text>
+  <rect class="box" x="433" y="179" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="197" text-anchor="middle">−5 dB</text>
+  <rect class="box proc" x="573" y="179" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="197" text-anchor="middle">15 cases</text>
+  <rect class="box proc" x="713" y="179" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="197" text-anchor="middle">channels, ± excision</text>
+  <text class="mono" x="10" y="231">runLockedRadar</text>
+  <rect class="box" x="153" y="213" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="231" text-anchor="middle">main's</text>
+  <rect class="box" x="293" y="213" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="231" text-anchor="middle">main's seed</text>
+  <rect class="box proc" x="433" y="213" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="231" text-anchor="middle">−5 dB, then −5…−60 dB*</text>
+  <rect class="box proc" x="573" y="213" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="231" text-anchor="middle">locked radar cases</text>
+  <rect class="box proc" x="713" y="213" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="231" text-anchor="middle">channels, excision options</text>
+  <rect class="box proc" x="10" y="251" width="22" height="14" rx="3"/><text class="sub" x="40" y="262">varied: what the experiment is about</text>
+  <rect class="box" x="300" y="251" width="22" height="14" rx="3"/><text class="sub" x="330" y="262">kept fixed</text>
+  <text class="sub" x="440" y="262">* weak signals from noise-free folds plus the measured leftover</text>
+</svg>
+<figcaption>Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
+change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
+true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
+interference alone.</figcaption>
+</figure>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> predate the channelized front end and always run the <b>full-band</b>
 path, whatever <code>frontEnd</code> says. Since 13 Oct they say so: a warning (<code>…:fullBandOnly</code>) when <code>frontEnd</code> is not
 <code>'fullband'</code>, and (<code>…:noExcision</code>) when RFI is on, because the full band has no excision. <code>runRFITest</code> and
 <code>runLockedRadar</code> run the <b>channel</b> path. The channel path's
 statistics are validated by its unit tests (exact covariances, Monte Carlo with the exact noise model) rather than by these long runs.</p></div>
-<div class="callout why"><span class="ttl">Why each experiment writes its own files</span>
-<p>A later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them with another noise
+<div class="callout why"><span class="ttl">Design choice: each experiment writes its own files</span>
+<p><b>Alternative:</b> write into <code>data/</code>, like <code>main.m</code>.</p>
+<p><b>Why not:</b> a later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them with another noise
 realization, main would pick it up (<code>checkConsistency</code> notices another noise seed only since 13 Oct). Separate folders keep main's files untouched.</p></div>
 <div class="callout warn"><span class="ttl">Never run two of these at once</span>
 <p>Scripts and tests that share files (e.g. <code>data/chan/</code>; the unit tests: <code>data/test/chan/</code>) corrupt each other's data when run in parallel: an overlapping run once
@@ -50,8 +138,9 @@ detectChannels → [blankingWeights]), or reload + <code>checkProcessing</code>;
 </ol>
 <p>Printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel path 8 TOAs, 2.943 µs, SNR 92.3
 (with excision 2.956 µs, 91.9).</p>
-<div class="callout why"><span class="ttl">Why the stages can be skipped</span>
-<p>The sky stage is by far the slowest (random numbers and a 25-million-tap filter at 4 GHz) and does not depend on the noise. Changing
+<div class="callout why"><span class="ttl">Design choice: the stages can be skipped</span>
+<p><b>Alternative:</b> always run the whole chain.</p>
+<p><b>Why not:</b> the sky stage is by far the slowest (random numbers and a 25-million-tap filter at 4 GHz) and does not depend on the noise. Changing
 the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>,
 <code>checkProcessing</code> and <code>checkFold</code> warn when files on disk were made with other parameters or from older inputs.</p></div>
 
@@ -80,8 +169,15 @@ SNR point stay independent).</li>
 <li>A true <b>H0 pass</b> per realization: zero sky (generator with A = 0) + receiver noise, only <code>detectPulsar</code>.</li>
 <li>Figure: σ<sub>TOA</sub> vs SNR (rms, robust, predicted, optimum), ratios, |<var>z</var>| &lt; 1 and outliers, detection.</li>
 </ul>
-<div class="callout why"><span class="ttl">Why a very low SNR is not used as H0</span>
-<p>−50 dB is not "no pulsar": it is a real small-antenna operating point that only needs long integrations. H0 must be a zero sky.</p></div>
+<div class="callout why"><span class="ttl">Design choice: H0 is a zero sky (Jasper, 5 Oct)</span>
+<p><b>Alternative:</b> use a very low SNR, such as −50 dB, as "no pulsar".</p>
+<p><b>Why not:</b> −50 dB is not "no pulsar". It is a real small-antenna operating point that only needs long integrations. H0 must be a
+sky with no pulsar at all.</p></div>
+<div class="callout why"><span class="ttl">Design choice: the same random numbers at every SNR</span>
+<p><b>Alternative:</b> new pulsar and noise realizations at every SNR point.</p>
+<p><b>Why not:</b> with the same sky and noise seed at every SNR (only the noise level is rescaled), the curves against SNR are smooth: the
+differences between points come from the SNR, not from new random numbers. The TOAs within one SNR point stay independent, so the
+statistics at each point are unaffected.</p></div>
 <p>Results: <a href="results.html#sweep">validation record</a>. Variant run on 6 Oct with <code>nReal</code> 20 and −20…−15 dB in 1 dB steps: the
 <a href="results.html#threshold">threshold sweep</a>. Its results are in <code>data/mc/snrSweep.mat</code> (the last run); the phase D/E sweep above
 (−25…+20 dB, 10 realizations) was kept as <code>data/mc/snrSweep_phaseDE.mat</code> before it.</p>
@@ -133,8 +229,9 @@ Stops if main's sky files do not match the parameters (<code>checkSkyFiles</code
 <li>TOA bias at −5 dB: full data − reference (same noise), cross-checked with reference + leftover.</li>
 <li>Bias at weak SNR: noise-free folds ρ·template + <var>L</var> through <code>estimateTOA</code>, ρ from −5 to −60 dB; the ρ where the bias reaches 1 µs.</li>
 </ol>
-<div class="callout why"><span class="ttl">Why measure the leftover in baseline units</span>
-<p>The pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
+<div class="callout why"><span class="ttl">Design choice: measure the leftover in baseline units, not as a TOA error</span>
+<p><b>Alternative:</b> measure the TOA error caused by the radar at −5 dB.</p>
+<p><b>Why not:</b> the pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
 the noise baseline does not depend on the pulsar, and comparing it with the pulse height ρ gives the bias at any SNR from one run.</p></div>
 <p>Cases are rows of <code>caseList</code> = [radar, excision, frequency guard, periodic mask]; radars: 0.1 µs edges, instant edges, and (B6-3)
 the 0.1 µs radar on a rotating antenna seen only through −35 dB sidelobes. Cases 9–12 compare excision with and without the periodic mask;

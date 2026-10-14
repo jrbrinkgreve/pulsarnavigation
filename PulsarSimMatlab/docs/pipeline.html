@@ -10,9 +10,24 @@
 <main>
 
 <h1>Pipeline overview</h1>
-<p class="lede">Every stage of <code>main.m</code>, the files it writes and how the two front ends branch and join.
+<p class="lede">Every stage of <code>main.m</code>, the files it writes, and how the two front ends branch and join.
 Click a box to open its page.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>The pipeline first simulates what an antenna would record (sky, then receiver). It then processes that recording the way it would
+process real data: undo the dispersion, square to power, fold over turns, fit TOAs and test them. There are two processing paths. The
+full-band path is the validated reference. The channelized path is the default, because RFI excision needs it. Both end in the same
+fold and TOA fit, and only the final validation looks at the truth.</p></div>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#map">The map</a></li>
+<li><a href="#stages">Stages and data products</a></li>
+<li><a href="#why">Design choices: why this order</a></li>
+<li><a href="#run">Run control in <code>main.m</code></a></li>
+<li><a href="#sizes">Sizes</a></li>
+</ol></div>
+
+<h2 id="map">The map</h2>
 <figure>
 <svg viewBox="0 0 870 660" role="img" aria-label="Pipeline diagram">
   <defs>
@@ -114,8 +129,18 @@ Click a box to open its page.</p>
 <figcaption>Blue: simulated sky. Orange: simulated receiver. Green: processing (observer-only). Bottom box:
 validation against ground truth. The full-band path is the validated reference; the channel path is the default since 8 Oct 2026.</figcaption>
 </figure>
+<p>Read it from top to bottom:</p>
+<ol>
+<li><b>Sky (stages 1–2):</b> make the pulsar's voltage at RF, then send it through the interstellar plasma (dispersion).</li>
+<li><b>Receiver (3–4):</b> add receiver noise and interference, then convert to complex baseband (IQ) at 800 MHz.</li>
+<li><b>Front end (5–6):</b> undo the dispersion and square the voltages to power. Either for the whole band at once (left), or per
+channel after a filterbank (middle), with RFI excision in between (right).</li>
+<li><b>Fold (7):</b> average the power over turns at the same rotational phase, one profile per sub-integration.</li>
+<li><b>TOA and detection (8):</b> fit the template to each profile, and test whether the pulse is really there.</li>
+<li><b>Validation (9):</b> compare the good TOAs with the truth. This is the only processing-side step that sees it.</li>
+</ol>
 
-<h2>Stages and data products</h2>
+<h2 id="stages">Stages and data products</h2>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Function</th><th>Writes</th><th>Data</th><th>Status</th></tr>
 <tr><td>1</td><td><a href="sky.html#gen"><code>generatePulsarSignal</code></a></td><td><code>test.dat</code></td><td>real, f_in = 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
@@ -139,27 +164,31 @@ validation against ground truth. The full-band path is the validated reference; 
 <tr><td>9</td><td><a href="validation.html#validate"><code>validateTOA</code></a></td><td>(figure, <code>val</code>)</td><td>errors vs truth</td><td><span class="badge validated">validated</span></td></tr>
 </table></div>
 
-<h2>Why the pipeline has this order</h2>
-<div class="callout why"><span class="ttl">Sky → receiver → processing</span>
-<p>The simulator follows the physical order. Noise and RFI are added <b>after</b> dispersion because they enter at the
-receiver: they are never dispersed. Dedispersion then applies the inverse chirp to them, exactly as with real data:
-a broadband impulse gets smeared into an inverse sweep; a carrier is only shifted by its frequency's delay.</p></div>
+<h2 id="why">Design choices: why the pipeline has this order</h2>
+<div class="callout why"><span class="ttl">Sky → receiver → processing, in physical order</span>
+<p><b>Alternative:</b> add the noise and RFI before dispersion, or simulate the received signal directly.</p>
+<p><b>Why not:</b> noise and RFI enter at the receiver, so they are never dispersed. Dedispersion then applies the inverse chirp to them,
+exactly as it does to real data: a broadband impulse gets smeared into an inverse sweep, and a carrier is only shifted by its
+frequency's delay (<a href="receiver.html#noise-why">receiver page</a>).</p></div>
 <div class="callout why"><span class="ttl">Complex voltages until detection</span>
-<p>Coherent dedispersion needs the phase. RFI blanking and (later) beamforming are linear operations that must also come
-before squaring. After square-law detection the data rate drops by ~800× and only power is left.</p></div>
-<div class="callout why"><span class="ttl">Why two front ends</span>
-<p>The full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
-but its filter grows with DM (about 15 GB at DM 100) and it has nowhere to remove RFI. The channelized path splits the band
-into 128 channels first. RFI is then a few samples in a few channels, where it can be found and blanked, and each channel
-needs only a short dedispersion filter. The full-band path stays as the validated reference: every channel-path result
-is compared against it.</p></div>
-<div class="callout why"><span class="ttl">Why excision sits between channelizer and dedispersion</span>
-<p>In a channel, before dedispersion, a 2 µs radar pulse occupies about 8 samples in 2 channels. After dedispersion
-it is spread over thousands of samples and mixed with good data. Excision therefore works on the raw channel voltages.
-Because dedispersion then spreads each blank over its filter length, every detected bin is "partly real";
-<code>blankingWeights</code> computes exactly how much, so the fold stays unbiased.</p></div>
+<p><b>Alternative:</b> square to power early, which would shrink the data at once.</p>
+<p><b>Why not:</b> coherent dedispersion needs the phase. RFI blanking and (later) beamforming are linear operations that must also come
+before squaring. After square-law detection only power is left, and the data are much smaller (<a href="#sizes">sizes</a>).</p></div>
+<div class="callout why"><span class="ttl">Two front ends</span>
+<p><b>Alternative:</b> keep only one of them.</p>
+<p><b>Why both:</b> the full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
+but its filter grows with DM (about 15 GB at DM 100) and it has nowhere to remove RFI. The channelized path splits the band into 128
+channels first. RFI is then a few samples in a few channels, where it can be found and blanked, and each channel needs only a short
+dedispersion filter. The full-band path stays as the validated reference: every channel-path result is compared against it.</p></div>
+<div class="callout why"><span class="ttl">Excision between the channelizer and dedispersion</span>
+<p><b>Alternative:</b> excise after dedispersion, or on the detected power.</p>
+<p><b>Why not:</b> in a channel, before dedispersion, a 2 µs radar pulse occupies about 8 samples in 2 channels. After dedispersion it is
+spread over thousands of samples and mixed with good data. So excision works on the raw channel voltages. Dedispersion then spreads
+each blank over its filter length, so every detected bin is "partly real"; <code>blankingWeights</code> computes exactly how much, and
+the fold stays unbiased.</p></div>
 
-<h2>Run control in <code>main.m</code></h2>
+<h2 id="run">Run control in <code>main.m</code></h2>
+<p>Each stage group has a switch. <code>true</code> runs it; <code>false</code> reuses the files an earlier run wrote.</p>
 <div class="table-wrap"><table>
 <tr><th>Switch</th><th>Runs</th><th>When to rerun</th></tr>
 <tr><td><code>runStage.sky</code></td><td>generator + dispersion (the slow part)</td><td>pulsar, T, L, f_in, DM, band or seed changed</td></tr>
@@ -168,9 +197,9 @@ Because dedispersion then spreads each blank over its filter length, every detec
 <tr><td><code>runStage.fold</code></td><td>folding</td><td>nBin, sub-int length changed</td></tr>
 <tr><td><code>runStage.toa</code></td><td>TOAs, detection, validation</td><td>always cheap</td></tr>
 </table></div>
-<p>Skipped stages reload their <code>info</code> from disk; <code>checkConsistency</code> (sky, receiver), <code>checkProcessing</code>
-and <code>checkFold</code> (13 Oct 2026) warn if those files were made with different parameters or from older inputs. <code>plots.*</code> switch the ground-truth check figures (the IQ, detected and fold checks are for the
-full-band path only).</p>
+<p>Skipped stages reload their <code>info</code> from disk. <code>checkConsistency</code> (sky, receiver), <code>checkProcessing</code> and
+<code>checkFold</code> (13 Oct 2026) warn if those files were made with different parameters or from older inputs. <code>plots.*</code>
+switch the ground-truth check figures (the IQ, detected and fold checks are for the full-band path only).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">
   <defs>
@@ -263,12 +292,79 @@ full-band path only).</p>
 wrote (right). Reused files are checked against the current settings (orange boxes); a mismatch gives a warning, not an error,
 so a deliberate reuse still runs. Colours as in the pipeline diagram above.</figcaption>
 </figure>
+<div class="callout why"><span class="ttl">Design choice: stages can be skipped, with a warning on mismatch</span>
+<p><b>Alternative:</b> always run everything, or stop with an error when a reused file does not match.</p>
+<p><b>Why not:</b> the sky stage is by far the slowest and does not depend on the noise, so changing the SNR, the RFI or the processing
+only needs the later stages. A mismatch gives a warning rather than an error, so a deliberate reuse still runs.</p></div>
 
-<h2>Sizes</h2>
-<p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files, plus
-for the channel path the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the
-blanked copies and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first.
-At <var>L</var> = 1 s and 800 MHz the full-band files alone are about 61 GB; the default <var>L</var> = 0.1 s needs a tenth of that.</p>
+<h2 id="sizes">Sizes</h2>
+<p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
+The channel path adds the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the blanked copies
+and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first. At <var>L</var> = 1 s and 800 MHz the
+full-band files alone are about 61 GB; the default <var>L</var> = 0.1 s needs a tenth of that.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 390" role="img" aria-label="Bytes written per second of simulated signal by each stage, on a log scale, against the 24 GB memory">
+  <text class="ttl" x="10" y="20">bytes written per second of simulated signal (L = 0.1 s writes a tenth)</text>
+  <rect class="box sky" x="330" y="50" width="395.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="63">test.dat</text>
+  <text class="sub" x="322" y="63" text-anchor="end">generator, real 4 GHz</text>
+  <text class="sub" x="719.2" y="63" text-anchor="end">16.0 GB</text>
+  <rect class="box sky" x="330" y="74" width="395.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="87">test_dispersed.dat</text>
+  <text class="sub" x="322" y="87" text-anchor="end">dispersed</text>
+  <text class="sub" x="719.2" y="87" text-anchor="end">16.0 GB</text>
+  <rect class="box rx" x="330" y="98" width="395.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="111">test_rx.dat</text>
+  <text class="sub" x="322" y="111" text-anchor="end">noise + RFI added</text>
+  <text class="sub" x="719.2" y="111" text-anchor="end">16.0 GB</text>
+  <rect class="box rx" x="330" y="122" width="357.8" height="17" rx="3"/>
+  <text class="mono" x="10" y="135">test_rx_IQ.dat</text>
+  <text class="sub" x="322" y="135" text-anchor="end">complex, 800 MHz</text>
+  <text class="sub" x="681.8" y="135" text-anchor="end">6.4 GB</text>
+  <rect class="box proc" x="330" y="158" width="357.8" height="17" rx="3"/>
+  <text class="mono" x="10" y="171">test_IQ_dedispersed.dat</text>
+  <text class="sub" x="322" y="171" text-anchor="end">full band: dedispersed</text>
+  <text class="sub" x="681.8" y="171" text-anchor="end">6.4 GB</text>
+  <rect class="box proc" x="330" y="182" width="56.6" height="17" rx="3"/>
+  <text class="mono" x="10" y="195">test_envelope.dat</text>
+  <text class="sub" x="322" y="195" text-anchor="end">full band: power, 1 µs</text>
+  <text class="sub" x="392.6" y="195">4 MB</text>
+  <rect class="box proc" x="330" y="218" width="341.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="231">…_IQ_chan_ch###</text>
+  <text class="sub" x="322" y="231" text-anchor="end">channels: 128 × 4.17 MHz</text>
+  <text class="sub" x="665.2" y="231" text-anchor="end">4.3 GB</text>
+  <rect class="box proc" x="330" y="242" width="341.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="255">…_blanked_ch###</text>
+  <text class="sub" x="322" y="255" text-anchor="end">excision: blanked copies</text>
+  <text class="sub" x="665.2" y="255" text-anchor="end">4.3 GB</text>
+  <rect class="box proc" x="330" y="266" width="341.2" height="17" rx="3"/>
+  <text class="mono" x="10" y="279">dedispB_ch###</text>
+  <text class="sub" x="322" y="279" text-anchor="end">channels dedispersed</text>
+  <text class="sub" x="665.2" y="279" text-anchor="end">4.3 GB</text>
+  <rect class="box proc" x="330" y="290" width="256.3" height="17" rx="3"/>
+  <text class="mono" x="10" y="303">…_power.dat</text>
+  <text class="sub" x="322" y="303" text-anchor="end">channels: power, 0.96 µs</text>
+  <text class="sub" x="592.3" y="303">533 MB</text>
+  <rect class="box proc" x="330" y="314" width="346.0" height="17" rx="3"/>
+  <text class="mono" x="10" y="327">…_weights.dat</text>
+  <text class="sub" x="322" y="327" text-anchor="end">excision: W, V, X(1..7)</text>
+  <text class="sub" x="670.0" y="327" text-anchor="end">4.8 GB</text>
+  <path class="axis" d="M330 338 H800"/>
+  <path class="axis" d="M330.0 338 v5"/><text class="sub" x="330.0" y="356" text-anchor="middle">1 MB</text>
+  <path class="axis" d="M424.0 338 v5"/><text class="sub" x="424.0" y="356" text-anchor="middle">10 MB</text>
+  <path class="axis" d="M518.0 338 v5"/><text class="sub" x="518.0" y="356" text-anchor="middle">100 MB</text>
+  <path class="axis" d="M612.0 338 v5"/><text class="sub" x="612.0" y="356" text-anchor="middle">1 GB</text>
+  <path class="axis" d="M706.0 338 v5"/><text class="sub" x="706.0" y="356" text-anchor="middle">10 GB</text>
+  <path class="axis" d="M800.0 338 v5"/><text class="sub" x="800.0" y="356" text-anchor="middle">100 GB</text>
+  <path class="dash" d="M741.7 42 V338"/>
+  <text class="sub" x="745.7" y="38">24 GB memory</text>
+  <text class="sub" x="10" y="378">Total per second of signal: full band 60.8 GB · channels 63.5 GB · channels + excision 72.5 GB</text>
+</svg>
+<figcaption>How much each stage writes per second of simulated signal, computed from the parameters (log scale; blue: sky, orange:
+receiver, green: processing). At <var>L</var> = 1 s each RF file is 16 GB and a run writes 61–73 GB, far more than the 24 GB of
+memory, which is why every stage streams in blocks. Detection is where the data shrink: on the full band 800 complex samples become one power value (1600× fewer bytes); on the
+channel path each 0.96 µs bin keeps all 128 channels, so it shrinks 8×. With excision the weight file adds 9 numbers per bin and channel.</figcaption>
+</figure>
 
 </main>
 <script src="nav.js"></script>

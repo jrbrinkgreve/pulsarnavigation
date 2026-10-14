@@ -13,7 +13,14 @@
 <p class="lede">Every major measured result against its prediction, in time order, with what each one established.
 The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>Every check so far tells the same story. When a sub-integration has an SNR of about 6 or more, the stated TOA error bars are honest
+to within a few percent, from weak signals to strong ones. The noise model is complete, and the detector's false-alarm rate is as
+designed. Below that SNR some TOAs lock onto noise peaks, and the good-TOA rule removes them. Interference is the exception: a radar
+destroys TOAs unless it is excised.</p></div>
+
 <div class="toc"><b>On this page</b><ol>
+<li><a href="#glance">At a glance: are the error bars honest?</a></li>
 <li><a href="#noisefree">Noise-free chain (1 s)</a></li>
 <li><a href="#noise5">With receiver noise, −5 dB</a></li>
 <li><a href="#mc">Monte Carlo over noise seeds</a></li>
@@ -26,6 +33,95 @@ The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
 <li><a href="#blockA">Block A and B results</a></li>
 <li><a href="#other">Algorithm ports and run times</a></li>
 </ol></div>
+
+<h2 id="glance">At a glance: are the error bars honest?</h2>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 486" role="img" aria-label="Error-bar honesty across the validation record: measured over predicted scatter for every check, all near 1">
+  <rect class="fillwhy" x="544.4" y="30" width="61.2" height="410"/>
+  <path class="dash" d="M575.0 30 V440"/>
+  <text class="ttl" x="10" y="54">Noise-free chain and −5 dB reference</text>
+  <text class="sub" x="22" y="72">noise-free, 1 s (99 TOAs)</text>
+  <path class="line" d="M563.9 68 H651.0"/>
+  <path class="dot2" d="M603.0 68 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="72">1.053</text>
+  <text class="sub" x="22" y="90">−5 dB reference run (9 TOAs)</text>
+  <path class="line" d="M347.2 86 H641.2"/>
+  <path class="dot2" d="M489.7 86 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="90">0.868</text>
+  <text class="sub" x="22" y="108">Monte Carlo, 10 noise seeds (90 TOAs)</text>
+  <path class="line" d="M498.4 104 H590.3"/>
+  <path class="dot2" d="M539.9 104 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="108">0.950</text>
+  <text class="ttl" x="10" y="136">SNR sweep, phase D (90 TOAs per point)</text>
+  <text class="sub" x="22" y="154">−15 dB (SNR 12)</text>
+  <path class="line" d="M547.4 150 H639.3"/>
+  <path class="dot2" d="M588.9 150 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="154">1.030</text>
+  <text class="sub" x="22" y="172">−10 dB (SNR 35)</text>
+  <path class="line" d="M553.6 168 H645.4"/>
+  <path class="dot2" d="M595.0 168 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="172">1.040</text>
+  <text class="sub" x="22" y="190">−5 dB (SNR 97)</text>
+  <path class="line" d="M561.5 186 H653.4"/>
+  <path class="dot2" d="M603.0 186 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="190">1.053</text>
+  <text class="sub" x="22" y="208">0 dB (SNR 216)</text>
+  <path class="line" d="M566.4 204 H658.3"/>
+  <path class="dot2" d="M607.9 204 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="208">1.061</text>
+  <text class="sub" x="22" y="226">+10 dB (SNR 496)</text>
+  <path class="line" d="M556.0 222 H647.9"/>
+  <path class="dot2" d="M597.5 222 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="226">1.044</text>
+  <text class="sub" x="22" y="244">+20 dB (SNR 657)</text>
+  <path class="line" d="M551.1 240 H643.0"/>
+  <path class="dot2" d="M592.6 240 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="244">1.036</text>
+  <text class="ttl" x="10" y="272">Threshold sweep, good TOAs only (per SNR per sub-int)</text>
+  <text class="sub" x="22" y="290">SNR 3.8 (72 good TOAs)</text>
+  <path class="line" d="M648.5 286 H746.5"/>
+  <path class="dot2" d="M693.0 286 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="290">1.200</text>
+  <text class="sub" x="22" y="308">SNR 4.8</text>
+  <path class="line" d="M518.6 304 H594.6"/>
+  <path class="dot2" d="M552.1 304 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="308">0.970</text>
+  <text class="sub" x="22" y="326">SNR 6.0</text>
+  <path class="line" d="M547.5 322 H614.7"/>
+  <path class="dot2" d="M576.6 322 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="326">1.010</text>
+  <text class="sub" x="22" y="344">SNR 7.5</text>
+  <path class="line" d="M548.8 340 H613.4"/>
+  <path class="dot2" d="M576.6 340 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="344">1.010</text>
+  <text class="sub" x="22" y="362">SNR 9.4</text>
+  <path class="line" d="M555.0 358 H619.5"/>
+  <path class="dot2" d="M582.8 358 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="362">1.020</text>
+  <text class="sub" x="22" y="380">SNR 11.8</text>
+  <path class="line" d="M555.0 376 H619.5"/>
+  <path class="dot2" d="M582.8 376 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="380">1.020</text>
+  <text class="ttl" x="10" y="408">Noise only (runH0, 900 profiles)</text>
+  <text class="sub" x="22" y="426">std of the detection statistic T0</text>
+  <path class="line" d="M565.0 422 H594.4"/>
+  <path class="dot2" d="M575.2 422 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="426">1.008</text>
+  <path class="axis" d="M330 440 H820"/>
+  <path class="axis" d="M330.0 440 v5"/><text class="sub" x="330.0" y="458" text-anchor="middle">0.6</text>
+  <path class="axis" d="M452.5 440 v5"/><text class="sub" x="452.5" y="458" text-anchor="middle">0.8</text>
+  <path class="axis" d="M575.0 440 v5"/><text class="sub" x="575.0" y="458" text-anchor="middle">1</text>
+  <path class="axis" d="M697.5 440 v5"/><text class="sub" x="697.5" y="458" text-anchor="middle">1.2</text>
+  <path class="axis" d="M820.0 440 v5"/><text class="sub" x="820.0" y="458" text-anchor="middle">1.4</text>
+  <text class="sub" x="575.0" y="474" text-anchor="middle">measured scatter ÷ stated error bar (1 = honest; green band ±5 %)</text>
+  <text class="ttl" x="10" y="18">Are the error bars honest? Every check in the record</text>
+</svg>
+<figcaption>Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
+own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs). All agree with 1 within a few percent, except
+the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
+of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The last row is the noise-only run: the detection
+statistic has the predicted spread.</figcaption>
+</figure>
 
 <h2 id="noisefree">1. Noise-free chain</h2>
 <p><var>L</var> = 1 s, <var>f</var><sub>s</sub> = 500 MHz, 1 µs bins, 1024 phase bins, 1 turn per sub-int. Without receiver noise the only noise is the pulsar's

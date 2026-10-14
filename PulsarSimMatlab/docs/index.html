@@ -78,7 +78,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
 <ol class="steps">
   <li><a href="physics.html"><b>The physics</b><span>Why the signal is noise, what dispersion does, the radiometer equation, folding, how precise a TOA can be.</span></a></li>
   <li><a href="pipeline.html"><b>The pipeline</b><span>Every stage and file on one diagram, both front ends, and why the order is what it is.</span></a></li>
-  <li><a href="sky.html"><b>The stages</b><span>One page per stage: purpose, physics, algorithm, why this way, options, tests, limits.</span></a></li>
+  <li><a href="sky.html"><b>The stages</b><span>One page per stage: in short, the physics, how it works in plain steps, and the design choices: what was chosen, the alternative, and why.</span></a></li>
 </ol>
 
 <h2>What makes this hard</h2>
@@ -100,8 +100,9 @@ the part that turns raw antenna voltages into those arrival times.</p>
   <div class="later"><b>E</b>several pulsars, navigation, array</div>
 </div>
 <p><b>Now (week of 12 Oct): review week.</b> Understanding and refining the pipeline stage by stage before C. Code review of 13 Oct done
-and validated: small fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, a generator unit test, frozen test data, and the
-diagrams on these pages (<a href="roadmap.html">roadmap</a>).</p>
+and validated: small fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, a generator unit test, frozen test data. The
+stage and background pages now start with a short summary and explain why each algorithm is built the way it is, with figures computed from
+the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>

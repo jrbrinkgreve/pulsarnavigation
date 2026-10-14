@@ -16,7 +16,14 @@ values.</p>
 <p class="meta">Values checked against <code>pipelineParams.m</code> at commit <code>8a756ec</code> (13 Oct 2026). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
 uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
 
-<div class="toc"><b>Groups</b><ol>
+<div class="callout note"><span class="ttl">In short</span>
+<p>One script, <code>pipelineParams.m</code>, sets every value. <b>Truth</b> parameters (the pulsar, the simulation, the noise and
+interference) only reach the simulator. <b>Observer</b> parameters (receiver, processing, ephemeris) are what the processing may use.
+The two pictures below show how the numbers fit together in frequency and in time; the tables after them give every value with the
+reason for it.</p></div>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#plan">The numbers at a glance</a></li>
 <li><a href="#pulsar">Pulsar (truth)</a></li>
 <li><a href="#sim">Simulation (truth)</a></li>
 <li><a href="#rx">Receiver (observer)</a></li>
@@ -28,6 +35,179 @@ uses it; <b>observer</b> = the processing may use it (the <a href="conventions.h
 <li><a href="#main">Run control in <code>main.m</code></a></li>
 <li><a href="#defaults">Where main overrides function defaults</a></li>
 </ol></div>
+
+<h2 id="plan">The numbers at a glance</h2>
+<p>In frequency: the band, the LO, the two sample rates, the IQ filter and the channels.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 380" role="img" aria-label="Frequency plan: the RF band 1.2 to 1.6 GHz and the LO; at baseband the band sits at -100 to +300 MHz inside the IQ low-pass and the 800 MHz window, split into 128 channels">
+  <defs><marker id="ar-fp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
+  <path class="axis" d="M60 136 H820"/>
+  <path class="axis" d="M60.0 136 v5"/>
+  <text class="sub" x="60.0" y="154" text-anchor="middle">0</text>
+  <path class="axis" d="M198.2 136 v5"/>
+  <text class="sub" x="198.2" y="154" text-anchor="middle">400</text>
+  <path class="axis" d="M336.4 136 v5"/>
+  <text class="sub" x="336.4" y="154" text-anchor="middle">800</text>
+  <path class="axis" d="M474.5 136 v5"/>
+  <text class="sub" x="474.5" y="154" text-anchor="middle">1200</text>
+  <path class="axis" d="M612.7 136 v5"/>
+  <text class="sub" x="612.7" y="154" text-anchor="middle">1600</text>
+  <path class="axis" d="M750.9 136 v5"/>
+  <text class="sub" x="750.9" y="154" text-anchor="middle">2000</text>
+  <text class="sub" x="820" y="154" text-anchor="end">MHz</text>
+  <rect class="fillfg" x="60.0" y="97.9" width="690.9" height="38.1"/>
+  <rect class="fillsoft" x="474.5" y="66.8" width="138.2" height="69.2"/>
+  <path class="curve" d="M474.5 136.0 V66.8 H612.7 V136.0"/>
+  <text class="lbl" x="564.4" y="104.8" text-anchor="middle">band 1.2–1.6 GHz</text>
+  <text class="sub" x="267.3" y="122.2" text-anchor="middle">simulated stream: white up to f_in/2</text>
+  <path class="dash" d="M509.1 40 V136"/>
+  <text class="sub" x="503.1" y="48" text-anchor="end">f_LO 1.3 GHz</text>
+  <path class="dash" d="M750.9 40 V136"/>
+  <text class="sub" x="756.9" y="48" text-anchor="start">f_in/2 = 2 GHz</text>
+  <text class="ttl" x="60" y="20">a · RF: a real stream sampled at f_in = 4 GHz</text>
+  <path class="line" marker-end="url(#ar-fp)" d="M543.6 162 L524.4 222"/>
+  <text class="sub" x="551.6" y="186">mix with the LO (shift by −1.3 GHz),</text>
+  <text class="sub" x="551.6" y="200">low-pass, keep every 5th sample</text>
+  <path class="axis" d="M60 346 H820"/>
+  <path class="axis" d="M102.2 346 v5"/>
+  <text class="sub" x="102.2" y="364" text-anchor="middle">-400</text>
+  <path class="axis" d="M186.7 346 v5"/>
+  <text class="sub" x="186.7" y="364" text-anchor="middle">-300</text>
+  <path class="axis" d="M271.1 346 v5"/>
+  <text class="sub" x="271.1" y="364" text-anchor="middle">-200</text>
+  <path class="axis" d="M355.6 346 v5"/>
+  <text class="sub" x="355.6" y="364" text-anchor="middle">-100</text>
+  <path class="axis" d="M440.0 346 v5"/>
+  <text class="sub" x="440.0" y="364" text-anchor="middle">0</text>
+  <path class="axis" d="M524.4 346 v5"/>
+  <text class="sub" x="524.4" y="364" text-anchor="middle">100</text>
+  <path class="axis" d="M608.9 346 v5"/>
+  <text class="sub" x="608.9" y="364" text-anchor="middle">200</text>
+  <path class="axis" d="M693.3 346 v5"/>
+  <text class="sub" x="693.3" y="364" text-anchor="middle">300</text>
+  <path class="axis" d="M777.8 346 v5"/>
+  <text class="sub" x="777.8" y="364" text-anchor="middle">400</text>
+  <text class="sub" x="820" y="364" text-anchor="end">MHz</text>
+  <path class="curve2" d="M60.0 346.0 L131.8 346.0 L140.2 248.7 L739.8 248.7 L748.2 346.0 L820.0 346.0"/>
+  <text class="sub" x="144.4" y="244.5">IQ low-pass: flat to ±355 MHz, cutoff 360</text>
+  <rect class="fillsoft" x="355.6" y="261.4" width="337.8" height="84.6"/>
+  <path class="thin" d="M355.6 346.0 V261.4 M358.2 346.0 V261.4 M360.8 346.0 V261.4 M363.5 346.0 V261.4 M366.1 346.0 V261.4 M368.8 346.0 V261.4 M371.4 346.0 V261.4 M374.0 346.0 V261.4 M376.7 346.0 V261.4 M379.3 346.0 V261.4 M381.9 346.0 V261.4 M384.6 346.0 V261.4 M387.2 346.0 V261.4 M389.9 346.0 V261.4 M392.5 346.0 V261.4 M395.1 346.0 V261.4 M397.8 346.0 V261.4 M400.4 346.0 V261.4 M403.1 346.0 V261.4 M405.7 346.0 V261.4 M408.3 346.0 V261.4 M411.0 346.0 V261.4 M413.6 346.0 V261.4 M416.2 346.0 V261.4 M418.9 346.0 V261.4 M421.5 346.0 V261.4 M424.2 346.0 V261.4 M426.8 346.0 V261.4 M429.4 346.0 V261.4 M432.1 346.0 V261.4 M434.7 346.0 V261.4 M437.4 346.0 V261.4 M440.0 346.0 V261.4 M442.6 346.0 V261.4 M445.3 346.0 V261.4 M447.9 346.0 V261.4 M450.6 346.0 V261.4 M453.2 346.0 V261.4 M455.8 346.0 V261.4 M458.5 346.0 V261.4 M461.1 346.0 V261.4 M463.8 346.0 V261.4 M466.4 346.0 V261.4 M469.0 346.0 V261.4 M471.7 346.0 V261.4 M474.3 346.0 V261.4 M476.9 346.0 V261.4 M479.6 346.0 V261.4 M482.2 346.0 V261.4 M484.9 346.0 V261.4 M487.5 346.0 V261.4 M490.1 346.0 V261.4 M492.8 346.0 V261.4 M495.4 346.0 V261.4 M498.1 346.0 V261.4 M500.7 346.0 V261.4 M503.3 346.0 V261.4 M506.0 346.0 V261.4 M508.6 346.0 V261.4 M511.2 346.0 V261.4 M513.9 346.0 V261.4 M516.5 346.0 V261.4 M519.2 346.0 V261.4 M521.8 346.0 V261.4 M524.4 346.0 V261.4 M527.1 346.0 V261.4 M529.7 346.0 V261.4 M532.4 346.0 V261.4 M535.0 346.0 V261.4 M537.6 346.0 V261.4 M540.3 346.0 V261.4 M542.9 346.0 V261.4 M545.6 346.0 V261.4 M548.2 346.0 V261.4 M550.8 346.0 V261.4 M553.5 346.0 V261.4 M556.1 346.0 V261.4 M558.8 346.0 V261.4 M561.4 346.0 V261.4 M564.0 346.0 V261.4 M566.7 346.0 V261.4 M569.3 346.0 V261.4 M571.9 346.0 V261.4 M574.6 346.0 V261.4 M577.2 346.0 V261.4 M579.9 346.0 V261.4 M582.5 346.0 V261.4 M585.1 346.0 V261.4 M587.8 346.0 V261.4 M590.4 346.0 V261.4 M593.1 346.0 V261.4 M595.7 346.0 V261.4 M598.3 346.0 V261.4 M601.0 346.0 V261.4 M603.6 346.0 V261.4 M606.2 346.0 V261.4 M608.9 346.0 V261.4 M611.5 346.0 V261.4 M614.2 346.0 V261.4 M616.8 346.0 V261.4 M619.4 346.0 V261.4 M622.1 346.0 V261.4 M624.7 346.0 V261.4 M627.4 346.0 V261.4 M630.0 346.0 V261.4 M632.6 346.0 V261.4 M635.3 346.0 V261.4 M637.9 346.0 V261.4 M640.6 346.0 V261.4 M643.2 346.0 V261.4 M645.8 346.0 V261.4 M648.5 346.0 V261.4 M651.1 346.0 V261.4 M653.8 346.0 V261.4 M656.4 346.0 V261.4 M659.0 346.0 V261.4 M661.7 346.0 V261.4 M664.3 346.0 V261.4 M666.9 346.0 V261.4 M669.6 346.0 V261.4 M672.2 346.0 V261.4 M674.9 346.0 V261.4 M677.5 346.0 V261.4 M680.1 346.0 V261.4 M682.8 346.0 V261.4 M685.4 346.0 V261.4 M688.1 346.0 V261.4 M690.7 346.0 V261.4 M693.3 346.0 V261.4" opacity="0.6"/>
+  <path class="curve" d="M355.6 346.0 V261.4 H693.3 V346.0"/>
+  <rect x="465.3" y="290.2" width="118.2" height="34" rx="4" fill="var(--bg)" opacity="0.9"/>
+  <text class="lbl" x="524.4" y="304.2" text-anchor="middle">band −100…+300 MHz</text>
+  <text class="sub" x="524.4" y="318.2" text-anchor="middle">128 channels of 3.125 MHz</text>
+  <path class="dash" d="M102.2 230 V346"/>
+  <path class="dash" d="M777.8 230 V346"/>
+  <text class="sub" x="96.2" y="238" text-anchor="end">−fs/2</text>
+  <text class="sub" x="783.8" y="238">fs/2</text>
+  <path class="dash" d="M440.0 246 V346"/>
+  <text class="sub" x="440.0" y="378" text-anchor="middle">(f_LO)</text>
+  <text class="ttl" x="60" y="210">b · complex baseband at fs = 800 MHz</text>
+</svg>
+<figcaption>The frequency plan, from the parameters. a: the simulated RF stream is real and sampled at 4 GHz, so it holds frequencies up
+to 2 GHz; the receiver band is 1.2–1.6 GHz and the LO sits at 1.3 GHz, off centre on purpose. b: after the IQ stage the band lies at
+−100…+300 MHz, lopsided around zero, so a mirrored frequency mapping would put it at −300…+100 MHz and fail visibly. The +300 MHz edge
+is why the sample rate is 800 MHz: it must sit inside the flat part of the IQ low-pass (cutoff 0.9·fs/2 = 360 MHz). The channelizer
+then cuts the band into 128 channels whose edges fall on the band edges (fine lines).</figcaption>
+</figure>
+<p id="scales">In time: every sampling grid, the pulse, the interference and the length of a run, on one ruler.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 62 hours a TOA takes at -54 dB">
+  <path class="axis" d="M40 150 H820"/>
+  <path class="axis" d="M40.0 150 v4"/>
+  <path class="axis" d="M88.8 150 v4"/>
+  <path class="axis" d="M137.5 150 v4"/>
+  <path class="axis" d="M186.2 150 v4"/>
+  <path class="axis" d="M235.0 150 v4"/>
+  <path class="axis" d="M283.8 150 v4"/>
+  <path class="axis" d="M332.5 150 v4"/>
+  <path class="axis" d="M381.2 150 v4"/>
+  <path class="axis" d="M430.0 150 v4"/>
+  <path class="axis" d="M478.8 150 v4"/>
+  <path class="axis" d="M527.5 150 v4"/>
+  <path class="axis" d="M576.2 150 v4"/>
+  <path class="axis" d="M625.0 150 v4"/>
+  <path class="axis" d="M673.8 150 v4"/>
+  <path class="axis" d="M722.5 150 v4"/>
+  <path class="axis" d="M771.2 150 v4"/>
+  <path class="axis" d="M820.0 150 v4"/>
+  <path class="axis" d="M88.8 146 v12"/><text class="sub" x="88.8" y="170" text-anchor="middle">1 ns</text>
+  <path class="axis" d="M235.0 146 v12"/><text class="sub" x="235.0" y="170" text-anchor="middle">1 µs</text>
+  <path class="axis" d="M381.2 146 v12"/><text class="sub" x="381.2" y="170" text-anchor="middle">1 ms</text>
+  <path class="axis" d="M527.5 146 v12"/><text class="sub" x="527.5" y="170" text-anchor="middle">1 s</text>
+  <path class="axis" d="M700.9 146 v12"/><text class="sub" x="700.9" y="170" text-anchor="middle">1 h</text>
+  <path class="axis" d="M768.2 146 v12"/><text class="sub" x="768.2" y="170" text-anchor="middle">1 d</text>
+  <path class="thin" d="M59.4 150 V130.0" opacity="0.7"/>
+  <circle cx="59.4" cy="150" r="3.5" style="fill:var(--accent)"/>
+  <text class="sub" x="43.4" y="116.0" text-anchor="middle" style="fill:var(--accent)">RF sample</text>
+  <text class="lbl" x="43.4" y="129.0" text-anchor="middle">0.25 ns</text>
+  <path class="thin" d="M93.5 150 V94.0" opacity="0.7"/>
+  <circle cx="93.5" cy="150" r="3.5" style="fill:var(--accent)"/>
+  <text class="sub" x="93.5" y="80.0" text-anchor="middle" style="fill:var(--accent)">IQ sample</text>
+  <text class="lbl" x="93.5" y="93.0" text-anchor="middle">1.25 ns</text>
+  <path class="thin" d="M200.9 150 V58.0" opacity="0.7"/>
+  <circle cx="200.9" cy="150" r="3.5" style="fill:var(--warn)"/>
+  <text class="sub" x="200.9" y="44.0" text-anchor="middle" style="fill:var(--warn)">impulse burst</text>
+  <text class="lbl" x="200.9" y="57.0" text-anchor="middle">200 ns</text>
+  <path class="thin" d="M204.8 150 V174.0" opacity="0.7"/>
+  <circle cx="204.8" cy="150" r="3.5" style="fill:var(--accent)"/>
+  <text class="sub" x="204.8" y="194.0" text-anchor="middle" style="fill:var(--accent)">channel sample</text>
+  <text class="lbl" x="204.8" y="207.0" text-anchor="middle">0.24 µs</text>
+  <path class="thin" d="M234.1 150 V130.0" opacity="0.7"/>
+  <circle cx="234.1" cy="150" r="3.5" style="fill:var(--accent)"/>
+  <text class="sub" x="234.1" y="116.0" text-anchor="middle" style="fill:var(--accent)">detected bin</text>
+  <text class="lbl" x="234.1" y="129.0" text-anchor="middle">0.96 µs</text>
+  <path class="thin" d="M249.7 150 V210.0" opacity="0.7"/>
+  <circle cx="249.7" cy="150" r="3.5" style="fill:var(--warn)"/>
+  <text class="sub" x="249.7" y="230.0" text-anchor="middle" style="fill:var(--warn)">radar pulse</text>
+  <text class="lbl" x="249.7" y="243.0" text-anchor="middle">2 µs</text>
+  <path class="thin" d="M268.6 150 V94.0" opacity="0.7"/>
+  <circle cx="268.6" cy="150" r="3.5" style="fill:var(--accent)"/>
+  <text class="sub" x="268.6" y="80.0" text-anchor="middle" style="fill:var(--accent)">phase bin</text>
+  <text class="lbl" x="268.6" y="93.0" text-anchor="middle">4.9 µs</text>
+  <path class="thin" d="M348.4 150 V130.0" opacity="0.7"/>
+  <circle cx="348.4" cy="150" r="3.5" style="fill:var(--why)"/>
+  <text class="sub" x="348.4" y="116.0" text-anchor="middle" style="fill:var(--why)">pulse σ<tspan baseline-shift="sub" font-size="9">t</tspan></text>
+  <text class="lbl" x="348.4" y="129.0" text-anchor="middle">212 µs</text>
+  <path class="thin" d="M366.6 150 V94.0" opacity="0.7"/>
+  <circle cx="366.6" cy="150" r="3.5" style="fill:var(--why)"/>
+  <text class="sub" x="366.6" y="80.0" text-anchor="middle" style="fill:var(--why)">pulse FWHM</text>
+  <text class="lbl" x="366.6" y="93.0" text-anchor="middle">0.5 ms</text>
+  <path class="thin" d="M420.2 150 V174.0" opacity="0.7"/>
+  <circle cx="420.2" cy="150" r="3.5" style="fill:var(--why)"/>
+  <text class="sub" x="420.2" y="194.0" text-anchor="middle" style="fill:var(--why)">dispersion sweep</text>
+  <text class="lbl" x="420.2" y="207.0" text-anchor="middle">6.3 ms</text>
+  <path class="thin" d="M430.0 150 V130.0" opacity="0.7"/>
+  <circle cx="430.0" cy="150" r="3.5" style="fill:var(--why)"/>
+  <text class="sub" x="430.0" y="116.0" text-anchor="middle" style="fill:var(--why)">period</text>
+  <text class="lbl" x="430.0" y="129.0" text-anchor="middle">10 ms</text>
+  <path class="thin" d="M478.8 150 V94.0" opacity="0.7"/>
+  <circle cx="478.8" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="478.8" y="80.0" text-anchor="middle" style="fill:var(--fg)">test file L</text>
+  <text class="lbl" x="478.8" y="93.0" text-anchor="middle">0.1 s</text>
+  <path class="thin" d="M527.5 150 V130.0" opacity="0.7"/>
+  <circle cx="527.5" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="527.5" y="116.0" text-anchor="middle" style="fill:var(--fg)">reference runs</text>
+  <text class="lbl" x="527.5" y="129.0" text-anchor="middle">1 s</text>
+  <path class="thin" d="M765.3 150 V130.0" opacity="0.7"/>
+  <circle cx="765.3" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="765.3" y="116.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, worst case</text>
+  <text class="lbl" x="765.3" y="129.0" text-anchor="middle">21 h</text>
+  <path class="thin" d="M788.2 150 V174.0" opacity="0.7"/>
+  <circle cx="788.2" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="788.2" y="194.0" text-anchor="middle" style="fill:var(--fg)">TOA at −54 dB (sim. pulsar)</text>
+  <text class="lbl" x="788.2" y="207.0" text-anchor="middle">62 h</text>
+  <circle cx="44" cy="276" r="4" style="fill:var(--accent)"/><text class="sub" x="53" y="280">sampling and processing grid</text>
+  <circle cx="234" cy="276" r="4" style="fill:var(--why)"/><text class="sub" x="243" y="280">the pulsar</text>
+  <circle cx="424" cy="276" r="4" style="fill:var(--warn)"/><text class="sub" x="433" y="280">interference</text>
+  <circle cx="614" cy="276" r="4" style="fill:var(--fg)"/><text class="sub" x="623" y="280">runs and time per TOA</text>
+  <text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to days (log scale)</text>
+</svg>
+<figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
+that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
+bins resolve the 212 µs pulse. The 0.1 s test file holds ten turns; a TOA at the design point needs about a million times longer, which
+is why block C plans a fast simulator.</figcaption>
+</figure>
 
 <h2 id="pulsar">1. Pulsar (ground truth for generation)</h2>
 <div class="table-wrap"><table>
@@ -116,8 +296,9 @@ put in to test robustness.</p>
 <tr><td><code>fileChanWeight</code></td><td><code>data/chan/test_dedispB_chan_weights.dat</code></td><td><code>blankingWeights</code></td></tr>
 <tr><td><code>fileFoldChan</code></td><td><code>data/test_fold_chan.mat</code></td><td><code>foldProfile</code> (channels)</td></tr>
 </table></div>
-<div class="callout why"><span class="ttl">Why excision writes its own files</span>
-<p>The unblanked channel files are the reference for with/without comparisons, and the source <code>tests/makeTestData.m</code> copies
+<div class="callout why"><span class="ttl">Design choice: excision writes its own files</span>
+<p><b>Alternative:</b> blank the channel files in place.</p>
+<p><b>Why not:</b> the unblanked channel files are the reference for with/without comparisons, and the source <code>tests/makeTestData.m</code> copies
 when the unit tests' data are re-frozen (the tests themselves read their own copy in <code>data/test/</code> since 13 Oct); switching
 <code>excision</code> never overwrites them.</p></div>
 

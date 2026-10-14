@@ -8,6 +8,22 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 
 | Script | Figure | Page |
 |---|---|---|
+| `gen_navgeom.py` | navigation geometry: a pulse front and an offset station; three lines of position | physics.html (1) |
+| `gen_whysquare.py` | why square: average voltage over turns is zero, average power shows the pulse (toy) | physics.html (2) |
+| `gen_radiometer.py` | averaged power scatter vs samples per average; half-band noise; Isserlis sums | physics.html (5) |
+| `gen_foldgrow.py` | folded profiles after 1–4096 turns; SNR vs observing time for several ρ | physics.html (6) |
+| `gen_flanks.py` | timing information on the pulse flanks; the bound √2·σ_t/SNR | physics.html (7) |
+| `gen_timeprec.py` | float32 vs double time resolution; a clock built by adding 1/fs drifts | conventions.html (5) |
+| `gen_datarate.py` | bytes written per second of signal by each stage, against the 24 GB memory | pipeline.html (sizes) |
+| `gen_freqplan.py` | the frequency plan: RF band, LO, baseband, IQ low-pass, 128 channels | parameters.html |
+| `gen_timescales.py` | every time scale of the pipeline on one log ruler | parameters.html |
+| `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html |
+| `gen_experiments.py` | what each run script varies and keeps fixed | scripts.html |
+| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times | tests.html |
+| `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record | results.html |
+| `gen_effects.py` | size of each effect left out of the simulation, as a timing error | limits.html |
+| `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html |
+| `gen_timeline.py` | the blocks on the calendar, 29 Sep – 13 Oct, with session days | history.html |
 | `gen_voltage.py` | the generated voltage: noise louder once per turn; power follows G (toy rate) | sky.html (stage 1) |
 | `gen_profile.py` | power profile G(t), neighbour sum at 20 % duty | sky.html (stage 1) |
 | `gen_rfspec.py` | RF spectrum: white to f_in/2, the band the dispersion stage keeps | sky.html (stage 1, design choices) |

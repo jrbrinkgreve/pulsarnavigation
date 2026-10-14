@@ -13,6 +13,12 @@
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
 <p class="meta">Status as of 13 October 2026 (commit <code>8a756ec</code>). Session-by-session history: <code>logs/</code>.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>Done: the validated full-band chain (block 1), the channelized front end (A) and RFI excision (B, closed for now). Now: the review
+week, which explains and refines every stage. Next: a fast simulator for hours of data (C), then Earth's motion and the phase
+prediction (D), then several pulsars and the navigation solution (E). The order follows from the reference scenario: a TOA takes
+~20 hours, so it must be simulated fast and folded across passes.</p></div>
+
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
 <tr><th>Date</th><th>Work</th></tr>
@@ -90,8 +96,9 @@ takes ~20 h, far beyond what the voltage-level simulation can produce; D is then
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 
-<h2>Why this order</h2>
+<h2 id="why">Design choices: why this order</h2>
 <div class="callout why"><span class="ttl">Excision before the fast simulator (decided 6 Oct)</span>
+<p><b>Alternative:</b> the plan before 6 Oct: the fast simulator first, RFI later.</p>
 <p>Jasper's reason: real data contains RFI, excision is mandatory, and simulations without RFI are not realistic. The physics:</p>
 <ol>
 <li>At −54 dB one radar pulse ≈ 80,000 pulsar pulses, so excision must <b>blank</b> (weight 0), not subtract.</li>
@@ -100,7 +107,8 @@ takes ~20 h, far beyond what the voltage-level simulation can produce; D is then
 <li>Blanking needs a data weight per time bin and channel, which changes the fold's data product. Fix the interface before writing a simulator that emulates it.</li>
 </ol></div>
 <div class="callout why"><span class="ttl">The fast simulator before motion</span>
-<p>At the worst-case design point a J0437 TOA takes ~20 h, longer than one pass. Hours cannot be simulated at voltage level (~61 GB per second).
+<p><b>Alternative:</b> add motion (D) first, in the voltage simulator.</p>
+<p><b>Why not:</b> at the worst-case design point a J0437 TOA takes ~20 h, longer than one pass. Hours cannot be simulated at voltage level (~61 GB per second).
 The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so <code>detectPulsar</code> and <code>estimateTOA</code>
 run unchanged on it. Motion (D) is then a hard requirement: folding across passes needs a phase that stays coherent over days.</p></div>
 

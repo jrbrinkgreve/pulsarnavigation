@@ -13,7 +13,83 @@
 <p class="lede">What the simulation leaves out, what the processing assumes without checking, and how big each effect
 is. Each item says whether it matters for the weak-signal target (−54 dB, J0437 on a 0.61 m² array).</p>
 
-<h2>Processing assumptions not checked</h2>
+<div class="callout note"><span class="ttl">In short</span>
+<p>Over the 0.1–1 s it simulates, the pipeline is exact for what it models. What it leaves out matters on longer timescales. Four effects
+are larger than a J0437 TOA and must be handled before folding for hours: Earth's motion, the pulsar's binary orbit, the clock and the
+station position (block D). Others only matter for nanosecond navigation: the ionosphere, DM changes, scattering at high DM. The receiver
+model is ideal, and two excision items are parked with designs.</p></div>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#sizes">How big each effect is</a></li>
+<li><a href="#processing">Processing assumptions not checked</a></li>
+<li><a href="#propagation">Propagation</a></li>
+<li><a href="#signal">Signal and receiver</a></li>
+<li><a href="#timing">Timing and pulse</a></li>
+<li><a href="#estimation">Estimation and detection</a></li>
+<li><a href="#rfi">RFI excision</a></li>
+<li><a href="#edges">Edges and scale</a></li>
+</ol></div>
+
+<h2 id="sizes">How big each effect is</h2>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 334" role="img" aria-label="Size of each effect the simulation leaves out, as a timing error on a log scale, against the J0437 TOA precision and the nanosecond goal">
+  <rect class="fillwarn" x="347.3" y="36" width="192.8" height="244"/>
+  <rect class="fillfg" x="540.1" y="36" width="279.9" height="244" opacity="0.18"/>
+  <path class="dash" d="M540.1 28 V36"/>
+  <text class="sub" x="540.1" y="24" text-anchor="middle">J0437 TOA at SNR 7: 12 µs</text>
+  <path class="dash" d="M347.3 28 V36"/>
+  <text class="sub" x="347.3" y="24" text-anchor="middle">1 ns = 30 cm</text>
+  <text class="sub" x="10" y="54">Earth's orbital motion (uncorrected)</text>
+  <path class="curve4" style="stroke-width:5" stroke-linecap="round" d="M583.6 50 H813.3"/>
+  <text class="sub" x="573.6" y="54" text-anchor="end">after 1 s … after 20 h</text>
+  <text class="sub" x="10" y="84">J0437's binary orbit, within one fold</text>
+  <circle cx="795.3" cy="80" r="5" class="bad"/>
+  <text class="sub" x="785.3" y="84" text-anchor="end">~3 s in 20 h</text>
+  <text class="sub" x="10" y="114">clock rate off by 10⁻⁹, over 20 h</text>
+  <circle cx="576.9" cy="110" r="5" class="bad"/>
+  <text class="sub" x="586.9" y="114">72 µs</text>
+  <text class="sub" x="10" y="144">station position error 4–100 km</text>
+  <path class="curve4" style="stroke-width:5" stroke-linecap="round" d="M542.3 140 H608.4"/>
+  <text class="sub" x="618.4" y="144">13–330 µs</text>
+  <text class="sub" x="10" y="174">DM change of 0.001 pc cm⁻³</text>
+  <circle cx="504.3" cy="170" r="5" class="dot2"/>
+  <text class="sub" x="514.3" y="174">2.1 µs at 1.4 GHz</text>
+  <text class="sub" x="10" y="204">locked radar left after excision (main beam)</text>
+  <circle cx="470.8" cy="200" r="5" class="dot2"/>
+  <text class="sub" x="480.8" y="204">0.41 µs at −54 dB</text>
+  <text class="sub" x="10" y="234">ionosphere</text>
+  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M369.8 230 H434.5"/>
+  <text class="sub" x="444.5" y="234">3–70 ns</text>
+  <text class="sub" x="10" y="264">scattering</text>
+  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M328.5 260 H489.1"/>
+  <text class="sub" x="499.1" y="264">0.4 ns (DM 5) … µs (DM ~100)</text>
+  <path class="axis" d="M300 290 H820"/>
+  <path class="axis" d="M347.3 290 v5"/><text class="sub" x="347.3" y="308" text-anchor="middle">1 ns</text>
+  <path class="axis" d="M489.1 290 v5"/><text class="sub" x="489.1" y="308" text-anchor="middle">1 µs</text>
+  <path class="axis" d="M630.9 290 v5"/><text class="sub" x="630.9" y="308" text-anchor="middle">1 ms</text>
+  <path class="axis" d="M772.7 290 v5"/><text class="sub" x="772.7" y="308" text-anchor="middle">1 s</text>
+  <path class="axis" d="M300.0 290 v3"/>
+  <path class="axis" d="M347.3 290 v3"/>
+  <path class="axis" d="M394.5 290 v3"/>
+  <path class="axis" d="M441.8 290 v3"/>
+  <path class="axis" d="M489.1 290 v3"/>
+  <path class="axis" d="M536.4 290 v3"/>
+  <path class="axis" d="M583.6 290 v3"/>
+  <path class="axis" d="M630.9 290 v3"/>
+  <path class="axis" d="M678.2 290 v3"/>
+  <path class="axis" d="M725.5 290 v3"/>
+  <path class="axis" d="M772.7 290 v3"/>
+  <path class="axis" d="M820.0 290 v3"/>
+  <text class="sub" x="560.0" y="324" text-anchor="middle">timing error if left out</text>
+  <text class="sub" x="10" y="324">red: larger than a J0437 TOA · orange: between 1 ns and a TOA</text>
+</svg>
+<figcaption>How big each effect left out of the simulation is, as a timing error (log scale; numbers from the sections below). Right of the
+12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours: Earth's motion, the pulsar's binary
+orbit, the clock and the station position, all part of block D. Between 1 ns and 12 µs (orange) an effect does not change today's TOAs but
+matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a radar locked to the pulsar.</figcaption>
+</figure>
+
+<h2 id="processing">Processing assumptions not checked</h2>
 <ul>
 <li><b>DM correctness:</b> a wrong DM leaves a residual sweep. A DM check from sub-band TOAs is planned (block 2).</li>
 <li><b>Reference-frequency convention</b> vs the TOA definition: a constant offset if the forward and inverse references differ.</li>
@@ -21,7 +97,7 @@ is. Each item says whether it matters for the weak-signal target (−54 dB, J043
 <li><b>True sample rate:</b> trusted via the info chain.</li>
 </ul>
 
-<h2>Propagation</h2>
+<h2 id="propagation">Propagation</h2>
 <div class="table-wrap"><table>
 <tr><th>Effect</th><th>Size</th><th>Matters for</th><th>Plan</th></tr>
 <tr><td><b>Ionosphere</b> (noted 8 Oct, Jasper)</td><td>dispersive delay 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz; TEC 5–100 TECU → ~3–70 ns, time-variable. Also Faraday rotation (with one linear polarization the received fraction changes), ionospheric scintillation (equatorial and high latitudes), refraction.</td><td>ns-level navigation (1 ns ≈ 30 cm); small against today's µs TOAs</td><td>size for target site and hardware; sub-band TOAs or GNSS TEC maps (IGS) could correct it; likely block D or later</td></tr>
@@ -35,7 +111,7 @@ is. Each item says whether it matters for the weak-signal target (−54 dB, J043
 Δν<sub>d</sub> multiplied into the forward filter, plus optionally a multipath tail. Long-term fading, Doppler and DM(<var>t</var>) belong at the TOA / SNR level of a
 later mission simulation. With a scintillated spectrum, optimal detection weights channels by pulsar S/N (<code>ChannelGain</code> in the optimal fit).</p></div>
 
-<h2>Signal and receiver</h2>
+<h2 id="signal">Signal and receiver</h2>
 <ul>
 <li><b>Realistic SNR regime.</b> −5 dB is a bright pulsar on a large dish. A small antenna (SEFD ~10⁵ Jy) gives ρ ≈ −27 dB (Vela) to ≲ −50 dB (typical
 millisecond pulsars): per-pulse SNR ≪ 1, TOAs need minutes to hours of folding, where motion, DM(<var>t</var>) and scintillation matter.</li>
@@ -52,7 +128,7 @@ receiver (bandpass on pulsar and noise) the channel path would cost 0.37 % (<cod
 <li><b>Real bandpass</b> is not ideal and not known exactly: measure <var>W</var>² from the off-pulse spectrum and use it in (∫<var>W</var>²)²/∫<var>W</var>⁴; can be 10–30 % on real data.</li>
 </ul>
 
-<h2>Timing and pulse</h2>
+<h2 id="timing">Timing and pulse</h2>
 <ul>
 <li><b>No clock jitter or drift.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, ~6× the J0437 TOA precision. A constant rate can be fitted; random
 wander cannot. Belongs in the phase predictor (D); "what oscillator does the hardware have?" is an open question.</li>
@@ -73,7 +149,7 @@ B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7
 <code>estimateTOA</code>.</li>
 </ul>
 
-<h2>Estimation and detection</h2>
+<h2 id="estimation">Estimation and detection</h2>
 <ul>
 <li>FFTFIT is not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB); irrelevant at weak signal.</li>
 <li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
@@ -82,7 +158,7 @@ B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7
 <li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).</li>
 </ul>
 
-<h2>RFI excision</h2>
+<h2 id="rfi">RFI excision</h2>
 <p>See <a href="excision.html#limits">RFI excision: limits</a>: data-dependent truncation (−0.4 % pulse amplitude at −5 dB), residual bias from
 an exactly locked radar (0.41 µs at −54 dB with the frequency guard and the periodic mask), the periodic mask for fixed PRFs only (staggered
 PRFs not yet), carrier/GNSS channels with high baselines, windows ≤ 16 samples, noise-like RFI undetectable, assumed 0.1 µs radar rise time.</p>
@@ -107,7 +183,7 @@ times on a 4-sample grid, which the chance calculation ignores) and blanked ever
 Fix designed, not implemented: a grid-aware chance calculation, a minimum fraction of predicted pulses detected, and trial periods from
 strong pulses (block-B handover <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p></div>
 
-<h2>Edges and scale</h2>
+<h2 id="edges">Edges and scale</h2>
 <ul>
 <li>The last ~6.3 ms of each file are not fully supported; partial first and last turns are skipped (<code>MinCoverage</code> = 1).</li>
 <li><b>High DM in the generator:</b> forward dispersion needs ~47 GB from DM ~54 up to DM ~106, so at both DM 60 and DM 100 (24 GB machine). The processing side is solved by the
