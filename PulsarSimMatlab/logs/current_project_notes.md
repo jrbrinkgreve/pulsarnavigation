@@ -718,7 +718,8 @@ change by < 1e-12, at most `MaxIterations` (10); before, its flag was set but dr
 sub-int that ran all rounds was reported as normal. Now kept per sub-int and for the total
 fold, and the summary counts valid sub-ints that did not converge (their TOA is kept);
 'equal' does not iterate (true). Old outputs bit-identical; main's folds (channel path
-'optimal' and 'equal', full band) all converged; forced to 2 rounds, none did.
+'optimal' and 'equal', full band) all converged; forced to 2 rounds, none did. Validated 15 Oct
+(Jasper's `runAllTests`: all passed).
 
 **Quality flag** (6 Oct 2026): option `MaxRedChi2` (default 2) → `flagChi2` = redChi2 > 2.
 Red. χ² = Σ (p_j − m_j)²/v_j over the on-pulse bins / (n − 3): normalized residuals
@@ -1259,7 +1260,8 @@ on-pulse data; from −20 dB down no window is triggered by the pulsar (≤ 2.3e
 almost all from +5 dB; from +10 dB single samples pass 100× and the frequency guard spreads;
 noise-free data flags every on-pulse window. The mask depends on the pulse, which
 `blankingWeights` does not model: TOA unbiased (symmetric), amplitude, SNR, χ² wrong. `main`
-warns (`main:brightExcision`, §3).
+warns (`main:brightExcision`, §3; validated 15 Oct by Jasper — no test runs `main`, the warning
+rests on Claude's case check).
 **Frequency guard (B5b-2, 8 Oct).** A strong event (peak sample power ≥ `FreqGuardMin`
 = 100 × baseline, +20 dB) is also blanked, same samples, in `FreqGuard` channels on each
 side (**default 7**, Jasper, from the B5b sweep: 1 µs locked-radar bias only below −51 dB,
@@ -2352,13 +2354,14 @@ barycentric corrections, navigation solution).
    - item 3 explains the whole 2.2 % channel-vs-full-band error-bar gap (pulsar-only taper
      1.1 % + `ChannelGain` 1 in six edge channels 1.0 %; a realistic receiver: 0.37 %);
    - default excision blanks bright pulsars (≥ 0 dB) and noise-free runs (**done 14 Oct**: limit
-     in `detectRFI`'s help, warning `main:brightExcision`; log `2026-10-14_small-fixes.md`);
+     in `detectRFI`'s help, warning `main:brightExcision`; log `2026-10-14_small-fixes.md`;
+     validated 15 Oct, Jasper);
    - `MaxRedChi2` 2 is 130σ on the channel path (B5e's χ² 1.22 passes);
    - "−54 dB" is −51 dB for J0437 in `snrDB` terms (the simulator at −54 dB: ~62 h per TOA);
    - the Rice factor is misread as a trial count on three docs pages (true ~60 trials);
    - item 5: no usable guard recovers turn 0;
    - `fitOptimal`'s convergence flag is dropped (**done 14 Oct**: `toa.converged`, counted in the
-     summary; bit-identical otherwise);
+     summary; bit-identical otherwise; validated 15 Oct, Jasper's `runAllTests`);
    - SNR per turn 360·ρ on the default path (the rule says 373·ρ).
 
    Confirmed: every key constant, the formulas page, the ground-truth rule, no timing offset,

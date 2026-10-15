@@ -97,3 +97,14 @@ pointed to it (docs commit). Claude's validation only. Jasper's runs to call it 
 - `runAllTests` (or `testChannelTOA` + `testOptimalTOA`) for item 1;
 - a `main` run for item 2, as is (no warning at −5 dB), and optionally with `snrDB = 0` and
   only `runStage.receiver` / `process`, to see the warning.
+
+## 15 Oct: validated
+
+Jasper ran `runAllTests`: all passed. "Mark them validated." Both items marked validated:
+
+- item 1 (`toa.converged`): `testChannelTOA` and `testOptimalTOA` exercise it;
+- item 2 (bright-pulsar warning): no test runs `main.m`. It is marked validated on Jasper's
+  word; the warning logic itself rests on Claude's 8-case check of the extracted block.
+
+Updated: the roadmap row (badge validated), notes §5.8, §5.20 and §10 item 12, and this log.
+
