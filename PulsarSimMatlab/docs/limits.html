@@ -118,7 +118,9 @@ millisecond pulsars): per-pulse SNR ≪ 1, TOAs need minutes to hours of folding
 <li><b>Spectrum:</b> the generator is white; real pulsars have <var>S</var> ∝ <var>f</var><sup>α</sup>, α ≈ −1.6 (factor 1.6 across 1.2–1.6 GHz). Equal-weight loss ~1 %;
 with profile evolution and a DM error it biases wideband TOAs.</li>
 <li><b>Receiver:</b> ideal linear filters, infinite dynamic range. No amplifier compression, ADC quantization or clipping (2-bit costs ≈ 12 % SNR),
-intermodulation, bandpass ripple, gain drift. Single polarization (dual pol gives √2 in SNR; the hardware is dual pol).</li>
+intermodulation, bandpass ripple, gain drift. Single polarization (dual pol gives √2 in SNR; the hardware is dual pol).
+Ideal I/Q (a digital downconverter): no I/Q imbalance (a mirror image, −25…−40 dB before correction), no DC offset or LO leakage, no LO phase noise.
+Our LO (1.3 GHz) lies inside the band, so a DC spike and imbalance ghosts (RFI at 1.35 GHz → ghost at 1.25 GHz) would land in it; real hardware needs a low-IF LO or imbalance calibration.</li>
 <li><b>Receiver noise does not pass the dispersion taper</b> in the simulation (only the pulsar is tapered at the band edges):
 +0.4 % in σ<sub>TOA</sub> on the full band, but <b>+2.5 % on the default channel path</b>. There the pulsar sees the band-edge
 taper and every channel's edges, while the noise sees only the channel edges, and the six edge channels hold 2–96 % of the pulse

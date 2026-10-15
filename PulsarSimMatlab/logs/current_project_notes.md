@@ -464,25 +464,28 @@ the pulse (the warning `addNoiseAndRFI:weak` below −60 dB said otherwise; remo
 
 **Physics.** Analog I/Q receiver: mix with LO, low-pass, sample. Complex envelope
 z(t) = LPF{2·x(t)·e^(−i2π·fLO·t)}, so x(t) = Re{z(t)·e^(i2π·fLO·t)}.
-- Mapping f_baseband = f_RF − fLO, **no spectral inversion** (1.2–1.6 GHz → ±200 MHz).
-- The mirror image (−1.6…−1.2 GHz → −3.0…−2.6 GHz ≡ +1.0…+1.4 GHz at 4 GHz sampling)
+- Mapping f_baseband = f_RF − fLO, **no spectral inversion** (fLO = 1.3 GHz, off-centre on
+  purpose: 1.2–1.6 GHz → −100…+300 MHz, so a mirrored mapping would fail visibly).
+- The mirror image (−1.6…−1.2 GHz → −2.9…−2.5 GHz ≡ +1.1…+1.5 GHz at 4 GHz sampling)
   lies far outside the pass band and is removed.
 - Factor 2 (`'Gain','envelope'`, default): compensates the discarded image; tone
   A·cos(2πft + φ) → A·e^(iφ)·e^(i2π(f−fLO)t); mean|z|² = 2·mean(x²) in band.
   (`'unity'` = old behaviour, amplitudes halved.)
 
 **Code.**
-- D = round(f_in/fs) = 8.
+Numbers for the current `pipelineParams` (fLO 1.3 GHz, fs 800 MHz; §4). The original
+30 Sep set-up (fLO 1.4 GHz, 500 MHz, D = 8, cutoff 225 MHz) would not fit the off-centre band.
+- D = round(f_in/fs) = 5 → exactly 800 MHz (complex: covers −400…+400 MHz).
 - Kaiser-windowed sinc, **odd length** (2049 taps) → integer group delay G = 1024 input
-  samples (256 ns), **removed exactly**. Cutoff default 0.9·fs/2 = 225 MHz, stopband
-  80 dB (β = 7.86), transition ≈ 9.8 MHz. Checks: stopband start (≈230 MHz) < output
-  Nyquist (250 MHz); `'Band'` inside flat pass band (±200 < ±220 MHz).
-- LO phase in cycles `mod(n0·r, 1) + (0:n−1)·r`, r = fLO/f_in = 0.35, from the absolute
-  index (no drift).
+  samples (256 ns), **removed exactly**. Cutoff default 0.9·fs/2 = 360 MHz, stopband
+  80 dB (β = 7.86), transition ≈ 9.8 MHz. Checks: stopband start (≈365 MHz) < output
+  Nyquist (400 MHz); `'Band'` inside the flat pass band (−100…+300 within ±355 MHz).
+- LO phase in cycles `mod(n0·r, 1) + (0:n−1)·r`, r = fLO/f_in = 0.325 (= 13/40), from the
+  absolute index (no drift).
 - Overlap-add with carry 2048; Nfft = 2^22 (auto; ~350 MB), 955 blocks for 1 s.
 - `writeDecimated`: removes G and keeps every D-th sample on the **global** grid →
   output sample k ↔ input sample k·D ↔ time k/fs exactly. Output length ceil(N/D)
-  (500,000,001 for 1 s).
+  (800,000,001 for 1 s).
 
 **Options:** `FilterOrder`, `Cutoff`, `StopbandDB`, `Band`, `Gain`, `BlockLen`,
 `MaxMemoryGB` (2), `SaveInfo`, `Verbose`.
@@ -1906,7 +1909,10 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   and a DM error this biases wideband TOAs.
 - **Receiver**: ideal linear filters, infinite dynamic range; no amplifier compression,
   ADC quantization/clipping (2-bit costs ≈ 12 % SNR), intermodulation, bandpass ripple,
-  gain drift; single polarisation (dual pol: √2 in SNR).
+  gain drift; single polarisation (dual pol: √2 in SNR). Ideal I/Q (a digital downconverter):
+  no I/Q imbalance (mirror image, −25…−40 dB uncorrected), DC offset / LO leakage, LO phase
+  noise; our LO (1.3 GHz) lies inside the band, so a DC spike and imbalance ghosts
+  (+f_bb ↔ −f_bb) would land in it (§10 item 11, I3; review 13 Oct).
 - **Timing**: no clock jitter/drift, no relative motion (Doppler), single pulsar only.
   Earth's orbital v/c ≈ 1e-4 → ≈ 100 µs phase drift per second at f0 = 100 Hz: the
   navigation signal itself; needs Doppler terms in the fold phase model (Block 3).
@@ -2283,6 +2289,77 @@ barycentric corrections, navigation solution).
      matches TOAs to the nearest true centre, but must compare `toa.total.timeOffset` with
      `info_gen.timeOffset` (missing field = 0). Test offsets near ±T/2 (sub-int boundary,
      phase wrap).
+
+   Stage 2, dispersion (`applyDispersionStream`, review 13 Oct; note only):
+   - **D1** unit test `tests/testApplyDispersionStream.m` (the stage-2 part of item 12's
+     item 30; own files in tempdir like the generator test; short file, small DM e.g. 0.1 →
+     kernel ~0.5 M samples): (a) Gaussian tone bursts at a few frequencies arrive at
+     τ(f) − τ(refFreq); (b) output = direct convolution for 2–3 `BlockLen` values, incl. a
+     short last block and a file shorter than s0; (c) DM = 0 → zero delay, pure band-pass;
+     (d) output/input power ≈ `kernelEnergy`; (e) output length = input length; (f) `leak`
+     < 1e-10 for a few DM / `EdgeFrac` values (the guard 20/edgeW is empirical). Replaces
+     the NumPy ports (§7), which are not in the repo and cannot be rerun.
+   - **D2** truth convention coupled to a processing choice: one `refFreq`
+     (`pipelineParams`, "same as generation") sets both where the simulation leaves out the
+     bulk delay τ(refFreq) and the frequency the observer dedisperses to; `pulseCenters` is
+     the truth only because the two are equal (same kind as R3 and item 12's item 24). The
+     sky has no reference frequency. Option for phase D (TOAs at infinite frequency):
+     simulate the full delay τ(f), or a separate `simRefFreq`, and let `validateTOA` convert
+     the truth with `bulkDelayRef`.
+   - DM up to 100 (item 5): this stage is the blocker (~47 GB at DM 100; was written ~94 GB, corrected 13 Oct); nothing new.
+
+   Stage 3, receiver noise and RFI (`addNoiseAndRFI`, `rfiSource`, review 13 Oct; note only):
+   - **N1** unit test `tests/testAddNoiseAndRFI.m` (the stage-3 part of item 12's item 30):
+     (a) measured in-band PSD ratio pulsar peak / receiver noise vs ρ (the SNR definition,
+     σ_n = A/√ρ); (b) power of each RFI type vs INR·P_band (`cw`, `bpsk`, `pulsed` while on,
+     `impulse`'s in-band share; `noise` is in `testRfiNoise`); (c) `BlockSize` 1e6 + 3 vs one
+     block, bit for bit, all types with noise on (today only `'noise'` is checked); (d)
+     `predictPerformance` vs 388·ρ for weak pulses. Today the older types are only checked
+     as "same as the pre-B5a reference" (`testRadarEdges` / `testRfiGating` / `testRfiNoise`
+     test 1), validated once by runs (5 Oct, §7); N1 checks them against formulas.
+   - Already recorded, links only: receiver noise not band-passed (Deferred below; full-review
+     item 4); no ADC (§9); `'noise'` RFI speed (item 12's item 10b); `predictPerformance` =
+     flat-band copy of `expectedPowerModel` with an `envelopeMode` branch (R2, item 20e).
+
+   Stage 4, IQ conversion (`applyIQmodulation`, review 13 Oct; noted; I2 fixed 14 Oct):
+   - **I1** unit test `tests/testApplyIQmodulation.m` (the stage-4 part of item 12's item 30):
+     tones above / below fLO → f − fLO with amplitude A and phase φ (no inversion, factor 2);
+     Gaussian burst keeps its centroid time (G = 1024 removed); in-band white noise power
+     ratio 2.000; mirror tone and a tone past the stopband suppressed ≥ 80 dB; several
+     `BlockLen` equal to rounding, sample k at k/fs. Replaces the NumPy ports (§7).
+   - **I2 done 14 Oct** (text only, Jasper: "fix I2 now"): §5.4 had the 30 Sep setup (fLO 1.4 GHz, fs 500 MHz, D = 8,
+     cutoff 225 MHz, r = 0.35, 500,000,001 samples per s); current (`pipelineParams`, §4):
+     fLO 1.3 GHz, fs 800 MHz, D = 5, cutoff 360 MHz, flat to ±355 MHz, stopband from 365 MHz,
+     band at −100…+300 MHz, r = 0.325 = 13/40, 800,000,001 per s. Text only.
+   - **I3** (physics gap, for §9) ideal I/Q: a real zero-IF receiver adds I/Q imbalance (mirror
+     image, typically −25…−40 dB uncorrected), DC offset / LO leakage, LO phase noise and
+     frequency error. Our LO (1.3 GHz) lies inside the band: the DC spike would land in the
+     band, and imbalance folds +f_bb onto −f_bb (RFI at 1.35 GHz → ghost at 1.25 GHz). For
+     hardware: LO outside the band (low-IF) or imbalance calibration. Added to §9 "Receiver"
+     and the docs limits page 14 Oct.
+   - **I4** (added 14 Oct, seen in the stage-4 walk-through but not noted then) remove the legacy
+     `'Gain','unity'` option (no factor 2, amplitudes halved): no caller passes `'Gain'`.
+     Touches `applyIQmodulation` (option, help, switch), §5.4 (one line), `docs/receiver.html`
+     (one sentence), `docs/api.html` (regenerated). Keep `info.gainFactor` (= 2), which
+     `expectedPowerModel` reads. Same kind as R2.
+   - Checked, nothing to note: the filter's 256 ns transient at both file ends (the first and
+     last 1024 input samples see zeros); negligible next to the 6.3 ms end edge (§9 "Edges").
+   - Links only: LO recomputed per block (item 11), filtering at 4 GHz before decimation
+     (item 12), `kaiserLowpass` copies (item 20c), out-of-band receiver noise fills the
+     ±360 MHz passband (full-review item 4).
+
+   Stage 5, channelizer (`channelizeIQ`, review 14 Oct; note only):
+   - **C1** extend `tests/testChannelizeIQ.m` (same tone method; today it only runs the
+     current grid: fs 800 MHz, fLO 1.3 GHz, β = ½, oversampling 4/3): (a) a β = 0 grid (fLO on
+     a channel centre; that path has never run; real hardware may put the LO there);
+     (b) oversampling 2 (D = 128); (c) `BlockOut` e.g. 333 vs 1024, bit for bit (measured once,
+     item 12's item 16, not in the test); (d) the refusals: fs/ChanWidth or K/Oversampling not
+     an integer, fLow ≥ fHigh, band not a whole number of channels, band + transitions outside
+     fLO ± fs/2.
+   - Links only: `kaiserLowpass` copies (item 20c); the 6 edge channels inside the stage-2
+     8 MHz taper with equal channel gain (full-review item 3, the 2.2 % channel-vs-full-band
+     error-bar gap; it acts in the weights and TOA stages); a fixed-point FPGA filterbank adds
+     quantisation (§9 "Receiver", ADC).
 12. **Code review of the whole codebase (Claude, 12 Oct; 33 candidates; full list with status:
    `logs/2026-10-13_code-review.md`).** 13 Oct, Jasper: implement the minor and simple ones,
    validate each. **Done and validated 13 Oct** (Claude's checks; Jasper's run of `testRadarEdges`,
