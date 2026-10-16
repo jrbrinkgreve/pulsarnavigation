@@ -56,7 +56,7 @@ median / ln 2 baseline per 16 ms block (66,667 samples, ~0.6 % per block); time 
 samples (prototype half-length 2.4 µs); frequency guard ±7 channels for events ≥ 100×; what it
 deliberately does not catch. Mask picture (channel × time) drawn in the chat.
 
-Proposed, waiting for Jasper: **E1** extend `testDetectRFI` with (a) a gain ramp / step (the
+Noted 15 Oct (notes §10 item 11 "Stage 6", roadmap row "RFI-detection test"): **E1** extend `testDetectRFI` with (a) a gain ramp / step (the
 reason for 16 ms blocks; the simulation has no gain drift; estimate: a baseline 1.6 % off raises
 false flags ~25 % for 1-sample windows, ~60 % for 16-sample windows) and (b) Passes 1 vs 2 with
 dense RFI. Remark for the long-data item: the memory check counts 48 B per sample; by count

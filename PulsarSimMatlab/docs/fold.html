@@ -444,8 +444,9 @@ neighbouring phase bins so that its average position is exact: no rounding error
 0.21 to <code>weightX</code>. Over many turns the ratios settle at <var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6, a neighbour correlation of 0.25,
 exactly the 0.2484 measured in the long noise-only run.</p>
 <div class="callout why"><span class="ttl">Why <code>weightX</code> matters (a real bug once)</span>
-<p>With linear assignment a phase bin looks like it has variance σ²/14.7 per turn instead of σ²/9.77, because it shares data with its
-neighbours. Ignoring the positive covariance underestimates the variance of any sum over bins (a TOA, a matched filter) by ~1.5×.
+<p>With linear assignment a phase bin looks like it has variance (2/3)·σ²/<var>n</var> per turn instead of σ²/<var>n</var> (<var>n</var> time bins
+per phase bin), because it shares data with its neighbours: σ²/14.7 instead of σ²/9.77 with the 1024 bins where this was found, σ²/7.6
+instead of σ²/5.09 with today's 2048 bins and 0.96 µs channel bins. Ignoring the positive covariance underestimates the variance of any sum over bins (a TOA, a matched filter) by ~1.5×.
 The fold check predicted a centroid scatter of 0.226 µs instead of the correct 0.277 µs until <code>weightX</code> was added
 (<a href="lessons.html">bugs and lessons</a> #8).</p></div>
 <p>σ² itself is not stored in the fold; see <a href="#why">design choices</a>.</p>

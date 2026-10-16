@@ -4,7 +4,7 @@ function info = blankChannels(info_chan, mask, outBase, opts)
 RFI excision blanks (sets to zero) the channel voltage samples hit by RFI,
 BEFORE per-channel coherent dedispersion: there a radar pulse is a few
 microseconds long in one or two channels; after dedispersion it would be
-smeared over the in-channel sweep (~60 us per channel at DM 5). Blanking
+smeared over the in-channel sweep (32-75 us per channel at DM 5). Blanking
 removes signal and noise alike (weight 0, nothing subtracted): at -54 dB
 one radar pulse carries the energy of ~80,000 pulsar pulses, so even
 99.9 % suppression by subtraction would leave more RFI than pulsar.

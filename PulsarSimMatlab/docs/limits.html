@@ -157,7 +157,8 @@ B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7
 <li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
-<li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).</li>
+<li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).
+Only the first 7 lags of <var>X</var> are stored; near a blank 0.4–0.7 % of a bin's variance (up to ~1.6 %) lies at longer lags (error bars only).</li>
 </ul>
 
 <h2 id="rfi">RFI excision</h2>

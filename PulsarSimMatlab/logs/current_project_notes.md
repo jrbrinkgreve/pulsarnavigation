@@ -504,21 +504,25 @@ H_inv = W(f)·exp(−i·2π·K·DM·(f − fRef)²/(f·fRef²)); 0 outside. Grou
 (channelized) dedispersion, which leaves intra-channel smearing.
 
 **Code.**
-- Checks: band strictly inside fLO ± fs/2 (1.15–1.65 GHz at 500 MHz); fRef in band.
-- Overlap: nFuture = ceil((τ(fLow) − τ(fRef))·fs) + g = 3,152,472;
-  nPast = ceil((τ(fRef) − τ(fHigh))·fs) + g = 1250 (g = 2.5 µs·fs).
+Numbers for the current `pipelineParams` (fs 800 MHz, fLO 1.3 GHz, DM 5, L = 0.1 s; checked
+against the saved run `data/mc/mc_dedisp_info.mat`). The original 30 Sep set-up (500 MHz, 1 s)
+had nPast 1250, nFuture 3,152,472, Nfft 2^26 in 8 blocks, run 7.4 s.
+- Checks: band strictly inside fLO ± fs/2 (0.9–1.7 GHz at 800 MHz); fRef in band.
+- Overlap: nFuture = ceil((τ(fLow) − τ(fRef))·fs) + g = 5,043,956;
+  nPast = ceil((τ(fRef) − τ(fHigh))·fs) + g = 2001 (g = ceil(2.5 µs·fs) = 2001: 20/edgeW
+  is 2000.0000000000002 samples in floating point, so ceil gives 2001).
 - H written directly on the FFT grid (in-band signed bins, chunks of 4M, double phase,
   `idx = mod(ks, Nfft) + 1`); complex data → no Hermitian symmetry.
 - **Leakage check**: one `ifft(H)`; energy outside lags [−nFuture, +nPast] must be tiny
-  (run: 0.0e+00; warn > 1e-6).
+  (run: 1.8e-7, single-precision rounding; per channel 0 or 6e-8; warn > 1e-6).
 - FFT size: candidates from 2^nextpow2(2·overlap) to whole-file, cost
-  nBlocks·Nfft·log₂Nfft, 56 bytes/sample, `MaxMemoryGB` (4). For the reference run:
-  Nfft = 2^26, step = 63,955,142 (95 %), 8 blocks, 3.76 GB (2^26 is also the unconstrained
-  optimum; costs 2^25: 1.43e10, 2^26: 1.40e10, 2^27: 1.45e10).
+  nBlocks·Nfft·log₂Nfft, 56 bytes/sample, `MaxMemoryGB` (4). L = 0.1 s: candidates 2^24 / 2^25 /
+  2^26 cost 2.82e9 / 2.52e9 / 3.49e9 → Nfft = 2^25, step 28,508,475 (85 %), 3 blocks,
+  1.88 GB. L = 1 s: 2^26 (13 blocks, 3.76 GB; 2^27 would exceed 4 GB).
 - **Overlap-save** with one preallocated buffer [past nPast | outputs step | future
   nFuture], shifted by `step` each block; zero start edge; zero fill after EOF.
-- `fullySupported = [nPast+1, N − nFuture] = [1251, 496,847,529]`: outputs that saw
-  their complete sweep (the last ~6.3 ms did not; the forward stage dropped that energy).
+- `fullySupported = [nPast+1, N − nFuture] = [2002, 74,956,045]` (of 80,000,001): outputs that
+  saw their complete sweep (the last ~6.3 ms did not; the forward stage dropped that energy).
 
 **Options:** `RefFreq`, `AllowRefOutsideBand` (6 Oct 2026), `EdgeFrac`, `GuardTime`,
 `Nfft`, `MaxMemoryGB`, `CheckLeakage`, `MaxLeakage`, `SaveInfo`, `Verbose`.
@@ -537,7 +541,9 @@ bit for bit (`tests/testDedisperseChannels.m`, test 1).
 vs TOA definition, sideband/frequency mapping of the receiver, true fs, limits of the
 cold-plasma model.
 
-**Run (1 s):** 7.4 s.
+**Run:** 1.2 s for L = 0.1 s at 800 MHz (saved run); 7.4 s for 1 s at 500 MHz (30 Sep).
+Per channel (`dedisperseChannels`, §5.16): nPast 1334 (guard 20/62.5 kHz = 320 µs), nFuture
+1467–27,595, Nfft 2^14–2^18, 1.4–2.6 s for all 128 channels.
 
 ### 5.6 `detectPower(inFile, outFile, fs, fLO, f_out, ...)` [validated]
 
@@ -549,7 +555,9 @@ phase-sensitive steps (dedispersion, beamforming, RFI excision) must happen **be
 squaring.
 
 **Code.**
-- binLen = round(fs/f_out) = 500 → 1 µs bins, 1,000,000 bins for 1 s.
+Numbers for the current set-up (fs 800 MHz, f_out 1 MHz, L = 0.1 s; checked against the saved
+run `data/mc/mc_envelope_info.mat`). The 30 Sep set-up (500 MHz, 1 s) had binLen 500.
+- binLen = round(fs/f_out) = 800 → 1 µs bins, 100,000 bins for 0.1 s (1,000,000 for 1 s).
 - Fast path (1 channel, no band): I² + Q² from the raw read (no complex arrays, no
   sqrt), per-bin sums in double.
 - Channelized path (`NChan` > 1 + `Band`): rectangular non-overlapping frames whose length
@@ -558,15 +566,17 @@ squaring.
   full-baseband band sum exactly to the total. At 1 MHz bins: up to 32 channels clean.
 - Timing: bin k (1-based) time = centroid of its samples:
   t_k = T0 + ((k−1)·binLen + (binLen−1)/2)/fs = `binTime0 + (k−1)·binDt`
-  (binTime0 = 0.499 µs). Boxcar → no bias.
-- `fullySupportedBins` from `FullySupported` samples: [4, 993,695] for the reference run.
+  (binTime0 = 799/1.6 GHz = 0.4994 µs). Boxcar → no bias.
+- `fullySupportedBins` from `FullySupported` samples: [4, 93,695] for 0.1 s ([4, 993,695] for
+  1 s; time-based, so the same at 500 and 800 MHz).
 
 **Info:** layout, nChan, N (bins), fs = actualFout, fsIn, binLen, binDt, binTime0,
 chanFreqs, chanEdges, chanFftBins, frameLen, chanMeanPower, samplesDropped,
 fullySupportedBins.
 
 **Noise per bin:** relative std 1/√(B_noise·Δt) ≈ 1/√390 ≈ 5.1 % (1 µs, noise-free
-case; B_noise ≈ 389.6 MHz for both tapers). Run: 1.2 s for 1 s of data (I/O bound).
+case; B_noise ≈ 389.6 MHz for both tapers). Run: 0.17 s for 0.1 s at 800 MHz (saved run);
+1.2 s for 1 s at 500 MHz (30 Sep; I/O bound).
 
 ### 5.7 `foldProfile(info_det, outFile, f0, ...)` [validated]
 
@@ -579,8 +589,9 @@ true pulse centre (T/2) and Phi0 = 0, every true pulse peak is at an integer pha
 2. Phase per time bin (double).
 3. `turn = round(φ)`, `frac = φ − turn` ∈ [−0.5, 0.5]: each turn runs from half a turn
    before to half a turn after its pulse → cuts fall between pulses.
-4. 1024 phase bins; bin j (1-based) centred at phase (j−1)/1024; negative phases wrap to
-   the end of the array. Position x = frac·1024.
+4. NBin phase bins (function default 1024 = 9.77 µs, the 30 Sep reference run; `pipelineParams`
+   2048 = 4.88 µs since 7 Oct, A1a; checked in `data/test_fold_chan.mat`); bin j (1-based)
+   centred at phase (j−1)/NBin; negative phases wrap to the end of the array. x = frac·NBin.
 5. **Linear assignment** (default): j0 = floor(x), a = x − j0; weights 1 − a and a to
    bins j0 and j0+1. Preserves each sample's mean position exactly; `'nearest'` gave a
    0.5 ns bias (1 µs time grid vs 9.765625 µs phase grid repeat identically every turn).
@@ -594,8 +605,9 @@ true pulse centre (T/2) and Phi0 = 0, every true pulse peak is at an integer pha
 9. Saved to `.mat` (fold + info). Vectorized `accumarray`, chunked reading; 0.05 s.
 
 **Why weightX matters:** with linear assignment a phase bin looks like it has
-σ²/14.7 variance per turn (instead of σ²/9.77) because it shares data with its
-neighbours; ignoring the positive covariance underestimates the variance of any sum over
+(2/3)·σ²/n_t variance per turn instead of σ²/n_t (n_t = time bins per phase bin) because it
+shares data with its neighbours — σ²/14.7 instead of σ²/9.77 at 1024 bins (the case where it
+was found); σ²/7.6 instead of σ²/5.09 now (2048 bins, 0.96 µs channel bins); ignoring the positive covariance underestimates the variance of any sum over
 bins by ~1.5× (fold check predicted 0.226 µs instead of the correct 0.277 µs until fixed).
 
 **Coverage warning `foldProfile:coverage` (9 Oct 2026; validated, Jasper's run of
@@ -1963,6 +1975,12 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   phase-dependent only if locked to the pulsar's barycentric phase (topocentric RFI
   drifts against it with Doppler). Remaining known limits of the mean: R_x cut at
   |R| < 1e-9; Gaussian, stationary input (the pulse modulates the power on 0.5 ms).
+  Lags beyond Lmax (review 16 Oct, BW1): only X(1..Lmax = 7) is stored, the lag range of the
+  unblanked channel (0.16 % of a long sum beyond it). Near a blank the dedispersion chirp no
+  longer cancels at long lags: median 0.4–0.7 % of a bin's long-sum variance lies beyond lag 7,
+  up to 1.3–1.6 % for bins with W ≥ 0.1 next to a 200-sample blank (Python check with the
+  channel filter, bottom and top channel, blanks of 4–200 samples). Error bars only, same order
+  as the white V, X above; consistent with `testBlankingWeights` test 3 (noise within ≤ 1.6σ).
 - **Exclusion rule drops whole channels; equal channel weights (7 Oct 2026, A3a).** A
   channel with one empty phase bin in a sub-int is left out of it (no dips): with 1-turn
   sub-ints the 100 µs blanks in channels 110–115 removed them everywhere (more data lost
@@ -2027,7 +2045,9 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   PRF 14 kHz accepted; PeriodRange up to 20 kHz; false emitters had 4.7–5.9 % of their predicted
   pulses detected, real ones ≥ 40 %). **Periodic mask default off since 9 Oct (Jasper).** Fix
   designed, not implemented (grid-aware chance; minimum fraction of predicted pulses detected;
-  candidates from strong pulses): `2026-10-09_handover-B-closed.md`. The per-channel calibration
+  candidates from strong pulses): `2026-10-09_handover-B-closed.md`; additions P1 (test cases),
+  P2 (pair fits by construction) and P3 (groups chain across channels: the 9 Oct group spanned
+  channels 29–94) in §10 item 11 (review 15–16 Oct). The per-channel calibration
   also removes the dense false flags.
 - **Excision chain on long files (12 Oct 2026).** `channelizeIQ`, `blankChannels`,
   `dedisperseChannels`, `detectChannels` and `foldProfile` stream (memory set by the block size).
@@ -2260,7 +2280,15 @@ barycentric corrections, navigation solution).
    observations, varying SNR). Optional: include the baseline loss (0.962) in the
    `runSNRSweep` P_D theory curves.
 7. **[todo] Factor the receiver/processing chain into one function.** The same stage
-   calls appear in `main`, `runMonteCarlo`, `runSNRSweep` and `runH0` (noted 6 Oct).
+   calls appear in `main`, `runMonteCarlo`, `runSNRSweep` and `runH0` (noted 6 Oct); also
+   `runRFITest` and `runLockedRadar` (channel path). **Connected to A3b (review 16 Oct,
+   Jasper: "note the connection"):** with one chain function the three statistical scripts
+   (full band only today) get the default channel path (excision, 'optimal') almost for free,
+   and A3b (multi-seed Monte Carlo with blanking, "optional" when block A closed) becomes a
+   run. Today the default path's error-bar honesty and false-alarm rates are validated in
+   pieces (noise model vs data: `testFoldWeights` 3, `testBlankingWeights` 3; estimator vs
+   profiles drawn from the exact covariance: `testOptimalTOA` 4, 8, 9) and by single-seed
+   `main` runs, never end to end over seeds. Priority vs block C: Jasper.
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.
@@ -2360,6 +2388,107 @@ barycentric corrections, navigation solution).
      8 MHz taper with equal channel gain (full-review item 3, the 2.2 % channel-vs-full-band
      error-bar gap; it acts in the weights and TOA stages); a fixed-point FPGA filterbank adds
      quantisation (§9 "Receiver", ADC).
+
+   Stage 6, RFI excision (review 14–15 Oct; note only). 6a `detectRFI`:
+   - **E1** extend `tests/testDetectRFI.m`: (a) a slow gain ramp and a small gain step in the
+     channel data: false flags stay near the expected count (the reason for the 16 ms
+     `BaselineTime` blocks; the simulation has no gain drift, §9 "Receiver", so it has never
+     been exercised). Estimate: a baseline 1.6 % off (a 10 % ramp over 50 ms, at a block end)
+     raises false flags ~25 % for 1-sample windows, ~60 % for 16-sample windows; (b) `Passes`
+     1 vs 2 with dense impulses (what pass 2 gains; test 1 uses 1 pass, test 3 uses 2, never
+     compared).
+   - Remark for "excision for long data" (§9 "Excision chain on long files"): the memory
+     check counts 48 B per channel sample; by count (not measured) the 1-sample window step
+     makes several file-length temporaries and `blkOf` is a double per sample, so the peak is
+     likely higher. Measure in that work.
+   - Links only: §9 "RFI excision limits" (a)–(e) incl. the fixed-width frequency guard; flat
+     spectrum per channel (B5d, per-channel calibration); per-channel loops (item 12's item 15).
+
+   6b `periodicRFI` (review 15 Oct; off by default since 9 Oct). Additions to the parked fix
+   (§9; design a/c/b in `2026-10-09_handover-B-closed.md`, open item 1), done with it:
+   - **P1** more synthetic-event test cases in `tests/testPeriodicRFI.m` (beyond the fix's
+     dense-flag cases): two radars in one channel group (the "remove inliers, search again"
+     loop, never run), a staggered-PRF radar (→ `info.unfitted`; its detected pulses are still
+     blanked by `detectRFI`; today only random impulses reach that path), more than
+     `MaxEmitters` (5) emitters.
+   - **P2** (fix a; by reasoning, not tested) candidate periods come from pulse pairs, so the
+     pair's second pulse fits by construction, yet the chance n·P(Bin(n−1, q) ≥ m−1) counts it
+     as a chance hit. Against the exact count at that phase, P(Bin(n−2, q) ≥ m−2), the factor
+     is ≈ (m − 1)/(n(n − 1)q): ~1.5 for 20 pulses at q ≈ 0.01; ~50× too optimistic for 10 pulses
+     at P = 2 ms (q ≈ 1e-3), where both (1e-10 vs 2e-12) are far below the threshold. Matters
+     only near the threshold; fix c (plausibility) catches those cases too.
+   - **P3** (added 16 Oct, second 6b walk-through; a fix item d next to a/c/b) groups chain
+     across channels: step 2 links strongest channels within `ChanGroup` (2) of the previous
+     one (single linkage), so dense flags can join a wide range into one group, and an
+     emitter's blanked range is the union of its inliers' channels. Seen 9 Oct
+     (`2026-10-09_B5e.md`): the 14.1 kHz group spanned channels 29–94 (radar 1's sidelobe
+     pulses + flags from the LTE edge channels 81 / 94). Fixes a and c reject the false
+     emitter but not the merging, which also hides radar 1's period behind other channels'
+     flags (fix b's aim). Options: cap a group's channel span; or after the fit keep only the
+     inliers' main channel cluster for `blankChannels`. Step 1's time grouping chains the
+     same way (`GroupTime` 8 samples; matters less). Test with fix b's radar + dense flags.
+   - **P4** (added 16 Oct; minor, text only) "the mask does not depend on the noise values, so
+     blankingWeights stays exact" (`periodicRFI` help step 4, §5.21, `docs/excision.html`
+     "Unconditional blanking"): what it guarantees is no threshold truncation, i.e. a predicted
+     window does not depend on the noise values inside it, so the kept noise is not selected
+     (what `blankingWeights` assumes). The windows still depend on the data through t0 and P,
+     fitted from the detections (weakly: many pulses). `docs/history.html` 8 Oct stays as
+     history.
+   - Links only: O(n³) period search (item 12's item 14); long files (§9 "Excision chain on long
+     files"); staggered PRF and a strength-scaled frequency guard (handover 9 Oct, other items).
+
+   6c `blankChannels` (review 15 Oct): nothing of substance (tests complete; copies of all
+   channels needed anyway, noise false flags hit every channel). **B-text done 16 Oct** (Jasper:
+   "fix it"): help said the in-channel sweep is "~60 us per channel"; now "32-75 us" (1.6 → 1.2
+   GHz, as §5.19); `docs/api.html` regenerated (`--worktree`; rerun after the commit to stamp it).
+
+   Stage 7, per-channel dedispersion (`dedisperseChannels` → `applyInverseDispersion`, review
+   16 Oct):
+   - **V1 done 16 Oct** (text only, Jasper: "fix V1"): §5.5 had the 30 Sep set-up (500 MHz: nPast
+     1250, nFuture 3,152,472, Nfft 2^26 in 8 blocks, fullySupported [1251, 496,847,529]); now the
+     current numbers (800 MHz, 0.1 s: 2001, 5,043,956, 2^25 in 3 blocks, [2002, 74,956,045]),
+     checked against the saved run `data/mc/mc_dedisp_info.mat`; the old ones kept as history.
+     Docs already correct (`fullband.html`).
+   - **V2** extend `tests/testDedisperseChannels.m`: (a) absolute round trip forward → IQ →
+     inverse = the band-limited input (W²-filtered), replacing the NumPy round trip (2e-6, not in
+     the repo); today the channel path is only compared with the full-band path, which is
+     regression-protected against a frozen file (could be part of D1); (b) a `RefFreq` inside
+     the band on the channel path (channels above it need past overlap, nPast > guard; only the
+     top-of-band reference has run); (c) DM = 0 (pure taper).
+   - Checked, not a candidate: the per-channel guard 20/edgeW = 320 µs (1334 samples) is longer
+     than the in-channel sweep (32–75 µs); cheap (Nfft ≤ 2^18), trims 320 µs off the start.
+   - Links only: D2 (one `refFreq`); DM 100 (item 5: processing side solved here, stage 2 is the
+     blocker); per-channel loops (item 12's item 15); the 6 edge channels in the stage-2 taper
+     (full-review item 3; stages 9–11).
+
+   Stage 8, detection (`detectChannels` + `powerCovariance`, engine `detectPower`, review 16 Oct):
+   well covered by `testDetectChannels`, no test candidate. **S1 done 16 Oct** (text only, Jasper:
+   "fix S1"): §5.6 had binLen 500 (500 MHz); now 800, 100,000 bins per 0.1 s, binTime0 0.4994 µs,
+   fullySupportedBins [4, 93,695], checked against `data/mc/mc_envelope_info.mat`. A sweep of §5
+   found no other 500 MHz numbers. Links only: flat spectrum per channel (B5d, §9); narrow-channel
+   noise model (§9); per-channel loops and temporaries (item 12's item 15).
+
+   Stage 9, data weights (`blankingWeights`, review 16 Oct): tests thorough, no code or test
+   candidate. **BW1 noted 16 Oct** (note only, Jasper: "add BW1"): covariance beyond the stored
+   Lmax = 7 lags near blanks (0.4–0.7 % median, ≤ 1.6 %) recorded in §9 next to the white V, X.
+   Links only: long files (§9, design ready; item 12's item 32); run time ∝ lags (§5.18); V, X
+   white form; pulse stationary over the filter reach (§9).
+
+   Stage 10, fold (`foldProfile`, review 16 Oct): tests thorough (`testFoldWeights` 1–7), no code
+   or test candidate. **FP1 done 16 Oct** (text only, Jasper: "fix FP1"): §5.7 described only
+   1024 phase bins (default, 30 Sep run); now NBin with both values (pipeline 2048 = 4.88 µs,
+   checked in `data/test_fold_chan.mat`) and the variance example for both; `docs/fold.html`
+   callout the same. Links only: sub-int covariance not stored (§9); R3; memory ∝ sub-ints →
+   fast simulator (§10 item 3).
+
+   Stage 11, TOA fit and detection (`estimateTOA`, `detectPulsar`, review 16 Oct): nothing new;
+   thorough tests (`testChannelTOA` 1–7, `testOptimalTOA` 1–10). Open decisions from the deep
+   analysis act here (Jasper): the χ² threshold (2 = 130σ on the channel path), full-review
+   items 3, 4, 8. Links: R3, D2, phase F, template exact by design (§12).
+
+   Drivers (`pipelineParams`, `main`, run scripts; review 16 Oct): nothing new. Five values feed
+   both sides (T → f0/TRef, DM, dutycycle → template, refFreq, fLow/fHigh), all recorded (R3,
+   §9, §12, D2, item 3). Connection noted at item 7: one chain function + A3b.
 12. **Code review of the whole codebase (Claude, 12 Oct; 33 candidates; full list with status:
    `logs/2026-10-13_code-review.md`).** 13 Oct, Jasper: implement the minor and simple ones,
    validate each. **Done and validated 13 Oct** (Claude's checks; Jasper's run of `testRadarEdges`,
