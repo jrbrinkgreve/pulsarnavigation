@@ -20,7 +20,8 @@ Needs data/test/mc/foldRef_pre3c.mat, data/test/mc/toaRef_preA2.mat and the
      fold (5 of them with empty phase bins), true tau 0.0123 turns, optimal
      SNR ~10 and ~40. For 'equal' and 'optimal': bias within 4 sigma; pulls
      (tau - tau0)/sigma with std 1 within 4/sqrt(2R); 'optimal' scatter vs
-     'equal' scatter = the predicted ratio of their error bars.
+     'equal' scatter = the predicted ratio of their error bars; pChi2
+     uniform on [0, 1] (Kolmogorov-Smirnov, 1e-3 level; added 16 Oct).
   5. The fake-blanked data: 'optimal' uses all channels (also those with empty
      phase bins); TOAs consistent with 'equal'.
   6. detectPulsar default ('equal') bit-identical to the pre-A2 outputs.
@@ -159,7 +160,7 @@ for snrT = [10 40]
         [foldMC, infoMC] = mcFold(m, noise, Wm, W2m, WXm, ifB, Rb);
         for wn = {'equal', 'optimal'}
             t = estimateTOA(foldMC, infoMC, template, qc{:}, 'Weighting', wn{1});
-            est.(wn{1}) = [est.(wn{1}); t.phase, t.phaseErr, t.snr, t.redChi2, t.valid];
+            est.(wn{1}) = [est.(wn{1}); t.phase, t.phaseErr, t.snr, t.redChi2, t.valid, t.pChi2];
         end
     end
     sd = struct();
@@ -176,6 +177,14 @@ for snrT = [10 40]
             1/sqrt(2*nR), std(d), median(e(:, 2)), median(e(:, 3)), median(e(:, 4)), ...
             passStr(okBias && okPull));
         if ~(okBias && okPull), fails{end+1} = sprintf('MC SNR %d %s', snrT, wn{1}); end %#ok<AGROW>
+        % pChi2 uniform on [0, 1] when the data follow the noise model (Kolmogorov-Smirnov,
+        % 1e-3 level: D < 1.95/sqrt(n))
+        pS = sort(e(:, 6)); u = (1:nR).' / nR;
+        Dks = max(max(u - pS), max(pS - (u - 1/nR)));
+        okP = Dks < 1.95 / sqrt(nR);
+        fprintf('   SNR %2d %-7s pChi2: mean %.3f (0.5 +- %.3f), fraction < 0.05 %.3f, KS D %.3f (< %.3f): %s\n', ...
+            snrT, wn{1}, mean(pS), 1/sqrt(12*nR), mean(pS < 0.05), Dks, 1.95/sqrt(nR), passStr(okP));
+        if ~okP, fails{end+1} = sprintf('MC pChi2 SNR %d %s', snrT, wn{1}); end %#ok<AGROW>
     end
     rMeas = sd.optimal(1) / sd.equal(1); rPred = sd.optimal(2) / sd.equal(2);
     sR = rMeas * sqrt(2 / Rtot);                    % generous: ignores the pairing

@@ -85,20 +85,29 @@ Name-value options:
                 >> 1 when something else is in the profile (e.g. a radar
                 pulse the fit locked onto, which gives a wrong TOA with a
                 small error bar).
+  'Chi2Alarm'   noise-model check (default 1e-3): the summary counts the
+                sub-ints with pChi2 < Chi2Alarm. Report only; it does not
+                change flagChi2 or which TOAs are good. On the channel path
+                (~34,000 on-pulse dof) a red. chi^2 of 1.05 is already ~6
+                sigma, far below MaxRedChi2 = 2: error bars a few % too
+                small show up here, not in flagChi2.
   'Verbose'     print a summary (default true).
 
 Outputs:
   toa   struct, per sub-integration (column vectors, NaN when invalid):
           valid, coverage, phase [turns], phaseErr, toa [s], toaErr [s],
           amp (b), ampErr, baseline (a), snr (= b/ampErr), redChi2,
-          flagChi2 (redChi2 > MaxRedChi2), converged ('optimal': the
+          flagChi2 (redChi2 > MaxRedChi2), pChi2 (P(chi^2 >= observed)
+          if the profile is template + noise with the modelled
+          variances; neighbouring-bin correlations included, see
+          chi2Tail), converged ('optimal': the
           fit -> weights loop met its criterion within MaxIterations;
           'equal' does not iterate: true; false when invalid), tRef, fRef,
           turnRef, nChanUsed (channels combined), chanBaseline
           [nSub x nChan] ('optimal': a_c per channel, NaN where unused)
         plus toa.total (the whole fold): phase, phaseErr, timeOffset
         [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2,
-        converged, nChanUsed.
+        pChi2, converged, nChanUsed.
   info  method, noise model, Bnoise, harmonics, template, binResolution
         (max(binDt*f0, 1/NBin) [turns]), templateWidth (narrowest width at
         half maximum [turns]).
@@ -139,6 +148,7 @@ arguments
     opts.Upsample    (1,1) double {mustBeInteger, mustBePositive} = 8
     opts.OnPulseFrac (1,1) double {mustBePositive} = 0.01
     opts.MaxRedChi2  (1,1) double {mustBePositive} = 2
+    opts.Chi2Alarm   (1,1) double {mustBeInRange(opts.Chi2Alarm, 0, 1)} = 1e-3
     opts.Verbose     (1,1) logical = true
 end
 
@@ -221,7 +231,7 @@ end
 nanv = nan(nSub, 1);
 toa = struct('valid', false(nSub, 1), 'coverage', nanv, 'phase', nanv, ...
     'phaseErr', nanv, 'toa', nanv, 'toaErr', nanv, 'amp', nanv, 'ampErr', nanv, ...
-    'baseline', nanv, 'snr', nanv, 'redChi2', nanv, 'flagChi2', false(nSub, 1), ...
+    'baseline', nanv, 'snr', nanv, 'redChi2', nanv, 'flagChi2', false(nSub, 1), 'pChi2', nanv, ...
     'converged', false(nSub, 1), ...
     'tRef', fold.subint.tRef, 'fRef', fold.subint.fRef, 'turnRef', fold.subint.turnRef, ...
     'nChanUsed', zeros(nSub, 1), 'chanBaseline', nan(nSub, nChan));
@@ -260,6 +270,7 @@ for s = 1:nSub
     toa.snr(s)      = r.b / r.bErr;
     toa.redChi2(s)  = r.redChi2;
     toa.flagChi2(s) = r.redChi2 > opts.MaxRedChi2;
+    toa.pChi2(s)    = r.pChi2;
     toa.converged(s) = r.converged;
 end
 
@@ -278,7 +289,8 @@ end
 toa.total = struct('phase', rt.tau, 'phaseErr', rt.tauErr, ...
     'timeOffset', rt.tau / info_fold.f0, 'timeOffsetErr', rt.tauErr / info_fold.f0, ...
     'amp', rt.b, 'ampErr', rt.bErr, 'snr', rt.b / rt.bErr, 'redChi2', rt.redChi2, ...
-    'flagChi2', rt.redChi2 > opts.MaxRedChi2, 'converged', rt.converged, 'nChanUsed', nUsedT);
+    'flagChi2', rt.redChi2 > opts.MaxRedChi2, 'pChi2', rt.pChi2, 'converged', rt.converged, ...
+    'nChanUsed', nUsedT);
 
 info = struct('method', 'FFTFIT (Fourier-domain template matching), Newton-refined', ...
     'noiseModel', model, 'Bnoise', opts.Bnoise, 'binDt', binDt, 'harmonics', K, ...
@@ -300,6 +312,11 @@ if opts.Verbose
         fprintf('  %d sub-int(s) flagged: red. chi2 > %g (profile is not template + noise)\n', ...
             nnz(toa.flagChi2), opts.MaxRedChi2);
     end
+    nAlarm = nnz(v & toa.pChi2 < opts.Chi2Alarm);
+    if nAlarm > 0
+        fprintf(['  %d sub-int(s) with P(chi2) < %g: residuals larger than the noise model ' ...
+                 '(error bars too small; TOAs kept)\n'], nAlarm, opts.Chi2Alarm);
+    end
     if any(v & ~toa.converged)
         fprintf('  %d sub-int(s) not converged in %d rounds (fit -> weights; TOA kept)\n', ...
             nnz(v & ~toa.converged), opts.MaxIterations);
@@ -319,7 +336,7 @@ N = c.N; k = c.k; S = c.S; Sk = c.Sk; sumS2 = c.sumS2; ksg = c.ksg;
 p = ch.p; Pc = ch.Pc; W = ch.W; W2 = ch.W2; WX = ch.WX; have = ch.have;
 nLag = size(WX, 3);
 r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, ...
-           'a', NaN, 'redChi2', NaN, 'converged', false);
+           'a', NaN, 'redChi2', NaN, 'pChi2', NaN, 'converged', false);
 if ~any(have), return; end
 if ~all(have)                                       % fill gaps circularly
     idx = find(have);
@@ -426,7 +443,9 @@ r.tauErr  = sqrt(max(varC1, 0)) / abs(c2);
 r.b       = b;
 r.bErr    = sqrt(max(varC0, 0)) / sumS2;
 r.a       = a;
-r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / max(nnz(use) - 3, 1);
+dof       = max(nnz(use) - 3, 1);
+r.redChi2 = sum((p(use) - m(use)).^2 ./ v(use)) / dof;
+r.pChi2   = chi2Tail(r.redChi2 * dof, v, reshape(cv, N, 1, []), use, dof);
 r.converged = true;                                 % no iteration
 end
 
@@ -439,7 +458,7 @@ function r = fitOptimal(Pc, W, W2, WX, B, sGain, c)
 % from the noise model with the current fit, iterated to convergence; see the header.
 N = c.N; nChan = size(Pc, 2);
 r = struct('ok', false, 'tau', NaN, 'tauErr', NaN, 'b', NaN, 'bErr', NaN, 'a', NaN, ...
-           'redChi2', NaN, 'nUsed', 0, 'aC', nan(1, nChan), 'converged', false);
+           'redChi2', NaN, 'pChi2', NaN, 'nUsed', 0, 'aC', nan(1, nChan), 'converged', false);
 if size(W, 2) == 1                                  % shared weights
     W = repmat(W, 1, nChan); W2 = repmat(W2, 1, nChan); WX = repmat(WX, 1, nChan, 1);
 end
@@ -499,7 +518,9 @@ r.tauErr  = sqrt(max(Cov(1, 1), 0));
 r.b       = b * sumS;
 r.bErr    = sqrt(max(Cov(2, 2), 0)) * sumS;
 r.a       = sum(aC);
-r.redChi2 = sum(res(sel).^2 .* w(sel)) / max(nT - 3, 1);
+dof       = max(nT - 3, 1);
+r.redChi2 = sum(res(sel).^2 .* w(sel)) / dof;
+r.pChi2   = chi2Tail(r.redChi2 * dof, v, cv, sel, dof);
 r.nUsed   = nnz(use);
 r.aC(use) = aC;
 r.converged = conv;
@@ -620,6 +641,25 @@ q = sum(x .* y .* v, 'all');
 for d = 1:size(cv, 3)
     q = q + sum((x .* circshift(y, -d, 1) + circshift(x, -d, 1) .* y) .* cv(:, :, d), 'all');
 end
+end
+
+function p = chi2Tail(chi2, v, cv, sel, dof)
+%CHI2TAIL  P(chi^2 >= observed) for chi^2 = sum over sel of res^2/v, when neighbouring
+% bins are correlated (lag covariances cv [N x nU x nLag], from the fold's weightX).
+% Exact moments of a sum of squared correlated unit Gaussians: mean dof, variance
+% 2*sum_ij rho_ij^2; matched to g*chi2_nu (g = var/(2 dof), nu = 2 dof^2/var).
+% Uncorrelated bins: g = 1, nu = dof (the ordinary chi^2 tail).
+q  = nnz(sel);                                      % rho_jj = 1
+sd = sqrt(v);
+for d = 1:size(cv, 3)
+    selN = sel & circshift(sel, -d, 1);
+    rho  = cv(:, :, d) ./ (sd .* circshift(sd, -d, 1));
+    q    = q + 2 * sum(rho(selN).^2);
+end
+varS = 2 * q;
+g    = varS / (2 * dof);
+nu   = 2 * dof^2 / varS;
+p    = gammainc(chi2 / (2*g), nu / 2, 'upper');
 end
 
 

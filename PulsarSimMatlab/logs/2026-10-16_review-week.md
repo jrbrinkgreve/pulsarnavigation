@@ -185,3 +185,35 @@ function". Then committed: the review notes of 14–16 Oct from both sessions an
    the session – a compiled page on request). Ask which stages.
 2. Open decisions: χ² threshold; full-review items 3, 4, 8; item 7 + A3b (priority vs C);
    parked periodic fix (P1–P4) and per-channel calibration.
+
+## Open decisions, session 2 (16 Oct): χ² threshold → option C (`pChi2`)
+
+Reminder given (read the walk-through fully; Jasper chose the decisions first). Order agreed:
+χ² threshold now, then item 7 + A3b before C; items 3, 4, 8, P1–P4 and per-channel
+calibration stay parked.
+
+What is wrong with `MaxRedChi2` = 2 (explained): set on the full band (260 on-pulse dof,
+σ 0.088 → 11σ); on the channel path 33,661 dof, σ 0.0077 → 130σ, so noise-model failures pass
+(B5d 1.04 = 5σ, B5e 1.06 = 8σ, narrow carriers 1.22 = 28σ with error bars 3.4 % too small).
+New point: √(2/dof) ignores the neighbouring-bin correlation of linear assignment (ρ ≈ ¼ →
+scatter ~6 % larger). Design question underneath: a flag drops the TOA, so a sensitive
+threshold would drop every B5e narrow-carrier TOA.
+
+Jasper chose **C**: keep 2 as the drop rule, add a report. Done (code, test, docs; not yet
+run):
+- `functions/estimateTOA.m`: output `toa.pChi2` / `toa.total.pChi2` = P(χ² ≥ observed |
+  template + modelled noise); local function `chi2Tail` (exact variance 2 Σ ρ² from the fit's
+  lag covariances, moment-matched g·χ²_ν, `gammainc` upper tail); option `Chi2Alarm` (1e-3),
+  summary line counting sub-ints below it. `redChi2`, `flagChi2`, good TOAs unchanged.
+- `tests/testOptimalTOA.m` test 4: `pChi2` uniform on the 800 exact-covariance profiles per
+  SNR level, 'equal' and 'optimal' (KS at 1e-3, D < 1.95/√n); header updated.
+- Docs: `docs/toa.html` §4 new subsection "Noise-model check: pChi2"; notes §5.8 (new
+  paragraph), §10 (decision marked in item 11 "Stage 11" and the deep-analysis list).
+  `docs/api.html` to regenerate after the commit.
+
+**Validated** (Jasper's runs, 16 Oct): `runAllTests("testOptimalTOA")` all passed (3.2 min); new
+checks: pChi2 mean 0.498 / 0.525 / 0.500 / 0.504 (SNR 10 equal / optimal, SNR 40 equal /
+optimal; 0.5 ± 0.010), fraction < 0.05 0.041–0.058, KS D 0.017–0.050 (< 0.069). SNR 10
+optimal 2.5σ high, isolated (SNR 40 0.504, χ² 0.999): not pursued. `main` identical to the
+8 / 13 Oct runs (8 TOAs, 2.956 µs, SNR 91.9, total +0.0564 ± 0.98 µs, ratio 0.825), no
+P(χ²) alarm (χ² 1.008 ≈ 1σ). Committed.

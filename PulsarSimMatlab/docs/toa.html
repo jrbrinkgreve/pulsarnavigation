@@ -173,6 +173,29 @@ the validation runs. The threshold is far above clean profiles and the small kno
 far below a radar spike in the profile, which it must catch. A carrier (~1.3) is deliberately not flagged: those TOAs are still valid.</figcaption>
 </figure>
 
+<h3 id="pchi2">Noise-model check: <code>pChi2</code> (16 Oct)</h3>
+<p><b>In short:</b> the threshold 2 was set on the full band (~260 on-pulse bins). The channel path fits ~263 × 128 ≈ 34,000 bins at once,
+where the clean scatter is ± 0.008, so 2 is ~130σ: the flag still catches gross failures, but error bars a few % too small pass
+silently (B5e narrow carriers: χ² 1.22 = 28σ, error bars 3.4 % too small). <code>pChi2</code> reports that without changing which TOAs
+are good.</p>
+<ul>
+<li><code>toa.pChi2</code> (and <code>toa.total.pChi2</code>) = P(χ² ≥ observed) if the profile is template + noise with the modelled
+variances. Uniform on [0, 1] for clean data; near 0 when the residuals are larger than the noise model.</li>
+<li>Neighbouring phase bins are correlated (linear assignment, ρ ≈ ¼), so χ² is not an ordinary χ²: its variance is
+2 Σ<sub>ij</sub> ρ<sub>ij</sub>² instead of 2<var>n</var>. The lag covariances the fit already has give this exactly; χ² is matched to
+<var>g</var>·χ²<sub>ν</sub> with the same mean and variance (<var>g</var> = var/(2 dof), ν = 2 dof²/var) and the tail is taken with
+<code>gammainc</code>. Uncorrelated bins: the ordinary χ² tail.</li>
+<li>The summary counts the sub-ints with <code>pChi2</code> &lt; <code>Chi2Alarm</code> (default 10⁻³). Report only: <code>flagChi2</code>
+and <code>MaxRedChi2</code> = 2 still decide which TOAs are good.</li>
+</ul>
+<div class="callout why"><span class="ttl">Why report, not reject</span>
+<p>A sensitive threshold that drops TOAs would throw away every TOA in the B5e narrow-carrier case, whose error bars are only 3.4 % too
+small: worse for navigation than the problem. Gross failures (wrong peak) are still dropped by the threshold 2; a noise model a few %
+off is made visible, and the parked per-channel noise calibration is the fix for it (design choice 16 Oct, Jasper: option C of three;
+the others were keeping 2 alone, or a probability threshold that drops TOAs).</p></div>
+<p>Test: <code>testOptimalTOA</code> test 4 (800 profiles per SNR level drawn with the exact covariance of a blanked fold, 'equal' and
+'optimal'): <code>pChi2</code> uniform by a Kolmogorov–Smirnov test at the 10⁻³ level.</p>
+
 <h2 id="channels">5. Combining channels: equal weights (A2a, 7 Oct)</h2>
 <p>For a fold with channels, <code>'Weighting','equal'</code> (the default) sums the channel profiles: <var>p</var> = Σ<sub>c</sub> prof<sub>c</sub>. Shared helper
 <code>combineChannels</code>:</p>

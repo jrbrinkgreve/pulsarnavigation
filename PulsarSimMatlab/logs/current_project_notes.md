@@ -744,6 +744,23 @@ correlation peak and cannot see a wrong peak; χ² checks the fit itself (radar 
 939–1625 with σ_TOA 1 µs). Threshold 2 ≫ clean scatter and the known high-SNR excess
 (1.05–1.1); not sensitive to moderate RFI (χ² ~1.3), by choice.
 
+**Noise-model check `pChi2`** (16 Oct 2026, Jasper's option C of the χ²-threshold decision;
+deep analysis §12): the threshold 2 was set on the full band (~260 dof); on the channel path
+(~263 × 128 ≈ 34,000 dof, σ 0.0077) it is ~130σ, so noise-model failures pass silently
+(B5e narrow carriers χ² 1.22 = 28σ, error bars 3.4 % too small). New output `toa.pChi2`
+(and `toa.total.pChi2`) = P(χ² ≥ observed | template + modelled noise). Neighbouring phase
+bins are correlated (linear assignment, ρ ≈ ¼): var(χ²) = 2 Σ_ij ρ_ij², computed from the
+lag covariances the fit already has; χ² matched to g·χ²_ν with the same mean (dof) and
+variance (g = var/(2 dof), ν = 2 dof²/var), tail by `gammainc(…, 'upper')` (local function
+`chi2Tail`). The summary counts sub-ints with `pChi2` < `Chi2Alarm` (default 1e-3). **Report
+only**: `flagChi2`, `MaxRedChi2` = 2 and "good TOA" unchanged (rejected options: keep 2 alone;
+a probability threshold that drops TOAs, which would drop every B5e narrow-carrier TOA). The
+fix for flagged cases is the parked per-channel noise calibration. Approximations: tail
+shape by moment matching (ν ≈ 30,000 on the channel path: essentially exact); the fitted
+parameters only through the mean (−3; the 'optimal' baselines absorb ~nChan·263/2048 on-pulse
+dof, 0.04σ). Test: `testOptimalTOA` test 4, `pChi2` uniform (KS, 1e-3 level). **Validated 16 Oct**
+(Jasper's runs: testOptimalTOA all passed, KS D 0.017–0.050 < 0.069; `main` identical TOAs, no alarm).
+
 **Optimality note.** FFTFIT weights by the template slope: optimal for white
 (receiver-dominated) noise. With pure self-noise (variance ∝ profile²) a flatter
 weighting (centroid) is better: 0.28 µs vs 0.47 µs per pulse in the noise-free run, and
@@ -2483,8 +2500,8 @@ barycentric corrections, navigation solution).
 
    Stage 11, TOA fit and detection (`estimateTOA`, `detectPulsar`, review 16 Oct): nothing new;
    thorough tests (`testChannelTOA` 1–7, `testOptimalTOA` 1–10). Open decisions from the deep
-   analysis act here (Jasper): the χ² threshold (2 = 130σ on the channel path), full-review
-   items 3, 4, 8. Links: R3, D2, phase F, template exact by design (§12).
+   analysis act here (Jasper): ~~the χ² threshold (2 = 130σ on the channel path)~~ (decided 16
+   Oct: option C, keep 2 + report `pChi2`, §5.8), full-review items 3, 4, 8. Links: R3, D2, phase F, template exact by design (§12).
 
    Drivers (`pipelineParams`, `main`, run scripts; review 16 Oct): nothing new. Five values feed
    both sides (T → f0/TRef, DM, dutycycle → template, refFreq, fLow/fHigh), all recorded (R3,
@@ -2562,7 +2579,8 @@ barycentric corrections, navigation solution).
    - default excision blanks bright pulsars (≥ 0 dB) and noise-free runs (**done 14 Oct**: limit
      in `detectRFI`'s help, warning `main:brightExcision`; log `2026-10-14_small-fixes.md`;
      validated 15 Oct, Jasper);
-   - `MaxRedChi2` 2 is 130σ on the channel path (B5e's χ² 1.22 passes);
+   - `MaxRedChi2` 2 is 130σ on the channel path (B5e's χ² 1.22 passes; decided 16 Oct: keep 2,
+     report `pChi2`, §5.8);
    - "−54 dB" is −51 dB for J0437 in `snrDB` terms (the simulator at −54 dB: ~62 h per TOA);
    - the Rice factor is misread as a trial count on three docs pages (true ~60 trials);
    - item 5: no usable guard recovers turn 0;
@@ -2586,7 +2604,7 @@ barycentric corrections, navigation solution).
    - the roadmap's "commit pending": fixed 13 Oct (docs rewrite session, `2026-10-13_docs-rationale.md`);
    - whether the 1 Oct noise runs validate the noise versions of `plotDetectedPower` /
      `plotFoldCheck` (Jasper);
-   - items 3, 4, 8, the χ² threshold (Jasper). (The bright-pulsar excision warning: done 14 Oct.)
+   - items 3, 4, 8 (Jasper; the χ² threshold decided 16 Oct, §5.8). (The bright-pulsar excision warning: done 14 Oct.)
 
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
