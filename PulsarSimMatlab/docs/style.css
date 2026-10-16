@@ -178,6 +178,23 @@ pre code { background: none; padding: 0; font-size: inherit; }
 }
 .eq .label { float: right; color: var(--fg-muted); font-family: var(--sans); font-size: 0.8rem; }
 var { font-family: "Cambria Math", Georgia, serif; font-style: italic; }
+/* LaTeX equations (KaTeX, loaded by nav.js): \[ ... \] inside .eq */
+.eq .katex-display { margin: 0.2em 0; }
+.eq .katex-display > .katex { white-space: nowrap; }
+.katex { font-size: 1.1em; }
+/* "where" list under an equation: symbol | meaning, unit, name in the code */
+dl.where {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 14px;
+  margin: -0.6em 0 1.2em;
+  padding: 6px 14px 8px;
+  border-left: 3px solid var(--bg-code);
+  font-size: 0.9rem;
+}
+dl.where::before { content: "where"; grid-column: 1 / -1; color: var(--fg-muted); font-style: italic; }
+dl.where dt { text-align: right; }
+dl.where dd { margin: 0; }
 
 /* ---------- tables ---------- */
 .table-wrap { overflow-x: auto; margin-bottom: 1em; }

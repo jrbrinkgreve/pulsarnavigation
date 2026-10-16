@@ -236,3 +236,23 @@ Open for Jasper: (1) boundary at IQ (recommended; a channel-data entry point lat
 FPGA does the channelizer) or at channels; (2) both front ends via `proc.frontEnd`
 (recommended) or channel path only. Next step after his answer, read-only: the variables the
 processing block of `main` (lines ~117–255) reads → proposed rx / ephem / proc fields.
+
+## Docs: LaTeX equations (evening)
+
+Jasper: "add LaTeX to the handbook; equations look cluttered and hard to tell apart; be complete
+with the naming explanations near the equations". Plan agreed (download + physics.html first,
+then the other pages one at a time; inline `<var>` math in running text left as is for now).
+- KaTeX 0.16.11 (`npm pack`, files only: katex.min.js/.css, auto-render, woff2 fonts, LICENSE;
+  600 KB) in `docs/vendor/katex/`; `nav.js` loads it only on pages that contain `\(` or `\[`
+  (site still works offline from file://). Delimiters `\[ \]` and `\( \)` only, no `$`.
+- `style.css`: KaTeX inside `.eq`; new `dl.where` (symbol | meaning, unit, code name).
+- `physics.html`: all 12 display equations in LaTeX, each with a "where" list; the inline
+  Isserlis covariance, ρ = A²/σn² and m(t) in LaTeX too. Content fixes on the way: the Isserlis
+  sum now reads var(P̂)/P² (R is normalized, R(0) = 1, as in `powerCovariance`); the TOA list
+  says f_ref is the *spin* frequency at t_ref (`fold.subint.fRef`), not the 1.6 GHz radio
+  reference, and τ there is the template shift in turns, not the dispersion delay τ(f).
+- `maintenance.html`: how to write an equation + changelog row.
+Checked in the browser pane (local http server): 12 display + 91 inline renders, no KaTeX
+errors, no sideways scroll at 375 px, light and dark. Not yet checked from file:// by Jasper.
+Not committed yet (waiting for Jasper's look). Next: the other 12 pages with `.eq` blocks,
+`formulas.html` last.

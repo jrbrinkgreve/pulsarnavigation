@@ -34,7 +34,15 @@ pulsar.</p></div>
 <p>A pulsar is a rotating neutron star. It turns with spin frequency <var>f</var><sub>0</sub> (here 100 Hz, so a period
 <var>T</var> of 10 ms) and slows down very slightly (<var>F</var><sub>1</sub>). An <b>ephemeris</b>, taken from a pulsar catalogue,
 gives its rotational phase at any time:</p>
-<div class="eq">φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>) + ½·<var>F</var><sub>1</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>)²</div>
+<div class="eq">\[ \phi(t) = \Phi_0 + f_0\,(t - T_\mathrm{ref}) + \tfrac{1}{2}\,F_1\,(t - T_\mathrm{ref})^2 \]</div>
+<dl class="where">
+<dt>\(\phi(t)\)</dt><dd>rotational phase at time \(t\) [turns]; each whole number is one pulse</dd>
+<dt>\(t\)</dt><dd>time at the receiver [s]</dd>
+<dt>\(T_\mathrm{ref}\)</dt><dd>reference epoch of the phase model [s] (<code>ephem.TRef</code>)</dd>
+<dt>\(\Phi_0\)</dt><dd>phase at \(T_\mathrm{ref}\) [turns] (<code>Phi0</code> of <code>foldProfile</code>, default 0)</dd>
+<dt>\(f_0\)</dt><dd>spin frequency at \(T_\mathrm{ref}\) [Hz] (<code>ephem.f0</code> = 1/<var>T</var> = 100 Hz)</dd>
+<dt>\(F_1\)</dt><dd>spin-down: rate of change of the spin frequency [Hz/s] (<code>ephem.F1</code>, 0 in the simulation)</dd>
+</dl>
 <ol>
 <li>Each whole number of phase is one pulse.</li>
 <li>A <b>time of arrival (TOA)</b> is the measured arrival time of one chosen point of the pulse (here: phase 0 of the template), at
@@ -98,9 +106,16 @@ barycentric corrections and the navigation solution itself are later blocks (D a
 <p>Pulsar radio emission comes from a huge number of independent emitters. Their sum is Gaussian noise (the central limit
 theorem). What makes a pulsar a pulsar is that the <em>variance</em> of that noise, its power, rises once per turn. The simulator
 models the voltage as</p>
-<div class="eq"><var>x</var>(<var>t</var>) = <var>A</var>·√<var>G</var>(<var>t</var>)·<var>n</var>(<var>t</var>), &nbsp;&nbsp; E[<var>x</var>²] = <var>A</var>²·<var>G</var>(<var>t</var>)</div>
-<p>Here <var>n</var> is white noise with variance 1 and <var>G</var> is the <b>power profile</b>: one Gaussian per turn with peak 1.
-There is no fixed waveform: every turn is a new piece of noise, and only its loudness repeats.</p>
+<div class="eq">\[ x(t) = A\,\sqrt{G(t)}\;n(t), \qquad \mathrm{E}\!\left[x^2(t)\right] = A^2\,G(t) \]</div>
+<dl class="where">
+<dt>\(x(t)\)</dt><dd>the pulsar's voltage at the antenna, before receiver noise [V]</dd>
+<dt>\(A\)</dt><dd>amplitude: the standard deviation of \(x\) at the pulse peak [V] (<code>A</code> = 1)</dd>
+<dt>\(G(t)\)</dt><dd>the <b>power profile</b>: one Gaussian per turn with peak 1, FWHM 5 % of the period (<code>dutycycle</code>),
+standard deviation \(\sigma_t\) = 212.3 µs</dd>
+<dt>\(n(t)\)</dt><dd>white Gaussian noise with variance 1</dd>
+<dt>\(\mathrm{E}[\cdot]\)</dt><dd>expected value: the average over many noise realizations</dd>
+</dl>
+<p>There is no fixed waveform: every turn is a new piece of noise, and only its loudness repeats.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 440" role="img" aria-label="Why the processing squares the voltage: the average voltage over many turns is zero, the average power shows the pulse">
   <path class="axis" d="M60 160 H830"/>
@@ -205,7 +220,13 @@ noise model includes it.</p>
 <p>Free electrons between the pulsar and us delay low frequencies more than high ones. Across this band the delay differs by
 6.3 ms, more than ten times the pulse width. The delay is known exactly from one number, the DM, so it can be undone exactly.</p></div>
 <p>A cold plasma has a frequency-dependent refractive index, so the <b>group delay</b> depends on frequency:</p>
-<div class="eq">τ(<var>f</var>) = <var>K</var>·DM / <var>f</var>², &nbsp;&nbsp; <var>K</var> = 4.148808×10³ s·MHz²·pc⁻¹·cm³</div>
+<div class="eq">\[ \tau(f) = \frac{K\,\mathrm{DM}}{f^2}, \qquad K = 4.148808\times10^{3}\ \mathrm{s\,MHz^2\,pc^{-1}\,cm^{3}} \]</div>
+<dl class="where">
+<dt>\(\tau(f)\)</dt><dd>dispersion delay at radio frequency \(f\), relative to infinite frequency [s]</dd>
+<dt>\(f\)</dt><dd>radio frequency [MHz in this formula]; the band is 1200–1600 MHz (<code>fLow</code>, <code>fHigh</code>)</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 5)</dd>
+<dt>\(K\)</dt><dd>dispersion constant (from the electron charge and mass)</dd>
+</dl>
 <p>DM (dispersion measure) is the number of free electrons along the line of sight. For DM = 5 pc cm⁻³ the delay is 8.103 ms at
 1.6 GHz and 14.406 ms at 1.2 GHz. So each pulse is smeared over <b>6.30 ms</b> across the 400 MHz band, more than ten times the
 0.5 ms pulse width.</p>
@@ -251,8 +272,16 @@ band down to around zero frequency and keeps complex samples, I and Q.</p></div>
 <h3>Receiver noise and the SNR definition</h3>
 <p>The receiver noise is described by the system-equivalent flux density, SEFD = 2<var>k</var><var>T</var><sub>sys</sub>/<var>A</var><sub>eff</sub>:
 the noise expressed as if it came from the sky. Signal strength is one number, used everywhere as <code>snrDB</code>:</p>
-<div class="eq">ρ = <var>S</var><sub>peak</sub> / SEFD = pulsar power density at the pulse peak / receiver-noise power density</div>
-<p>In the simulation ρ = <var>A</var>²/σ<sub>n</sub>². Two values matter: −5 dB is a bright pulsar on a large dish (used for most
+<div class="eq">\[ \rho = \frac{S_\mathrm{peak}}{\mathrm{SEFD}} = \frac{\text{pulsar power density at the pulse peak}}{\text{receiver-noise power density}}, \qquad \rho = 10^{\,\texttt{snrDB}/10} \]</div>
+<dl class="where">
+<dt>\(\rho\)</dt><dd>signal strength: a ratio of power densities (per hertz) at the pulse peak, no unit (<code>snrDB</code> = 10 log₁₀ ρ)</dd>
+<dt>\(S_\mathrm{peak}\)</dt><dd>the pulsar's flux density at the pulse peak [Jy]</dd>
+<dt>\(\mathrm{SEFD}\)</dt><dd>system-equivalent flux density \(2kT_\mathrm{sys}/A_\mathrm{eff}\) [Jy]: the receiver noise expressed as a flux
+density, with \(k\) Boltzmann's constant, \(T_\mathrm{sys}\) the system temperature [K] and \(A_\mathrm{eff}\) the effective
+collecting area [m²]</dd>
+</dl>
+<p>In the simulation \(\rho = A^2/\sigma_n^2\), with \(A\) the pulsar amplitude of section 2 and \(\sigma_n\) the standard
+deviation of the receiver noise [V]. Two values matter: −5 dB is a bright pulsar on a large dish (used for most
 validation runs, because short runs then give precise checks); about −54 dB is J0437−4715 on the target 0.61 m² array (the
 worst-case design point, <a href="scenario.html">scenario</a>).</p>
 <div class="callout why"><span class="ttl">Design choice: SNR as a ratio of densities at the pulse peak</span>
@@ -270,7 +299,15 @@ by <var>f</var><sub>LO</sub>.</li>
 <li>A low-pass filter keeps the shifted band and removes the rest.</li>
 <li>The result is sampled as complex numbers <var>z</var> = I + <var>i</var>Q: the <b>complex envelope</b>.</li>
 </ol>
-<div class="eq"><var>x</var>(<var>t</var>) = Re{<var>z</var>(<var>t</var>)·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}, &nbsp;&nbsp; <var>f</var><sub>baseband</sub> = <var>f</var><sub>RF</sub> − <var>f</var><sub>LO</sub></div>
+<div class="eq">\[ x(t) = \mathrm{Re}\!\left\{ z(t)\, e^{\,i 2\pi f_\mathrm{LO}\, t} \right\}, \qquad f_\mathrm{baseband} = f_\mathrm{RF} - f_\mathrm{LO} \]</div>
+<dl class="where">
+<dt>\(x(t)\)</dt><dd>the real voltage at the receiver input: pulsar + receiver noise + RFI [V] (not only the pulsar, as in section 2)</dd>
+<dt>\(z(t)\)</dt><dd>the complex envelope \(I + iQ\) [V]</dd>
+<dt>\(f_\mathrm{LO}\)</dt><dd>local-oscillator frequency [Hz] (<code>fLO</code> = 1.3 GHz)</dd>
+<dt>\(f_\mathrm{RF}\)</dt><dd>a frequency in the radio band, 1.2–1.6 GHz [Hz]</dd>
+<dt>\(f_\mathrm{baseband}\)</dt><dd>where that frequency ends up after the shift, here −100…+300 MHz [Hz]</dd>
+<dt>\(i\), \(\mathrm{Re}\)</dt><dd>the imaginary unit; the real part</dd>
+</dl>
 <p>Complex samples keep the phase, which coherent dedispersion needs, and positive and negative frequencies stay apart. The sample
 rate must be at least the bandwidth of interest (400 MHz). Here it is 800 MHz (instead of the 4 GHz of the real RF simulation)
 because the LO sits off centre on purpose (band at −100…+300 MHz) and the IQ low-pass needs a margin (cutoff 360 MHz). The whole
@@ -285,7 +322,14 @@ the square root of the number of <em>independent</em> samples in the bin. The ba
 not the sample rate.</p></div>
 <p>Detection forms |<var>z</var>|² = I² + Q² and averages it over time bins of length Δ<var>t</var> (about 1 µs). For Gaussian
 voltages the averaged power estimates the variance, with relative noise</p>
-<div class="eq">σ<sub>P</sub> / P = 1 / √(<var>B</var><sub>n</sub>·Δ<var>t</var>) <span class="label">radiometer equation</span></div>
+<div class="eq"><span class="label">radiometer equation</span>\[ \frac{\sigma_P}{P} = \frac{1}{\sqrt{B_n\,\Delta t}} \]</div>
+<dl class="where">
+<dt>\(P\)</dt><dd>the mean detected power of a time bin: the expected value of \(|z|^2\) [V²]</dd>
+<dt>\(\sigma_P\)</dt><dd>standard deviation of the bin-averaged power around \(P\), from bin to bin [V²]</dd>
+<dt>\(B_n\)</dt><dd>noise-equivalent bandwidth [Hz] (391.6 MHz here; <code>noiseBandwidth</code>)</dd>
+<dt>\(\Delta t\)</dt><dd>length of a time bin [s] (≈ 1 µs; <code>binLen</code>/<code>fs</code> in <code>detectPower</code>)</dd>
+<dt>\(B_n\,\Delta t\)</dt><dd>the number of independent samples in one bin</dd>
+</dl>
 <p><var>B</var><sub>n</sub> is the <b>noise-equivalent bandwidth</b>. For a flat band it is simply the bandwidth <var>B</var>. With the
 tapered band edges used here it is 391.6 MHz for receiver noise (exact formula below).</p>
 <figure class="scroll">
@@ -356,14 +400,28 @@ theorem, the formula behind the whole noise model.</figcaption>
 </figure>
 <details><summary>The noise bandwidth of a tapered band</summary>
 <p>For a band shaped by a taper <var>W</var>(<var>f</var>):</p>
-<div class="eq"><var>B</var><sub>n</sub> = (∫<var>W</var>²d<var>f</var>)² / ∫<var>W</var>⁴d<var>f</var></div>
+<div class="eq">\[ B_n = \frac{\left(\int W^2(f)\,df\right)^2}{\int W^4(f)\,df} \]</div>
+<dl class="where">
+<dt>\(W(f)\)</dt><dd>amplitude response of the band: 1 inside, raised-cosine (sin²) edges 8 MHz wide, 0 outside; \(W^2\) is the
+shape of the power spectrum</dd>
+<dt>\(f\)</dt><dd>frequency [Hz]; both integrals run over the band</dd>
+</dl>
 <p>The mean power passes ∫<var>W</var>², but the variance depends on ∫<var>W</var>⁴. For a flat band <var>B</var><sub>n</sub> = <var>B</var>. With the
 8 MHz raised-cosine edges used here, <var>B</var><sub>n</sub> ≈ 391.6 MHz for receiver noise.</p></details>
 <h3 id="isserlis">Where the radiometer equation comes from</h3>
 <p>For Gaussian voltages, Isserlis' (Wick's) theorem says: the covariance of two power samples is the square of the correlation
-between their voltages, cov(|<var>z</var><sub>a</sub>|², |<var>z</var><sub>b</sub>|²) = |<var>R</var>(<var>a</var>−<var>b</var>)|². Adding this up over all
-pairs in a bin of <var>n</var> samples gives its variance:</p>
-<div class="eq">var(P̂) = (1/<var>n</var>²)·Σ<sub>a</sub>Σ<sub>b</sub> |<var>R</var>(<var>a</var> − <var>b</var>)|²</div>
+between their voltages, \(\operatorname{cov}\!\left(|z_a|^2, |z_b|^2\right) = P^2\,|R(a-b)|^2\). Adding this up over all
+pairs in a bin of \(n\) samples gives its variance:</p>
+<div class="eq">\[ \frac{\operatorname{var}(\hat P)}{P^2} = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a-b)\right|^2 \]</div>
+<dl class="where">
+<dt>\(z_a\)</dt><dd>complex voltage sample number \(a\) in the bin [V]</dd>
+<dt>\(\hat P\)</dt><dd>detected power of one time bin: the mean of \(|z_a|^2\) over its \(n\) samples [V²]</dd>
+<dt>\(P\)</dt><dd>its expected value [V²]</dd>
+<dt>\(n\)</dt><dd>samples per time bin (<code>binLen</code>)</dd>
+<dt>\(a, b\)</dt><dd>sample indices within the bin</dd>
+<dt>\(R(k)\)</dt><dd>normalized autocorrelation of the complex voltage at a lag of \(k\) samples: the inverse Fourier transform of the
+power spectrum \(W^2\), with \(R(0) = 1\)</dd>
+</dl>
 <p>By Parseval this becomes the ∫<var>W</var>⁴ above (the lines in panel b are exactly these sums). This one formula is the root of the
 whole noise model. In narrow channels it predicts that neighbouring time bins are correlated, because a bin is not much longer
 than the channel's correlation time (<a href="channels.html#powcov"><code>powerCovariance</code></a>). With blanking it gives the exact
@@ -384,7 +442,13 @@ averages down, and the SNR grows as the square root of the number of turns.</p><
 <li>Each time bin is added into the phase bin for its phase (2048 phase bins per turn).</li>
 <li>A <b>sub-integration (sub-int)</b> is a group of consecutive turns folded together. Each sub-int gives one TOA.</li>
 </ol>
-<div class="eq">SNR<sub>sub-int</sub> = SNR<sub>turn</sub>·√<var>N</var> &nbsp;&nbsp;⇒&nbsp;&nbsp; <var>N</var> = (SNR<sub>target</sub> / SNR<sub>turn</sub>)²</div>
+<div class="eq">\[ \mathrm{SNR}_\text{sub-int} = \mathrm{SNR}_\text{turn}\,\sqrt{N} \quad\Longrightarrow\quad N = \left(\frac{\mathrm{SNR}_\text{target}}{\mathrm{SNR}_\text{turn}}\right)^{2} \]</div>
+<dl class="where">
+<dt>\(N\)</dt><dd>number of turns folded into one sub-int (<code>SubintPeriods</code> of <code>foldProfile</code>)</dd>
+<dt>\(\mathrm{SNR}_\text{turn}\)</dt><dd>matched-filter SNR of the profile from a single turn (≈ 373·ρ for the simulated pulsar)</dd>
+<dt>\(\mathrm{SNR}_\text{sub-int}\)</dt><dd>matched-filter SNR of the profile folded from \(N\) turns</dd>
+<dt>\(\mathrm{SNR}_\text{target}\)</dt><dd>the SNR wanted per sub-int (design rule: 6–7)</dd>
+</dl>
 <p>The validated design rule is SNR ≥ 6–7 per sub-int; below that, TOAs start to lock onto noise peaks
 (<a href="results.html#threshold">threshold sweep</a>).</p>
 <figure class="scroll">
@@ -459,11 +523,25 @@ pulse and both polarizations, needs about 20 (<a href="scenario.html">scenario</
 pulse width divided by the SNR. The timing information sits on the flanks of the pulse, where it changes fastest.</p></div>
 <p>The folded profile is modelled as baseline + amplitude × template shifted by τ + noise. The fitted shift τ (in turns) gives the
 TOA:</p>
-<div class="eq">TOA = <var>t</var><sub>ref</sub> + τ / <var>f</var><sub>ref</sub></div>
+<div class="eq">\[ \mathrm{TOA} = t_\mathrm{ref} + \frac{\tau}{f_\mathrm{ref}} \]</div>
+<dl class="where">
+<dt>\(\mathrm{TOA}\)</dt><dd>arrival time of template phase 0 at the dedispersion reference frequency (1.6 GHz) [s] (<code>toa.toa</code>)</dd>
+<dt>\(t_\mathrm{ref}\)</dt><dd>the time at which the phase model reaches the sub-int's reference turn [s] (<code>fold.subint.tRef</code>)</dd>
+<dt>\(\tau\)</dt><dd>the fitted shift of the template [turns]; not the dispersion delay \(\tau(f)\) of section 3</dd>
+<dt>\(f_\mathrm{ref}\)</dt><dd>the <em>spin</em> frequency at \(t_\mathrm{ref}\) [Hz] (<code>fold.subint.fRef</code>); it converts turns to
+seconds. Not the 1.6 GHz radio reference frequency</dd>
+</dl>
 <p>The fit uses FFTFIT (Taylor 1992): a cross-correlation in the Fourier domain that handles shifts smaller than a bin exactly.</p>
 <h3>The best possible precision (Cramér–Rao bound)</h3>
 <p>In the weak-signal limit (pulse much weaker than the noise, the target regime), for a Gaussian pulse of width σ<sub>t</sub>:</p>
-<div class="eq">SNR ≈ ρ·√(<var>B</var>·σ<sub>t</sub>·√π) ≈ 388·ρ, &nbsp;&nbsp; σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub> / SNR</div>
+<div class="eq">\[ \mathrm{SNR} \approx \rho\,\sqrt{B\,\sigma_t\sqrt{\pi}} \approx 388\,\rho, \qquad \sigma_\mathrm{TOA} \approx \frac{\sqrt{2}\,\sigma_t}{\mathrm{SNR}} \]</div>
+<dl class="where">
+<dt>\(\mathrm{SNR}\)</dt><dd>the best possible SNR of one pulse (matched filter)</dd>
+<dt>\(\rho\)</dt><dd>signal strength (section 4)</dd>
+<dt>\(B\)</dt><dd>bandwidth [Hz] (400 MHz: <code>fHigh</code> − <code>fLow</code>)</dd>
+<dt>\(\sigma_t\)</dt><dd>standard deviation of the Gaussian power profile [s] (212.3 µs)</dd>
+<dt>\(\sigma_\mathrm{TOA}\)</dt><dd>the smallest possible standard deviation of the TOA [s] (Cramér–Rao bound)</dd>
+</dl>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 344" role="img" aria-label="Timing information sits on the flanks of the pulse; the best TOA error falls as pulse width over SNR">
   <path class="axis" d="M60 284 H400"/>
@@ -530,9 +608,17 @@ it is steepest, so the timing information (∝ <var>p</var>′², green) sits on
 inversely to the SNR. At the design threshold SNR 7 the simulated pulsar gives ~43 µs and the narrower J0437 ~12 µs.</figcaption>
 </figure>
 <details><summary>The general formulas (any signal strength)</summary>
-<p>Model each detected bin as Gaussian with mean <var>m</var>(<var>t</var>) = <var>P</var><sub>n</sub>(1 + ρ<var>p</var>(<var>t</var>)) and variance
-<var>m</var>²/(<var>B</var>·Δ<var>t</var>). The Fisher information then gives</p>
-<div class="eq">SNR² = <var>B</var>·∫ (ρ<var>p</var>)² / (1 + ρ<var>p</var>)² d<var>t</var>, &nbsp;&nbsp; 1/σ<sub>TOA</sub>² = <var>B</var>·∫ (ρ<var>p</var>′)² / (1 + ρ<var>p</var>)² d<var>t</var></div>
+<p>Model each detected bin as Gaussian with mean \(m(t) = P_n\,(1 + \rho\,p(t))\) and variance
+\(m^2/(B\,\Delta t)\). The Fisher information then gives</p>
+<div class="eq">\[ \mathrm{SNR}^2 = B \int \frac{\left(\rho\,p(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = B \int \frac{\left(\rho\,p'(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt \]</div>
+<dl class="where">
+<dt>\(m(t)\)</dt><dd>expected detected power of a bin at time \(t\) [V²]</dd>
+<dt>\(P_n\)</dt><dd>receiver-noise power [V²]</dd>
+<dt>\(p(t)\)</dt><dd>pulse power profile with peak 1 (one turn of \(G(t)\))</dd>
+<dt>\(p'(t)\)</dt><dd>its time derivative \(dp/dt\) [1/s]</dd>
+<dt>\(B\), \(\Delta t\)</dt><dd>bandwidth [Hz]; time-bin length [s]</dd>
+<dt>\(\int \ldots dt\)</dt><dd>over one turn</dd>
+</dl>
 <p>For ρ<var>p</var> ≪ 1 the denominators are 1 and the weak-signal results above follow. When the pulse is strong, the
 (1 + ρ<var>p</var>)² term is self-noise and caps the SNR. See <a href="toa.html"><code>estimateTOA</code></a>.</p></details>
 <div class="callout why"><span class="ttl">Design choice: a template fit (FFTFIT), not the pulse centroid</span>

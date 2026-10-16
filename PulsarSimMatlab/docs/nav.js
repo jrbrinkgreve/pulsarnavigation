@@ -1,6 +1,6 @@
-// Pulsar navigation docs: sidebar, prev/next links and theme toggle.
+// Pulsar navigation docs: sidebar, prev/next links, theme toggle and equations.
 // The page list lives here only, so adding a page = one line in PAGES.
-// Works from file:// (no server, no external resources).
+// Works from file:// (no server, no external resources; KaTeX is in vendor/).
 
 const PAGES = [
   { group: "Start" },
@@ -93,5 +93,29 @@ const PAGES = [
     const next = i < pages.length - 1 ? '<a href="' + pages[i + 1].file + '">' + pages[i + 1].title + " →</a>" : "<span></span>";
     pager.innerHTML = prev + next;
     main.appendChild(pager);
+  }
+
+  // equations: KaTeX from vendor/katex (a local copy, so file:// still works).
+  // Write \[ ... \] for a display equation and \( ... \) for inline math.
+  // No $ delimiters: a dollar sign in running text must stay text.
+  function load(tag, attrs, onload) {
+    const el = document.createElement(tag);
+    for (const k in attrs) el.setAttribute(k, attrs[k]);
+    if (onload) el.addEventListener("load", onload);
+    document.head.appendChild(el);
+  }
+  if (main && /\\\(|\\\[/.test(main.innerHTML)) {
+    load("link", { rel: "stylesheet", href: "vendor/katex/katex.min.css" });
+    load("script", { src: "vendor/katex/katex.min.js" }, function () {
+      load("script", { src: "vendor/katex/auto-render.min.js" }, function () {
+        renderMathInElement(main, {
+          delimiters: [
+            { left: "\\[", right: "\\]", display: true },
+            { left: "\\(", right: "\\)", display: false },
+          ],
+          throwOnError: false,
+        });
+      });
+    });
   }
 })();
