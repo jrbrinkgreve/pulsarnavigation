@@ -270,3 +270,5 @@ Checks (browser pane, every page): 0 KaTeX errors, 0 unrendered delimiters, no e
 than its box at desktop width (two split over two lines: PFB formula, periodic-RFI test); at
 375 px no page scrolls sideways (fix: KaTeX's hidden MathML escaped `.table-wrap`; `.eq` and
 `.table-wrap` now position: relative), long equations scroll inside their box as before.
+Pushed (`8d40d4e`). 17 Oct, Jasper: checked the open points himself and they are fine: the pages
+render from file://, and the remaining HTML inline math in running text stays as is.
