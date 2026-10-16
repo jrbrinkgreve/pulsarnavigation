@@ -177,3 +177,11 @@ Noted (Jasper: "note the connection, then commit everything"): notes §10 item 7
 A3b) and item 11 (entries "Stage 11" and "Drivers"), roadmap row "Factor the chain into one
 function". Then committed: the review notes of 14–16 Oct from both sessions and the text fixes
 (B-text, V1, S1, FP1, BW1); `docs/api.html` regenerated from that commit afterwards.
+
+## Next session (Jasper, 16 Oct: "let's continue that in a next session")
+
+1. Reminder first: Jasper skipped parts of the walk-through and wants to read it fully
+   (these logs 12–16 Oct, notes §10 item 11, docs stage pages; the chat pictures are only in
+   the session – a compiled page on request). Ask which stages.
+2. Open decisions: χ² threshold; full-review items 3, 4, 8; item 7 + A3b (priority vs C);
+   parked periodic fix (P1–P4) and per-channel calibration.
