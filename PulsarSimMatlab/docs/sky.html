@@ -37,12 +37,15 @@ exact time of every pulse centre. Those times are the ground truth that every TO
 distribution. So there is no pulse <em>waveform</em> in the voltage. What changes with the rotation is the <b>variance</b> of the noise:
 its power (see <a href="physics.html#emission">physics</a>).</p>
 <p>The generator therefore multiplies white noise by a slowly varying envelope:</p>
-<div class="eq"><var>x</var>(<var>t</var>) = <var>A</var>·√<var>G</var>(<var>t</var>)·<var>n</var>(<var>t</var>) &nbsp; ⇒ &nbsp; E[<var>x</var>²] = <var>A</var>²·<var>G</var>(<var>t</var>)</div>
-<ul>
-<li><var>n</var>(<var>t</var>): white Gaussian noise with unit variance, a fresh random number for every sample.</li>
-<li><var>G</var>(<var>t</var>): the <b>power profile</b>, a train of Gaussian bumps, one per turn, with peak 1.</li>
-<li><var>A</var>: the noise standard deviation at the pulse peak. It sets the signal scale.</li>
-</ul>
+<div class="eq">\[ x(t) = A\,\sqrt{G(t)}\;n(t) \quad\Longrightarrow\quad \mathrm{E}\!\left[x^2(t)\right] = A^2\,G(t) \]</div>
+<dl class="where">
+<dt>\(x(t)\)</dt><dd>the generated pulsar voltage at time \(t\) [V], written to the file at 4 GHz (<code>f_in</code>)</dd>
+<dt>\(n(t)\)</dt><dd>white Gaussian noise with unit variance, a fresh random number for every sample</dd>
+<dt>\(G(t)\)</dt><dd>the <b>power profile</b>: a train of Gaussian bumps, one per turn, with peak 1 and FWHM 5 % of the period
+(<code>dutycycle</code>)</dd>
+<dt>\(A\)</dt><dd>the noise standard deviation at the pulse peak [V] (<code>A</code> = 1). It sets the signal scale</dd>
+<dt>\(\mathrm{E}[\cdot]\)</dt><dd>expected value: the average over many noise realizations</dd>
+</dl>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 382" role="img" aria-label="The generated voltage: noise whose variance rises once per turn; its power follows the profile G">
   <path class="axis" d="M70 130 H830"/>
@@ -398,9 +401,15 @@ blocks.</p>
 <h3 id="disp-phys">The physics</h3>
 <p>Between the pulsar and us lies ionized gas. Radio waves travel through it slightly slower than light, and lower frequencies are
 slowed more. The delay at frequency <var>f</var>, relative to an infinitely high frequency, is</p>
-<div class="eq">τ(<var>f</var>) = <var>K</var>·DM / <var>f</var>²</div>
-<p><var>K</var> is a constant (4.148808·10³ s MHz² pc⁻¹ cm³). DM, the dispersion measure, is the total amount of free electrons along the
-line of sight (their column density; 5 pc cm⁻³ here). See <a href="physics.html#dispersion">physics</a>.</p>
+<div class="eq">\[ \tau(f) = \frac{K\,\mathrm{DM}}{f^2} \]</div>
+<dl class="where">
+<dt>\(\tau(f)\)</dt><dd>delay at radio frequency \(f\), relative to an infinitely high frequency [s]</dd>
+<dt>\(f\)</dt><dd>radio frequency [MHz in this formula]</dd>
+<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10³ s MHz² pc⁻¹ cm³</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the total amount of free electrons along the line of sight (their column density)
+[pc cm⁻³] (<code>DM</code> = 5)</dd>
+</dl>
+<p>See <a href="physics.html#dispersion">physics</a>.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 336" role="img" aria-label="The pulse in 16 sub-bands before and after dispersion: after dispersion lower frequencies arrive later, along a 1/f-squared curve">
   <path class="axis" d="M110 292.0 H440"/>
@@ -540,7 +549,18 @@ once (the kernel), then runs the whole file through it.</p>
 
 <h4>1 · The filter</h4>
 <p>In frequency, the filter is</p>
-<div class="eq"><var>H</var>(<var>f</var>) = <var>W</var>(<var>f</var>) · exp(+<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)² / (<var>f</var>·<var>f</var><sub>ref</sub>²)) · exp(−<var>i</var>2π·<var>f</var>·<var>s</var><sub>0</sub>/<var>f</var><sub>s</sub>)</div>
+<div class="eq">\[ H(f) = W(f)\, \exp\!\left(+i 2\pi K\,\mathrm{DM}\, \frac{(f - f_\mathrm{ref})^2}{f\, f_\mathrm{ref}^2}\right) \exp\!\left(-i 2\pi f\, \frac{s_0}{f_s}\right) \]</div>
+<dl class="where">
+<dt>\(H(f)\)</dt><dd>the dispersion filter at radio frequency \(f\) (the kernel's spectrum)</dd>
+<dt>\(f\)</dt><dd>radio frequency [Hz]</dd>
+<dt>\(f_\mathrm{ref}\)</dt><dd>radio reference frequency: content there keeps its time [Hz] (<code>RefFreq</code>, default
+<code>fHigh</code> = 1.6 GHz)</dd>
+<dt>\(K\), \(\mathrm{DM}\)</dt><dd>dispersion constant and dispersion measure, as above; with \(f\) in Hz, \(K\) = 4.148808·10¹⁵ s Hz² pc⁻¹ cm³</dd>
+<dt>\(W(f)\)</dt><dd>band window: 1 inside, 0 outside, sin² edges 8 MHz wide</dd>
+<dt>\(s_0\)</dt><dd>shift that keeps the start of the response inside the kernel [samples] (10,000)</dd>
+<dt>\(f_s\)</dt><dd>sample rate of the RF file [Hz] (<code>f_in</code> = 4 GHz)</dd>
+<dt>\(i\)</dt><dd>the imaginary unit</dd>
+</dl>
 <ul>
 <li>The middle factor is the dispersion itself: a phase that makes frequency <var>f</var> arrive τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)
 late. Its magnitude is 1, so no frequency gets stronger or weaker.</li>
@@ -550,8 +570,12 @@ late. Its magnitude is 1, so no frequency gets stronger or weaker.</li>
 kernel. That shift is removed again when the output is written.</li>
 </ul>
 <details><summary>Check: the group delay</summary>
-<p>Group delay −(1/2π)·dφ/d<var>f</var> = <var>K</var>DM/<var>f</var>² − <var>K</var>DM/<var>f</var><sub>ref</sub>² + <var>s</var><sub>0</sub>/<var>f</var><sub>s</sub>:
-the dispersion delay relative to <var>f</var><sub>ref</sub>, plus <var>s</var><sub>0</sub> samples.</p>
+<div class="eq">\[ \tau_g(f) = -\frac{1}{2\pi}\,\frac{d\,\arg H(f)}{df} = \frac{K\,\mathrm{DM}}{f^2} - \frac{K\,\mathrm{DM}}{f_\mathrm{ref}^2} + \frac{s_0}{f_s} \]</div>
+<dl class="where">
+<dt>\(\tau_g(f)\)</dt><dd>group delay of the filter at frequency \(f\) [s]: how late content at \(f\) comes out</dd>
+<dt>\(\arg H(f)\)</dt><dd>the phase of the filter [rad]</dd>
+</dl>
+<p>That is the dispersion delay relative to \(f_\mathrm{ref}\), plus \(s_0\) samples.</p>
 </details>
 
 <h4>2 · The kernel (<code>makeDispersionKernel</code>)</h4>

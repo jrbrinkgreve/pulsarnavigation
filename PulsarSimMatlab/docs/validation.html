@@ -406,11 +406,20 @@ taper <var>W</var><sub>i</sub>.</li>
 ∫<var>W</var><sub>i</sub>⁴ for the variance.</li>
 <li>Mean powers <var>P</var><sub>s</sub>(<var>t</var>) = sigScale·<var>p</var>(<var>t</var>), <var>P</var><sub>n</sub>; variance of a bin of length d<var>t</var>:</li>
 </ol>
-<div class="eq">var = (<var>c</var><sub>ss</sub>·<var>P</var><sub>s</sub>² + 2·<var>c</var><sub>sn</sub>·<var>P</var><sub>s</sub><var>P</var><sub>n</sub> + <var>c</var><sub>nn</sub>·<var>P</var><sub>n</sub>²) / d<var>t</var></div>
+<div class="eq">\[ \operatorname{var} = \frac{c_{ss}\,P_s^2 + 2\,c_{sn}\,P_s P_n + c_{nn}\,P_n^2}{dt}, \qquad c_{ss} = \frac{\int (W_f W_i)^4}{J_s^2}, \quad c_{sn} = \frac{\int W_f^2 W_i^4}{J_s J_n}, \quad c_{nn} = \frac{\int W_i^4}{J_n^2} \]</div>
+<dl class="where">
+<dt>\(\operatorname{var}\)</dt><dd>variance of the detected power of one time bin [V⁴]</dd>
+<dt>\(P_s\), \(P_n\)</dt><dd>mean pulsar power at that time, \(\texttt{sigScale}\cdot p(t)\), and mean receiver-noise power [V²]</dd>
+<dt>\(dt\)</dt><dd>length of the time bin [s]</dd>
+<dt>\(c_{ss}, c_{sn}, c_{nn}\)</dt><dd>self-noise, cross and noise coefficients [1/Hz]; their inverses are noise bandwidths (<code>M.css</code> …)</dd>
+<dt>\(W_f\), \(W_i\)</dt><dd>the simulator's dispersion taper and the observer's dedispersion taper, as functions of frequency</dd>
+<dt>\(J_s\), \(J_n\)</dt><dd>\(\int (W_f W_i)^2\) and \(\int W_i^2\): the bandwidths that set the mean powers [Hz]</dd>
+</dl>
 <p>(Isserlis with <var>S</var> = pulsar + noise: squaring the sum gives self-noise, cross and noise terms. Flat band: all <var>c</var> = 1/<var>B</var>, var =
 (<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>).) Verified numerically within 1 % for 0 ≤ ρ ≤ 100.</p>
 <h3>Best achievable (added 5 Oct)</h3>
-<p>The Fisher information with that variance <var>v</var>: SNR² = ∫<var>P</var><sub>s</sub>²/<var>v</var> d<var>t</var>, 1/σ<sub>TOA</sub>² = ∫<var>P</var><sub>s</sub>′²/<var>v</var> d<var>t</var> →
+<p>The Fisher information with \(v = c_{ss}P_s^2 + 2c_{sn}P_sP_n + c_{nn}P_n^2\) (the variance above times \(dt\)):
+\(\mathrm{SNR}^2 = \int P_s^2/v\,dt\), \(1/\sigma_\mathrm{TOA}^2 = \int P_s'^2/v\,dt\) (\(P_s' = dP_s/dt\)) →
 <code>M.snrPulse</code>, <code>M.toaErrPulse</code> (NaN without noise: the integrals diverge in the tails). At −5 dB: 96.5 and 2.892 µs, also checked
 against a Python port. RFI is not in the model; it shows up as excess in the checks.</p>
 <div class="callout why"><span class="ttl">Why compute the exact optimum</span>

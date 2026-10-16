@@ -26,8 +26,10 @@ the site still needs no internet). Write <code>\[ … \]</code> inside <code>&lt
 <code>\( … \)</code> for math in the text; <code>$</code> is not a delimiter. Every display equation is followed by a
 <code>&lt;dl class="where"&gt;</code> that defines <em>every</em> symbol in it: meaning, unit, and the name in the code where there is one
 (<code>&lt;dt&gt;\(f_0\)&lt;/dt&gt;&lt;dd&gt;spin frequency [Hz] (&lt;code&gt;ephem.f0&lt;/code&gt;)&lt;/dd&gt;</code>). If a symbol means something
-else elsewhere (τ, <var>f</var><sub>ref</sub>, <var>x</var>), say so there. Converted so far: <code>physics.html</code>; the other pages still
-use plain text with HTML sub/superscripts. Figures are inline SVG that use the theme colours (the <code>svg</code> classes in
+else elsewhere (τ, <var>f</var><sub>ref</sub>, <var>x</var>, <var>K</var>, <var>T</var>), say so there. On <code>formulas.html</code> the symbols go
+in a <code>&lt;div class="sym"&gt;</code> under "In words". All display equations are LaTeX (16 Oct); inline symbols in running text are
+partly still HTML (<code>&lt;var&gt;</code>, <code>&lt;sub&gt;</code>), which is fine. A wide equation can be split over lines with
+<code>\begin{gathered} … \\ … \end{gathered}</code>. Figures are inline SVG that use the theme colours (the <code>svg</code> classes in
 <code>style.css</code>), so they follow the light/dark toggle. Plots are computed by <code>docs/tools/figures/gen_*.py</code> from the code's
 formulas and constants or from a results table (list and use: <code>tools/figures/README.md</code>); flowcharts are written by hand in the page.
 Wide figures sit in <code>&lt;figure class="scroll"&gt;</code> with <code>&lt;svg class="wide"&gt;</code>: on a phone they scroll sideways instead of
@@ -151,7 +153,10 @@ scripts and parameters pages; roadmap row. <code>api.html</code> regenerated fro
 <tr><td>16 Oct 2026</td><td>after <code>113f166</code></td><td>LaTeX equations (Jasper: equations cluttered, symbols had to be guessed): KaTeX
 0.16.11 in <code>vendor/katex/</code>, loaded by <code>nav.js</code>; <code>.eq</code> and new <code>dl.where</code> styles. <code>physics.html</code>:
 all 12 display equations in LaTeX, each with a "where" list. The Isserlis formula now reads var(P̂)/<var>P</var>², because <var>R</var> is the
-normalized autocorrelation (as in <code>powerCovariance</code>). Other pages follow one at a time.</td></tr>
+normalized autocorrelation (as in <code>powerCovariance</code>). Then (Jasper: "continue with all pages") every other page with
+equations: sky, receiver, full band, channels, excision, fold, TOA, detection, validation, scenario (32 display equations, with
+"where" list), and <code>formulas.html</code> (all 43 rows in LaTeX, each with a symbols line). Fix: KaTeX's hidden MathML widened the
+page on phones (<code>.eq</code>, <code>.table-wrap</code> now <code>position: relative</code>).</td></tr>
 </table></div>
 
 </main>

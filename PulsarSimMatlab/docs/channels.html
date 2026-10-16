@@ -111,7 +111,17 @@ written to its own file.</p>
 <p>Channel <var>j</var> is exactly what a separate receiver would give. Mix down by the channel centre
 <var>f</var><sub>c,j</sub> = <var>f</var><sub>Low</sub> + (<var>j</var> − ½)·<code>ChanWidth</code> (LO phase 0 at input sample 0), low-pass with zero phase, and keep
 every <var>D</var>-th sample:</p>
-<div class="eq"><var>y</var><sub>j</sub>(<var>m</var>) = Σ<sub>n</sub> <var>h</var>(<var>mD</var> − <var>n</var>)·<var>x</var>(<var>n</var>)·e<sup>−<var>i</var>2π(<var>f</var><sub>c,j</sub> − <var>f</var><sub>LO</sub>)<var>n</var>/<var>f</var><sub>s</sub></sup></div>
+<div class="eq">\[ y_j(m) = \sum_n h(mD - n)\; x(n)\; e^{-i 2\pi (f_{c,j} - f_\mathrm{LO})\, n / f_s} \]</div>
+<dl class="where">
+<dt>\(y_j(m)\)</dt><dd>complex sample \(m\) of channel \(j\) [V]</dd>
+<dt>\(x(n)\)</dt><dd>complex IQ input sample \(n\) [V], at rate \(f_s\)</dd>
+<dt>\(j\)</dt><dd>channel number, 1 … 128</dd>
+<dt>\(f_{c,j}\)</dt><dd>centre RF frequency of channel \(j\): \(f_\mathrm{Low} + (j - \tfrac12)\cdot\)<code>ChanWidth</code> [Hz]</dd>
+<dt>\(f_\mathrm{LO}\)</dt><dd>LO frequency of the IQ input [Hz] (<code>fLO</code> = 1.3 GHz)</dd>
+<dt>\(f_s\)</dt><dd>IQ sample rate [Hz] (<code>fs</code> = 800 MHz)</dd>
+<dt>\(h\)</dt><dd>the prototype low-pass filter (zero phase, unit DC gain)</dd>
+<dt>\(D\)</dt><dd>decimation factor (192)</dd>
+</dl>
 <ul>
 <li>Sample <var>m</var> is at <var>t</var><sub>0</sub> + <var>mD</var>/<var>f</var><sub>s</sub>: the filter delay is removed, so there is no TOA offset.</li>
 <li>RF = <var>f</var><sub>c,j</sub> + <var>f</var><sub>bb</sub>, with no inversion. So <b>each channel file is an ordinary IQ file</b>, with
@@ -186,9 +196,20 @@ slot into exactly the mixed, filtered and decimated channel. Frames overlap heav
 <details><summary>The exact formula</summary>
 <p>With <var>f</var><sub>c,j</sub> − <var>f</var><sub>LO</sub> = (<var>k</var><sub>j</sub> + β)·<var>f</var><sub>s</sub>/<var>K</var> (β = ½ here: band edges on the <var>K</var>-grid) and the
 prototype <var>h</var>(<var>r</var>) centred at <var>G</var> = (<var>M</var>−1)/2, zero-padded to <var>L</var> = <var>P</var>·<var>K</var>:</p>
-<div class="eq"><var>y</var><sub>j</sub>(<var>m</var>) = e<sup>−<var>i</var>2π(<var>k</var><sub>j</sub>+β)(<var>mD</var>+<var>G</var>)/<var>K</var></sup> · Σ<sub>p</sub> e<sup>+<var>i</var>2π<var>k</var><sub>j</sub><var>p</var>/<var>K</var></sup>·<var>u</var><sub>m</sub>(<var>p</var>), &nbsp; <var>u</var><sub>m</sub>(<var>p</var>) = Σ<sub>q</sub> <var>h</var><sub>b</sub>(<var>p</var>+<var>qK</var>)·<var>x</var>(<var>mD</var>+<var>G</var>−<var>p</var>−<var>qK</var>)</div>
-<p>with <var>h</var><sub>b</sub>(<var>r</var>) = <var>h</var>(<var>r</var>)·e<sup>+<var>i</var>2πβ<var>r</var>/<var>K</var></sup>. Prototype: a Kaiser-windowed sinc (the same design as the IQ
-filter), cut-off <var>f</var><sub>s</sub>/(2<var>D</var>), 80 dB stopband: 3853 taps (16 per branch).</p>
+<div class="eq">\[ \begin{gathered} y_j(m) = e^{-i 2\pi (k_j + \beta)(mD + G)/K} \sum_{p=0}^{K-1} e^{+i 2\pi k_j p / K}\, u_m(p) \\[4pt] u_m(p) = \sum_{q=0}^{P-1} h_b(p + qK)\; x(mD + G - p - qK) \end{gathered} \]</div>
+<div class="eq">\[ h_b(r) = h(r)\, e^{+i 2\pi \beta r / K} \]</div>
+<dl class="where">
+<dt>\(K\)</dt><dd>FFT size = number of channel slots, \(f_s/\)<code>ChanWidth</code> = 256 (not the dispersion constant)</dd>
+<dt>\(k_j\)</dt><dd>integer FFT slot of channel \(j\)</dd>
+<dt>\(\beta\)</dt><dd>fractional slot offset, ½ here (the band edges lie on the \(K\)-grid)</dd>
+<dt>\(h(r)\)</dt><dd>prototype filter, taps \(r = 0 \ldots L-1\); \(M\) = 3853 non-zero taps, zero-padded to \(L = PK\) = 4096</dd>
+<dt>\(G\)</dt><dd>the centre of the prototype, \((M-1)/2\) [samples]; it removes the filter delay</dd>
+<dt>\(P\)</dt><dd>taps per polyphase branch (16)</dd>
+<dt>\(h_b(r)\)</dt><dd>the prototype shifted by \(\beta\) slots in frequency</dd>
+<dt>\(u_m(p)\)</dt><dd>input frame for output \(m\), weighted by \(h_b\) and folded into \(K\) bins (sum over \(q\))</dd>
+<dt>\(p, q\)</dt><dd>bin index within the frame, and which of the \(P\) blocks of \(K\) samples</dd>
+</dl>
+<p>Prototype: a Kaiser-windowed sinc (the same design as the IQ filter), cut-off \(f_s/(2D)\), 80 dB stopband: 3853 taps (16 per branch).</p>
 </details>
 
 <h4>Oversampling by 4/3</h4>
@@ -418,7 +439,18 @@ error bars are exact phase bin by phase bin.</figcaption>
 <h3>The exact formula</h3>
 <p>A bin is the mean of |<var>y</var>|² over <var>n</var> samples. For Gaussian <var>y</var> with normalized autocorrelation <var>R</var> (Isserlis, see
 <a href="physics.html#isserlis">physics</a>), relative to the radiometer value:</p>
-<div class="eq"><var>V</var> = <var>C</var>(0)/rad, &nbsp; <var>X</var><sub>L</sub> = <var>C</var>(<var>L</var>)/rad, &nbsp; <var>C</var>(<var>L</var>) = (1/<var>n</var>²)·Σ<sub>a,b</sub>|<var>R</var>(<var>a</var> − <var>b</var> + <var>Ln</var>)|², &nbsp; rad = Σ<sub>l</sub>|<var>R</var>(<var>l</var>)|²/<var>n</var></div>
+<div class="eq">\[ V = \frac{C(0)}{\mathrm{rad}}, \qquad X_L = \frac{C(L)}{\mathrm{rad}}, \qquad C(L) = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a - b + Ln)\right|^2, \qquad \mathrm{rad} = \frac{1}{n}\sum_{l} \left|R(l)\right|^2 \]</div>
+<dl class="where">
+<dt>\(V\)</dt><dd>variance of one detected time bin, relative to the radiometer value \(m^2/(B\,\Delta t)\)</dd>
+<dt>\(X_L\)</dt><dd>covariance between a bin and the bin \(L\) further, on the same relative scale</dd>
+<dt>\(L\)</dt><dd>lag in time bins, 1 … <code>Lmax</code> (not the frame length \(L\) above)</dd>
+<dt>\(C(L)\)</dt><dd>the Isserlis sum for bins \(L\) apart (relative to \(m^2\))</dd>
+<dt>\(\mathrm{rad}\)</dt><dd>the radiometer value \(1/(B\,\Delta t)\) written as a sum over \(R\)</dd>
+<dt>\(n\)</dt><dd>channel samples per time bin (4 at 0.96 µs)</dd>
+<dt>\(a, b\)</dt><dd>sample indices within a bin</dd>
+<dt>\(R(l)\)</dt><dd>normalized autocorrelation of the channel voltage \(y\) at lag \(l\) samples, \(R(0) = 1\)</dd>
+<dt>\(m\), \(B\), \(\Delta t\)</dt><dd>mean bin power; bandwidth \((\int S)^2/\int S^2\) of the channel spectrum \(S = W^2\); bin length</dd>
+</dl>
 <ul>
 <li>Summed over all lags, <var>V</var> + 2Σ<var>X</var><sub>L</sub> = 1 exactly: the independent-bin model is right for long sums, wrong bin by
 bin.</li>

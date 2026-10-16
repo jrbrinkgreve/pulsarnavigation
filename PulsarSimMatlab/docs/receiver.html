@@ -179,7 +179,15 @@ point. It also shows why excision works <em>before</em> dedispersion: there the 
 </figure>
 
 <h4>The SNR definition</h4>
-<div class="eq">snrDB = 10·log₁₀(<var>S</var><sub>peak</sub> / <var>N</var>) = 10·log₁₀(<var>A</var>² / σ<sub>n</sub>²) &nbsp;⇒&nbsp; σ<sub>n</sub> = <var>A</var> / √ρ, &nbsp; ρ = 10<sup>snrDB/10</sup></div>
+<div class="eq">\[ \texttt{snrDB} = 10\log_{10}\frac{S_\mathrm{peak}}{N} = 10\log_{10}\frac{A^2}{\sigma_n^2} \quad\Longrightarrow\quad \sigma_n = \frac{A}{\sqrt{\rho}}, \qquad \rho = 10^{\,\texttt{snrDB}/10} \]</div>
+<dl class="where">
+<dt>\(S_\mathrm{peak}\)</dt><dd>power spectral density of the pulsar at the pulse peak [V²/Hz]</dd>
+<dt>\(N\)</dt><dd>power spectral density of the receiver noise [V²/Hz]</dd>
+<dt>\(A\)</dt><dd>pulsar amplitude: its voltage standard deviation at the pulse peak [V] (<code>A</code> = 1)</dd>
+<dt>\(\sigma_n\)</dt><dd>standard deviation of the receiver noise per RF sample [V]. Pulsar and noise are both generated white at
+the same sample rate (4 GHz) and dispersion does not change the in-band density, so the PSD ratio is \(A^2/\sigma_n^2\)</dd>
+<dt>\(\rho\)</dt><dd>the same ratio on a linear scale, no unit</dd>
+</dl>
 <p><code>snrDB</code> compares two power spectral densities in the band: the pulsar's at the peak of the pulse, and the receiver
 noise's. In radio-astronomy terms it is <var>S</var><sub>peak</sub>/SEFD. In the simulation both are white, so the ratio is simply
 <var>A</var>²/σ<sub>n</sub>², and the code sets the noise level from it. <code>Inf</code> means no noise.</p>
@@ -260,7 +268,17 @@ number for this pulsar.</figcaption>
 <h4>Predictions printed at run time</h4>
 <p>The radiometer equation for a Gaussian power profile <var>p</var>(<var>t</var>), including self-noise, in a flat band
 <var>B</var> = 400 MHz (stored in <code>info.prediction</code>):</p>
-<div class="eq">SNR<sub>pulse</sub>² = <var>B</var>·∫(ρ<var>p</var>)²/(1 + ρ<var>p</var>)² d<var>t</var>, &nbsp; 1/σ<sub>TOA</sub>² = <var>B</var>·∫(ρ<var>p</var>′)²/(1 + ρ<var>p</var>)² d<var>t</var></div>
+<div class="eq">\[ \mathrm{SNR}_\mathrm{pulse}^2 = B \int \frac{\left(\rho\,p(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = B \int \frac{\left(\rho\,p'(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt \]</div>
+<dl class="where">
+<dt>\(\mathrm{SNR}_\mathrm{pulse}\)</dt><dd>the best possible (matched-filter) SNR of one pulse</dd>
+<dt>\(\sigma_\mathrm{TOA}\)</dt><dd>the smallest possible TOA error of one pulse [s] (Cramér–Rao bound)</dd>
+<dt>\(B\)</dt><dd>bandwidth [Hz], here a flat 400 MHz</dd>
+<dt>\(\rho\)</dt><dd>\(10^{\texttt{snrDB}/10}\)</dd>
+<dt>\(p(t)\)</dt><dd>power profile of one pulse, peak 1 (Gaussian, standard deviation 212.3 µs)</dd>
+<dt>\(p'(t)\)</dt><dd>its time derivative \(dp/dt\) [1/s]</dd>
+<dt>\((1+\rho p)^2\)</dt><dd>self-noise: the pulsar's own power adds to the noise; ≈ 1 for weak pulses</dd>
+<dt>\(\int \ldots dt\)</dt><dd>over one turn</dd>
+</dl>
 <div class="table-wrap"><table>
 <tr><th>snrDB</th><th>SNR per pulse</th><th>per 10 turns</th><th>all ~100 pulses</th><th>best TOA error per pulse</th></tr>
 <tr><td>−20</td><td class="num">3.85</td><td class="num">12.2</td><td class="num">38.5</td><td class="num">77.8 µs</td></tr>
@@ -425,10 +443,15 @@ ITU emission masks). <code>RiseTime</code> = 0 reproduces the pre-8-Oct output b
 <p>Any source can have a rotating antenna (<code>ScanPeriod</code>, <code>BeamTime</code>, <code>BeamWidth</code>, <code>SidelobeDB</code>). A
 surveillance radar's antenna turns at 5–6 rpm, a scan of 10–12 s. Its main beam points at us once per scan; the rest of the time only
 its sidelobes do. The source's power is multiplied by the antenna gain towards us at time <var>t</var>:</p>
-<div class="eq"><var>g</var>(<var>t</var>) = max(exp(−4 ln2·(d<var>t</var>/<code>BeamWidth</code>)²), 10<sup><code>SidelobeDB</code>/10</sup>)</div>
+<div class="eq">\[ g(t) = \max\!\left( \exp\!\left(-4\ln 2\,\left(\frac{\delta t}{\texttt{BeamWidth}}\right)^{2}\right),\; 10^{\,\texttt{SidelobeDB}/10} \right) \]</div>
+<dl class="where">
+<dt>\(g(t)\)</dt><dd>antenna power gain towards us at time \(t\), relative to the main-beam peak (1 at the peak)</dd>
+<dt>\(\delta t\)</dt><dd>the time since (or until) the nearest beam passage [s] (passages at <code>BeamTime</code> + whole <code>ScanPeriod</code>s)</dd>
+<dt>\(\texttt{BeamWidth}\)</dt><dd>−3 dB width of the main beam, in time [s]</dd>
+<dt>\(\texttt{SidelobeDB}\)</dt><dd>sidelobe floor relative to the main-beam peak [dB] (default −30)</dd>
+</dl>
 <ul>
-<li>d<var>t</var>: the time since (or until) the nearest beam passage.</li>
-<li>The main beam is a Gaussian with −3 dB width <code>BeamWidth</code> in time: azimuth beamwidth / 360° × scan period, so 1.4° at
+<li>The main beam is a Gaussian: \(g = \tfrac12\) at \(\delta t = \pm\)<code>BeamWidth</code>/2. Its width in time is azimuth beamwidth / 360° × scan period, so 1.4° at
 10 s gives 39 ms.</li>
 <li>Outside the main beam: a flat sidelobe floor (default −30 dB). <code>INRdB</code> is the main-beam peak.</li>
 <li>Default <code>ScanPeriod</code> = Inf: no rotation, bit for bit as before. The beamwidth and sidelobe levels of real L-band radars
@@ -638,15 +661,22 @@ sky signal. Effect &lt; 1 % in SNR; fixable by making the dispersion band slight
 filters, and keeps every 5th sample. That is what an analog I/Q receiver followed by an ADC does.</p>
 
 <h3 id="iq-phys">The physics</h3>
-<div class="eq"><var>z</var>(<var>t</var>) = LPF{2·<var>x</var>(<var>t</var>)·e<sup>−<var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}, &nbsp; so &nbsp; <var>x</var>(<var>t</var>) = Re{<var>z</var>(<var>t</var>)·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}</div>
+<div class="eq">\[ z(t) = \mathrm{LPF}\!\left\{ 2\,x(t)\, e^{-i 2\pi f_\mathrm{LO}\, t} \right\} \quad\text{so}\quad x(t) = \mathrm{Re}\!\left\{ z(t)\, e^{\,i 2\pi f_\mathrm{LO}\, t} \right\} \]</div>
+<dl class="where">
+<dt>\(x(t)\)</dt><dd>the real RF voltage at 4 GHz sampling (<code>f_in</code>): pulsar + noise + RFI [V]</dd>
+<dt>\(z(t)\)</dt><dd>the complex envelope \(I + iQ\), written at 800 MHz (<code>fs</code>) [V]</dd>
+<dt>\(f_\mathrm{LO}\)</dt><dd>local-oscillator frequency [Hz] (<code>fLO</code> = 1.3 GHz)</dd>
+<dt>\(\mathrm{LPF}\{\cdot\}\)</dt><dd>low-pass filter, one-sided cutoff 360 MHz (<code>Cutoff</code>, default 0.9·<code>fs</code>/2)</dd>
+<dt>\(2\)</dt><dd>the envelope gain (<code>'Gain','envelope'</code>), explained below</dd>
+</dl>
 <ul>
 <li><b>Frequency mapping:</b> RF frequency <var>f</var> lands at <var>f</var> − <var>f</var><sub>LO</sub>. The band 1.2–1.6 GHz becomes
 −100…+300 MHz. There is no spectral inversion: higher RF stays higher.</li>
 <li><b>Mirror image:</b> the mixer also makes a copy of the band near −(<var>f</var> + <var>f</var><sub>LO</sub>), far outside the pass
 band. The low-pass removes it.</li>
 <li><b>The factor 2</b> (<code>'Gain','envelope'</code>, default) makes up for the discarded mirror: a tone
-<var>A</var>·cos(2π<var>ft</var> + φ) becomes <var>A</var>·e<sup><var>i</var>φ</sup>·e<sup><var>i</var>2π(<var>f</var>−<var>f</var><sub>LO</sub>)<var>t</var></sup>, and
-mean|<var>z</var>|² = 2·mean(<var>x</var>²) in band.</li>
+\(a\cos(2\pi f t + \varphi)\) with amplitude \(a\) and phase \(\varphi\) becomes \(a\,e^{i\varphi}\,e^{i 2\pi (f - f_\mathrm{LO}) t}\), and
+\(\overline{|z|^2} = 2\,\overline{x^2}\) in band (bar: time average).</li>
 </ul>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 410" role="img" aria-label="Spectra through the IQ stage: RF band, mixing with the LO, low-pass and decimation to complex baseband">

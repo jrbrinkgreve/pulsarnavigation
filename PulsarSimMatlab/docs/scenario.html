@@ -53,9 +53,21 @@ example, high-SNR estimator improvements are low priority.</p></div>
 <li>Solve for the <var>t</var> that gives SNR 7, the design rule from the <a href="results.html#threshold">threshold sweep</a>.</li>
 <li>The TOA error at SNR 7 follows from the pulse width (<a href="physics.html#toa">physics</a>).</li>
 </ol>
-<div class="eq">SNR = (<var>S</var><sub>mean</sub>/SEFD)·√(<var>n</var><sub>pol</sub>·<var>B</var>·<var>t</var>)·√((<var>P</var> − <var>W</var><sub>eq</sub>)/<var>W</var><sub>eq</sub>)</div>
-<p>with <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub> (margin for wings and components), ρ = <var>S</var><sub>peak</sub>/SEFD, σ<sub>TOA</sub> = √2·(<var>W</var><sub>50</sub>/2.355)/7. Catalogue
-fluxes are averages; low-DM pulsars scintillate by a factor ~2 or more either way.</p>
+<div class="eq">\[ \mathrm{SNR} = \frac{S_\mathrm{mean}}{\mathrm{SEFD}}\, \sqrt{n_\mathrm{pol}\, B\, t}\; \sqrt{\frac{P - W_\mathrm{eq}}{W_\mathrm{eq}}}, \qquad \rho = \frac{S_\mathrm{peak}}{\mathrm{SEFD}}, \qquad \sigma_\mathrm{TOA} = \frac{\sqrt{2}\; W_{50}/2.355}{7} \]</div>
+<dl class="where">
+<dt>\(\mathrm{SNR}\)</dt><dd>SNR of the folded profile after observing for a time \(t\)</dd>
+<dt>\(S_\mathrm{mean}\)</dt><dd>the pulsar's mean flux density at 1.4 GHz, from the catalogue [Jy]</dd>
+<dt>\(\mathrm{SEFD}\)</dt><dd>system-equivalent flux density of the receiving system [Jy]</dd>
+<dt>\(n_\mathrm{pol}\)</dt><dd>number of polarizations (2)</dd>
+<dt>\(B\)</dt><dd>bandwidth [Hz] (400 MHz)</dd>
+<dt>\(t\)</dt><dd>observing time [s]</dd>
+<dt>\(P\)</dt><dd>pulse period [s] (called \(T\) on the other pages)</dd>
+<dt>\(W_{50}\)</dt><dd>pulse width at 50 % of the peak [s], from the catalogue</dd>
+<dt>\(W_\mathrm{eq}\)</dt><dd>equivalent pulse width, \(2\,W_{50}\) (margin for wings and components) [s]</dd>
+<dt>\(S_\mathrm{peak}\)</dt><dd>peak flux density, \(S_\mathrm{mean}\,P/W_\mathrm{eq}\) [Jy]</dd>
+<dt>\(\sigma_\mathrm{TOA}\)</dt><dd>TOA error at SNR 7 [s]; \(W_{50}/2.355\) is the Gaussian standard deviation</dd>
+</dl>
+<p>Catalogue fluxes are averages; low-DM pulsars scintillate by a factor ~2 or more either way.</p>
 <div class="callout note"><span class="ttl">Two conventions for ρ</span>
 <p>The ρ in this table uses <var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/<var>W</var><sub>eq</sub> with the margin
 <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub>. The simulator's <code>snrDB</code> is the peak of a Gaussian of FWHM <var>W</var><sub>50</sub>,

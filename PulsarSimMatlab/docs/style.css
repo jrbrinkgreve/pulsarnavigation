@@ -182,6 +182,9 @@ var { font-family: "Cambria Math", Georgia, serif; font-style: italic; }
 .eq .katex-display { margin: 0.2em 0; }
 .eq .katex-display > .katex { white-space: nowrap; }
 .katex { font-size: 1.1em; }
+/* KaTeX's hidden MathML copy is position:absolute; keep it inside the scroll boxes */
+.eq, .table-wrap { position: relative; }
+@media (max-width: 600px) { .eq .katex { font-size: 1em; } }
 /* "where" list under an equation: symbol | meaning, unit, name in the code */
 dl.where {
   display: grid;
@@ -195,6 +198,8 @@ dl.where {
 dl.where::before { content: "where"; grid-column: 1 / -1; color: var(--fg-muted); font-style: italic; }
 dl.where dt { text-align: right; }
 dl.where dd { margin: 0; }
+/* symbol line under a formula in a table (formulas.html) */
+.sym { margin-top: 4px; font-size: 0.85em; color: var(--fg-muted); }
 
 /* ---------- tables ---------- */
 .table-wrap { overflow-x: auto; margin-bottom: 1em; }

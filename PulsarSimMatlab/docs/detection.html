@@ -34,9 +34,23 @@ probability <var>P</var><sub>FA</sub> (default 10⁻³ per profile), for every s
 <code>normProfile</code> = (<var>p</var> − <var>a</var>)/√<var>v</var>: the profile in noise units.</p>
 
 <h2 id="known">Known phase: T0</h2>
-<div class="eq"><var>T</var><sub>0</sub> = <var>c</var>ᵀ(<var>p</var> − <var>a</var>) / √(<var>c</var>ᵀ·Cov·<var>c</var>), &nbsp; <var>c</var> = template at the predicted phase minus its mean</div>
+<div class="eq">\[ T_0 = \frac{c^{\mathsf T}(p - a)}{\sqrt{c^{\mathsf T}\, \mathrm{Cov}\; c}} \]</div>
+<dl class="where">
+<dt>\(T_0\)</dt><dd>the known-phase test statistic, in units of its noise</dd>
+<dt>\(p\)</dt><dd>the profile as a vector over phase bins</dd>
+<dt>\(a\)</dt><dd>baseline: mean of \(p\)</dd>
+<dt>\(c\)</dt><dd>the template at the predicted phase, minus its mean</dd>
+<dt>\(\mathrm{Cov}\)</dt><dd>covariance matrix of the profile bins under H0 (noise only), from the radiometer model and the fold weights</dd>
+</dl>
 <p>A weighted sum of Gaussian bins divided by its exact standard deviation: under H0 exactly N(0, 1), so</p>
-<div class="eq">η<sub>0</sub> = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for 10⁻³, &nbsp; <var>P</var><sub>D</sub> = 1 − Φ(η − SNR)</div>
+<div class="eq">\[ \eta_0 = \Phi^{-1}(1 - P_\mathrm{FA}) = 3.09 \text{ for } P_\mathrm{FA} = 10^{-3}, \qquad P_D = 1 - \Phi(\eta - \mathrm{SNR}) \]</div>
+<dl class="where">
+<dt>\(\eta_0\)</dt><dd>detection threshold on \(T_0\) (<code>etaKnown</code>)</dd>
+<dt>\(\Phi\)</dt><dd>cumulative distribution function of the standard normal distribution (not the phase \(\Phi_0\))</dd>
+<dt>\(P_\mathrm{FA}\)</dt><dd>false-alarm probability (<code>PFA</code>, default 10⁻³)</dd>
+<dt>\(P_D\)</dt><dd>detection probability for a pulse with this SNR</dd>
+<dt>\(\eta\)</dt><dd>the threshold used (\(\eta_0\) here, or the unknown-phase one below)</dd>
+</dl>
 <p>The predicted phase is the ephemeris phase (<code>'Phase'</code>, default 0). This is the <b>tracking</b> case: you know your position and
 clock well enough to predict where the pulse is, so one test suffices.</p>
 
@@ -47,7 +61,16 @@ clock well enough to predict where the pulse is, so one test suffices.</p>
 <p>Neighbouring shifts are nearly identical (a smooth template moved by one bin), so "number of bins × <var>Q</var>(η)" would be far too
 pessimistic. Rice (1944) gives the expected number of upcrossings of level η by a smooth stationary Gaussian process; the maximum
 exceeds η if <var>T</var> starts above it or crosses it:</p>
-<div class="eq"><var>P</var>(<var>T</var><sub>max</sub> &gt; η) ≈ <var>Q</var>(η) + (√λ₂/2π)·e<sup>−η²/2</sup>, &nbsp; λ₂ = Σ(2π<var>k</var>)²|<var>S</var><sub>k</sub>|² / Σ|<var>S</var><sub>k</sub>|² (<var>k</var> ≥ 1)</div>
+<div class="eq">\[ P(T_\mathrm{max} > \eta) \approx Q(\eta) + \frac{\sqrt{\lambda_2}}{2\pi}\, e^{-\eta^2/2}, \qquad \lambda_2 = \frac{\sum_{k \ge 1} (2\pi k)^2\, |S_k|^2}{\sum_{k \ge 1} |S_k|^2} \]</div>
+<dl class="where">
+<dt>\(T_\mathrm{max}\)</dt><dd>the largest \(T(\tau)\) over all shifts (<code>Tmax</code>)</dd>
+<dt>\(T(\tau)\)</dt><dd>the test statistic \(T_0\) with the template shifted by \(\tau\) turns</dd>
+<dt>\(\eta\)</dt><dd>threshold (<code>etaUnknown</code>)</dd>
+<dt>\(Q(\eta)\)</dt><dd>standard-normal tail probability, \(1 - \Phi(\eta)\)</dd>
+<dt>\(S_k\)</dt><dd>\(k\)-th Fourier coefficient of the template; \(k\) = harmonic (cycles per turn)</dd>
+<dt>\(\lambda_2\)</dt><dd>second spectral moment of \(T(\tau)\) [turns⁻²]: how fast it varies with \(\tau\) (<code>info.lambda2</code>)</dd>
+<dt>\(\sqrt{\lambda_2}/2\pi\)</dt><dd>the Rice factor (<code>info.riceFactor</code>)</dd>
+</dl>
 <p>For the 5 % Gaussian template √λ₂/2π = 5.51 (the "Rice factor": the mean number of up-crossings of the mean level per turn), and
 η = 4.15 at <var>P</var><sub>FA</sub> = 10⁻³ (solved with <code>fzero</code>). In terms of independent trials, <var>P</var><sub>FA</sub>/<var>Q</var>(η) ≈ 61
 at that threshold: the phase search costs as much as ~60 independent tests, not 5.5 (5.5 independent trials would give η = 3.57). In the tail, crossings are rare, so the approximation is tight.</p>
@@ -199,7 +222,7 @@ drops from 0.97 to 0.83. Simulated false-alarm rate of the 4.15 threshold: 1.0·
 <p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there".</p>
 
 <h2 id="good">Good TOAs (in <code>main.m</code>)</h2>
-<div class="eq">toa.good = toa.valid ∧ detection.detectedUnknown ∧ ¬toa.flagChi2</div>
+<div class="eq">\[ \texttt{toa.good} = \texttt{toa.valid} \;\land\; \texttt{detection.detectedUnknown} \;\land\; \lnot\,\texttt{toa.flagChi2} \]</div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 200" role="img" aria-label="A sub-integration's TOA is good only if it was fitted, the pulsar is detected and the chi-squared is acceptable">
   <defs>
@@ -327,7 +350,15 @@ noise-only profiles.</p>
 <p><b>Equal weighting (A2b, 7 Oct):</b> as in <code>estimateTOA</code>, the sum of channel profiles with the exclusion rule
 (<code>combineChannels</code>); H0 noise per channel at its own baseline <var>a</var><sub>c</sub>; all lags.</p>
 <p><b>Optimal weighting (A2c-2, 8 Oct; used by <code>main.m</code>):</b> the weighted matched filter over channels,</p>
-<div class="eq"><var>N</var>(τ) = Σ<sub>c</sub> <var>s</var><sub>c</sub> Σ<sub>j</sub> <var>w</var><sub>cj</sub>(<var>p</var><sub>cj</sub> − <var>p̄</var><sub>c</sub>)·<var>T</var>(φ<sub>j</sub> − τ), &nbsp; <var>w</var> = 1/var under H0</div>
+<div class="eq">\[ N(\tau) = \sum_c s_c \sum_j w_{cj}\, (p_{cj} - \bar p_c)\; T(\phi_j - \tau), \qquad w_{cj} = \frac{1}{\operatorname{var}(p_{cj})} \text{ under H0} \]</div>
+<dl class="where">
+<dt>\(N(\tau)\)</dt><dd>numerator of the matched filter at shift \(\tau\) [turns]</dd>
+<dt>\(c\), \(j\)</dt><dd>channel index; phase-bin index</dd>
+<dt>\(s_c\)</dt><dd>known relative gain of channel \(c\) (<code>ChannelGain</code>)</dd>
+<dt>\(p_{cj}\), \(\bar p_c\)</dt><dd>profile of channel \(c\); its mean (the H0 baseline \(a_c\))</dd>
+<dt>\(w_{cj}\)</dt><dd>weight: one over the bin's noise variance under H0</dd>
+<dt>\(T\), \(\phi_j\)</dt><dd>the template (not the period); the phase of bin \(j\)</dd>
+</dl>
 <p>normalized by its exact H0 standard deviation including all lags of <code>weightX</code>, so T0 and <var>T</var>(τ) stay N(0,1) under H0 and the
 thresholds (3.09 / 4.15) are unchanged. All shifts at once with one FFT batch per lag. No exclusion rule.</p>
 <div class="callout note"><span class="ttl">A subtlety</span>

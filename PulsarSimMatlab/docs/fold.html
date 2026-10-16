@@ -28,7 +28,15 @@ and how strongly neighbouring bins share noise.</p>
 
 <h2 id="idea">The idea</h2>
 <p>Phase model from the ephemeris (observer knowledge only):</p>
-<div class="eq">φ(<var>t</var>) = Φ<sub>0</sub> + <var>f</var><sub>0</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>) + ½·<var>F</var><sub>1</sub>·(<var>t</var> − <var>T</var><sub>ref</sub>)²</div>
+<div class="eq">\[ \phi(t) = \Phi_0 + f_0\,(t - T_\mathrm{ref}) + \tfrac{1}{2}\,F_1\,(t - T_\mathrm{ref})^2 \]</div>
+<dl class="where">
+<dt>\(\phi(t)\)</dt><dd>rotational phase at time \(t\) [turns]</dd>
+<dt>\(t\)</dt><dd>time of a detected time bin [s]</dd>
+<dt>\(T_\mathrm{ref}\)</dt><dd>reference epoch [s] (<code>'TRef'</code> option, from <code>ephem.TRef</code>)</dd>
+<dt>\(\Phi_0\)</dt><dd>phase at \(T_\mathrm{ref}\) [turns] (<code>'Phi0'</code>, default 0)</dd>
+<dt>\(f_0\)</dt><dd>spin frequency at \(T_\mathrm{ref}\) [Hz] (<code>f0</code> input, <code>ephem.f0</code>)</dd>
+<dt>\(F_1\)</dt><dd>its time derivative [Hz/s] (<code>'F1'</code>, <code>ephem.F1</code> = 0)</dd>
+</dl>
 <p>With <var>T</var><sub>ref</sub> = first true pulse centre (<var>T</var>/2, from <code>ephem.TRef</code>) and Φ<sub>0</sub> = 0, every true pulse peak is at an
 integer phase. Each detected time bin is assigned to phase bins by its phase; averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
 
@@ -454,7 +462,16 @@ The fold check predicted a centroid scatter of 0.226 µs instead of the correct 
 <h2 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code> (A1a, 7 Oct)</h2>
 <p>In a narrow channel neighbouring detected time bins are correlated (variance <var>V</var>, covariance <var>X</var>(<var>L</var>) at <var>L</var> bins apart, relative
 to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>); see <a href="channels.html#powcov"><code>powerCovariance</code></a>). A phase-bin sum then has</p>
-<div class="eq">cov(<var>S</var><sub>j</sub>, <var>S</var><sub>j+d</sub>) = σ²·Σ<sub>k</sub>Σ<sub>k′</sub> <var>a</var><sub>kj</sub>·<var>a</var><sub>k′,j+d</sub>·<var>c</var>(<var>k′</var> − <var>k</var>), &nbsp; <var>c</var>(0) = <var>V</var>, <var>c</var>(±<var>L</var>) = <var>X</var>(<var>L</var>)</div>
+<div class="eq">\[ \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k), \qquad c(0) = V, \quad c(\pm L) = X(L) \]</div>
+<dl class="where">
+<dt>\(S_j\)</dt><dd>the sum in phase bin \(j\) of one sub-int: \(\sum_k a_{kj}\,\times\) power of time bin \(k\) (<code>fold.sum</code>)</dd>
+<dt>\(j\), \(d\)</dt><dd>phase-bin index; phase-bin lag (1 … \(D\))</dd>
+<dt>\(k, k'\)</dt><dd>time-bin indices</dd>
+<dt>\(a_{kj}\)</dt><dd>assignment weight of time bin \(k\) to phase bin \(j\) (linear assignment: split between the two nearest phase bins)</dd>
+<dt>\(\sigma^2\)</dt><dd>variance of one independent time bin, \(m^2/(B\,\Delta t)\) (radiometer value; not stored in the fold)</dd>
+<dt>\(c(L)\)</dt><dd>correlation coefficient of time bins \(L\) apart, relative to \(\sigma^2\)</dd>
+<dt>\(V\), \(X(L)\)</dt><dd>from <a href="channels.html#powcov"><code>powerCovariance</code></a> (<code>'NoiseCoeffs'</code>); 0 beyond <code>Lmax</code></dd>
+</dl>
 <ul>
 <li><code>'NoiseCoeffs'</code> = [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)]; default 1 = independent bins (full band), bit-identical to before.</li>
 <li><code>weight2</code> = var(<var>S</var><sub>j</sub>)/σ², <code>weightX</code> = cov(<var>S</var><sub>j</sub>, <var>S</var><sub>j+d</sub>)/σ² for phase lags <var>d</var> = 1..<var>D</var>, with

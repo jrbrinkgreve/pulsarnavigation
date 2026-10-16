@@ -39,17 +39,35 @@ ephemeris.</li>
 </ol></div>
 
 <h2 id="model">1. The model and the TOA definition</h2>
-<div class="eq"><var>p</var>(φ) = <var>a</var> + <var>b</var>·<var>s</var>(φ − τ) + noise</div>
-<p><var>s</var> = template (peak 1 at phase 0), <var>a</var> = baseline, <var>b</var> = pulse amplitude, τ = phase offset from the ephemeris prediction.</p>
-<div class="eq"><b>TOA</b> = <var>t</var><sub>ref</sub> + τ / <var>f</var><sub>ref</sub></div>
-<p>the arrival time of template phase 0 at the dedispersion reference frequency (1.6 GHz), with <var>t</var><sub>ref</sub>, <var>f</var><sub>ref</sub> from the
-fold's sub-int. <code>toa.total</code> (the whole fold) reports only the offset τ/<var>f</var><sub>0</sub> relative to the ephemeris, not an absolute TOA.</p>
+<div class="eq">\[ p(\phi) = a + b\, s(\phi - \tau) + \text{noise} \]</div>
+<dl class="where">
+<dt>\(p(\phi)\)</dt><dd>the folded profile at rotational phase \(\phi\) [power units]</dd>
+<dt>\(\phi\)</dt><dd>rotational phase from the ephemeris [turns]</dd>
+<dt>\(s\)</dt><dd>the template: peak 1 at phase 0 (<code>gaussianTemplate</code>)</dd>
+<dt>\(a\)</dt><dd>baseline (receiver-noise level)</dd>
+<dt>\(b\)</dt><dd>pulse amplitude</dd>
+<dt>\(\tau\)</dt><dd>phase offset of the pulse from the ephemeris prediction [turns]</dd>
+</dl>
+<div class="eq">\[ \mathrm{TOA} = t_\mathrm{ref} + \frac{\tau}{f_\mathrm{ref}} \]</div>
+<dl class="where">
+<dt>\(\mathrm{TOA}\)</dt><dd>the arrival time of template phase 0 at the dedispersion reference frequency (1.6 GHz) [s] (<code>toa.toa</code>)</dd>
+<dt>\(t_\mathrm{ref}\)</dt><dd>the time where the phase model reaches the sub-int's reference turn [s] (<code>fold.subint.tRef</code>)</dd>
+<dt>\(f_\mathrm{ref}\)</dt><dd>the <em>spin</em> frequency at \(t_\mathrm{ref}\) [Hz] (<code>fold.subint.fRef</code>), not the 1.6 GHz radio frequency</dd>
+</dl>
+<p><code>toa.total</code> (the whole fold) reports only the offset \(\tau/f_0\) relative to the ephemeris (\(f_0\): spin frequency), not an absolute TOA.</p>
 
 <h2 id="fftfit">2. FFTFIT: finding the shift (Taylor 1992)</h2>
 <ol>
-<li>Cross-spectrum <var>X</var><sub>k</sub> = <var>P</var><sub>k</sub>·conj(<var>S</var><sub>k</sub>) for harmonics <var>k</var> = 1…⌊<var>N</var>/2⌋−1 (DC carries only the baseline;
-Nyquist is ambiguous). <var>C</var>(τ) = Re Σ <var>X</var><sub>k</sub>·e<sup><var>i</var>2π<var>k</var>τ</sup> is the continuous cross-correlation: a shift is a
-phase ramp in the Fourier domain, so any sub-bin τ is exact.</li>
+<li>Cross-spectrum \(X_k = P_k\, S_k^*\) for harmonics \(k = 1 \ldots \lfloor N/2 \rfloor - 1\) (DC carries only the baseline;
+Nyquist is ambiguous). Then
+<div class="eq">\[ C(\tau) = \mathrm{Re} \sum_{k} X_k\, e^{\,i 2\pi k \tau} \]</div>
+<dl class="where">
+<dt>\(P_k\), \(S_k\)</dt><dd>\(k\)-th Fourier coefficient (DFT) of the profile and of the template; \(^*\) is the complex conjugate</dd>
+<dt>\(k\)</dt><dd>harmonic number (cycles per turn)</dd>
+<dt>\(N\)</dt><dd>number of phase bins (<code>NBin</code> = 2048)</dd>
+<dt>\(C(\tau)\)</dt><dd>the continuous cross-correlation of profile and template at shift \(\tau\) [turns]</dd>
+</dl>
+A shift is a phase ramp in the Fourier domain, so any sub-bin τ is exact.</li>
 <li>Coarse search: zero-padded inverse FFT on 8×<var>N</var> points (1/8192 turn = 1.22 µs).</li>
 <li>Refine: Newton on <var>C</var>′(τ) = 0 with analytic <var>C</var>′, <var>C</var>″; steps clamped to one coarse step; <var>C</var>″ &lt; 0 required; stop at 10⁻¹⁴ turns.</li>
 <li><var>b</var> = <var>C</var>(τ̂)/Σ|<var>S</var><sub>k</sub>|²; <var>a</var> = (<var>P</var><sub>0</sub> − <var>b</var>·<var>S</var><sub>0</sub>)/<var>N</var>; τ wrapped to [−½, ½).</li>
@@ -112,10 +130,18 @@ weak-signal regime). The SNR sweep showed it within 1 % of the theoretical optim
 where self-noise dominates (1.5× at +10 dB, 2.4× at +20 dB), irrelevant for the small-antenna target.</p></div>
 
 <h2 id="err">3. The uncertainty</h2>
-<p>τ̂ is where <var>C</var>′(τ) = 0, and <var>C</var>′ is a <b>linear</b> combination of the data: <var>C</var>′ = Σ<sub>j</sub> <var>d</var><sub>j</sub>·<var>p</var><sub>j</sub>, with <var>d</var> from the
-template slope (largest on the pulse flanks). Noise moves <var>C</var>′ by δ<var>C</var>′; the peak moves until <var>C</var>′ = 0 again:
-δτ = −δ<var>C</var>′/<var>C</var>″. Therefore</p>
-<div class="eq">var(τ) = <var>d</var>ᵀ·Cov·<var>d</var> / <var>C</var>″² &nbsp;&nbsp; (and similarly σ<sub>b</sub> from <var>C</var>(τ))</div>
+<p>\(\hat\tau\) is where \(C'(\tau) = 0\), and \(C'\) is a <b>linear</b> combination of the data: \(C' = \sum_j d_j\, p_j\), with \(d\) from the
+template slope (largest on the pulse flanks). Noise moves \(C'\) by \(\delta C'\); the peak moves until \(C' = 0\) again:
+\(\delta\tau = -\delta C'/C''\). Therefore</p>
+<div class="eq">\[ \operatorname{var}(\hat\tau) = \frac{d^{\mathsf T}\, \mathrm{Cov}\; d}{C''^{\,2}} \qquad \text{(and similarly } \sigma_b \text{ from } C(\tau)\text{)} \]</div>
+<dl class="where">
+<dt>\(\hat\tau\)</dt><dd>the fitted shift [turns]</dd>
+<dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
+<dt>\(d\)</dt><dd>the weights that give \(C'(\hat\tau) = \sum_j d_j p_j\); they follow the slope of the shifted template (the DC and Nyquist harmonics left out)</dd>
+<dt>\(\mathrm{Cov}\)</dt><dd>noise covariance matrix of the profile bins (below)</dd>
+<dt>\(C'\), \(C''\)</dt><dd>first and second derivative of \(C(\tau)\) with respect to \(\tau\), at the peak</dd>
+<dt>\(\sigma_b\)</dt><dd>error of the amplitude \(b\)</dd>
+</dl>
 <p>This is first-order error propagation (the delta method). For white noise it equals the least-squares/Fisher error. For a
 Gaussian pulse it gives σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR.</p>
 <h3>The noise covariance Cov</h3>
@@ -133,7 +159,13 @@ outliers) and that the template is right (otherwise χ² catches it). Hence <a h
 5 Oct radar test (full band, no excision) the fit locked onto radar spikes: stated σ ≈ 1 µs, actual errors ~2000 µs rms.</p></div>
 
 <h2 id="chi2">4. The χ² quality flag (phase E, 6 Oct)</h2>
-<div class="eq">χ²<sub>red</sub> = Σ<sub>on-pulse</sub> (<var>p</var><sub>j</sub> − <var>m</var><sub>j</sub>)²/<var>v</var><sub>j</sub> / (<var>n</var> − 3)</div>
+<div class="eq">\[ \chi^2_\mathrm{red} = \frac{1}{n - 3} \sum_{j\,\in\,\text{on-pulse}} \frac{(p_j - m_j)^2}{v_j} \]</div>
+<dl class="where">
+<dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
+<dt>\(m_j\)</dt><dd>the fitted model \(a + b\,s(\phi_j - \hat\tau)\) in that bin</dd>
+<dt>\(v_j\)</dt><dd>its predicted noise variance (from the noise model)</dd>
+<dt>\(n\)</dt><dd>number of on-pulse bins; 3 = the fitted parameters \(a, b, \tau\)</dd>
+</dl>
 <p>over on-pulse bins (model &gt; 1 % of the peak, <code>OnPulseFrac</code>): normalized residuals squared and averaged. If the profile is template
 + noise with the predicted variance, it is ≈ 1 ± √(2/<var>n</var>) (≈ ± 0.09 for ~260 bins). <code>flagChi2</code> = χ²<sub>red</sub> &gt; <code>MaxRedChi2</code> (2).</p>
 <div class="callout why"><span class="ttl">Why threshold 2</span>
@@ -212,9 +244,16 @@ drop whole channels: 1-turn sub-ints with 100 µs blanks removed channels 110–
 
 <h2 id="optimal">6. Optimal weighting (A2c-1, 7 Oct) — the default in <code>main.m</code></h2>
 <p><code>'Weighting','optimal'</code> fits all channels at once:</p>
-<div class="eq">prof<sub>cj</sub> = <var>a</var><sub>c</sub> + <var>b</var>·<var>s</var><sub>c</sub>·<var>T</var>(φ<sub>j</sub> − τ) + noise</div>
-<p>a baseline <var>a</var><sub>c</sub> per channel, <b>one</b> amplitude <var>b</var> times the known relative gain <var>s</var><sub>c</sub> (<code>'ChannelGain'</code>, default 1: observer
-knowledge of the pulsar spectrum × bandpass), and one τ.</p>
+<div class="eq">\[ \mathrm{prof}_{cj} = a_c + b\, s_c\, T(\phi_j - \tau) + \text{noise} \]</div>
+<dl class="where">
+<dt>\(\mathrm{prof}_{cj}\)</dt><dd>folded profile of channel \(c\) in phase bin \(j\)</dd>
+<dt>\(a_c\)</dt><dd>a baseline per channel</dd>
+<dt>\(b\)</dt><dd><b>one</b> pulse amplitude for all channels</dd>
+<dt>\(s_c\)</dt><dd>the known relative gain of channel \(c\) (<code>'ChannelGain'</code>, default 1: observer knowledge of the pulsar spectrum × bandpass)</dd>
+<dt>\(T\)</dt><dd>the template (peak 1 at phase 0); here \(T\) is not the period</dd>
+<dt>\(\phi_j\)</dt><dd>phase of bin \(j\) [turns]</dd>
+<dt>\(\tau\)</dt><dd>one common shift [turns]</dd>
+</dl>
 <div class="callout why"><span class="ttl">Why one common amplitude, not one per channel</span>
 <p>At −54 dB each channel's pulse has SNR ≪ 1 per sub-int; 128 free amplitudes would fit noise. One amplitude with a known spectral
 shape uses all channels' information for the one thing that matters, the shift.</p></div>
@@ -224,7 +263,7 @@ convergence (|Δτ| &lt; 10⁻¹², ≤ <code>MaxIterations</code> 10). Whether 
 (since 14 Oct 2026; before, the flag was dropped). A sub-int that did not converge keeps its TOA, and the summary counts it.</li>
 <li>For fixed τ, <var>a</var><sub>c</sub> and <var>b</var> by weighted least squares; τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ), the weighted matched filter: FFT
 correlations on the upsampled grid, a bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a value-only search stops at ~10⁻¹⁰ turns).</li>
-<li><b>Error bars: sandwich</b> Cov = <var>A</var>⁻¹<var>BA</var>⁻¹, <var>A</var> = <var>J</var>ᵀ<var>WJ</var>, <var>B</var> = <var>J</var>ᵀ<var>W</var>Σ<var>WJ</var>, with the full covariance Σ of every channel (all lags).
+<li><b>Error bars: sandwich</b> \(\mathrm{Cov} = A^{-1}BA^{-1}\), \(A = J^\mathsf{T}WJ\), \(B = J^\mathsf{T}W\Sigma WJ\): \(J\) the derivatives of the model with respect to the fit parameters, \(W\) the fit weights (diagonal), \(\Sigma\) the full noise covariance of every channel (all lags). These \(A\), \(B\), \(W\) are matrices, not amplitude, bandwidth or taper.
 The weights ignore neighbour covariances (correlation ~0.26, small loss); the error bars do not.</li>
 <li>Empty bins weigh nothing, so there is <b>no exclusion rule and no dips</b>; <code>nChanUsed</code> = channels with data; new output
 <code>chanBaseline</code>. <code>amp</code> = <var>b</var>·Σ<var>s</var><sub>c</sub> (the summed pulse), <code>baseline</code> = Σ<var>a</var><sub>c</sub>.</li>

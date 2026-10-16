@@ -32,7 +32,15 @@ every frequency comes out at the time it would have at 1.6 GHz. It uses only the
 
 <h3 id="dedisp-phys">The physics</h3>
 <p>For every FFT bin, with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band, the filter is</p>
-<div class="eq"><var>H</var><sub>inv</sub>(<var>f</var>) = <var>W</var>(<var>f</var>) · exp(−<var>i</var>2π·<var>K</var>·DM·(<var>f</var> − <var>f</var><sub>ref</sub>)² / (<var>f</var>·<var>f</var><sub>ref</sub>²)), &nbsp; 0 outside the band</div>
+<div class="eq">\[ H_\mathrm{inv}(f) = W(f)\, \exp\!\left(-i 2\pi K\,\mathrm{DM}\, \frac{(f - f_\mathrm{ref})^2}{f\, f_\mathrm{ref}^2}\right), \qquad H_\mathrm{inv}(f) = 0 \text{ outside the band} \]</div>
+<dl class="where">
+<dt>\(H_\mathrm{inv}(f)\)</dt><dd>the inverse dispersion filter, one value per FFT bin</dd>
+<dt>\(f\)</dt><dd>RF frequency of the bin: \(f_\mathrm{LO} + f_\mathrm{bb}\) [Hz], with \(f_\mathrm{bb}\) its baseband frequency</dd>
+<dt>\(f_\mathrm{ref}\)</dt><dd>radio reference frequency, whose timing is left unchanged [Hz] (<code>RefFreq</code>, default <code>fHigh</code> = 1.6 GHz)</dd>
+<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10¹⁵ s Hz² pc⁻¹ cm³ (= 4.148808·10³ s MHz² pc⁻¹ cm³)</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure from the catalogue [pc cm⁻³] (<code>ephem.DM</code> = 5)</dd>
+<dt>\(W(f)\)</dt><dd>the observer's band window: 1 inside, raised-cosine (sin²) edges, 0 outside</dd>
+</dl>
 <ul>
 <li>It is the forward chirp with the opposite sign. Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies
 are moved <em>earlier</em>, by up to 6.3 ms.</li>

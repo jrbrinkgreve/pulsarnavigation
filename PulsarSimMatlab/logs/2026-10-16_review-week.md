@@ -256,3 +256,17 @@ Checked in the browser pane (local http server): 12 display + 91 inline renders,
 errors, no sideways scroll at 375 px, light and dark. Not yet checked from file:// by Jasper.
 Not committed yet (waiting for Jasper's look). Next: the other 12 pages with `.eq` blocks,
 `formulas.html` last.
+
+Committed (`c588d3d`). Then Jasper: "commit this and continue with all pages, double check the
+things yourself". Done the same way on sky, receiver, fullband, channels, excision, fold, toa,
+detection, validation, scenario (32 display equations; existing symbol bullet lists turned into
+"where" lists) and `formulas.html` (all 43 rows LaTeX + a symbols line per row, names and
+links unchanged, checked by script). Symbol meanings checked against the code help texts
+(foldProfile, estimateTOA, channelizeIQ, detectRFI, periodicRFI, blankingWeights,
+expectedPowerModel, addNoiseAndRFI, rfiSource). Clashes now stated where they occur: K (FFT
+size vs dispersion constant), T (template vs period), Φ (normal CDF vs phase), L (frame length
+vs lag), P (period vs probability), τ (shift vs lag), A/B/W in the sandwich (matrices).
+Checks (browser pane, every page): 0 KaTeX errors, 0 unrendered delimiters, no equation wider
+than its box at desktop width (two split over two lines: PFB formula, periodic-RFI test); at
+375 px no page scrolls sideways (fix: KaTeX's hidden MathML escaped `.table-wrap`; `.eq` and
+`.table-wrap` now position: relative), long equations scroll inside their box as before.

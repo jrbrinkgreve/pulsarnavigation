@@ -241,10 +241,23 @@ window lengths catch both short strong bursts and longer weaker ones.</p>
 <h3>Exact thresholds</h3>
 <p>For Gaussian noise the window sum is not a simple Gamma variable, because neighbouring channel samples are slightly
 correlated (ρ(1) = 0.05, from the oversampled channelizer). Exactly:</p>
-<div class="eq">Σ<sub>n</sub> <var>p</var> / <var>m</var> = Σ<sub>k</sub> λ<sub>k</sub>·<var>E</var><sub>k</sub>, &nbsp; <var>E</var><sub>k</sub> unit exponentials, &nbsp; λ = eig(toeplitz(ρ(0..<var>n</var>−1)))</div>
-<p>with ρ(<var>d</var>) = Σ<var>h</var>(<var>r</var>)<var>h</var>(<var>r</var> + <var>dD</var>)/Σ<var>h</var>² from the channelizer prototype. Its survival function is a chain of
-exponential stages (a phase-type distribution), [1 0 … 0]·expm(<var>Qx</var>)·1, computed exactly without cancellation. η<sub>n</sub>
-solves it = <code>PFA</code> (default 10⁻⁶): 13.82, 8.39, 5.39, 3.68, 2.69 for <var>n</var> = 1…16.</p>
+<div class="eq">\[ \frac{1}{m}\sum_{i=1}^{n} p_i = \sum_{k=1}^{n} \lambda_k E_k, \qquad \lambda = \operatorname{eig}\!\Big(\operatorname{toeplitz}\big(\rho(0), \ldots, \rho(n-1)\big)\Big), \qquad \rho(d) = \frac{\sum_r h(r)\,h(r + dD)}{\sum_r h^2(r)} \]</div>
+<div class="eq">\[ P\!\left(\frac{1}{m}\sum_{i=1}^{n} p_i > x\right) = [1\;0\;\cdots\;0]\; \exp(Qx)\; \mathbf{1} = \texttt{PFA} \quad\text{at}\quad x = n\,\eta_n \]</div>
+<dl class="where">
+<dt>\(p_i\)</dt><dd>power \(|x|^2\) of channel sample \(i\) in the window</dd>
+<dt>\(n\)</dt><dd>window length [samples]: 1, 2, 4, 8 or 16</dd>
+<dt>\(m\)</dt><dd>the channel's baseline (mean noise power), see below</dd>
+<dt>\(E_k\)</dt><dd>independent unit exponential random variables (mean 1)</dd>
+<dt>\(\lambda_k\)</dt><dd>eigenvalues of the \(n \times n\) correlation matrix of the window's voltages (they sum to \(n\))</dd>
+<dt>\(\rho(d)\)</dt><dd>correlation of channel voltages \(d\) samples apart, from the channelizer (\(\rho(1)\) = 0.05)</dd>
+<dt>\(h(r)\), \(D\)</dt><dd>the channelizer prototype filter and its decimation (192)</dd>
+<dt>\(Q\)</dt><dd>bidiagonal matrix: \(-1/\lambda_k\) on the diagonal, \(+1/\lambda_k\) just above it (a chain of exponential stages)</dd>
+<dt>\(\exp(Qx)\), \(\mathbf{1}\)</dt><dd>matrix exponential (<code>expm</code>); a column of ones</dd>
+<dt>\(\eta_n\)</dt><dd>the threshold on the window mean, in units of \(m\)</dd>
+<dt>\(\texttt{PFA}\)</dt><dd>false-alarm probability per window (default 10⁻⁶)</dd>
+</dl>
+<p>The survival function is computed exactly, without cancellation. Thresholds \(\eta_n\): 13.82, 8.39, 5.39, 3.68, 2.69 for
+\(n\) = 1…16.</p>
 <div class="callout why"><span class="ttl">Why exact, not a matched Gamma</span>
 <p>The first version used a Gamma distribution with the right variance. Its tail is thinner than the true one, which gave
 1.02 / 1.04 / 1.08–1.10 × the intended false flags at 10⁻³ / 10⁻⁴ / 10⁻⁶: visible in the first test run. The exact form moves
@@ -374,9 +387,17 @@ data it contains (<var>W</var>), and how large its noise is and how much of it i
 <var>X</var>(<var>L</var>)). The fold uses these numbers instead of assuming every bin is complete.</p>
 
 <h3>The physics: blanking before a filter</h3>
-<p>Dedispersion is a filter <var>h</var> spanning hundreds of channel samples. An output sample <var>y</var>(<var>a</var>) = Σ<var>h</var>(<var>l</var>)·<var>x</var>(<var>a</var>−<var>l</var>)
+<p>Dedispersion is a filter <var>h</var> spanning hundreds of channel samples. An output sample \(y(a) = \sum_l h(l)\,x(a-l)\)
 mixes blanked and valid inputs. For Gaussian input, the covariance of two output samples is</p>
-<div class="eq"><var>C</var>(<var>a</var>, <var>a</var>+τ) = Σ<sub>l</sub> <var>h</var>(<var>l</var>)·<var>h</var>*(<var>l</var>+τ)·keep(<var>a</var>−<var>l</var>)</div>
+<div class="eq">\[ C(a, a+\tau) = \sum_l h(l)\, h^*(l+\tau)\; \mathrm{keep}(a-l) \]</div>
+<dl class="where">
+<dt>\(a\)</dt><dd>index of an output (dedispersed) channel sample</dd>
+<dt>\(\tau\)</dt><dd>lag between the two output samples [samples] (not a time shift in turns)</dd>
+<dt>\(h(l)\)</dt><dd>the per-channel dedispersion filter (impulse response); \(^*\) is the complex conjugate</dd>
+<dt>\(\mathrm{keep}(i)\)</dt><dd>1 if input sample \(i\) is kept, 0 if blanked</dd>
+<dt>\(C\)</dt><dd>covariance of the two output samples for white input noise of variance 1; without blanking
+\(C(a,a) = \sum_l |h(l)|^2\)</dd>
+</dl>
 <p>a convolution of the keep-mask with <var>q</var><sub>τ</sub> = <var>h</var>·<var>h</var>*(·+τ): one FFT per sample lag τ = 0…(<var>L</var><sub>max</sub>+1)<var>n</var>−1 (32 lags for
 <var>L</var><sub>max</sub> 7, <var>n</var> 4). From it, for every detected bin <var>k</var> and channel:</p>
 <ul>
@@ -830,7 +851,16 @@ pulses (≥ 32 channels, impulses) form a group of their own, because their stro
 3<var>P</var>, …). For each candidate: the best phase, and the <var>m</var> of <var>n</var> pulses within ±4 samples (1 µs) of
 <var>t</var><sub>0</sub> + <var>kP</var>. How likely is that for random times? One pulse sets the phase, each other fits by chance with
 <var>q</var> = 9/<var>P</var>:
-<div class="eq">p = n · P( Binomial(n − 1, q) ≥ m − 1 ),  accepted if p × (number of candidates) &lt; 10⁻⁶ and m ≥ 6</div>
+<div class="eq">\[ \begin{gathered} p = n\; P\big(\mathrm{Bin}(n-1,\,q) \ge m-1\big), \qquad q = \frac{2\,\texttt{TimeTol} + 1}{P} \\[4pt] \text{accepted if } p \times N_\mathrm{cand} < 10^{-6} \text{ and } m \ge 6 \end{gathered} \]</div>
+<dl class="where">
+<dt>\(p\)</dt><dd>chance that random pulse times fit this period this well</dd>
+<dt>\(n\)</dt><dd>number of pulses of the candidate emitter</dd>
+<dt>\(m\)</dt><dd>pulses within the tolerance of \(t_0 + kP\) (inliers)</dd>
+<dt>\(P\)</dt><dd>candidate period [samples] (here \(P(\ldots)\) with brackets is a probability)</dd>
+<dt>\(q\)</dt><dd>chance that one random pulse lands within the tolerance; <code>TimeTol</code> = 4 samples gives 9/\(P\)</dd>
+<dt>\(\mathrm{Bin}(n-1, q)\)</dt><dd>binomial count: of the other \(n-1\) pulses, how many fit by chance</dd>
+<dt>\(N_\mathrm{cand}\)</dt><dd>number of candidate periods tried (<code>FalseAlarm</code> = 10⁻⁶, <code>MinPulses</code> = 6)</dd>
+</dl>
 The least likely (most significant) candidate wins, which also picks <var>P</var> over <var>P</var>/2 (same pulses, twice the chance).
 <var>t</var><sub>0</sub> and <var>P</var> are then refined by least squares.</li>
 <li><b>Mask.</b> Every predicted pulse in the file is blanked <b>unconditionally</b>, over its width + 2 × (time guard + tolerance +
