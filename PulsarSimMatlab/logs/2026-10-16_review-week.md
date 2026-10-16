@@ -217,3 +217,22 @@ optimal; 0.5 ± 0.010), fraction < 0.05 0.041–0.058, KS D 0.017–0.050 (< 0.0
 optimal 2.5σ high, isolated (SNR 40 0.504, χ² 0.999): not pursued. `main` identical to the
 8 / 13 Oct runs (8 TOAs, 2.956 µs, SNR 91.9, total +0.0564 ± 0.98 µs, ratio 0.825), no
 P(χ²) alarm (χ² 1.008 ≈ 1σ). Committed.
+
+## Item 7 + A3b: proposal revised (Jasper's answer pending, "I'll answer tomorrow")
+
+First proposal (one chain function sky → TOAs) rejected by Jasper: the real IQ data enter
+between generation and processing, so merging them is wrong; and the operational processing
+will run on FPGA/GPU, not in MATLAB. Revised proposal: three roles, cut at `info_IQ`
+(`main.m:112`; its fields are receiver settings only: file, fs, fLO, filter, t0):
+1. simulate (truth; stand-in for antenna + ADC/DDC): generate → disperse → addNoiseAndRFI →
+   applyIQmodulation, stays as calls in `main`;
+2. process: new `processIQ(info_IQ, rx, ephem, proc)` → toa, detection, info (channelizeIQ …
+   estimateTOA + detectPulsar, same intermediate files); the ground-truth rule enforced by the
+   signature; the MATLAB golden model for the FPGA/GPU port; real IQ recordings can be fed in;
+   removes the copies in runRFITest / runLockedRadar; multi-seed MC (A3b) = simulate(seed) →
+   processIQ → evaluate;
+3. evaluate (truth vs result): validateTOA, expectedPowerModel, check plots.
+Open for Jasper: (1) boundary at IQ (recommended; a channel-data entry point later if the
+FPGA does the channelizer) or at channels; (2) both front ends via `proc.frontEnd`
+(recommended) or channel path only. Next step after his answer, read-only: the variables the
+processing block of `main` (lines ~117–255) reads → proposed rx / ephem / proc fields.
