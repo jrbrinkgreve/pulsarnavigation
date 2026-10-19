@@ -174,3 +174,77 @@ pChi2 not uniform (mean 0.292, fraction < 0.05 0.205, KS 0.330; mean red. χ² 1
 (see the investigation above). Both paths sit at the same ratio (0.950 / 0.956) slightly below
 1, as expected with the fixed pulsar (its self-noise is not resampled) → **the default channel
 path's TOA error bars are honest end to end over seeds; A3b done.**
+
+## Item 3 and per-channel calibration: stay parked (Jasper, 19 Oct)
+
+Recap given (why calibration was parked 9 Oct; why a realistic bandpass turns the edge
+channels into "partly covered" channels, deep analysis §6; options for the edge channels:
+calibrate, known spectrum from receiver calibration, exclude). Jasper: "we can park them for
+now" → to be taken up later as one block (bandpass + edge-channel noise description). Item 3's
+2.2 % channels-vs-full-band gap stays a simulator artifact in comparisons; the χ² excess
+vanishes at weak signal.
+
+## Step 3a: runH0 on processIQ (Jasper: "go ahead")
+
+`runH0.m`: per pass zero sky + noise (as before), then `processIQ` (own files `data/mc/h0_*`,
+`data/mc/chan/h0_*`) and `detectPulsar` with out.Bnoise / out.weighting; front end from
+pipelineParams. Model correlation of normProfile: full band the old line (lag 1); channels
+a new local function `modelCorr` (lags 1..3 of the combination detectPulsar uses, 'optimal'
+or 'equal', equal noise levels per channel assumed; one channel reduces to WX/√(W2·W2′)).
+With excision the blanked fraction per pass (false flags on pure noise). Warning
+fullBandOnly removed; noExcision only for full band with RFI. Saved also `rho`, `frontEnd`,
+`blanked`. Docs `scripts.html` (runH0 section, front-end note, "Planned").
+
+Checks (Claude, scratch copies): **full band old vs new, 10 passes: T0, Tmax, noiseRatio,
+autocorrelation, model, predRatio all bit-identical** (T0 mean −0.101, std 1.084; lag 1 0.2509
+vs model 0.2501). Channel smoke test, 2 passes (55 s each): runs; lag 1 0.2553 vs model
+0.2580, lags 2–3 measured 0.0016 / −0.0074 vs model 0.0009 / 0; noise ratio 1.001; blanked
+0.0050 % (pure noise; cf. 0.0049 % at −15 dB in the MC, 0.0124 % at −5 dB).
+Note: these test runs overwrote `data/mc/h0Run.mat` (the 6 Oct 100-pass full-band result;
+not in git, nothing reads it; its numbers are in notes §7 and docs scripts.html).
+Pending: the 100-pass channel run (~90 min).
+
+## Step 3b/3c written while runH0 runs (Jasper: "continue editing the other files … autonomously")
+
+- `runSNRSweep.m`: per (realization, SNR) processIQ + foldToTOA (own files `data/mc/sweep_*`,
+  `data/mc/chan/sweep_*`); H0 pass processIQ + detectPulsar; front end from pipelineParams.
+  Channel path: `excisionMaxSNR = -5` (excision off above it; bright pulsar), printed per point;
+  no optimum (item 8) → optSigma / optSNR NaN, detection theory and SNR axes use the measured
+  mean T0 (`res.xSNR`, `res.xSNRsource`; full band: xSNR = optSNR, unchanged); warning
+  fullBandOnly removed.
+- `functions/processIQ.m`: additive outputs for runRFITest — `out.rfiMask`, `out.info_rfi`,
+  `out.info_per`, `out.info_chanD` (with excision; [] otherwise). main unaffected.
+- `runRFITest.m`: both passes `processIQ` (excision false / true; the filterbank now runs in
+  each, ~4 s more per case) + `foldToTOA` (`toa.good` = the same rule as before); the same file
+  names in `data/rfi/`; flags, emitters, mask, blanked fraction from `out`.
+- Docs `scripts.html`: front-end note, sweep and RFI sections, "Planned".
+Checks pending (after runH0): old vs new bit-identical for runSNRSweep (full band, small) and
+runRFITest (a few cases), then a channel smoke test of runSNRSweep.
+
+### runH0, channel path, 100 passes (Claude's run at Jasper's request; 66 min)
+
+800 noise-only profiles (default: excision, 'optimal'): **T0 mean +0.033 (0 ± 0.035), std 1.023
+(1 ± 0.025)**; exceedances at P_FA 0.1 / 0.01 / 0.001: known phase 87 / 10 / 2 (expected 80 ±
+8.9 / 8 ± 2.8 / 0.8 ± 0.9), unknown phase 66 / 6 / 1 (Rice; at 0.1 Rice is an upper bound,
+−1.6σ); normProfile correlation lag 1 **0.2567 vs model 0.2580**, lags 2–3 0.0003 / −0.001
+(model 0.0009 / 0), lags 2–200 mean −0.0008, max |r| 0.0027 (noise ~0.0008); T0 std implied by
+the measured correlation 0.9986. Noise ratio median 0.9966 (mean of 800 ±~0.001 → ~3σ low,
+0.35 %; not pursued). **Blanked fraction on pure noise 0.0049 %** (0.0038–0.0060 % per pass) =
+detectRFI's false-flag rate (same as at −15 dB; −5 dB 0.0124 % includes pulse peaks).
+→ the default channel path's detection statistics are calibrated end to end: false alarms
+at design, no unmodelled correlation.
+
+### Checks of runSNRSweep / runRFITest (Claude, scratch copies; saved results backed up and restored)
+
+- runSNRSweep full band, 1 realization, −5 / +10 dB, old vs new: toa (without the new `good`
+  field), detection, H0, res (old fields) **bit-identical**.
+- runRFITest cases 1 (noise only) and 3, old vs new: res **bit-identical** (94 vs 102 s: the
+  second filterbank pass).
+- runSNRSweep channel smoke test (1 realization, −15 / +10 dB): runs; excision on at −15 dB, off
+  at +10 dB; −15 dB 8 TOAs, SNR 11.2, σ 25.6 µs; +10 dB SNR 493.5, σ 0.360 µs (full band: 0.537 µs:
+  the channel path's 1/variance weighting acts like the deferred weighted radiometer fit,
+  phase F, in the self-noise regime); xSNR (mean T0) 11.1 / 2332 (T0 is normalized by the H0
+  noise, so at high SNR it is far above the TOA SNR; noted in docs).
+- `data/mc/snrSweep.mat` and `data/rfi/runRFITest_results.mat` restored to their 6 / 12 Oct
+  versions after the test runs; `data/mc/h0Run.mat` now holds the 19 Oct channel 100-pass run.
+Step 3 done; committed.

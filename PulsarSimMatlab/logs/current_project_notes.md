@@ -2345,7 +2345,15 @@ barycentric corrections, navigation solution).
    ratio 0.950, χ² 0.909, 72.2 % = the old script exactly; pChi2 uniform (KS 0.059).
    **A3b done 19 Oct**: channel path, 50 seeds, −5 dB: 400 TOAs all good, mean −0.03 ± 0.15 µs,
    **ratio 0.956 ± 0.034**, χ² 366/400, |z| < 1 67.0 %, < 2 96.8 %; blanked 0.0126 %; pChi2
-   non-uniform (item 3). Next: step 3 (runSNRSweep, runH0, runRFITest on processIQ).
+   non-uniform (item 3). **Step 3 done 19 Oct** (Claude's runs at Jasper's request): runH0,
+   runSNRSweep, runRFITest on processIQ / foldToTOA (processIQ also returns rfiMask, info_rfi,
+   info_per, info_chanD); full band old vs new bit-identical (runH0 10 passes, runSNRSweep 1
+   realization −5/+10 dB), runRFITest cases 1 and 3 bit-identical. runH0 channel path 100
+   passes: T0 +0.033 ± 0.035, std 1.023 ± 0.025, false alarms at design, lag 1 0.2567 vs model
+   0.2580, false flags on pure noise 0.0049 %. runSNRSweep channel path: excision off above
+   −5 dB, SNR axis = measured mean T0 (no optimum, item 8); smoke test only (the full channel
+   sweep, ~1.5 h, not run). runLockedRadar stays. Only main and the run scripts call the
+   stages now.
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.

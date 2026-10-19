@@ -66,7 +66,10 @@ Steps (main.m before 19 Oct, same calls):
 Output out (struct): frontEnd; fold, info_fold; Bnoise, weighting (for
   foldToTOA); the intermediate infos for checks before and after folding:
   info_det, info_dedisp (full band) or info_chan, info_dc, info_w (channels;
-  [] where not made or reused). Every intermediate file stays on disk.
+  [] where not made or reused); with excision also rfiMask (detectRFI's
+  rows [+ periodicRFI's]), info_rfi, info_per (periodicRFI; [] when off) and
+  info_chanD (blankChannels: mask, blankedFraction). Every intermediate file
+  stays on disk.
 
 (19 Oct 2026: moved out of main.m - the §10 item 7 redesign: processing only,
 cut at IQ, both front ends.)
@@ -100,7 +103,8 @@ reuse = opts.Reuse;
 vb    = {'Verbose', opts.Verbose};
 excision = ~fullBand && proc.excision;
 out = struct('frontEnd', proc.frontEnd, 'info_det', [], 'info_dedisp', [], 'info_chan', [], ...
-    'info_dc', [], 'info_w', [], 'info_fold', [], 'fold', [], 'Bnoise', [], 'weighting', '');
+    'info_dc', [], 'info_w', [], 'info_fold', [], 'fold', [], 'Bnoise', [], 'weighting', '', ...
+    'rfiMask', [], 'info_rfi', [], 'info_per', [], 'info_chanD', []);
 
 % ---- 1. Front end: IQ -> detected power ---------------------------------------------------
 if fullBand
@@ -132,10 +136,11 @@ else
         if excision
             [rfiMask, info_rfi] = detectRFI(info_chan, proc.excisionArgs{:}, vb{:});
             if proc.periodicMask        % + every predicted pulse of periodic RFI (radars)
-                perRows = periodicRFI(info_chan, info_rfi, proc.periodicArgs{:}, vb{:});
+                [perRows, out.info_per] = periodicRFI(info_chan, info_rfi, proc.periodicArgs{:}, vb{:});
                 rfiMask = [rfiMask; perRows];
             end
             info_chanD = blankChannels(info_chan, rfiMask, files.chanBlank, vb{:});
+            out.rfiMask = rfiMask; out.info_rfi = info_rfi; out.info_chanD = info_chanD;
         else
             info_chanD = info_chan;
         end

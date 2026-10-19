@@ -44,9 +44,12 @@ channels with r > 1.1, or with flagged windows > 10x the expected false
 flags and > 3x the median channel's, with the sources covering them
 (ground truth, for the labels), and the periodic emitters found.
 
+Processing: processIQ (IQ -> fold; the filterbank runs in both passes) and
+foldToTOA, as main.m (19 Oct 2026; before, its own copy of the stage calls).
+
 Needs: the sky files (main.m with runStage.sky once). Files go to data/rfi
 and are overwritten per case; main's files and data/chan are not touched.
-~45 s per case; runCases picks a subset.
+~50 s per case; runCases picks a subset.
 %}
 
 % Paths and parameters
@@ -85,11 +88,12 @@ rThr     = 1.1;                      % per-channel check: list channels with r a
 rfiDir  = fullfile(dataDir, "rfi");
 rRx     = fullfile(rfiDir, "rfi_rx.dat");
 rIQ     = fullfile(rfiDir, "rfi_rx_IQ.dat");
-rChan   = fullfile(rfiDir, "rfi_chan");
-rBlank  = fullfile(rfiDir, "rfi_chan_blanked");
-rDedisp = fullfile(rfiDir, "rfi_dedisp_chan");
-rPower  = fullfile(rfiDir, "rfi_dedisp_chan_power.dat");
-rWeight = fullfile(rfiDir, "rfi_dedisp_chan_weights.dat");
+% processIQ's output files (the same names as before 19 Oct; no excision and excision
+% share the dedispersed / power files: one after the other)
+rFiles = struct('chanIQ', fullfile(rfiDir, "rfi_chan"), 'chanBlank', fullfile(rfiDir, "rfi_chan_blanked"), ...
+    'chanDedisp', fullfile(rfiDir, "rfi_dedisp_chan"), 'chanPower', fullfile(rfiDir, "rfi_dedisp_chan_power.dat"), ...
+    'chanDedispB', fullfile(rfiDir, "rfi_dedisp_chan"), 'chanPowerB', fullfile(rfiDir, "rfi_dedisp_chan_power.dat"), ...
+    'chanWeight', fullfile(rfiDir, "rfi_dedisp_chan_weights.dat"), 'foldChan', fullfile(rfiDir, "rfi_fold.mat"));
 
 info_gen  = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);
@@ -99,7 +103,6 @@ if ~isempty(d)
     error('runRFITest:stale', ['Sky files do not match pipelineParams (%s). ' ...
         'Run main.m with runStage.sky = true first.'], strjoin(d, ', '));
 end
-template  = gaussianTemplate(nBin, ephem.profileFWHM);
 
 nC = numel(runCases);
 res = struct('label', {}, 'excision', {}, 'blanked', {}, 'nGood', {}, 'nValid', {}, ...
@@ -122,50 +125,35 @@ for c = runCases
         if numel(idx) == numel(rfiScenario), label = 'all five'; end
     end
 
-    % Receiver (synthetic): noise + this RFI at RF, IQ conversion, filterbank
+    % Receiver (synthetic): noise + this RFI at RF, IQ conversion
     info_rx = addNoiseAndRFI(info_disp.file, rRx, info_disp.actualFsOut, ...
         'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, ...
         'RFI', rfiCase, 'Seed', noiseSeed, 'Verbose', false);
     info_IQ = applyIQmodulation(info_rx.file, rIQ, info_rx.actualFsOut, fs, fLO, ...
         'FilterOrder', filterOrder, 'Band', [fLow fHigh], 'Verbose', false);
     delete(info_rx.file);
-    info_chan = channelizeIQ(info_IQ.file, rChan, info_IQ.actualFsOut, info_IQ.fLO, ...
-        fLow, fHigh, 'ChanWidth', chanWidth, 'T0', info_IQ.t0, 'Verbose', false);
-    delete(info_IQ.file);
-    srcLabels = sourcesIn(rfiCase, info_chan);       % ground truth, labels of the listing
 
-    % Processing (ephemeris + receiver settings only), as main.m's channel path
+    % Processing (ephemeris + receiver settings only), as in main.m: processIQ twice, without
+    % and with excision (each channelizes the IQ file itself), then foldToTOA
     for exc = [false true]
+        procC = proc; procC.frontEnd = 'channels'; procC.excision = exc;
+        out = processIQ(info_IQ, rx, ephem, procC, rFiles, 'Verbose', false);
+        info_chan = out.info_chan;
+        fold = out.fold;
         prfs = [];                                   % periodic emitters found [Hz]
         if exc
-            [rfiMask, info_rfi] = detectRFI(info_chan, excisionArgs{:}, 'Verbose', false);
-            if periodicMask             % + every predicted pulse of periodic RFI (as main.m)
-                [perRows, info_per] = periodicRFI(info_chan, info_rfi, periodicArgs{:}, 'Verbose', false);
-                rfiMask = [rfiMask; perRows]; %#ok<AGROW>
-                prfs = [info_per.emitters.prf];
-            end
-            info_chanD = blankChannels(info_chan, rfiMask, rBlank, 'Verbose', false);
-        else
-            info_chanD = info_chan;
-        end
-        info_dc  = dedisperseChannels(info_chanD, rDedisp, ephem.DM, 'RefFreq', refFreq, 'Verbose', false);
-        info_det = detectChannels(info_dc, rPower, info_dc.fs / round(info_dc.fs / f_out), 'Verbose', false);
-        if exc
-            info_w = blankingWeights(info_chan, info_dc, info_det, info_chanD.mask, rWeight, 'Verbose', false);
-            noiseArgs = {'DataWeights', info_w};
-            blanked = mean(info_chanD.blankedFraction);
-            [pulses, missedE] = pulseStats(rfiCase, rfiMask, info_chan);
+            info_rfi = out.info_rfi;
+            if periodicMask, prfs = [out.info_per.emitters.prf]; end
+            blanked = mean(out.info_chanD.blankedFraction);
+            [pulses, missedE] = pulseStats(rfiCase, out.rfiMask, info_chan);
         else
             pulses = NaN; missedE = NaN;
-            noiseArgs = {'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]};
             blanked = 0;
+            srcLabels = sourcesIn(rfiCase, info_chan);   % ground truth, labels of the listing
         end
-        [info_fold, fold] = foldProfile(info_det, fullfile(rfiDir, "rfi_fold.mat"), ephem.f0, 'F1', ephem.F1, 'TRef', ephem.TRef, ...
-            'NBin', nBin, 'SubintPeriods', subintPeriods, noiseArgs{:}, 'SaveFile', false, 'Verbose', false);
-        toaArgs = {'Bnoise', info_det.noise.Bnoise, 'Weighting', weighting};
-        toa = estimateTOA(fold, info_fold, template, toaArgs{:}, 'Verbose', false);
-        detection = detectPulsar(fold, info_fold, template, toaArgs{:}, 'Verbose', false);
-        good = toa.valid & detection.detectedUnknown & ~toa.flagChi2;
+        toa = foldToTOA(fold, out.info_fold, ephem.profileFWHM, out.Bnoise, ...
+            'Weighting', out.weighting, 'Verbose', false);
+        good = toa.good;                             % valid & detected & not chi2-flagged
         v = toa.valid;
         if any(v)
             val = validateTOA(toa, info_gen, 'Plot', false, 'Label', sprintf('%s, excision %d', label, exc));
@@ -189,6 +177,7 @@ for c = runCases
             'offsetErr', val.totalOffsetErr * 1e6, 'pulses', pulses, 'missedE', missedE, ...
             'chan', ch); %#ok<SAGROW>
     end
+    delete(info_IQ.file);
     fprintf('  case %d of %d (%s): %.0f s\n', c, numel(cases), label, toc(tCase));
 end
 fprintf('runRFITest: done in %.0f s\n\n', toc(tAll));
