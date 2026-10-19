@@ -9,6 +9,8 @@ MATLAB's current folder = PulsarSimMatlab (dataDir is relative).
 
 Later, for real data: split into simulation parameters (pulsar truth,
 f_in, L, seed, SNR, RFI) and observation parameters (receiver, processing).
+First step (19 Oct 2026): the observer side is also collected in the
+structs rx, proc, files (with ephem) at the end, the inputs of processIQ.
 %}
 
 % --- Pulsar (ground truth for generation)
@@ -149,3 +151,16 @@ fileChanWeight  = fullfile(chanDir, "test_dedispB_chan_weights.dat");    % blank
 fileChanDedisp = fullfile(chanDir, "test_dedisp_chan");            % dedisperseChannels (base name)
 fileChanPower  = fullfile(chanDir, "test_dedisp_chan_power.dat");  % detectChannels
 fileFoldChan   = fullfile(dataDir, "test_fold_chan.mat");
+
+% --- Observer side as structs for processIQ (19 Oct 2026; the same values as above, which
+% stay for the scripts that use them directly). With ephem: everything processIQ gets
+% besides the IQ file - receiver settings, processing settings, output files.
+rx    = struct('fLow', fLow, 'fHigh', fHigh);
+proc  = struct('frontEnd', frontEnd, 'refFreq', refFreq, 'f_out', f_out, 'nBin', nBin, ...
+    'subintPeriods', subintPeriods, 'chanWidth', chanWidth, 'weighting', weighting, ...
+    'excision', excision, 'excisionArgs', {excisionArgs}, 'periodicMask', periodicMask, ...
+    'periodicArgs', {periodicArgs});
+files = struct('dedisp', fileDedisp, 'envelope', fileEnvelope, 'fold', fileFold, ...
+    'chanIQ', fileChanIQ, 'chanBlank', fileChanBlank, 'chanDedisp', fileChanDedisp, ...
+    'chanPower', fileChanPower, 'chanDedispB', fileChanDedispB, 'chanPowerB', fileChanPowerB, ...
+    'chanWeight', fileChanWeight, 'foldChan', fileFoldChan);

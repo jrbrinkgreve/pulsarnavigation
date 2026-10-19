@@ -133,10 +133,13 @@ since 13 Oct: the tests read only <code>data/test/</code>.</p></div>
 <li>receiver (noise/RFI + IQ) or reload; <code>checkConsistency</code>; on the channel path with excision, a warning
 (<code>main:brightExcision</code>, since 14 Oct) when the pulsar is brighter than −5 dB or noise-free, because <code>detectRFI</code> then blanks
 the pulse itself (<a href="excision.html#limits">excision limits</a>);</li>
-<li>processing: full band (dedispersion + detection) or channels (channelizer → [detectRFI → blankChannels] → dedisperseChannels →
-detectChannels → [blankingWeights]), or reload + <code>checkProcessing</code>; optional IQ and detection checks (full band);</li>
-<li>fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel path) or reload + <code>checkFold</code>; optional fold check;</li>
-<li>TOAs, detection, good TOAs, <code>validateTOA</code> (all and good), the exact optimum (full band).</li>
+<li>processing up to the fold, one call since 19 Oct: <code>processIQ(info_IQ, rx, ephem, proc, files, 'Reuse', ~runStage.process)</code> (the
+structs from <code>pipelineParams</code>) runs full band (dedispersion + detection) or channels (channelizer → [detectRFI → blankChannels] →
+dedisperseChannels → detectChannels → [blankingWeights]) and the fold (with <code>NoiseCoeffs</code> or <code>DataWeights</code> on the channel
+path), or reloads them + <code>checkProcessing</code>, <code>checkFold</code>;</li>
+<li><code>foldToTOA</code> (<code>runStage.toa</code>): TOAs, detection, good TOAs;</li>
+<li>evaluation against the truth: optional IQ, detection and fold checks (full band), <code>validateTOA</code> (all and good), the exact optimum
+(full band).</li>
 </ol>
 <p>Printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel path 8 TOAs, 2.943 µs, SNR 92.3
 (with excision 2.956 µs, 91.9).</p>

@@ -325,9 +325,8 @@ last 6.3 ms (the dispersion sweep); on the channel path turn 0 also lacks its fi
 <tr><th>Switch</th><th>Committed value</th><th>Effect</th></tr>
 <tr><td><code>runStage.sky</code></td><td>false</td><td>generator + dispersion (slow; set true once, or after changing pulsar/simulation/band)</td></tr>
 <tr><td><code>runStage.receiver</code></td><td>true</td><td>noise/RFI + IQ</td></tr>
-<tr><td><code>runStage.process</code></td><td>true</td><td>dedispersion + detection (channel path: channelizer, excision, weights)</td></tr>
-<tr><td><code>runStage.fold</code></td><td>true</td><td>folding</td></tr>
-<tr><td><code>runStage.toa</code></td><td>true</td><td>TOAs, detection, validation</td></tr>
+<tr><td><code>runStage.process</code></td><td>true</td><td><code>processIQ</code>: dedispersion + detection + fold (channel path: channelizer, excision, weights); false = reuse the saved files and fold (checked; one switch since 19 Oct, was <code>process</code> + <code>fold</code>)</td></tr>
+<tr><td><code>runStage.toa</code></td><td>true</td><td><code>foldToTOA</code> (TOAs, detection, good TOAs), validation</td></tr>
 <tr><td><code>plots.dispersion</code>, <code>plots.iq</code></td><td>false</td><td>these read the big RF / IQ files (slow)</td></tr>
 <tr><td><code>plots.detected</code>, <code>plots.fold</code>, <code>plots.toa</code></td><td>true</td><td>check figures (detected and fold: full band only)</td></tr>
 <tr><td><code>closeFigures</code></td><td>true</td><td><code>close all</code> at the start</td></tr>

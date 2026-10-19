@@ -145,7 +145,7 @@ skips a stage, it reloads the struct with <code>loadInfo(dataFile)</code>.</p>
 means each stage describes exactly what it wrote. It also makes stale files detectable. <code>main.m</code>'s <code>checkConsistency</code> warns
 when files on disk were made with different parameters (sky, via <code>checkSkyFiles</code>: T, f_in, L, A, dutycycle, envelope mode, seed,
 DM, band, refFreq; receiver: SNR, receiver input, RFI sources, noise seed, fLO, fs, filter order; the sky parameters A to refFreq, the
-noise seed and the filter order since 13 Oct 2026). Since 13 Oct 2026 <code>checkProcessing</code> and <code>checkFold</code> do the same for
+noise seed and the filter order since 13 Oct 2026). Since 13 Oct 2026 <code>checkProcessing</code> and <code>checkFold</code> (local functions of <code>processIQ</code> since 19 Oct) do the same for
 reused processing and fold files (made from the file before them, not older than it, same f_out, DM, refFreq, band, chanWidth, nBin,
 turns per sub-int, ephemeris and data weights).</p></div>
 <figure class="scroll">

@@ -15,7 +15,7 @@
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now) and the review
-week (12–16 Oct), which explained every stage. Now: the processing as one function, <code>processIQ</code> (IQ in, TOAs out), and with it
+week (12–16 Oct), which explained every stage. Now: the processing as one function, <code>processIQ</code> (IQ in, fold out; then <code>foldToTOA</code>), and with it
 the multi-seed Monte Carlo of the default channel path (A3b). Next: a fast simulator for hours of data (C), then Earth's motion and the phase
 prediction (D), then several pulsars and the navigation solution (E). The order follows from the reference scenario: a TOA takes
 ~20 hours, so it must be simulated fast and folded across passes.</p></div>
@@ -160,8 +160,8 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><td><span class="badge todo">todo</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
 <tr id="processiq"><td><span class="badge todo">next</span> The processing as one function: <code>processIQ</code></td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code> (and <code>runRFITest</code>, <code>runLockedRadar</code>). First idea (16 Oct): one function from the sky to the TOAs. Rejected by Jasper: real IQ data enter between the simulation and the processing, and the operational processing will run on an FPGA/GPU. Design (16–19 Oct, Jasper: boundary at IQ, both front ends): three roles —
 <b>simulate</b> (truth; stand-in for antenna + ADC/DDC: generate → disperse → <code>addNoiseAndRFI</code> → <code>applyIQmodulation</code>), <b>process</b>
-(<code>processIQ(info_IQ, rx, ephem, proc, files)</code>: filterbank or full-band dedispersion through fold, TOAs, detection and the good-TOA rule; it gets only
-the IQ file, receiver settings, ephemeris and processing settings, so the ground-truth rule holds by its signature), <b>evaluate</b> (truth vs result: <code>validateTOA</code>,
+(<code>processIQ(info_IQ, rx, ephem, proc, files)</code>: filterbank or full-band dedispersion through the fold; then <code>foldToTOA</code>: TOAs, detection and the good-TOA rule; they get only
+the IQ file (resp. the fold), receiver settings, ephemeris and processing settings, so the ground-truth rule holds by their signatures), <b>evaluate</b> (truth vs result: <code>validateTOA</code>,
 check plots). Why: the multi-seed Monte Carlo becomes simulate(seed) → <code>processIQ</code> → evaluate, on the default channel path with excision (A3b; so far validated
 in pieces and by single-seed runs, never end to end over seeds); C is validated against that path; D puts a deliberately imperfect ephemeris in
 through the separate <code>ephem</code> input; real recordings go in unchanged; the FPGA/GPU port is checked against its outputs. Before C (Jasper, 16 Oct).

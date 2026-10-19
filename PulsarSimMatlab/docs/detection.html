@@ -221,7 +221,7 @@ drops from 0.97 to 0.83. Simulated false-alarm rate of the 4.15 threshold: 1.0·
 </table></div>
 <p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there".</p>
 
-<h2 id="good">Good TOAs (in <code>main.m</code>)</h2>
+<h2 id="good">Good TOAs (in <code>foldToTOA</code>)</h2>
 <div class="eq">\[ \texttt{toa.good} = \texttt{toa.valid} \;\land\; \texttt{detection.detectedUnknown} \;\land\; \lnot\,\texttt{toa.flagChi2} \]</div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 200" role="img" aria-label="A sub-integration's TOA is good only if it was fitted, the pulsar is detected and the chi-squared is acceptable">
@@ -274,7 +274,7 @@ drops from 0.97 to 0.83. Simulated false-alarm rate of the 4.15 threshold: 1.0·
   <text class="ttl" x="655" y="152" text-anchor="middle">something wrong</text>
   <text class="sub" x="655" y="170" text-anchor="middle">RFI, wrong template</text>
 </svg>
-<figcaption><code>toa.good = toa.valid ∧ detection.detectedUnknown ∧ ¬toa.flagChi2</code> in <code>main.m</code>. Each gate removes a
+<figcaption><code>toa.good = toa.valid ∧ detection.detectedUnknown ∧ ¬toa.flagChi2</code> in <code>foldToTOA</code> (called by <code>main.m</code> after <code>processIQ</code>; in <code>main.m</code> itself until 19 Oct). Each gate removes a
 different failure: detection catches outliers on noise peaks (the fit always finds <em>some</em> peak), χ² catches profiles that are
 not template-shaped. <code>main.m</code> validates all fitted TOAs and, separately, the good ones.</figcaption>
 </figure>

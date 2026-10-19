@@ -193,13 +193,26 @@ the fold stays unbiased.</p></div>
 <tr><th>Switch</th><th>Runs</th><th>When to rerun</th></tr>
 <tr><td><code>runStage.sky</code></td><td>generator + dispersion (the slow part)</td><td>pulsar, T, L, f_in, DM, band or seed changed</td></tr>
 <tr><td><code>runStage.receiver</code></td><td>noise / RFI + IQ</td><td>SNR, RFI, noise seed, fLO or fs changed</td></tr>
-<tr><td><code>runStage.process</code></td><td>dedispersion + detection (and channelizer, excision, weights)</td><td>front end, excision or processing settings changed</td></tr>
-<tr><td><code>runStage.fold</code></td><td>folding</td><td>nBin, sub-int length changed</td></tr>
-<tr><td><code>runStage.toa</code></td><td>TOAs, detection, validation</td><td>always cheap</td></tr>
+<tr><td><code>runStage.process</code></td><td><code>processIQ</code>: dedispersion + detection (and channelizer, excision, weights) + fold</td><td>front end, excision, processing or fold settings (nBin, sub-int length) changed</td></tr>
+<tr><td><code>runStage.toa</code></td><td><code>foldToTOA</code>: TOAs, detection, good TOAs; validation</td><td>always cheap</td></tr>
 </table></div>
 <p>Skipped stages reload their <code>info</code> from disk. <code>checkConsistency</code> (sky, receiver), <code>checkProcessing</code> and
-<code>checkFold</code> (13 Oct 2026) warn if those files were made with different parameters or from older inputs. <code>plots.*</code>
+<code>checkFold</code> (13 Oct 2026; inside <code>processIQ</code> since 19 Oct) warn if those files were made with different parameters or from older inputs. <code>plots.*</code>
 switch the ground-truth check figures (the IQ, detected and fold checks are for the full-band path only).</p>
+<p>Since 19 Oct one switch covers the processing up to the fold (<code>processIQ</code>'s <code>'Reuse'</code> option; the separate
+<code>runStage.fold</code> is gone: refolding alone saved ~2 s of ~45 s); the TOAs keep their own switch and function. All intermediate files stay
+on disk for checks before folding.</p>
+<div class="callout why"><span class="ttl">Design choice: simulate, process, evaluate (19 Oct)</span>
+<p><b>Three roles.</b> <i>Simulate</i> (the truth; a stand-in for antenna + ADC/DDC): generator, dispersion, <code>addNoiseAndRFI</code>,
+<code>applyIQmodulation</code>, called in <code>main.m</code>. <i>Process</i>: <code>processIQ(info_IQ, rx, ephem, proc, files)</code>, IQ file in,
+fold out, then <code>foldToTOA</code> (fold in, TOAs and detection out). <i>Evaluate</i>: check plots, <code>validateTOA</code>, the exact optimum (truth vs
+result), in <code>main.m</code>.</p>
+<p><b>Alternative:</b> one function from the sky to the TOAs (first idea, 16 Oct).</p>
+<p><b>Why not</b> (Jasper): real IQ data enter between the simulation and the processing, and the operational processing will run on an
+FPGA/GPU. Cut at the IQ file, <code>processIQ</code> gets only the IQ file, receiver settings, ephemeris and processing settings, so the
+ground-truth rule holds by its inputs; a recording goes in unchanged; the FPGA/GPU port is checked against its outputs; a fast simulator
+(block C) feeds <code>foldToTOA</code> directly; the multi-seed Monte Carlo (A3b) is simulate(seed) → <code>processIQ</code> → evaluate
+(<a href="roadmap.html#processiq">roadmap</a>).</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">
   <defs>

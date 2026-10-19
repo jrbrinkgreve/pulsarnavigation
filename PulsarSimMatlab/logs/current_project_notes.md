@@ -160,7 +160,8 @@ TOA threshold sweeps down to −25 dB, long H0 run (all in §7).
 
 **Run control** (`main.m`): `runStage.sky` (generator + dispersion, the slow part),
 `runStage.receiver` (noise/RFI + IQ; rerun alone to change SNR or RFI),
-`runStage.process` (dedispersion + detection), `runStage.fold`, `runStage.toa`.
+`runStage.process` (dedispersion + detection + fold, `processIQ`; `runStage.fold` merged into it
+19 Oct 2026), `runStage.toa` (`foldToTOA` + validation).
 Skipped stages reload their `info` from disk; `checkConsistency` warns when files on disk
 were made with different parameters: the sky files via `checkSkyFiles` (T, f_in, L, A,
 dutycycle, genEnvMode, seed, DM, band, refFreq, dispersed file made from the generator file),
@@ -2311,9 +2312,13 @@ barycentric corrections, navigation solution).
    processing; the operational processing will run on an FPGA/GPU, not in MATLAB). Three
    roles: *simulate* (truth; stand-in for antenna + ADC/DDC: generate → disperse →
    addNoiseAndRFI → applyIQmodulation, stays as calls in the scripts); *process*
-   `[toa, detection, out] = processIQ(info_IQ, rx, ephem, proc, files, 'Run', run)` (cut at
+   `out = processIQ(info_IQ, rx, ephem, proc, files, 'Reuse', tf)` up to the fold (cut at
    `info_IQ`, whose fields are receiver settings only; both front ends; reuse checks
-   `checkProcessing` / `checkFold` move in; returns `toa.good` and the intermediate infos);
+   `checkProcessing` / `checkFold` move in; returns the fold, the intermediate infos,
+   Bnoise and weighting), then `[toa, detection] = foldToTOA(fold, info_fold, profileFWHM,
+   Bnoise, 'Weighting', w)` as its own function (Jasper 19 Oct: "keep runTOA as a separate
+   function"; template, estimateTOA, detectPulsar, `toa.good`); main's switches
+   `runStage.process` (now incl. the fold; `runStage.fold` removed, Jasper) and `runStage.toa`;
    *evaluate* (truth vs result: validateTOA, expectedPowerModel, check plots; the
    bright-excision warning and checkConsistency stay in main, they need truth). Jasper's
    choices 19 Oct: boundary at IQ (a channel-data entry point later if the FPGA does the
@@ -2325,6 +2330,10 @@ barycentric corrections, navigation solution).
    (old variables kept), main outputs bit-identical for both front ends; (2) runMonteCarlo
    on the channel path (A3b); (3) runSNRSweep, runH0, runRFITest one at a time;
    runLockedRadar stays (difference channels by superposition). Roadmap page updated 19 Oct.
+   **Step 1 done and validated 19 Oct** (`processIQ.m`, `foldToTOA.m`, main, pipelineParams structs):
+   old vs new main bit-identical for both front ends (fold, toa, detection, data files) and on
+   the reuse path, no warnings (Claude's batch run at Jasper's request, accepted by Jasper;
+   log `2026-10-19_processIQ.md`). Next: step 2, runMonteCarlo on processIQ (A3b).
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.
