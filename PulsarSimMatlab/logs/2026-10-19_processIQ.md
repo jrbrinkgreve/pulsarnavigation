@@ -248,3 +248,13 @@ at design, no unmodelled correlation.
 - `data/mc/snrSweep.mat` and `data/rfi/runRFITest_results.mat` restored to their 6 / 12 Oct
   versions after the test runs; `data/mc/h0Run.mat` now holds the 19 Oct channel 100-pass run.
 Step 3 done; committed.
+
+## Next session (Jasper, 19 Oct: "remind me tomorrow")
+
+Open choice for Jasper (processIQ plan complete):
+1. the full channel-path SNR sweep (runSNRSweep, 10 realizations × 8 SNR points, ~1.5 h;
+   Claude can run it): TOA-error and detection curves of the default path across SNR;
+2. block C, the fast simulator (only on Jasper's go);
+3. item 8, a channel-path optimum (best achievable TOA error; the gap in every channel-path
+   report, and the SNR axis of the channel sweep).
+Parked (Jasper 19 Oct): item 3 + per-channel noise calibration as one block; items 4, P1–P4.
