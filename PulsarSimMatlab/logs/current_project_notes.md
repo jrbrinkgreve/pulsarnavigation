@@ -2306,6 +2306,25 @@ barycentric corrections, navigation solution).
    pieces (noise model vs data: `testFoldWeights` 3, `testBlankingWeights` 3; estimator vs
    profiles drawn from the exact covariance: `testOptimalTOA` 4, 8, 9) and by single-seed
    `main` runs, never end to end over seeds. Priority vs block C: Jasper.
+   **Redesigned 16–19 Oct (Jasper): `processIQ`, processing only — next, before C.** A sky →
+   TOA chain function rejected (Jasper: real IQ data enter between simulation and
+   processing; the operational processing will run on an FPGA/GPU, not in MATLAB). Three
+   roles: *simulate* (truth; stand-in for antenna + ADC/DDC: generate → disperse →
+   addNoiseAndRFI → applyIQmodulation, stays as calls in the scripts); *process*
+   `[toa, detection, out] = processIQ(info_IQ, rx, ephem, proc, files, 'Run', run)` (cut at
+   `info_IQ`, whose fields are receiver settings only; both front ends; reuse checks
+   `checkProcessing` / `checkFold` move in; returns `toa.good` and the intermediate infos);
+   *evaluate* (truth vs result: validateTOA, expectedPowerModel, check plots; the
+   bright-excision warning and checkConsistency stay in main, they need truth). Jasper's
+   choices 19 Oct: boundary at IQ (a channel-data entry point later if the FPGA does the
+   filterbank), both front ends. Why: the ground-truth rule holds by the signature; A3b =
+   simulate(seed) → processIQ → evaluate; C is validated against that path and its
+   `simulateFold` output feeds the fold → TOA part; D's imperfect ephemeris goes in through
+   `ephem`; real recordings go in unchanged; MATLAB reference ("golden model") for the
+   FPGA/GPU port. Steps: (1) processIQ + main + rx/proc/files structs in pipelineParams
+   (old variables kept), main outputs bit-identical for both front ends; (2) runMonteCarlo
+   on the channel path (A3b); (3) runSNRSweep, runH0, runRFITest one at a time;
+   runLockedRadar stays (difference channels by superposition). Roadmap page updated 19 Oct.
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.
@@ -2691,6 +2710,9 @@ barycentric corrections, navigation solution).
   needed before realistic pulsars)
 - Performance of generation for long simulations; optional fold-in-detection fusion for
   millisecond pulsars
+- Real IQ recordings from the hardware into `processIQ` (§10 item 7); the FPGA/GPU port of
+  the processing, checked stage by stage against `processIQ` as the MATLAB reference
+  (Jasper, 16 Oct 2026)
 
 **Open design decision:** a **reference scenario** (specific millisecond pulsar(s) with
 P, DM, flux, profile; receiver: antenna/array gain, T_sys, bandwidth; ground vs

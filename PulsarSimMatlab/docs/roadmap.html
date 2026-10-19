@@ -14,8 +14,9 @@
 <p class="meta">Status as of 14 October 2026 (commit <code>6ad5b4c</code>). Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
-<p>Done: the validated full-band chain (block 1), the channelized front end (A) and RFI excision (B, closed for now). Now: the review
-week, which explains and refines every stage. Next: a fast simulator for hours of data (C), then Earth's motion and the phase
+<p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now) and the review
+week (12–16 Oct), which explained every stage. Now: the processing as one function, <code>processIQ</code> (IQ in, TOAs out), and with it
+the multi-seed Monte Carlo of the default channel path (A3b). Next: a fast simulator for hours of data (C), then Earth's motion and the phase
 prediction (D), then several pulsars and the navigation solution (E). The order follows from the reference scenario: a TOA takes
 ~20 hours, so it must be simulated fast and folded across passes.</p></div>
 
@@ -89,11 +90,11 @@ takes ~20 h, far beyond what the voltage-level simulation can produce; D is then
 <h2>The labels</h2>
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
-<tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span> (A3b, a multi-seed Monte Carlo with blanking, optional)</td></tr>
+<tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span>; A3b (multi-seed Monte Carlo with blanking) <span class="badge todo">next</span>, as a run of <code>runMonteCarlo</code> on <code>processIQ</code> (open item below)</td></tr>
 <tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
 <tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
-<tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 
 <h2 id="why">Design choices: why this order</h2>
@@ -157,7 +158,15 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
 <tr><td><span class="badge todo">todo</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
-<tr><td><span class="badge todo">todo</span> Factor the chain into one function</td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code> (and <code>runRFITest</code>, <code>runLockedRadar</code>). Connected to A3b (review, 16 Oct): with one chain function the Monte Carlo, SNR sweep and H0 scripts (full band only today) get the default channel path with excision almost for free, and the multi-seed Monte Carlo with blanking becomes a run. The default path is so far validated in pieces and by single-seed runs, never end to end over seeds. Priority versus C: Jasper.</td></tr>
+<tr id="processiq"><td><span class="badge todo">next</span> The processing as one function: <code>processIQ</code></td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code> (and <code>runRFITest</code>, <code>runLockedRadar</code>). First idea (16 Oct): one function from the sky to the TOAs. Rejected by Jasper: real IQ data enter between the simulation and the processing, and the operational processing will run on an FPGA/GPU. Design (16–19 Oct, Jasper: boundary at IQ, both front ends): three roles —
+<b>simulate</b> (truth; stand-in for antenna + ADC/DDC: generate → disperse → <code>addNoiseAndRFI</code> → <code>applyIQmodulation</code>), <b>process</b>
+(<code>processIQ(info_IQ, rx, ephem, proc, files)</code>: filterbank or full-band dedispersion through fold, TOAs, detection and the good-TOA rule; it gets only
+the IQ file, receiver settings, ephemeris and processing settings, so the ground-truth rule holds by its signature), <b>evaluate</b> (truth vs result: <code>validateTOA</code>,
+check plots). Why: the multi-seed Monte Carlo becomes simulate(seed) → <code>processIQ</code> → evaluate, on the default channel path with excision (A3b; so far validated
+in pieces and by single-seed runs, never end to end over seeds); C is validated against that path; D puts a deliberately imperfect ephemeris in
+through the separate <code>ephem</code> input; real recordings go in unchanged; the FPGA/GPU port is checked against its outputs. Before C (Jasper, 16 Oct).
+Steps: <code>processIQ</code> + <code>main</code> (outputs identical) → <code>runMonteCarlo</code> on the channel path (A3b) → <code>runSNRSweep</code>, <code>runH0</code>, <code>runRFITest</code>; <code>runLockedRadar</code>
+stays (it processes difference channels by superposition).</td></tr>
 <tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Lag-array memory fixed the same day (bit-identical). Still open: run time ∝ bin length, and whole-file processing (<code>blankingWeights</code>, <code>detectRFI</code>, <code>periodicRFI</code>; L = 1 s already exceeds the 4 GB default): "excision for long data", when real data is close.</td></tr>
@@ -189,7 +198,7 @@ It is only a simulation problem. <var>L</var> must also be well above the sweep 
 <li><b>Block 2 – robustness:</b> DM check from sub-band TOAs; convention assertions; clock jitter.</li>
 <li><b>Block 3 – navigation physics:</b> relative motion and acceleration search; multiple pulsars (≥ 4); barycentric corrections (Roemer, Shapiro,
 Einstein), clock corrections, infinite-frequency conversion (<code>bulkDelayRef</code>); residuals vs timing model; navigation solution (least squares → Kalman).</li>
-<li><b>Block 4 – later:</b> 3×3 array with geometric delays and beamforming at IQ level; scattering, DM variations, polarization; generator at high DM.</li>
+<li><b>Block 4 – later:</b> 3×3 array with geometric delays and beamforming at IQ level; scattering, DM variations, polarization; generator at high DM; real IQ recordings and the FPGA/GPU port of the processing, with <code>processIQ</code> as the reference.</li>
 </ul>
 
 </main>
