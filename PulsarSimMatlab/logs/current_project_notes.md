@@ -2334,6 +2334,18 @@ barycentric corrections, navigation solution).
    old vs new main bit-identical for both front ends (fold, toa, detection, data files) and on
    the reuse path, no warnings (Claude's batch run at Jasper's request, accepted by Jasper;
    log `2026-10-19_processIQ.md`). Next: step 2, runMonteCarlo on processIQ (A3b).
+   **Step 2 (19 Oct): runMonteCarlo on processIQ/foldToTOA** (both front ends). Jasper's run,
+   channels, 10 seeds, −5 dB: seed 43 = main; ratio 0.934 ± 0.074, |z| < 1 66 % → error bars
+   honest on the default path; **pChi2 not uniform** (mean 0.29, KS D 0.39). Investigated
+   (Claude): off-pulse χ² 0.9999 ± 0.0008 (noise model right), on-pulse excess rises with pulse
+   height and sits in channels 1 and 128 (1.19, 1.17) = full-review **item 3** (pulse-only
+   band-edge taper vs ChannelGain 1); at −15 dB pChi2 uniform (KS 0.090), ratio 0.971 → the
+   excess ∝ SNR², irrelevant at the weak-signal target. Item 3 now also explains the −5 dB
+   pChi2 alarm rate on the channel path. Full band, 10 seeds (Claude, at Jasper's request):
+   ratio 0.950, χ² 0.909, 72.2 % = the old script exactly; pChi2 uniform (KS 0.059).
+   **A3b done 19 Oct**: channel path, 50 seeds, −5 dB: 400 TOAs all good, mean −0.03 ± 0.15 µs,
+   **ratio 0.956 ± 0.034**, χ² 366/400, |z| < 1 67.0 %, < 2 96.8 %; blanked 0.0126 %; pChi2
+   non-uniform (item 3). Next: step 3 (runSNRSweep, runH0, runRFITest on processIQ).
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first.

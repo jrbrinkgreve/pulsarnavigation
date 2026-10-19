@@ -90,7 +90,7 @@ takes ~20 h, far beyond what the voltage-level simulation can produce; D is then
 <h2>The labels</h2>
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
-<tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span>; A3b (multi-seed Monte Carlo with blanking) <span class="badge todo">next</span>, as a run of <code>runMonteCarlo</code> on <code>processIQ</code> (open item below)</td></tr>
+<tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span>; A3b (multi-seed Monte Carlo with blanking) <span class="badge validated">done 19 Oct</span>: <code>runMonteCarlo</code> on <code>processIQ</code>, 50 seeds, ratio 0.956 ± 0.034 (<a href="scripts.html#mc">scripts</a>)</td></tr>
 <tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
 <tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
@@ -165,7 +165,7 @@ the IQ file (resp. the fold), receiver settings, ephemeris and processing settin
 check plots). Why: the multi-seed Monte Carlo becomes simulate(seed) → <code>processIQ</code> → evaluate, on the default channel path with excision (A3b; so far validated
 in pieces and by single-seed runs, never end to end over seeds); C is validated against that path; D puts a deliberately imperfect ephemeris in
 through the separate <code>ephem</code> input; real recordings go in unchanged; the FPGA/GPU port is checked against its outputs. Before C (Jasper, 16 Oct).
-Steps: <code>processIQ</code> + <code>main</code> (outputs identical) → <code>runMonteCarlo</code> on the channel path (A3b) → <code>runSNRSweep</code>, <code>runH0</code>, <code>runRFITest</code>; <code>runLockedRadar</code>
+Steps: <code>processIQ</code> + <code>main</code> (outputs identical; <b>done 19 Oct</b>) → <code>runMonteCarlo</code> on the channel path (A3b; <b>done 19 Oct</b>) → <code>runSNRSweep</code>, <code>runH0</code>, <code>runRFITest</code> (next); <code>runLockedRadar</code>
 stays (it processes difference channels by superposition).</td></tr>
 <tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
