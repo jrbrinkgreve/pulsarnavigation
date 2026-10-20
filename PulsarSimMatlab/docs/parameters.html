@@ -247,6 +247,9 @@ is why block C plans a fast simulator.</figcaption>
 <tr><td><code>rfi</code></td><td>5 <code>rfiSource</code> structs</td><td>the illustrative L-band scenario (table on <a href="receiver.html#rfi">receiver</a>)</td><td>Radar PRF 373 Hz (not a pulsar harmonic); carrier 1351.3 MHz (not a channel edge).</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>rfiScenario</code></td><td>= the full illustrative list</td><td>kept before <code>rfiSelect</code> / <code>rfiOn</code> are applied</td><td><code>runRFITest</code> picks cases from it.</td><td><code>runRFITest</code></td></tr>
 <tr><td><code>rfiRealistic</code></td><td>16 <code>rfiSource</code> structs</td><td>the realistic L-band scenario for the reference hardware (table on <a href="receiver.html#realistic">receiver</a>)</td><td>GNSS, two rotating radars, LTE band 32, Inmarsat, impulses, a local carrier; levels from a link budget (±10 dB).</td><td><code>runRFITest</code> (cases 14–15), main if chosen</td></tr>
+<tr><td><code>scintOn</code></td><td>false</td><td>switch interstellar scintillation on in the fast simulator (<code>simulateFold</code>; the voltage chain has none)</td><td>Off keeps every validation run as it was; on for scenario runs (<a href="physics.html#scint">physics</a>).</td><td>scenario scripts (fast simulator)</td></tr>
+<tr><td><code>scint</code></td><td>bandwidth 740 MHz, timescale 2290 s, band [fLow fHigh]</td><td>scintle bandwidth (HWHM) and time (1/e) of J0437 at 1.4 GHz</td><td>IAR 2020 (arXiv:2010.00010), rescaled from Keith et al. 2013; varies between epochs by factors 2–3.</td><td>—</td></tr>
+<tr><td><code>scintSim</code></td><td>[] (= <code>scint</code> when <code>scintOn</code>)</td><td>what to pass as <code>simulateFold</code>'s <code>'Scintillation'</code> option</td><td>[] means off, bit for bit the same as leaving the option out.</td><td>scenario scripts</td></tr>
 </table></div>
 
 <h2 id="proc">5. Processing (observer)</h2>

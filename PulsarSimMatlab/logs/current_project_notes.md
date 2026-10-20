@@ -2248,6 +2248,65 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
      time weight loss, excess noise, corrupted-sub-int rate, topocentric periodic RFI that
      smears under the barycentric fold); writes the per-channel fold struct of step 1.
    The adaptive sub-int length (item 6) fits here.
+   **Started 20 Oct 2026 (Jasper: "start C")**, stages C1 single channel (full-band
+   equivalent) → C2 validation vs the voltage chain → C3 time structure (passes, scintillation,
+   adaptive sub-ints) → C4 channels; ρ in the simulator's snrDB convention (scenario conversion
+   later; the W_eq rule makes the scenario's ρ 2.7 dB lower, deep analysis §8). **C1 written
+   20 Oct**: `functions/simulateFold.m` ([info, fold, truth] = simulateFold(f0, rhoDB, nTurns,
+   ...); mean = 1 + g·ρ·p̃, p̃ the unit-peak periodic Gaussian smoothed by the time bin and the
+   linear-assignment triangle, exact in Fourier space (p_k·sinc(k·binDt·f0)·sinc²(k/NBin));
+   asymptotic weights n, 2n/3, n/6 (or copied from a voltage fold); noise
+   m²/(B_n·binDt)·W2/W², neighbour correlation WX/√(W2W2′) = 0.25, circulant → drawn by FFT
+   (copied weights: sparse Cholesky); info holds only foldProfile's fields (no truth); truth
+   with T and pulseCenters for validateTOA) + `tests/testSimulateFold.m` (in runAllTests).
+   Claude's run: all passed — noise-free mean vs foldProfile on a synthetic erf-averaged power
+   series 5.3e-5 of the peak; H0 variance 0.9999, lag 1 0.2497; foldToTOA at −5 dB: SNR 93.5,
+   σ 2.907 µs (voltage chain full band: 93.4, 2.880), pulls std 0.997; H0 T0 std 1.000; 20 h in
+   60 s sub-ints: 0.05 s. Jasper's run pending. Log `2026-10-20_blockC.md`.
+   **C2 20 Oct** (`tests/expSimVsChain.m`, Claude's run): against the saved full-band chain
+   sweeps (−25…+20 dB, threshold sweep −20…−15 dB) with the chain's g 0.9958 and B_n: median σ
+   within 0–4 %, P_D and outlier rates within the chain's binomial errors, H0 T0 std 0.9925 ±
+   0.010 (chain 1.008 ± 0.024), lag 1 0.2491 (0.2484) → the simulator reproduces the chain.
+   C1 has no RFI / excision (Jasper asked): on clean data excision only removes false flags
+   (weights −5e-5); with RFI its effects are C4.
+   Order C4a → C4b → C3 (Jasper: "most sensible option"). **C4a 20 Oct**: simulateFold with
+   'NChan', 'ChannelGain', 'NoiseCoeffs' (closed-form asymptotic weights for correlated time
+   bins: weight2 = n·Σc(L)K(Lδ), weightX(d) = n·Σc(L)K(d − Lδ)); NChan 1 = C1 bit for bit;
+   tests 6–8 (weights vs foldProfile 2e-5; channel noise; 128-channel optimal fit). Against the
+   chain's channel path with g_c from the forward taper: σ 2.943 µs, SNR 92.3, mean χ² 1.0069
+   (chain 1.0063), pChi2 < 0.05 0.205 (0.205); with g_c = 1 the excess vanishes → item 3 is the
+   whole cause of the channel-path pChi2 skew. Next C4b (RFI/excision model).
+   **C4b 20 Oct** (option a, Jasper): `rfiProfile.m` measures per channel, on a voltage-chain
+   run without pulsar (zero sky + noise + RFI, excision), level L_c, true noise coefficients
+   V_c, X_c(L) and valid fraction; `runRFIProfile.m` makes profiles (realistic, Inmarsat
+   narrow, noise only; 0.1 s = runRFITest's settings, 1 s steady part); simulateFold 'RFI'
+   (fold carries the observer's clean model, noise drawn with the measured coefficients).
+   vs runRFITest at 0.1 s: SNR / σ / χ² within ~1 % (realistic 82.0/82.8, 1.063/1.071; narrow
+   80.5/81.2, 1.223/1.245). A strong carrier's channel is quieter than the model ((1+2I)/(1+I)²).
+   Docs page `docs/simulator.html` (20 Oct; figure gen_simvschain.py). Weak-regime channel
+   sweep (runSNRSweep −25…−11 dB, 10 realizations, 20 Oct): 69 % good TOAs at SNR 4.5, 100 %
+   from 7.2, no outliers among good TOAs → the design rule SNR ≥ 6–7 carries over to the
+   channel path (~5 % more SNR needed for the same ρ: item 3). processIQ: optional
+   proc.weightsArgs (blankingWeights options; runRFIProfile needs MaxMemoryGB 8 at 1 s).
+   **C3a 20 Oct** (Jasper: recommendations, C3a first): simulateFold 'Passes' [nPass × 2] s and
+   'SubintTime' (whole turns), complete turns/sub-ints inside passes only, absolute tRef,
+   truth.pass, info.passes (the schedule is observer knowledge); one pass = the nTurns
+   interface bit for bit (test 10). J0437 settings in the help: f0 173.6879 Hz, FWHM 0.0245
+   turns, NBin 512, ρ −51.0 / −47.4 dB (sim convention), dual pol = Bnoise × 2.
+   **C3b 20 Oct**: literature — J0437 at 1.4 GHz Δν_d ≈ 740 MHz, Δt_d ≈ 2290 s (IAR campaign,
+   arXiv:2010.00010, rescaled from Keith et al. 2013); rescaled 327 MHz values (Gwinn et al. 2006)
+   ~515 s and ~5727 s; notable epoch-to-epoch variation. simulateFold 'FluxScale' ([nSub × 1|NChan])
+   or 'Scintillation' (struct bandwidth, timescale, band): F = |g|², g complex Gaussian field with
+   Gaussian correlations (intensity ACF 1/e at Δt_d, ½ at Δν_d), own random stream, at mid sub-int,
+   channel-averaged; test 11 (amplitude ratio 0.250; field exponential, ACFs 0.363 / 0.490). Docs:
+   physics.html §10 "Interstellar scintillation" (Jasper asked; figure gen_scint.py), simulator,
+   tests, limits, roadmap. Switch: pipelineParams scintOn (false), scint, scintSim.
+   **Validated 20 Oct**: Jasper's run of testSimulateFold tests 1–11 (C1, C4a, C4b, C3a, C3b):
+   all passed. **C3c 20 Oct**: `functions/mergeSubints.m` (exact merge of runs of consecutive
+   sub-ints; = foldProfile's longer sub-ints to 1e-12) and `functions/adaptiveSubints.m` (merge
+   until T0 at the predicted phase ≥ 7, never across a gap; leftover group kept); test 12 (Claude's
+   run): TOA pulls unbiased (−25 dB: 109 groups, mean +0.15 ± 0.10, std 0.975; with scintillation
+   147 groups, −0.08 / 1.04). Next: the J0437 scenario run.
 4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's

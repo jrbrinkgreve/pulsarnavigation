@@ -199,8 +199,13 @@ sky with no pulsar at all.</p></div>
 differences between points come from the SNR, not from new random numbers. The TOAs within one SNR point stay independent, so the
 statistics at each point are unaffected.</p></div>
 <p>Results: <a href="results.html#sweep">validation record</a>. Variant run on 6 Oct with <code>nReal</code> 20 and −20…−15 dB in 1 dB steps: the
-<a href="results.html#threshold">threshold sweep</a>. Its results are in <code>data/mc/snrSweep.mat</code> (the last run); the phase D/E sweep above
-(−25…+20 dB, 10 realizations) was kept as <code>data/mc/snrSweep_phaseDE.mat</code> before it.</p>
+<a href="results.html#threshold">threshold sweep</a>, kept as <code>data/mc/snrSweep_threshold_6oct.mat</code>; the phase D/E sweep above
+(−25…+20 dB, 10 realizations) as <code>data/mc/snrSweep_phaseDE.mat</code>.</p>
+<p><b>Channel path, weak regime (20 Oct; excision, optimal weighting), −25…−11 dB in 2 dB steps, 10 realizations:</b> 69 % good TOAs at SNR 4.5
+per TOA (−19 dB), 100 % from SNR 7.2 (−17 dB); no outliers among the good TOAs at any point; P<sub>D</sub> (unknown phase) 0.09 at SNR 2.8,
+0.69 at 4.5, 1 at 7.2. The design rule (SNR ≥ 6–7 per TOA) carries over from the full band (72 % at 4.8, 100 % at 7.5); the channel path needs
+~5 % more SNR for the same ρ (the edge channels, item 3). rms/pred 1.07–1.08 at every point is one shared fluctuation (the same 10 noise
+seeds at every SNR; H0 T0 std 1.072). Results: <code>data/mc/snrSweep_channels_weak.mat</code> (= <code>snrSweep.mat</code>, the last run).</p>
 
 <h2 id="h0"><code>runH0.m</code> <span class="badge validated">validated</span></h2>
 <p>Many independent noise-only profiles to test the H0 side of <code>detectPulsar</code> and the noise covariance model behind it (and behind the

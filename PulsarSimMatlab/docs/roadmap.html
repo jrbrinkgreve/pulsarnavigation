@@ -92,7 +92,7 @@ takes ~20 h, far beyond what the voltage-level simulation can produce; D is then
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
 <tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span>; A3b (multi-seed Monte Carlo with blanking) <span class="badge validated">done 19 Oct</span>: <code>runMonteCarlo</code> on <code>processIQ</code>, 50 seeds, ratio 0.956 ± 0.034 (<a href="scripts.html#mc">scripts</a>)</td></tr>
 <tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
-<tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td>started 20 Oct: C1 <span class="badge validated">validated (Jasper's run of testSimulateFold 1–11)</span>; C2 <span class="badge written">agrees with the voltage chain (<code>expSimVsChain</code>)</span>; C4a channels <span class="badge written">agrees with the channel path (incl. item 3's χ² excess)</span>; C4b RFI model <span class="badge written">agrees with <code>runRFITest</code> (profiles from a voltage run without pulsar)</span>; C3a schedule (passes, sub-int time) <span class="badge written">written</span>; C3b scintillation <span class="badge validated">validated</span>; C3c adaptive sub-ints <span class="badge written">written</span> (<code>mergeSubints</code>, <code>adaptiveSubints</code>); next: the J0437 scenario run</td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
@@ -136,7 +136,19 @@ Inmarsat downlink 1525–1559, BeiDou B1 1561.1, GPS L1 1575.42, GLONASS G1 ~159
 <li>Spectral kurtosis, whole-channel flags: only if needed.</li>
 </ul>
 
-<h2>Block C: fast simulator (design draft, 6 Oct)</h2>
+<h2>Block C: fast simulator (started 20 Oct)</h2>
+<p><b>Stages</b> (20 Oct, Jasper: one channel, full-band equivalent, first; ρ in the simulator's <code>snrDB</code> convention, the scenario
+conversion later): <b>C1</b> <code>simulateFold</code> – mean profile (periodic Gaussian smoothed by the time bin and the linear assignment, exact in
+Fourier space), asymptotic weights <var>n</var>, 2<var>n</var>/3, <var>n</var>/6 (or copied from a voltage fold), Gaussian noise with the fold's own
+model (<var>m</var>²/(<var>B</var><sub>n</sub>·binDt), neighbour correlation 0.25, drawn by FFT); <code>foldToTOA</code> runs on it unchanged;
+20 h in 0.05 s. <b>C4a</b> (done 20 Oct) per-channel folds: <code>NChan</code>,
+<code>ChannelGain</code> (true pulse fraction per channel), <code>NoiseCoeffs</code> (correlated time bins; closed-form weights
+<var>W</var><sub>2</sub> = <var>n</var>Σ<var>c</var>(<var>L</var>)<var>K</var>(<var>L</var>δ), <var>W</var><sub>X</sub>(<var>d</var>) = <var>n</var>Σ<var>c</var>(<var>L</var>)<var>K</var>(<var>d</var> − <var>L</var>δ),
+<var>K</var> the overlap of two assignment triangles); with the forward taper it reproduces the chain's channel path, item 3's χ² excess included.
+Order C4a → C4b → C3 (20 Oct). <b>C2</b> validation against the voltage chain (−5 / −20 dB, H0, the weak-regime threshold). <b>C3</b> time structure:
+passes, sub-int lengths, scintillation as a flux factor, adaptive sub-int length. <b>C4</b> channels (scintillation across the band,
+RFI/excision effects, item 3). Hook for D: a true phase drifting against the ephemeris.</p>
+<h3>Design draft (6 Oct)</h3>
 <ul>
 <li>Draws the fold struct directly (same fields as <code>foldProfile</code>), plus a separate <code>truth</code> struct.</li>
 <li>Units: SEFD; baseline 1, pulse <var>S</var>(φ)/SEFD. Mean of bin <var>j</var>: 1 + (<var>S</var><sub>mean</sub>/SEFD)·⟨<var>f</var>(φ − Δφ)⟩, smoothed by the assignment kernel and the

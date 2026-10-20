@@ -276,6 +276,9 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) Claude's run</td></tr>
+<tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~2 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
@@ -405,6 +408,47 @@ exactly (normal floats); global RNG untouched; the clock seed reproduces the fil
 <p>(1) The other RFI types = the pre-B5a reference bit for bit. (2) Block size 10⁶ + 3 = one block bit for bit. (3) Power = INR × the
 in-band receiver noise within 4σ of 1/√(<var>B</var>·<var>T</var>): 0.9945 (σ 0.0045). (4) Spectrum flat in band (level 1.0078 of power/bandwidth),
 out of band ≤ 2·10⁻⁷. (5) Kurtosis 3.004 (Gaussian 3, σ 0.016).</p>
+
+<h2 id="simfold"><code>testSimulateFold</code> (C1, 20 Oct)</h2>
+<p>No data files (synthetic power in tempdir). (1) Conventions: a noise-free synthetic power series (the generator's periodic Gaussian,
+erf-averaged over 1 µs bins, pulses at phase 0.0123) folded by <code>foldProfile</code> vs <code>simulateFold</code>'s mean profile: max
+difference 5.3·10⁻⁵ of the pulse peak (limit 5·10⁻⁴; a one-bin shift would be ~10⁻²); all of <code>foldProfile</code>'s fold, sub-int and
+info fields present. (2) Noise with asymptotic weights, 4000 sub-ints: variance 0.9999, neighbour correlation 0.2497 (0.25), lag 2 −0.0002;
+with a 0 dB pulse the residuals in the bright bins variance 0.998 (self-noise ∝ <var>m</var>²). (3) Weights copied from the
+<code>foldProfile</code> fold: variance 0.9996, correlation − model −0.0002. (4) <code>foldToTOA</code> on simulated folds at −5 dB: 400 TOAs,
+SNR 93.5, σ 2.907 µs, pulls mean +0.10, std 0.997 (±0.035); H0, 3000 sub-ints: T0 mean +0.026, std 1.000. (5) 20 h in 60 s sub-ints
+(1200 sub-ints): 0.05 s. Channels (C4a): (6) closed-form weights with correlated time bins vs <code>foldProfile</code> with
+<code>NoiseCoeffs</code>: 2·10⁻⁵ relative; (7) 16 channels, lag correlations 0.2583 / 0.0012 / 0.0002 (model 0.2586 / 0.0012 / 0), channels
+independent; (8) 128 channels at −5 dB with optimal weighting: pulls std 1.005, σ within 1 % of the one-channel full-band fold. RFI profile (C4b): (9) a
+synthetic 8-channel profile: channel means = levels, weights = clean model × valid fraction, noise / observer model per channel as set (1.301
+for a narrowed channel, 0.361 for a strong carrier). Schedule (C3a): (10) one pass = the <code>nTurns</code> interface bit for bit; two passes with
+10 s sub-ints → 3 + 3 sub-ints, every turn inside its pass, the expected turnRef / tRef; TOAs valid on the absolute time axis. Scintillation
+(C3b): (11) <code>'FluxScale'</code> 0.25 → fitted amplitude ratio 0.250 ± 0.001; the drawn field: mean 0.97, variance 0.92, P(<var>F</var> &lt; 0.1)
+0.097 (exponential: 0.095), intensity correlation 0.363 at the scintle time (1/e = 0.368) and 0.490 at the scintle bandwidth (0.5); the band
+average keeps mean 1 with variance 0.25; <code>'Scintillation', []</code> = off, bit for bit. Adaptive sub-ints (C3c): (12)
+<code>mergeSubints</code> of the one-turn fold in groups of 5 = the 5-turn <code>foldProfile</code> fold (10⁻¹²); <code>adaptiveSubints</code> at −25 dB: 109
+groups closed at T0 ≥ 7 (median 36 turns), TOA pulls mean +0.15, std 0.975; with 2 s scintles 147 groups (median 7), pulls −0.08 / 1.04, bright
+stretches close sooner; no group across a gap between passes.</p>
+
+<h2 id="simvschain"><code>expSimVsChain</code> (experiment, C2, 20 Oct)</h2>
+<p><code>simulateFold</code> against the voltage chain: simulated folds (2000 one-turn sub-ints per point) at the settings of the saved
+full-band sweeps (−25…+20 dB and the −20…−15 dB threshold sweep), with the chain's signal gain (0.9958) and the observer's
+<var>B</var><sub>n</sub>, processed by <code>foldToTOA</code>. Median σ within 0–4 % at every point (e.g. −15 dB 24.53 / 24.91 µs, −5 dB
+2.907 / 2.916 µs, +20 dB 0.4721 / 0.4722 µs); detection probabilities and outlier rates within the chain's binomial errors (−20 dB
+P<sub>D</sub> 0.711 / 0.728 known, 0.433 / 0.361 ± 0.052 unknown phase); H0 T0 std 0.9925 ± 0.010 (chain 1.008 ± 0.024), lag-1 0.2491
+(0.2484). Weights copied from <code>main</code>'s fold give the same σ as the asymptotic ones (2.9148 / 2.9146 µs). Conclusion: the simulator
+reproduces the voltage chain from the threshold to high SNR. <b>Channel path (C4a):</b> 128 channels with the chain's noise coefficients and the
+true pulse fraction per channel from the forward band-edge taper (0.023 / 0.417 / 0.960 in the outer channels), observer gain 1: −5 dB σ
+2.943 µs, SNR 92.3, mean χ²<sub>red</sub> 1.0069, <code>pChi2</code> below 0.05 in 20.5 % — the chain's channel Monte Carlo: 2.950 µs, 1.0063, 20.5 %;
+with all gains 1 the χ² excess and the <code>pChi2</code> skew vanish (item 3 is the whole cause); −15 dB χ² 0.9991, <code>pChi2</code> mean 0.533
+(chain 0.9987, 0.537). Needs <code>main</code>'s full-band files, its channel power info and the two sweep files.</p>
+
+<h2 id="simrfi"><code>expSimRFI</code> (experiment, C4b, 20 Oct)</h2>
+<p><code>simulateFold</code> with RFI profiles (<code>rfiProfile</code>, measured by <code>runRFIProfile</code> on a voltage-chain run without
+pulsar: level, true noise coefficients and valid fraction per channel) against <code>runRFITest</code> at −5 dB with excision: noise only SNR
+91.9 / 92.3 (chain / simulated), σ 2.956 / 2.942 µs, χ² 1.008 / 1.006; realistic scenario 82.0 / 82.8, 3.317 / 3.286 µs, 1.063 / 1.071;
+narrow Inmarsat carriers 80.5 / 81.2, 3.382 / 3.351 µs, 1.223 / 1.245 — within ~1 % (the chain's SNR ~0.5 % lower in every case: its
+excision clips a few pulse peaks at −5 dB). Part 2: production numbers with the 1 s profiles (steady part).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
 <p>Question from a meeting: a matched filter at 100 kHz looks less noisy than at 1 kHz, so should a higher <code>f_out</code> help? Two experiments, 300 trials,

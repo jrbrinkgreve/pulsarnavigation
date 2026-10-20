@@ -35,6 +35,8 @@ Inputs (pipelineParams builds rx, proc, files from its variables):
              excisionArgs   name-value options for detectRFI
              periodicMask   with excision: periodicRFI's windows too
              periodicArgs   name-value options for periodicRFI
+             weightsArgs    (optional field) name-value options for blankingWeights,
+                            e.g. {'MaxMemoryGB', 8} for runs longer than ~0.8 s
   files    output files: full band dedisp, envelope, fold; channels chanIQ,
            chanBlank, chanDedisp, chanPower (no excision), chanDedispB,
            chanPowerB (excision: own files, so the unblanked ones stay),
@@ -151,8 +153,10 @@ else
         % Dedispersion spreads each blank over the filter's reach: the exact valid
         % fraction W and noise V, X of every detected bin, from the mask and each filter
         if excision
+            wArgs = {};
+            if isfield(proc, 'weightsArgs'), wArgs = proc.weightsArgs; end
             info_w = blankingWeights(info_chan, info_dc, info_det, info_chanD.mask, ...
-                files.chanWeight, vb{:});
+                files.chanWeight, wArgs{:}, vb{:});
         end
         out.info_chan = info_chan;
     else

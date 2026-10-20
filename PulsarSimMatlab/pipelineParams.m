@@ -94,6 +94,16 @@ end
 if ~isempty(rfiSelect), rfi = rfi(rfiSelect); end
 if ~rfiOn || isinf(snrDB), rfi = struct([]); end
 
+% --- Interstellar scintillation (fast simulator only: simulateFold 'Scintillation', C3b)
+% The voltage chain (main.m, the run scripts) has no scintillation and ignores this. Off by
+% default, so validation runs stay as they were; pass scintSim to simulateFold: [] while off.
+% J0437 at 1.4 GHz: scintle bandwidth ~740 MHz (HWHM), scintle time ~2290 s (1/e) (IAR 2020,
+% arXiv:2010.00010, rescaled from Keith et al. 2013; varies between epochs by factors 2-3).
+scintOn  = false;
+scint    = struct('bandwidth', 740e6, 'timescale', 2290, 'band', [fLow fHigh]);
+scintSim = [];
+if scintOn, scintSim = scint; end
+
 % --- Processing
 refFreq       = fHigh;  % [Hz] dedispersion reference frequency (same as generation)
 f_out         = 1e6;    % [Hz] detected-power bin rate

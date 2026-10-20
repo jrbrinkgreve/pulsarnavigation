@@ -58,6 +58,8 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_toa.py` | FFTFIT: profile, cross-correlation, weights | toa.html |
 | `gen_det.py` | T0 and Tmax under H0 / H1 (simulated, ~1 min) | detection.html |
 | `gen_results.py` | phase D sweep and threshold sweep | results.html |
+| `gen_simvschain.py` | fast simulator vs voltage chain: median σ and P_D against ρ (C2) | simulator.html |
+| `gen_scint.py` | scintillation as simulateFold draws it: dynamic spectra (J0437, 50 MHz scintles), J0437's band-averaged flux | physics.html (10) |
 | `gen_scen.py` | time per TOA vs precision of the candidate pulsars | scenario.html |
 
 The flowcharts (pipeline run control, ground-truth rule, info chain, receiver blocks,
