@@ -14,11 +14,12 @@
 <p class="meta">Status as of 14 October 2026 (commit <code>6ad5b4c</code>). Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
-<p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now) and the review
-week (12–16 Oct), which explained every stage. Now: the processing as one function, <code>processIQ</code> (IQ in, fold out; then <code>foldToTOA</code>), and with it
-the multi-seed Monte Carlo of the default channel path (A3b). Next: a fast simulator for hours of data (C), then Earth's motion and the phase
-prediction (D), then several pulsars and the navigation solution (E). The order follows from the reference scenario: a TOA takes
-~20 hours, so it must be simulated fast and folded across passes.</p></div>
+<p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the review
+week (12–16 Oct) and the processing as one function, <code>processIQ</code> (19 Oct). Now (block C, since 20 Oct): the fast simulator
+<code>simulateFold</code> is built and validated — channels, RFI profiles, passes, scintillation, adaptive sub-ints, dual polarization,
+multi-component profiles, per-channel noise calibration — and the first scenario runs give TOA budgets for B0329+54 (the Netherlands)
+and J0437 (30° S). Next: the RFI variants of the scenario, the chain check of the noise calibration, then Earth's motion and the phase
+prediction (D), then several pulsars and the navigation solution (E).</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -150,6 +151,14 @@ model (<var>m</var>²/(<var>B</var><sub>n</sub>·binDt), neighbour correlation 0
 Order C4a → C4b → C3 (20 Oct). <b>C2</b> validation against the voltage chain (−5 / −20 dB, H0, the weak-regime threshold). <b>C3</b> time structure:
 passes, sub-int lengths, scintillation as a flux factor, adaptive sub-int length. <b>C4</b> channels (scintillation across the band,
 RFI/excision effects, item 3). Hook for D: a true phase drifting against the ephemeris.</p>
+<p><b>Status (20 Oct, evening).</b> Validated by Jasper's runs: C1–C4b, C3a–c (passes, scintillation, adaptive sub-ints), dual polarization
+(<code>'NPol'</code>), groups over gaps (<code>'AcrossGaps'</code>), the scintillation grid fix, multi-component profiles (<code>'Components'</code>,
+component templates), the calibrated observer (<code>'ObserverNoise'</code>) and the per-channel noise calibration on synthetic data
+(<code>testRFIModel</code> 5). Done, Claude's runs: <code>expSimVsChain</code>, <code>expSimRFI</code> (RFI costs 10–12 % SNR), the default
+DM 25 / L 0.2 s with a comparison dataset, <code>runScenario</code> clean (<a href="scenario.html#simulated">scenario</a>). Running / open:
+<code>testRFIChain</code> (second moments hold on the chain; revised checks rerunning), channel 61's extra non-Gaussianity (carrier and
+impulses each ruled out; partly blanked bins under test), error-bar honesty at SNR ~7 (a fat tail with B0329+54's components, too large
+error bars for J0437), the chain check of <code>noiseCal</code>, the RFI variants of the scenario.</p>
 <h3>Design draft (6 Oct)</h3>
 <ul>
 <li>Draws the fold struct directly (same fields as <code>foldProfile</code>), plus a separate <code>truth</code> struct.</li>
@@ -171,7 +180,7 @@ clock model. A hard requirement since the reference scenario: a TOA is folded ac
 <tr><th>Item</th><th>Note</th></tr>
 <tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
-<tr><td><span class="badge todo">todo</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
+<tr><td><span class="badge validated">done 20 Oct</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
 <tr id="processiq"><td><span class="badge todo">next</span> The processing as one function: <code>processIQ</code></td><td>The same stage calls appear in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code>, <code>runH0</code> (and <code>runRFITest</code>, <code>runLockedRadar</code>). First idea (16 Oct): one function from the sky to the TOAs. Rejected by Jasper: real IQ data enter between the simulation and the processing, and the operational processing will run on an FPGA/GPU. Design (16–19 Oct, Jasper: boundary at IQ, both front ends): three roles —
 <b>simulate</b> (truth; stand-in for antenna + ADC/DDC: generate → disperse → <code>addNoiseAndRFI</code> → <code>applyIQmodulation</code>), <b>process</b>
 (<code>processIQ(info_IQ, rx, ephem, proc, files)</code>: filterbank or full-band dedispersion through the fold; then <code>foldToTOA</code>: TOAs, detection and the good-TOA rule; they get only
@@ -181,7 +190,7 @@ in pieces and by single-seed runs, never end to end over seeds); C is validated 
 through the separate <code>ephem</code> input; real recordings go in unchanged; the FPGA/GPU port is checked against its outputs. Before C (Jasper, 16 Oct).
 Steps: <code>processIQ</code> + <code>main</code> (outputs identical; <b>done 19 Oct</b>) → <code>runMonteCarlo</code> on the channel path (A3b; <b>done 19 Oct</b>) → <code>runSNRSweep</code>, <code>runH0</code>, <code>runRFITest</code> (<b>done 19 Oct</b>; full band and RFI cases bit-identical, <code>runH0</code> on the channel path: false alarms at design); <code>runLockedRadar</code>
 stays (it processes difference channels by superposition).</td></tr>
-<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first.</td></tr>
+<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first (done 20 Oct: <code>simulateFold</code> <code>'NPol'</code>); the voltage chain stays single-pol for now.</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Lag-array memory fixed the same day (bit-identical). Still open: run time ∝ bin length, and whole-file processing (<code>blankingWeights</code>, <code>detectRFI</code>, <code>periodicRFI</code>; L = 1 s already exceeds the 4 GB default): "excision for long data", when real data is close.</td></tr>
 <tr><td><span class="badge todo">todo</span> Generator refinements (review, 12 Oct)</td><td>R1 done 13 Oct: <code>tests/testGeneratePulsarSignal.m</code> (power profile against an exact periodic sum, ground truth, reproducibility; same file for any <code>BlockSize</code>, confirmed; passes, Jasper's run 13 Oct). The overlap warning now comes above 20 % duty (was 50 %; real pulsars stay below ~20 %). Noted, not started: R2: remove the legacy <code>'amplitude'</code> mode (generator, <code>pipelineParams</code>, three drivers, five downstream functions). R3: a true pulse offset unknown to the observer (<code>'TimeOffset'</code>; today every end-to-end run has true offset 0 because <code>ephem.TRef</code> is the exact true epoch); <code>validateTOA</code> then compares the whole-fold offset with the truth.</td></tr>

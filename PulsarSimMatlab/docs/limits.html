@@ -146,15 +146,20 @@ J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km
 B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7 ms TOAs, after 184 h on source worst case (34 h nominal),
 ~2–3 weeks of calendar time with visibility; from 52° N (no MSP) ~1500 km after weeks to months. See <a href="scenario.html">scenario</a>.</li>
 <li><b>Single pulsar.</b></li>
-<li><b>Stable Gaussian profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization. Places to revisit for real profiles:
-<code>ephem.profileFWHM</code> (→ a template per pulsar), the generator and <code>expectedPowerModel</code> profile, the 1 %-of-peak on-pulse threshold in
-<code>estimateTOA</code>.</li>
+<li><b>Stable profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization, no mode changes (B0329+54: abnormal
+mode ~15 % of the time). Since 20 Oct the fast simulator and the TOA code take multi-component profiles (B0329+54's five Gaussians at
+1410 MHz; a single Gaussian with the catalogue W<sub>50</sub> overstated its peak by 3 dB, and its TOA budget by 3×); the voltage-chain generator
+and <code>expectedPowerModel</code> are still single-Gaussian, and J0437's wings (W<sub>10</sub> 1.02 ms vs W<sub>50</sub> 0.14 ms) are not modelled yet.</li>
 </ul>
 
 <h2 id="estimation">Estimation and detection</h2>
 <ul>
 <li>FFTFIT is not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB); irrelevant at weak signal.</li>
 <li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
+<li><b>Error bars at SNR ~7 (found 20 Oct, under investigation).</b> The formal σ uses the fitted amplitude, so at low SNR it is too small when
+noise inflates the amplitude and too large when it deflates it (scenario runs: pull width 0.7 below the median fitted SNR, 1.1–1.4 above).
+Overall honest for a single Gaussian (B0329+54 1.04), a fat tail with a five-component template (1.18, robust 1.01, one TOA at 6.9σ), and
+error bars ~30 % too large in the core for J0437 (robust 0.67). Being checked against fixed sub-ints at SNR 5–40.</li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
 <li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).

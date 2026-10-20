@@ -2332,6 +2332,17 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    time for the same σ; error bars honest within ~7 %; the χ² excess (noise mis-modelled in the
    partly covered channels) does not shrink with SNR, so pChi2 < 0.05 for every TOA with RFI (the
    drop rule MaxRedChi2 2 is unaffected) — an argument for the parked per-channel noise calibration.
+   **Evening 20 Oct (log 2026-10-20_blockC.md for numbers):** default DM 25 and L 0.2 s (DM-5 dataset in
+   data/ref_DM5_L0.1, per-turn results identical); simulateFold 'NPol', 'AcrossGaps', scintField grid
+   fix, 'Components' (+ gaussianTemplate/foldToTOA component templates), 'ObserverNoise'; per-channel
+   noise calibration on the chain (rfiProfile 'OnPulse', foldProfile 'ChannelNoise', processIQ
+   proc.noiseCal, off by default) — all validated by Jasper's runs (testSimulateFold 1–15, testRFIModel
+   1–5) except the chain check (runRFITest narrow Inmarsat with noiseCal: next). runScenario (clean,
+   30 d): B0329+54 with its five components 9.6 / 1.8 TOAs per day (nominal / worst), 2.0 / 11.0 h each,
+   σ 730 µs; J0437 3.7 / 0.73, 3.25 / 16.5 h, σ 11.5 µs. testRFIChain: second moments hold on the chain
+   (realistic case); checks revised (kurtosis decay, one-sided pooled flatness/blanking), rerun pending.
+   Open: channel 61's extra non-Gaussianity (carrier and impulses each ruled out; partly blanked bins
+   tested), error-bar honesty at SNR ~7 (fat tail with B0329+54's components, too large for J0437).
 4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
