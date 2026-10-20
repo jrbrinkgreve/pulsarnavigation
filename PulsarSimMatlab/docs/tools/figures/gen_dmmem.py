@@ -18,7 +18,7 @@ def chan(DM):
     fs = 800e6/192; g = np.ceil(20/62.5e3*fs)
     return p2(2*(np.ceil(K*DM*(1/fL**2 - 1/fH**2)*fs) + 2*g))*56
 DMs = np.logspace(0, np.log10(200), 400)
-for DM in (5, 30, 60, 100):
+for DM in (5, 25, 30, 60, 100):
     print(DM, 'fwd %.1f GB' % (fwd(DM)/1e9), 'full %.2f GB' % (full(DM)/1e9), 'chan %.1f MB' % (chan(DM)/1e6))
 o = []
 A = Ax(90, 40, 520, 250, (1, 200), (1e6, 3e11), logy=True)
@@ -33,15 +33,15 @@ for fn, cls, lab in ((fwd, 'curve4', 'stage 2: simulator, real 4 GHz'), (full, '
     v = np.array([fn(d) for d in DMs])
     pts = ' L'.join(f'{lx(a):.1f} {float(A.Y(b)):.1f}' for a, b in zip(DMs, v))
     o.append(f'<path class="{cls}" d="M{pts}"/>')
-for x in (5, 100):
+for x in (25, 100):
     o.append(f'<path class="thin" d="M{lx(x):.1f} {A.y0} V{A.y0 + A.h}"/>')
-o.append(f'<text class="sub" x="{lx(5) + 4:.1f}" y="{A.y0 + 12}">DM 5: now</text>')
+o.append(f'<text class="sub" x="{lx(25) + 4:.1f}" y="{A.y0 + 12}">DM 25: now</text>')
 o.append(f'<text class="sub" x="{lx(100) - 4:.1f}" y="{A.y0 + 12}" text-anchor="end">DM 100: target</text>')
 ly = float(A.Y(5e7))
 for i, (cls, lab) in enumerate((('curve4', 'stage 2: simulator, real 4 GHz'), ('curve2', 'stage 5: full band, 800 MHz'), ('curve', 'stage 5b: one channel, 4.17 MHz'))):
     o.append(f'<path class="{cls}" d="M{A.x0 + 10} {ly + 16*i - 4:.1f} h18"/><text class="sub" x="{A.x0 + 34}" y="{ly + 16*i:.1f}">{lab}</text>')
 nx = 632
-notes = [('ttl', 'At DM 100'), ('sub', 'simulator ~47 GB (open)'), ('sub', 'full band ~15 GB'), ('sub', 'one channel ~120 MB'), ('sub', ''),
+notes = [('ttl', 'At DM 25 (now)'), ('sub', 'simulator 11.8 GB, full band 3.8 GB'), ('sub', ''), ('ttl', 'At DM 100'), ('sub', 'simulator ~47 GB (open)'), ('sub', 'full band ~15 GB'), ('sub', 'one channel ~120 MB'), ('sub', ''),
          ('sub', 'A channel holds 1/128 of the'), ('sub', 'band at 1/192 of the rate, so its'),
          ('sub', 'filter spans its sweep in ~200×'), ('sub', 'fewer samples. Channels run one'), ('sub', 'after another.')]
 for i, (c, line) in enumerate(notes):

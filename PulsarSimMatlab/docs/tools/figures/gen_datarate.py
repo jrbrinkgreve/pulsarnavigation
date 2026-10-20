@@ -21,7 +21,7 @@ lo, hi = 6, 11
 X = lambda b: x0 + (np.log10(b) - lo)/(hi - lo)*(x1 - x0)
 o = []
 y0, dy = 50, 24
-o.append(f'<text class="ttl" x="10" y="20">bytes written per second of simulated signal (L = 0.1 s writes a tenth)</text>')
+o.append(f'<text class="ttl" x="10" y="20">bytes written per second of simulated signal (the default L = 0.2 s writes a fifth)</text>')
 for i, (g, f, what, b) in enumerate(rows):
     y = y0 + i*dy + (12 if i >= 4 else 0) + (12 if i >= 6 else 0)
     o.append(f'<rect class="{cls[g]}" x="{x0}" y="{y}" width="{X(b) - x0:.1f}" height="{dy - 7}" rx="3"/>')

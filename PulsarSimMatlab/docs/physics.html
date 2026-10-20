@@ -218,18 +218,18 @@ noise model includes it.</p>
 <h2 id="dispersion">3. Interstellar dispersion</h2>
 <div class="callout note"><span class="ttl">In short</span>
 <p>Free electrons between the pulsar and us delay low frequencies more than high ones. Across this band the delay differs by
-6.3 ms, more than ten times the pulse width. The delay is known exactly from one number, the DM, so it can be undone exactly.</p></div>
+31.5 ms at the simulation's DM 25: sixty times the pulse width, three rotation periods. The delay is known exactly from one number, the DM, so it can be undone exactly.</p></div>
 <p>A cold plasma has a frequency-dependent refractive index, so the <b>group delay</b> depends on frequency:</p>
 <div class="eq">\[ \tau(f) = \frac{K\,\mathrm{DM}}{f^2}, \qquad K = 4.148808\times10^{3}\ \mathrm{s\,MHz^2\,pc^{-1}\,cm^{3}} \]</div>
 <dl class="where">
 <dt>\(\tau(f)\)</dt><dd>dispersion delay at radio frequency \(f\), relative to infinite frequency [s]</dd>
 <dt>\(f\)</dt><dd>radio frequency [MHz in this formula]; the band is 1200–1600 MHz (<code>fLow</code>, <code>fHigh</code>)</dd>
-<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 5)</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 25 since 20 Oct; 5 before)</dd>
 <dt>\(K\)</dt><dd>dispersion constant (from the electron charge and mass)</dd>
 </dl>
-<p>DM (dispersion measure) is the number of free electrons along the line of sight. For DM = 5 pc cm⁻³ the delay is 8.103 ms at
-1.6 GHz and 14.406 ms at 1.2 GHz. So each pulse is smeared over <b>6.30 ms</b> across the 400 MHz band, more than ten times the
-0.5 ms pulse width.</p>
+<p>DM (dispersion measure) is the number of free electrons along the line of sight. For DM = 25 pc cm⁻³ the delay is 40.52 ms at
+1.6 GHz and 72.03 ms at 1.2 GHz. So each pulse is smeared over <b>31.51 ms</b> across the 400 MHz band, sixty times the
+0.5 ms pulse width and longer than three rotation periods (at DM 5, the default until 20 Oct: 6.30 ms).</p>
 <figure>
 <svg viewBox="0 0 860 210" role="img" aria-label="Dispersion sweep: lower frequencies arrive later">
   <path class="axis" d="M60 30 V170 H840"/>
@@ -246,7 +246,8 @@ noise model includes it.</p>
   <text x="270" y="100" font-size="12" class="muted">6.3 ms sweep per pulse (DM 5)</text>
 </svg>
 <figcaption>Three pulses 10 ms apart in a frequency–time plane, DM 5, delays relative to 1.6 GHz. Summing over
-frequency without correcting this would smear each pulse over 6.3 ms.</figcaption>
+frequency without correcting this would smear each pulse over 6.3 ms. Drawn at DM 5 so the sweeps stay apart: at DM 25 each sweep lasts
+31.5 ms, so at any moment the band holds parts of three or four pulses.</figcaption>
 </figure>
 <p>Two properties make an exact correction possible:</p>
 <ul>
@@ -664,7 +665,7 @@ TOAs. They must be found and blanked on the channel voltages, before dedispersio
 <tr><td>Carrier (cw)</td><td>spurious tone</td><td>one frequency, always on</td><td>lowers SNR; TOAs stay valid</td></tr>
 <tr><td>Spread spectrum (bpsk)</td><td>GNSS L1, L2</td><td>1–20 MHz wide, always on, constant envelope</td><td>lowers SNR; TOAs stay valid</td></tr>
 <tr><td>Pulsed</td><td>L-band radar</td><td>2 µs pulses at a repetition frequency, +20 dB</td><td><b>destroys TOAs</b> with confident error bars</td></tr>
-<tr><td>Impulse</td><td>broadband bursts</td><td>200 ns bursts across the whole band</td><td>harmless after coherent dedispersion (spread over 6.3 ms)</td></tr>
+<tr><td>Impulse</td><td>broadband bursts</td><td>200 ns bursts across the whole band</td><td>harmless after coherent dedispersion (spread over the 31.5 ms sweep)</td></tr>
 <tr><td>Noise-like (noise, since 8 Oct)</td><td>LTE / OFDM, Inmarsat</td><td>band-limited Gaussian noise, indistinguishable from receiver noise</td><td>extra noise in its channels</td></tr>
 </table></div>
 <div class="callout why"><span class="ttl">Design choice: blank, do not subtract, and do it before dedispersion</span>

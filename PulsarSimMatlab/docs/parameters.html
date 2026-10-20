@@ -173,18 +173,18 @@ then cuts the band into 128 channels whose edges fall on the band edges (fine li
   <circle cx="366.6" cy="150" r="3.5" style="fill:var(--why)"/>
   <text class="sub" x="366.6" y="80.0" text-anchor="middle" style="fill:var(--why)">pulse FWHM</text>
   <text class="lbl" x="366.6" y="93.0" text-anchor="middle">0.5 ms</text>
-  <path class="thin" d="M420.2 150 V174.0" opacity="0.7"/>
-  <circle cx="420.2" cy="150" r="3.5" style="fill:var(--why)"/>
-  <text class="sub" x="420.2" y="194.0" text-anchor="middle" style="fill:var(--why)">dispersion sweep</text>
-  <text class="lbl" x="420.2" y="207.0" text-anchor="middle">6.3 ms</text>
+  <path class="thin" d="M454.3 150 V174.0" opacity="0.7"/>
+  <circle cx="454.3" cy="150" r="3.5" style="fill:var(--why)"/>
+  <text class="sub" x="454.3" y="194.0" text-anchor="middle" style="fill:var(--why)">dispersion sweep (DM 25)</text>
+  <text class="lbl" x="454.3" y="207.0" text-anchor="middle">31.5 ms</text>
   <path class="thin" d="M430.0 150 V130.0" opacity="0.7"/>
   <circle cx="430.0" cy="150" r="3.5" style="fill:var(--why)"/>
   <text class="sub" x="430.0" y="116.0" text-anchor="middle" style="fill:var(--why)">period</text>
   <text class="lbl" x="430.0" y="129.0" text-anchor="middle">10 ms</text>
-  <path class="thin" d="M478.8 150 V94.0" opacity="0.7"/>
-  <circle cx="478.8" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="478.8" y="80.0" text-anchor="middle" style="fill:var(--fg)">test file L</text>
-  <text class="lbl" x="478.8" y="93.0" text-anchor="middle">0.1 s</text>
+  <path class="thin" d="M493.4 150 V94.0" opacity="0.7"/>
+  <circle cx="493.4" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="493.4" y="80.0" text-anchor="middle" style="fill:var(--fg)">file length L</text>
+  <text class="lbl" x="493.4" y="93.0" text-anchor="middle">0.2 s</text>
   <path class="thin" d="M527.5 150 V130.0" opacity="0.7"/>
   <circle cx="527.5" cy="150" r="3.5" style="fill:var(--fg)"/>
   <text class="sub" x="527.5" y="116.0" text-anchor="middle" style="fill:var(--fg)">reference runs</text>
@@ -205,14 +205,14 @@ then cuts the band into 128 channels whose edges fall on the band edges (fine li
 </svg>
 <figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
-bins resolve the 212 µs pulse. The 0.1 s test file holds ten turns; a TOA at the design point needs about a million times longer, which
+bins resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a million times longer, which
 is why block C plans a fast simulator.</figcaption>
 </figure>
 
 <h2 id="pulsar">1. Pulsar (ground truth for generation)</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>10 pulses per 0.1 s test file; close to J0437 (5.76 ms), the target millisecond pulsar.</td><td>generator; <code>ephem.f0</code></td></tr>
+<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the target millisecond pulsar.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>A</code></td><td>1</td><td>pulsar noise std at the pulse peak (signal scale)</td><td>Sets the scale only; the receiver noise is set relative to it through <code>snrDB</code>.</td><td>generator; <code>addNoiseAndRFI</code> via <code>info_gen</code></td></tr>
 <tr><td><code>dutycycle</code></td><td>5 %</td><td>pulse FWHM as a percentage of <var>T</var> → 0.5 ms, σ<sub>t</sub> = 212.3 µs</td><td>Typical of real pulsars (a few percent).</td><td>generator; <code>ephem.profileFWHM</code></td></tr>
 <tr><td><code>genEnvMode</code></td><td><code>'power'</code></td><td>the FWHM refers to the power profile</td><td>The processing detects power; see <a href="sky.html#gen">sky</a>.</td><td>generator</td></tr>

@@ -85,7 +85,7 @@ the part that turns raw antenna voltages into those arrival times.</p>
 <div class="cards">
   <a class="card" href="physics.html#emission"><b>The pulse is noise</b><span>No waveform to correlate with: the information is in the power, so the processing squares, then folds.</span></a>
   <a class="card" href="scenario.html"><b>It is extremely weak</b><span>~54 dB below the noise on the target hardware. One pulse is invisible; a TOA takes hours.</span></a>
-  <a class="card" href="physics.html#dispersion"><b>The sky smears it</b><span>Interstellar electrons spread each pulse over 6.3 ms across the band. It must be undone exactly.</span></a>
+  <a class="card" href="physics.html#dispersion"><b>The sky smears it</b><span>Interstellar electrons spread each pulse over 31.5 ms across the band (DM 25). It must be undone exactly.</span></a>
   <a class="card" href="excision.html"><b>Interference is far stronger</b><span>One radar pulse outweighs ~80,000 pulsar pulses: it must be blanked, not reduced.</span></a>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
@@ -168,7 +168,7 @@ the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
   independent of the noise; set it to <code>false</code> once its files exist.</li>
   <li>Run <code>main</code>. It prints a disk estimate, each stage's progress, the TOAs, the detection result and the validation against the truth.</li>
 </ol>
-<p>Disk use is large: about 61 GB per second of simulated data at 800 MHz; the default <var>L</var> = 0.1 s needs roughly a tenth of that.
+<p>Disk use is large: about 61 GB per second of simulated data at 800 MHz; the default <var>L</var> = 0.2 s needs roughly a fifth of that.
 See <a href="scripts.html">run scripts</a>.</p>
 
 <h2>Folder layout</h2>

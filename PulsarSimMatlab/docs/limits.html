@@ -203,7 +203,7 @@ strong pulses (block-B handover <a href="../logs/2026-10-09_handover-B-closed.md
 
 <h2 id="edges">Edges and scale</h2>
 <ul>
-<li>The last ~6.3 ms of each file are not fully supported; partial first and last turns are skipped (<code>MinCoverage</code> = 1).</li>
+<li>The last sweep of each file (31.5 ms at DM 25; 6.3 ms at DM 5) is not fully supported; partial first and last turns are skipped (<code>MinCoverage</code> = 1).</li>
 <li><b>High DM in the generator:</b> forward dispersion needs ~47 GB from DM ~54 up to DM ~106, so at both DM 60 and DM 100 (24 GB machine). The processing side is solved by the
 channelized front end; the generator side is open (<a href="roadmap.html#dm">roadmap</a>).</li>
 <li>Disk per second of simulated data: ~61 GB on the full band, ~63 GB on the channel path, ~72 GB with excision

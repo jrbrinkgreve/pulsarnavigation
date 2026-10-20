@@ -314,10 +314,10 @@ only needs the later stages. A mismatch gives a warning rather than an error, so
 <p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
 The channel path adds the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the blanked copies
 and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first. At <var>L</var> = 1 s and 800 MHz the
-full-band files alone are about 61 GB; the default <var>L</var> = 0.1 s needs a tenth of that.</p>
+full-band files alone are about 61 GB; the default <var>L</var> = 0.2 s (since 20 Oct) needs a fifth of that.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 390" role="img" aria-label="Bytes written per second of simulated signal by each stage, on a log scale, against the 24 GB memory">
-  <text class="ttl" x="10" y="20">bytes written per second of simulated signal (L = 0.1 s writes a tenth)</text>
+  <text class="ttl" x="10" y="20">bytes written per second of simulated signal (the default L = 0.2 s writes a fifth)</text>
   <rect class="box sky" x="330" y="50" width="395.2" height="17" rx="3"/>
   <text class="mono" x="10" y="63">test.dat</text>
   <text class="sub" x="322" y="63" text-anchor="end">generator, real 4 GHz</text>

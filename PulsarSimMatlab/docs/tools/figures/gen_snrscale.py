@@ -43,7 +43,7 @@ notes = [('ttl', 'At the design target'), ('sub', 'ρ = 10⁻⁵·⁴ = 4.0·10�
          ('sub', 'SNR grows as √(turns folded), so'), ('sub', 'one TOA at SNR 7 needs ~2·10⁷ turns:'),
          ('sub', '~62 h for this 10 ms pulsar.'), ('sub', ''), ('ttl', 'The test runs'),
          ('sub', '−5 dB is ~80,000× brighter:'), ('sub', 'every turn gives a usable TOA,'),
-         ('sub', 'so a short run (0.1 s, 8–9 TOAs)'), ('sub', 'tests the whole chain.')]
+         ('sub', 'so a short run (0.2 s, 15–16 TOAs)'), ('sub', 'tests the whole chain.')]
 for i, (c, line) in enumerate(notes):
     o.append(f'<text class="{c}" x="{nx}" y="{58 + 17*i}">{line}</text>')
 svg = '''<figure class="scroll">

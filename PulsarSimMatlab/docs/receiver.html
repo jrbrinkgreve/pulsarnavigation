@@ -174,7 +174,7 @@ real data.</p>
 <figcaption>Why noise and RFI are added <em>after</em> dispersion (expected power in 16 sub-bands of 25 MHz, the code's constants). a: the
 receiver sees the pulsar already dispersed, but an impulse made at the receiver arrives at all frequencies at once, and a carrier is
 simply on. b: dedispersion moves each frequency earlier by τ(<var>f</var>) − τ(1.6 GHz). The pulsar lines up; the impulse becomes an
-<em>inverse</em> sweep, 6.3 ms long; the carrier stays where it was. Real data behaves like this, so the simulator must add RFI at this
+<em>inverse</em> sweep, 6.3 ms long at the DM 5 drawn here (31.5 ms at DM 25); the carrier stays where it was. Real data behaves like this, so the simulator must add RFI at this
 point. It also shows why excision works <em>before</em> dedispersion: there the impulse is short and in one place.</figcaption>
 </figure>
 
@@ -255,7 +255,7 @@ noise's. In radio-astronomy terms it is <var>S</var><sub>peak</sub>/SEFD. In the
   <text class="ttl" x="672" y="177">The test runs</text>
   <text class="sub" x="672" y="194">−5 dB is ~80,000× brighter:</text>
   <text class="sub" x="672" y="211">every turn gives a usable TOA,</text>
-  <text class="sub" x="672" y="228">so a short run (0.1 s, 8–9 TOAs)</text>
+  <text class="sub" x="672" y="228">so a short run (0.2 s, 15–16 TOAs)</text>
   <text class="sub" x="672" y="245">tests the whole chain.</text>
 </svg>
 <figcaption>What a value of <code>snrDB</code> means, from the radiometer equation that <code>addNoiseAndRFI</code> prints (flat 400 MHz band,
