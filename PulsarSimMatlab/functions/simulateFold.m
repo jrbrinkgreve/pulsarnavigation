@@ -41,6 +41,13 @@ Inputs:
 
 Name-value options:
   'FWHM'          [turns] FWHM of the Gaussian power profile (default 0.05)
+  'Components'    [nComp x 3] alternative to FWHM (20 Oct 2026): the power profile as a
+                  sum of Gaussians, rows [amplitude, centre (turns), FWHM (turns)], scaled
+                  to peak 1 (so rhoDB stays the pulse peak over the noise); phase 0 is the
+                  components' reference point (the pulse sits at PhaseOffset; a perfect
+                  TOA fit with gaussianTemplate(NBin, components) returns it). E.g.
+                  B0329+54 at 1410 MHz: five components (arXiv:1703.03582, Table 2).
+                  One row [1 0 FWHM] = 'FWHM' (to 1e-12)
   'PhaseOffset'   [turns] true pulse phase against the ephemeris (the pulse
                   peak is at phase PhaseOffset; a perfect TOA fit returns it):
                   scalar or one value per sub-int (default 0)
@@ -111,7 +118,8 @@ Name-value options:
 Model (per sub-int, phase bin j at phase phi_j = (j-1)/NBin):
   mean    m_cj = 1 + g*g_c*rho * pt(phi_j - PhaseOffset) in channel c (g_c =
           ChannelGain). Baseline 1 = the receiver-noise power of the channel. pt is the unit-peak periodic Gaussian (as
-          generatePulsarSignal) averaged over a time bin and over the linear
+          generatePulsarSignal; or the peak-normalized sum of 'Components')
+          averaged over a time bin and over the linear
           assignment triangle (+-1 phase bin), exact in Fourier space:
             pt_k = p_k * sinc(k*BinDt*f0) * sinc(k/NBin)^2.
   weights for time bins spread uniformly in phase (asymptotic), with
@@ -153,7 +161,7 @@ Outputs:
   truth  T (= 1/f0), pulseCenters [nSub x 1] (true arrival time of each sub-
          int's reference pulse: tRef + PhaseOffset/f0; with T the fields
          validateTOA reads), phaseOffset, rhoDB, rho, signalGain,
-         channelGain, FWHM, Bnoise, nPol, seed, peak (g*rho, pulse peak above baseline
+         channelGain, FWHM, components, Bnoise, nPol, seed, peak (g*rho, pulse peak above baseline
          for g_c = 1); with 'RFI' also rfiLabel, level, validFraction,
          noiseRatio (long-run true / model noise per channel); pass (each sub-int's
          pass); with FluxScale or Scintillation fluxScale [nSub x NChan]
@@ -169,6 +177,7 @@ arguments
     rhoDB  (1,1) double {mustBeReal, mustBeNonNan}
     nTurns double {mustBeInteger, mustBeNonnegative}
     opts.FWHM          (1,1) double {mustBePositive, mustBeLessThan(opts.FWHM, 0.5)} = 0.05
+    opts.Components    double = []
     opts.PhaseOffset   double {mustBeFinite} = 0
     opts.NBin          (1,1) double {mustBeInteger, mustBePositive} = 2048
     opts.SubintPeriods (1,1) double {mustBeInteger, mustBePositive} = 1
@@ -352,12 +361,32 @@ end
 
 % ---- Mean profile: unit-peak periodic Gaussian, smoothed, in Fourier space -------------
 k   = [0:ceil(N/2)-1, -floor(N/2):-1].';          % signed harmonics (FFT order)
-sig = opts.FWHM / (2*sqrt(2*log(2)));               % [turns]
-kk  = -ceil(10/sig):ceil(10/sig);                   % peak of the periodic sum (the
-peakNorm = sum(exp(-2*pi^2*sig^2*kk.^2));           %   generator's normalization)
 sincF = @(x) (x == 0) + sin(pi*x) ./ (pi*x + (x == 0));
-Pk  = exp(-2*pi^2*sig^2*k.^2) / peakNorm ...        % Fourier coefficients of the profile
-      .* sincF(k*dt*f0) .* sincF(k/N).^2;           %   (per turn), time bin and assignment
+if isempty(opts.Components)
+    sig = opts.FWHM / (2*sqrt(2*log(2)));           % [turns]
+    kk  = -ceil(10/sig):ceil(10/sig);               % peak of the periodic sum (the
+    peakNorm = sum(exp(-2*pi^2*sig^2*kk.^2));       %   generator's normalization)
+    Pk  = exp(-2*pi^2*sig^2*k.^2) / peakNorm ...    % Fourier coefficients of the profile
+          .* sincF(k*dt*f0) .* sincF(k/N).^2;       %   (per turn), time bin and assignment
+else                                                % sum of Gaussian components
+    Cp = opts.Components;
+    if size(Cp, 2) ~= 3 || any(Cp(:, 3) <= 0) || ~all(isfinite(Cp), 'all')
+        error('simulateFold:components', ...
+            'Components must be [nComp x 3] rows [amplitude, centre, FWHM] (turns, FWHM > 0).');
+    end
+    sgC = Cp(:, 3) / (2*sqrt(2*log(2)));
+    Ck  = zeros(size(k));                           % Fourier series of the periodic sum
+    for i = 1:size(Cp, 1)
+        Ck = Ck + Cp(i, 1) * sgC(i) * sqrt(2*pi) * exp(-2*pi^2*sgC(i)^2*k.^2) .* exp(-2i*pi*k*Cp(i, 2));
+    end
+    pg = (0:2^16-1).' / 2^16; pf = zeros(size(pg)); % its peak on a fine grid
+    for i = 1:size(Cp, 1)
+        for m = -2:2
+            pf = pf + Cp(i, 1) * exp(-0.5*((pg - Cp(i, 2) - m) / sgC(i)).^2);
+        end
+    end
+    Pk  = Ck / max(pf) .* sincF(k*dt*f0) .* sincF(k/N).^2;
+end
 
 % ---- Draw per block of sub-ints -------------------------------------------------------------
 rs   = RandStream('mt19937ar', 'Seed', opts.Seed);
@@ -490,7 +519,8 @@ info.elapsed      = toc(tStart);
 
 truth = struct('T', 1/f0, 'pulseCenters', fold.subint.tRef + dPhi / f0, ...
     'phaseOffset', dPhi, 'rhoDB', rhoDB, 'rho', rho, 'signalGain', opts.SignalGain, ...
-    'channelGain', gC, 'pass', passOf, 'FWHM', opts.FWHM, 'Bnoise', opts.Bnoise, 'nPol', opts.NPol, ...
+    'channelGain', gC, 'pass', passOf, 'FWHM', opts.FWHM, 'components', opts.Components, ...
+    'Bnoise', opts.Bnoise, 'nPol', opts.NPol, ...
     'seed', opts.Seed, 'peak', peak);
 if haveF, truth.fluxScale = Fsc; end
 if haveRFI

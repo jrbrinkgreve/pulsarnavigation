@@ -6,7 +6,8 @@ or testRFIChain(["realistic" "inmarsatNarrow" "noiseOnly"]) with tests/ on the p
 testRFIChain("noiseOnly", 'Length', 0.3) is a few-minute smoke run of the code (too short for
 the 10-turn statistics).
 ~30 min per case (the 1 s voltage-chain run dominates), ~5-8 GB memory, ~40 GB of temporary
-files in tempdir (deleted at the end, also on error). Uses pipelineParams (the RFI scenario lists,
+files in a folder of its own in tempdir (removed at the end, also on error; until 20 Oct one
+fixed folder, so two runs at once destroyed each other's files). Uses pipelineParams (the RFI scenario lists,
 receiver and processing settings, ephem; DM 25 since 20 Oct) - testParams has no RFI lists.
 
 The RFI model (simulator.html, C4b): rfiProfile measures per channel what RFI leaves in the
@@ -83,9 +84,9 @@ P = loadParams(fullfile(root, 'pipelineParams.m'));   % RFI lists, receiver/proc
 % ephem - as a struct: in a function, names like dutycycle would resolve to toolbox functions
 ephem = P.ephem; rx = P.rx; fLow = P.fLow; fHigh = P.fHigh; chanWidth = P.chanWidth;
 rfiRealistic = P.rfiRealistic;
-tmp = fullfile(tempdir, 'testRFIChain');
-if ~isfolder(tmp), mkdir(tmp); end
-cleanTmp = onCleanup(@() delete(fullfile(tmp, '*'))); %#ok<NASGU>
+tmp = tempname(tempdir);                         % own folder per run: two runs at once (e.g.
+mkdir(tmp);                                      %   Jasper's and Claude's) cannot collide
+cleanTmp = onCleanup(@() rmdir(tmp, 's')); %#ok<NASGU>
 
 Lc = opts.Length; NB = 1024; pers = [1 10]; nSim = 60; nBlk = 8; nRot = 100; zThr = 5;
 pTail = 0.5 * erfc(zThr / sqrt(2));              % one-sided level of zThr

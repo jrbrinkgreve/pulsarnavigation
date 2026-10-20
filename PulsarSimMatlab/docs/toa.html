@@ -444,7 +444,11 @@ channel's weight and is in effect left out, which costs only ~0.4 % of the SNR (
 <h2 id="template">7. The template</h2>
 <p><code>main.m</code> uses <code>gaussianTemplate(nBin, ephem.profileFWHM)</code>: a periodic Gaussian, peak 1 at bin 1 (images at −2…+2 turns summed).
 <code>estimateTOA</code> accepts any [NBin × 1] profile with phase 0 at bin 1, so real pulsars need only a different template source (a
-multi-component model or a high-SNR observed profile); its phase 0 then defines the TOA.</p>
+multi-component model or a high-SNR observed profile); its phase 0 then defines the TOA. Since 20 Oct <code>gaussianTemplate</code> and
+<code>foldToTOA</code> also take a component matrix, rows [amplitude, centre, FWHM] in turns: the template is the sum of the Gaussians,
+maximum 1, and phase 0 is the components' reference point (not necessarily the peak). B0329+54 at 1410 MHz has five components
+(arXiv:1703.03582, Table 2): a core at 0, a broad component at −0.003 turns, and outer ones at −0.032, +0.021 and +0.026 turns. A single
+Gaussian with the catalogue W<sub>50</sub> puts only half its flux in the pulse area, so it overstates the peak by 3 dB.</p>
 <div class="callout warn"><span class="ttl">Bins must be fine compared with the template (warning since 9 Oct)</span>
 <p>A profile bin is the pulse averaged over a time bin (binDt·<var>f</var>₀ turns) and spread over ~1 phase bin; the template is the unsmoothed pulse at the
 bin centres. <code>estimateTOA</code> warns (<code>estimateTOA:resolution</code>) when <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/5 of the template's

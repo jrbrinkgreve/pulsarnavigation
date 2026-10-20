@@ -15,7 +15,8 @@ bandwidth of the observer's own filters.
 
 Inputs:
   fold, info_fold  from foldProfile (or the same fields from a simulator)
-  profileFWHM      [turns] power-profile FWHM (ephem.profileFWHM): the
+  profileFWHM      [turns] power-profile FWHM (ephem.profileFWHM), or [nComp x 3]
+                   components [amplitude, centre, FWHM] (20 Oct 2026): the
                    template is gaussianTemplate(info_fold.NBin, profileFWHM)
   Bnoise           [Hz] noise-equivalent bandwidth for the radiometer noise
                    model (estimateTOA, detectPulsar): full band
@@ -49,7 +50,7 @@ Outputs:
 arguments
     fold        struct
     info_fold   struct
-    profileFWHM (1,1) double {mustBePositive}
+    profileFWHM double {mustBeNonempty, mustBeFinite}
     Bnoise      double {mustBePositive}
     opts.Weighting {mustBeTextScalar} = 'equal'
     opts.Verbose   (1,1) logical = true

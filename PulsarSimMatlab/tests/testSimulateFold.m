@@ -72,6 +72,12 @@ Run from the PulsarSimMatlab folder: run('tests/testSimulateFold.m'). Needs no d
       two-pass fold of test 12: some groups span the gap, at most one incomplete group (the
       last), their TOAs within 5 sigma of the truth; 'TargetSNR' Inf with 'MaxSubints' 10:
       fixed groups of 10.
+  Multi-component profile (20 Oct):
+  14. gaussianTemplate(N, [1 0 FWHM]) = gaussianTemplate(N, FWHM) bit for bit; simulateFold
+      'Components', [1 0 FWHM] = 'FWHM' (1e-12); three components against foldProfile on a
+      noise-free synthetic series (box-averaged components, as test 1): within 5e-4 of the peak;
+      foldToTOA with the component template at -5 dB (400 one-turn sub-ints, random offsets):
+      pulls mean 0, std 1 within 4 sigma (the TOA is the components' reference point).
 Errors at the end if any check fails.
 %}
 
@@ -465,6 +471,53 @@ fprintf(['13. NPol: NPol 1 = no option %d; NPol 2 = Bnoise x 2 (max rel diff %.1
     okP1, dP2, mat2str(round(rL2, 3)), mat2str(rExp9), isequal(sD, sG), nnz(spanX), numel(spanX), ...
     nnz(~sX.complete), nnz(~sD.complete), mat2str(round(zX.', 2)), all(sF.nMerged(1:end-1) == 10), passStr(pass));
 if ~pass, fails{end+1} = 'NPol / AcrossGaps'; end
+
+% ---------------------------------------------------------------------------------
+% 14. Multi-component profile ('Components'; gaussianTemplate / foldToTOA with components)
+% ---------------------------------------------------------------------------------
+okT = isequal(gaussianTemplate(N, fwhm), gaussianTemplate(N, [1 0 fwhm]));
+[~, fc1] = simulateFold(f0, -5, 50, 'FWHM', fwhm, 'Seed', 21, 'Verbose', false);
+[~, fc2] = simulateFold(f0, -5, 50, 'Components', [1 0 fwhm], 'Seed', 21, 'Verbose', false);
+dC1 = max(abs(fc1.prof(:) - fc2.prof(:))) / max(abs(fc1.prof(:)));
+cmp = [1 0 0.03; 0.5 0.08 0.02; 0.3 -0.1 0.05];      % [amplitude, centre, FWHM] (turns)
+pgF = (0:2^16-1).' / 2^16; pkF = 0;                  % continuous peak of the periodic sum
+for i = 1:3
+    for m = -2:2
+        pkF = pkF + cmp(i, 1) * exp(-0.5*((pgF - cmp(i, 2) - m) / (cmp(i, 3)/2.3548200450309493)).^2);
+    end
+end
+pkF = max(pkF);
+P14 = zeros(size(t));                                % noise-free series, box-averaged components
+for i = 1:3
+    sC = cmp(i, 3) / (2*sqrt(2*log(2))) * T;
+    for j = -2:nT+1
+        c = TRef + (j + dphi0 + cmp(i, 2)) * T;
+        P14 = P14 + cmp(i, 1) * sC*sqrt(pi/2)/dt * (erf((t + dt/2 - c)/(sqrt(2)*sC)) - ...
+                                                    erf((t - dt/2 - c)/(sqrt(2)*sC)));
+    end
+end
+P14 = 1 + P14 / pkF;
+pf14 = fullfile(tmp, 'power14.dat');
+fid = fopen(pf14, 'w', 'ieee-le'); fwrite(fid, single(P14), 'single'); fclose(fid);
+d14 = info_det; d14.file = pf14;
+[~, fp14] = foldProfile(d14, 'x', f0, 'TRef', TRef, 'NBin', N, 'SubintPeriods', 1, 'SaveFile', false, ...
+    'Verbose', false);
+[~, fs14, ts14] = simulateFold(f0, 0, 1, 'PhaseOffset', dphi0, 'Components', cmp, 'Bnoise', Inf, ...
+    'Verbose', false);
+full14 = find(fp14.subint.nTimeBins == round(T/dt));
+dC2 = max(abs(fp14.prof(:, full14) - fs14.prof), [], 'all') / ts14.peak;
+offs = 0.02 * (rand(RandStream('mt19937ar', 'Seed', 22), 400, 1) - 0.5);
+[i14, f14, t14] = simulateFold(f0, -5, 400, 'Components', cmp, 'PhaseOffset', offs, 'Seed', 23, ...
+    'Verbose', false);
+tt14 = foldToTOA(f14, i14, cmp, Bn, 'Verbose', false);
+z14 = (tt14.toa(tt14.valid) - t14.pulseCenters(tt14.valid)) ./ tt14.toaErr(tt14.valid);
+okE = nnz(tt14.valid) >= 390 && abs(mean(z14)) < 4/sqrt(numel(z14)) && abs(std(z14) - 1) < 4/sqrt(2*numel(z14));
+pass = okT && dC1 < 1e-12 && dC2 < 5e-4 && okE;
+fprintf(['14. components: template [1 0 FWHM] = single Gaussian %d; simulateFold [1 0 FWHM] = FWHM (max rel diff ' ...
+         '%.1e); three components vs foldProfile (noise-free): max |diff| %.2e of the peak (limit 5e-4); ' ...
+         'foldToTOA with the component template at -5 dB: %d TOAs, pulls mean %+.3f std %.3f: %s\n'], okT, dC1, ...
+    dC2, nnz(tt14.valid), mean(z14), std(z14), passStr(pass));
+if ~pass, fails{end+1} = 'components'; end
 
 if isempty(fails)
     fprintf('testSimulateFold: ALL PASSED\n');

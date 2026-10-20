@@ -278,7 +278,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
-<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–13 pass (Jasper's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–13 pass (Jasper's run, 20 Oct)</span>; 14 (components) Claude's run</td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge validated">passes (Jasper's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~1 h 40 min</td><td><span class="badge written">model holds (realistic, Claude's run); revised checks, rerun pending</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
@@ -436,7 +436,10 @@ stretches close sooner; no group across a gap between passes. Dual polarization 
 no option bit for bit (also with an RFI profile); <code>'NPol', 2</code> = <code>'Bnoise'</code> × 2 exactly; with the RFI profile and NPol 2 the
 variance against the observer's model with <var>B</var><sub>n</sub> × 2 is the profile's (1.301, 0.361, ~1); <code>adaptiveSubints</code>
 <code>'AcrossGaps'</code>: false = test 12 unchanged, true: 1 of 110 groups spans the gap, one incomplete group (default 2), its TOA z = 0.15;
-<code>'TargetSNR', Inf</code> + <code>'MaxSubints', 10</code> gives fixed groups of 10.</p>
+<code>'TargetSNR', Inf</code> + <code>'MaxSubints', 10</code> gives fixed groups of 10. Multi-component profile (14, 20 Oct): the template
+of one component [1 0 FWHM] equals the single Gaussian bit for bit and <code>simulateFold</code>'s to 3·10⁻¹⁶; three components against
+<code>foldProfile</code> on a noise-free series within 8.6·10⁻⁵ of the peak; TOAs with the component template at −5 dB: 400 TOAs, pulls mean
+−0.041, std 0.998 (Claude's run).</p>
 
 <h2 id="rfimodel"><code>testRFIModel</code> (C4b, 20 Oct)</h2>
 <p>The RFI model on synthetic data whose statistics are known in closed form (no data files; ~0.9 GB in tempdir). One complex sample per

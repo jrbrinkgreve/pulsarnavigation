@@ -51,7 +51,8 @@ hold nothing <code>foldProfile</code>'s would not – the ground-truth rule.</p>
 <h2 id="how">How a fold is drawn</h2>
 <ol>
 <li><b>Mean of each phase bin.</b> Baseline 1 (the receiver-noise power) plus the pulse: the generator's unit-peak periodic Gaussian
-(FWHM 5 % by default), smoothed the way the fold smooths it – averaged over one time bin and spread over ±1 phase bin by the linear
+(FWHM 5 % by default; or, with <code>'Components'</code> since 20 Oct, a sum of Gaussians scaled to peak 1, e.g. B0329+54's five
+components), smoothed the way the fold smooths it – averaged over one time bin and spread over ±1 phase bin by the linear
 assignment – and shifted to the true pulse phase. Computed exactly in Fourier space.</li>
 <li><b>Weights.</b> If the time bins land evenly in phase, a phase bin collects <var>n</var> time bins per sub-int with
 <code>weight</code> = <var>n</var>, <code>weight2</code> = 2<var>n</var>/3, <code>weightX</code> = <var>n</var>/6 – the exact averages of the
