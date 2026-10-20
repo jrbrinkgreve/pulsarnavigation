@@ -18,7 +18,7 @@
 week (12–16 Oct) and the processing as one function, <code>processIQ</code> (19 Oct). Now (block C, since 20 Oct): the fast simulator
 <code>simulateFold</code> is built and validated — channels, RFI profiles, passes, scintillation, adaptive sub-ints, dual polarization,
 multi-component profiles, per-channel noise calibration — and the first scenario runs give TOA budgets for B0329+54 (the Netherlands)
-and J0437 (30° S). Next: the RFI variants of the scenario, the chain check of the noise calibration, then Earth's motion and the phase
+and J0437 (30° S). Next: the RFI variants of the scenario (the chain check of the noise calibration passed: χ² 1.24 → 0.99), then Earth's motion and the phase
 prediction (D), then several pulsars and the navigation solution (E).</p></div>
 
 <h2>Timeline so far</h2>
@@ -215,8 +215,8 @@ through the fitted period and phase.</li>
 <li><b>Per-channel noise calibration</b> — unparked 20 Oct (Jasper) and implemented as a switch, off by default: <code>processIQ</code>
 <code>proc.noiseCal</code> measures each channel's noise on the observation (<code>rfiProfile</code> off-pulse) and folds with it
 (<code>foldProfile</code> <code>'ChannelNoise'</code>); simulator counterpart <code>simulateFold</code> <code>'ObserverNoise', 'measured'</code>.
-Synthetic checks pass (χ² 0.875 → 1.010); the voltage-chain check (<code>runRFITest</code> narrow Inmarsat, χ² 1.22 → ~1) and the
-detectRFI thresholds per channel (the dense false flags) are next.</li>
+Synthetic checks pass (χ² 0.875 → 1.010). Voltage-chain check done: <code>runRFITest</code> cases 14–15 with a third pass, excision + calibration (DM 25, 0.2 s, 15 TOAs, Claude's run 20 Oct): realistic χ² 1.07 → <b>1.00</b> (σ 3.319 → 3.324 µs), narrow Inmarsat χ² 1.24 → <b>0.99</b> (σ 3.379 → 3.419 µs) — the error bars
+become honest at a ~1 % larger σ. Next: the detectRFI thresholds per channel (the dense false flags).</li>
 <li><b>B5e</b> <span class="badge validated">done 9 Oct, validated 12 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in
 <code>pipelineParams</code> (<a href="receiver.html#realistic">receiver</a>, <a href="results.html#b5e">results</a>). Frequencies verified online on 8 Oct: GPS L2 1227.6, GLONASS G2
 ~1246, BeiDou B3 1268.52, Galileo E6 1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32 1452–1496 (EU),

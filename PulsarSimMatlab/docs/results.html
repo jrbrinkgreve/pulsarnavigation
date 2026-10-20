@@ -398,7 +398,7 @@ block edges, GNSS L1) and the 0.39 %. χ² overstates the problem: every channel
 channel by 1/level², and the lopsided channels contain the RFI, so their weight is small.</li>
 <li><b>Worst case: narrow noise-like carriers</b> about as strong as their channel's noise (they keep ~¼ of their weight with ~3.5×
 the model's noise): χ² 1.22, error bars 3.4 % too small. Enough to matter for navigation → the per-channel noise calibration is
-worth doing (<a href="limits.html">limits</a>).</li>
+worth doing (<a href="limits.html">limits</a>). Done 20 Oct (<code>noiseCal</code>): on the chain (DM 25, 0.2 s) χ² 1.24 → 0.99, σ 3.379 → 3.419 µs.</li>
 <li><b>Cost of the environment:</b> −11 % SNR (~25 % longer observing), mostly LTE band 32 (~14 channels effectively lost). The
 +40 dB radar: all its pulses blanked, none of its energy missed.</li>
 <li><b>Bug found in the periodic mask:</b> with <code>periodicMask</code> on (main's default until 9 Oct) the same cases blank <b>29–32 %</b> of
