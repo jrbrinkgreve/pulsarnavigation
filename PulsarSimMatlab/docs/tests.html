@@ -280,7 +280,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge validated">passes (Jasper's run, 20 Oct)</span></td></tr>
-<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, under investigation (Claude's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, diagnosed (Claude's runs, 20–21 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
@@ -492,9 +492,15 @@ test: all pass. <b>Full rerun</b> (revised checks, 20 Oct, Claude's run, 72 + 78
 non-Gaussianity of the partly covered channels and of channel 61 averages out as 1/turns. <b>Narrow Inmarsat: two FAILs at 1 turn</b>,
 all pass at 10 turns — noise/model 1.2816 / 1.2695 (pooled z +3.3; channel 105 3.72 / 3.49, z +6.7) and neighbour correlation 0.2552 /
 0.2541 (pooled +3.1; channel 105 0.287 / 0.266); at 10 turns the excess is the same size (1.2853 / 1.2696) but 3 sub-ints cannot resolve
-it. The 200 kHz carriers' power correlation has a sidelobe beyond lag 7 (profile: X₇/V = +0.018 and rising in all ten carrier channels),
-which the model cuts off: that accounts for the neighbour-correlation excess (~+0.017 expected), not for the noise excess (~0.4 %
-expected inside a phase bin, ~4 % per carrier channel seen). Under investigation; the observer's noise calibration absorbs it.</p>
+it. <b>Diagnosed</b> (21 Oct, scratch <code>diagNarrow</code>: the same chain with and without excision, lags to 30 in both halves, the half-B fold
+split into phase bins without / with blanking, simulations from half A, half B and half B with 30 lags): (1) the <b>neighbour-correlation</b>
+FAIL is the lag-7 cut-off — the 200 kHz carriers' power correlation has a sidelobe at lags 7–20 (5–7 % of the long-run noise); without
+excision the real 0.29–0.305 is matched by the 30-lag simulation, not by 7 lags (0.28); (2) the <b>noise excess</b> (+2.5–5.6 % in the carrier
+channels) is <b>data-dependent blanking</b>: detectRFI's false flags (~1400 windows per carrier channel, 2.4 expected) cut the carriers' power
+peaks, and the valid bins next to a cut keep the peak's correlated shoulders. Phase bins without blanking agree with the simulation within
+±1 %, bins with blanking (~55 %) are +4–9 % high, and without excision real and simulated agree within ±1 %; the halves are stationary
+(V within 1 %). The same, smaller, in the partly covered LTE channels 81 and 94 (+3 %, only in blanked bins) and in channel 61's 1.9 % blanked
+bins (2.7× noisier: its heavy tails). The observer's noise calibration absorbs both (chain: χ² 1.24 → 0.99).</p>
 
 <h2 id="simvschain"><code>expSimVsChain</code> (experiment, C2, 20 Oct)</h2>
 <p><code>simulateFold</code> against the voltage chain: simulated folds (2000 one-turn sub-ints per point) at the settings of the saved

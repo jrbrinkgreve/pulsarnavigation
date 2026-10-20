@@ -124,9 +124,11 @@ bins (<code>rfiProfile</code> <code>'OnPulse'</code>) and folds with it (<code>f
 <p><b>What the model assumes, and how it is checked.</b> The profile is a statistical model, not a recording: the simulator draws fresh
 noise with the measured statistics in every sub-int, so it assumes (a) the RFI is stationary (its 1 s average holds every hour, every day),
 (b) the time bins are correlated only over the measured lags (Lmax = 7, 6.7 µs), so their second moments fix the folded noise — RFI
-narrower than ~1 MHz correlates further (a 200 kHz carrier's power has a sidelobe at lags 7–9; <code>testRFIChain</code>'s narrow-Inmarsat case
-fails at 1 turn, 20 Oct, under investigation), (c) folded profiles are
-Gaussian, and (d) blanking is not locked to the pulse phase. Three checks:</p>
+narrower than ~1 MHz correlates further (a 200 kHz carrier's power has a sidelobe at lags 7–20 holding 5–7 % of its long-run noise: the
+neighbour-bin correlation of short phase bins, and the noise of the scenario's long phase bins, ~5–7 % low in such channels), (c) folded profiles are
+Gaussian, and (d) blanking is not locked to the pulse phase and does not depend on the data — false flags on strong
+continuous RFI violate this: detectRFI cuts the power peaks of narrow carriers, and the phase bins with blanking come out 4–9 % noisier than
+modelled (narrow Inmarsat, 21 Oct; the observer's noise calibration absorbs it, the root fix is per-channel detectRFI thresholds). Three checks:</p>
 <ol>
 <li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> (synthetic, closed-form truth): <code>rfiProfile</code> recovers level, noise
 coefficients and valid fraction of a carrier, noise-like narrowband RFI and blanked impulses; folds of that data by
