@@ -277,6 +277,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) Claude's run</td></tr>
+<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~2 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
@@ -429,6 +430,22 @@ average keeps mean 1 with variance 0.25; <code>'Scintillation', []</code> = off,
 <code>mergeSubints</code> of the one-turn fold in groups of 5 = the 5-turn <code>foldProfile</code> fold (10⁻¹²); <code>adaptiveSubints</code> at −25 dB: 109
 groups closed at T0 ≥ 7 (median 36 turns), TOA pulls mean +0.15, std 0.975; with 2 s scintles 147 groups (median 7), pulls −0.08 / 1.04, bright
 stretches close sooner; no group across a gap between passes.</p>
+
+<h2 id="rfimodel"><code>testRFIModel</code> (C4b, 20 Oct)</h2>
+<p>The RFI model on synthetic data whose statistics are known in closed form (no data files; ~0.9 GB in tempdir). One complex sample per
+1 µs time bin (<var>B</var><sub>n</sub>·binDt = 1), power |<var>a</var>|², receiver noise filtered so that <var>V</var> = 1,
+<var>X</var>(1) = 0.320, <var>X</var>(2) = 0.070 (the clean model, two lags). Seven channels: noise only (three), a constant-envelope carrier
+(<var>I</var> = 4: level 5, quieter than the model), noise-like narrowband RFI (level 4, noisier), impulses blanked by a mask (valid fraction
+0.905), carrier plus impulses. The pulsar (−6 dB) scales the noise amplitude, as in the generator. (1) <code>rfiProfile</code> on a pulsar-free
+stretch of 210 turns recovers level, <var>V</var>, <var>X</var>(1), <var>X</var>(2) in every channel within 2.1σ (σ from 32 blocks; e.g. carrier
+<var>V</var> 0.3604 / 0.3600, narrowband <var>X</var>(1) 0.4105 / 0.4114) and the valid fraction exactly. (2) A second stretch with the pulsar
+folded by <code>foldProfile</code> with its weights file (210 two-turn sub-ints) against <code>simulateFold</code> with the measured profile:
+off-pulse level, weight, noise relative to the observer's model (carrier 0.485 / 0.488, narrowband 1.143 / 1.136, noise 0.99–1.02) and
+neighbour correlation all within 2.6σ. (3) <code>foldToTOA</code> on both: median SNR 8.61 / 8.44, σ 31.9 / 32.5 µs, mean χ²<sub>red</sub>
+0.875 / 0.868 (the observer's model over-predicts the carriers' noise), pull std 1.055 / 1.057 — within 2.1σ. (4) Negative control: RFI
+correlated far beyond the measured lags (AR(1), 0.98) — the real fold's noise is 3.3× the simulated one (z +41), so the fold comparison does
+detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s). The same comparison on the voltage chain is <code>testRFIChain</code>
+(planned).</p>
 
 <h2 id="simvschain"><code>expSimVsChain</code> (experiment, C2, 20 Oct)</h2>
 <p><code>simulateFold</code> against the voltage chain: simulated folds (2000 one-turn sub-ints per point) at the settings of the saved

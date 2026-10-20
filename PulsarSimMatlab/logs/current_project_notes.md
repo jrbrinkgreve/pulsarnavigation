@@ -2306,7 +2306,16 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    sub-ints; = foldProfile's longer sub-ints to 1e-12) and `functions/adaptiveSubints.m` (merge
    until T0 at the predicted phase ≥ 7, never across a gap; leftover group kept); test 12 (Claude's
    run): TOA pulls unbiased (−25 dB: 109 groups, mean +0.15 ± 0.10, std 0.975; with scintillation
-   147 groups, −0.08 / 1.04). Next: the J0437 scenario run.
+   147 groups, −0.08 / 1.04). **RFI model check (20 Oct)**: `tests/testRFIModel.m` (synthetic, closed-form
+   truth: carrier, narrowband noise-like RFI, blanked impulses; Claude's run, all passed): rfiProfile
+   recovers level / V / X / valid fraction (≤ 2.1σ); foldProfile folds of that data vs simulateFold with
+   the measured profile agree in level, weight, noise/model, neighbour correlation and TOAs (≤ 2.6σ);
+   a negative control (AR(1) RFI beyond the measured lags) is detected (3.3×). Assumptions of the model:
+   stationary RFI, correlations only over the measured lags, Gaussian folds, blanking not phase-locked.
+   Planned `tests/testRFIChain.m`: the same comparison on a voltage-chain run (split halves). Next: the
+   scenario runs — Jasper (20 Oct): location the Netherlands (52° N; the array will go on a ship, steered),
+   so **B0329+54** (J0437 and Vela never rise there), plus **J0437 at −30°** (a ship that sailed south);
+   needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps'.
 4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
@@ -2911,6 +2920,15 @@ per day).
   profile.
 - Scintillation (J0437, B0950+08: low DM) dominates the per-pass SNR → weight passes by
   measured SNR.
+
+*Deployment and scenario sites (Jasper, 20 Oct 2026).* The 3×3 array will eventually go on a
+**ship**: not a static installation (steered/stabilized → constant gain over a pass assumed), and
+the station position is a moving input (the thing being navigated). Scenario location **the
+Netherlands (52° N)**: J0437 (max. elevation −9°) and Vela (−7°) never rise; **B0329+54** is
+circumpolar (19.6 h/day above 20°): ρ −41.9 / −45.5 dB (nominal / worst, simulator convention),
+SNR 7 after ~0.6 / 3.2 h, σ_TOA ~0.5 ms (~170 km). Scenario runs: B0329+54 from the Netherlands and
+J0437 at −30° (12.3 h passes; a ship that sailed south). On a ship its own Inmarsat terminal
+(uplink 1626.5–1660.5 MHz) transmits just above the band — front-end/RFI point for later.
 
 ---
 

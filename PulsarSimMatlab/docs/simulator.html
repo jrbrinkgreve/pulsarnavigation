@@ -112,6 +112,19 @@ small in the partly covered channels. These are time-domain numbers, so a profil
 length. Profiles: <code>data/rfi/profile/rfiProfile_&lt;case&gt;_&lt;L&gt;s.mat</code> for the realistic scenario, the narrow-Inmarsat worst case
 and noise only, at 0.1 s (<code>runRFITest</code>'s exact settings) and 1 s (the steady part, with the rotating radar's beam passage
 outside the run).</p>
+<p><b>What the model assumes, and how it is checked.</b> The profile is a statistical model, not a recording: the simulator draws fresh
+noise with the measured statistics in every sub-int, so it assumes (a) the RFI is stationary (its 1 s average holds every hour, every day),
+(b) the time bins are correlated only over the measured lags (Lmax), so their second moments fix the folded noise, (c) folded profiles are
+Gaussian, and (d) blanking is not locked to the pulse phase. Three checks:</p>
+<ol>
+<li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> (synthetic, closed-form truth): <code>rfiProfile</code> recovers level, noise
+coefficients and valid fraction of a carrier, noise-like narrowband RFI and blanked impulses; folds of that data by
+<code>foldProfile</code> and <code>simulateFold</code> with the measured profile agree in level, weight, noise relative to the observer's model,
+neighbour correlation and TOA statistics; and RFI correlated beyond the measured lags is detected (the real fold 3.3× noisier than the model).</li>
+<li><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 1: against <code>runRFITest</code> on the voltage chain, within ~1 %.</li>
+<li><code>testRFIChain</code> (planned): the same fold comparison on a voltage-chain run — profile from the first half, fold of the second half
+— for (b)–(d) with the chain's real RFI and excision.</li>
+</ol>
 
 <h2 id="schedule">Observing schedule (C3a)</h2>
 <p>Long observations come in passes: the pulsar is above the horizon for some hours a day. With <code>'Passes'</code> (start and end of each
