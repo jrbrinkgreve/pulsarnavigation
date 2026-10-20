@@ -246,19 +246,28 @@ page's estimates (1160 and 55 µs·√h), which used the margin W<sub>eq</sub> =
 (block D) the TOAs become positions; per day B0329+54 constrains the line-of-sight distance to 30–70 km, J0437 to 2–4 km.</p>
 <div class="callout warn"><span class="ttl">With B0329+54's real profile (five components, 20 Oct)</span>
 <p>The table above used a single Gaussian with the catalogue W<sub>50</sub>. B0329+54's five components at 1410 MHz spread the same flux
-over twice the pulse area, so the peak is 3 dB lower (ρ −45.0 / −48.6 dB) and a TOA needs ~3× more data. Rerun, 30 days, clean:</p>
+over twice the pulse area, so the peak is 3 dB lower (ρ −45.0 / −48.6 dB) and a TOA needs ~3× more data. Rerun, 30 days, clean
+(B0329+54 at NBin 2048 since 20 Oct evening, its narrowest component 11 bins wide; J0437 still a single Gaussian):</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h</th></tr>
-<tr><td>B0329+54, nominal</td><td>9.6</td><td>2.0 (1.4–2.8)</td><td>729 µs (219 km)</td><td>1.18 (robust 1.01)</td><td>236 µs (71 km)</td><td>1031</td></tr>
-<tr><td>B0329+54, worst case</td><td>1.8</td><td>11.0 (7.8–14.4)</td><td>734 µs (220 km)</td><td>1.17</td><td>552 µs (165 km)</td><td>2431</td></tr>
+<tr><td>B0329+54, nominal</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs (220 km)</td><td>1.05 (robust 1.02)</td><td>232 µs (70 km)</td><td>1021</td></tr>
+<tr><td>B0329+54, worst case</td><td>1.97</td><td>10.0 (6.5–12.9)</td><td>743 µs (223 km)</td><td>1.36 (1.10 without one 6.4σ TOA)</td><td>529 µs (159 km)</td><td>2354</td></tr>
 <tr><td>J0437, nominal</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs (3.4 km)</td><td>0.88 (robust 0.67)</td><td>5.9 µs (1.8 km)</td><td>21</td></tr>
 <tr><td>J0437, worst case</td><td>0.73</td><td>16.5 (11.6–21.4)</td><td>11.5 µs (3.5 km)</td><td>0.89</td><td>13 µs (4 km)</td><td>47</td></tr>
 </table></div>
-<p>Under investigation: at SNR ~7 the error bars are not uniformly honest. B0329+54 with components has a fat tail (one TOA at 6.9σ;
-the robust width is 1.01): the estimator at low SNR with the five-component template, also with fixed sub-ints (1.19 at SNR 7, honest
-from SNR ~20). J0437's 0.88 is within the statistical scatter of ~110 TOAs (a second run gave 0.94; adaptive and fixed groups on the same
-data both ~1.1). Most of the five-component excess is bin resolution: with NBin 2048 instead of 1024 the pull width at SNR 7 is 1.08 instead
-of 1.18 (the narrowest component then 11 bins wide); the scenario runs will use 2048. See <a href="limits.html#estimation">limits</a>.</p></div>
+<p>At NBin 1024 (until 20 Oct evening) B0329+54 gave 9.6 / 1.8 TOAs per day, 2.0 / 11.0 h, rms/pred 1.18 / 1.17: most of that excess was bin
+resolution (the narrowest component 5.6 bins wide). What is left at NBin 2048 is a rare <b>low-SNR outlier</b>: one TOA in each of two runs
+(~0.3 % of ~700 TOAs, as in the pull test at SNR 7: 2 of 600) lands about one core width off (±0.0064 turns, 4.5 ms; |z| 6.4–6.9) at SNR
+7.6–7.8, with χ² 1.00–1.02, so χ² cannot flag it. The template's autocorrelation has no secondary peak there (0.75 on a smooth shoulder;
+the first side peak is at ±0.025 turns): a narrow core on a broad component lets noise move the maximum onto the shoulder now and then,
+which the error bar (from the curvature at the peak) does not cover — the estimator's threshold effect. None at SNR 10 (0 of 600). For
+navigation: a robust (outlier-tolerant) position fit, or a target SNR of ~10 for B0329+54. J0437's 0.88 was statistical scatter (a second
+run gave 0.94; adaptive and fixed groups on the same data both ~1.1). See <a href="limits.html#estimation">limits</a>.</p></div>
+<div class="callout warn"><span class="ttl">J0437's real profile has wings (20 Oct, not yet simulated)</span>
+<p>The J0437 rows still use a single Gaussian with the catalogue W<sub>50</sub> (0.141 ms), but its W<sub>10</sub> is 1.02 ms, four times a
+Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database) gives W<sub>eq</sub> 2.4× the Gaussian's, so ρ is
+3.75 dB lower; a white-noise estimate gives ~5× more data per TOA and a 2.5× larger σ·√h (the wings add flux but little timing). Its core
+is sharper than a Gaussian: the resolution rule needs NBin 1024. A component fit and a rerun are proposed (log, 20 Oct).</p></div>
 
 </main>
 <script src="nav.js"></script>
