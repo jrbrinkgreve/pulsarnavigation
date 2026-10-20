@@ -128,9 +128,9 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="sub" x="448" y="313">100-day final runs</text>
   <text class="lbl" x="655" y="178" font-weight="600">open questions</text>
   <rect class="box rx" x="655" y="186" width="205" height="22" rx="5"/>
-  <text class="sub" x="663" y="201">error bars at SNR ~7</text>
-  <rect class="box rx" x="655" y="214" width="205" height="22" rx="5"/>
-  <text class="sub" x="663" y="229">adaptive stopping (J0437)</text>
+  <text class="sub" x="663" y="201">error bars at SNR ~7 (components)</text>
+  <rect class="box proc" x="655" y="214" width="205" height="22" rx="5"/>
+  <text class="sub" x="663" y="229">J0437 narrow pulls: noise</text>
   <rect class="box" x="655" y="242" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="663" y="257">J0437 wings in the profile</text>
   <rect class="box" x="655" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -242,8 +242,8 @@ component templates), the calibrated observer (<code>'ObserverNoise'</code>) and
 (<code>testRFIModel</code> 5). Done, Claude's runs: <code>expSimVsChain</code>, <code>expSimRFI</code> (RFI costs 10–12 % SNR), the default
 DM 25 / L 0.2 s with a comparison dataset, <code>runScenario</code> clean (<a href="scenario.html#simulated">scenario</a>). Running / open:
 <code>testRFIChain</code> (second moments hold on the chain; revised checks rerunning), channel 61's extra non-Gaussianity (carrier and
-impulses each ruled out; partly blanked bins under test), error-bar honesty at SNR ~7 (a fat tail with B0329+54's components, too large
-error bars for J0437), the chain check of <code>noiseCal</code>, the RFI variants of the scenario.</p>
+impulses and partly blanked bins ruled out), error-bar honesty at SNR ~7 with B0329+54's five-component template (too small, honest from
+SNR ~20), the chain check of <code>noiseCal</code>, the RFI variants of the scenario.</p>
 <h3>Design draft (6 Oct)</h3>
 <ul>
 <li>Draws the fold struct directly (same fields as <code>foldProfile</code>), plus a separate <code>truth</code> struct.</li>

@@ -158,11 +158,12 @@ and <code>expectedPowerModel</code> are still single-Gaussian, and J0437's wings
 <li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
 <li><b>Error bars at SNR ~7 (found 20 Oct, under investigation).</b> The formal σ uses the fitted amplitude, so at low SNR it is too small when
 noise inflates the amplitude and too large when it deflates it (scenario runs: pull width 0.7 below the median fitted SNR, 1.1–1.4 above).
-Overall honest for a single Gaussian (B0329+54 1.04), a fat tail with a five-component template (1.18, robust 1.01, one TOA at 6.9σ), and
-error bars ~30 % too large in the core for J0437 (robust 0.67). Fixed sub-ints at SNR 5–40 separate two effects: (1) the five-component
+Overall honest for single Gaussians (B0329+54 1.04, J0437 0.87–0.94), a fat tail with a five-component template (1.18, robust 1.01,
+one TOA at 6.9σ). Fixed sub-ints at SNR 5–40 separate two effects: (1) the five-component
 template makes the error bars too small at low SNR whatever the grouping (pull width 1.82 at SNR 5, 1.19 at 7, 1.09 at 10, 1.03 at 20), while
-single Gaussians are honest from SNR 7 (0.97–1.10); (2) J0437's too-large error bars come from the adaptive stopping rule (fixed groups at
-SNR 7: 1.08). Options for (1): a higher target SNR for multi-component pulsars, or an SNR-dependent σ; (2) is conservative, to be understood.</li>
+single Gaussians are honest from SNR 7 (0.97–1.10); (2) J0437's narrow pulls were a statistical fluctuation, not an effect: its two
+scenario runs give 0.94 and 0.87 (the robust width of ~110 TOAs scatters by ±0.16), and adaptive and fixed groups on the same simulated data
+both give ~1.1 ± 0.07. Options for (1): a higher target SNR for multi-component pulsars, or an SNR-dependent σ.</li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
 <li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).

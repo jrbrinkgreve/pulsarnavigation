@@ -25,7 +25,7 @@ cCols = [  # block C in detail: (column title, [(item, status)])
     ('scenario (runScenario)', [('default DM 25, L 0.2 s', 'C'), ('clean, 30 days', 'C'),
                                 ('B0329+54 five components', 'C'), ('RFI variants, calibrated', 'N'),
                                 ('100-day final runs', 'N')]),
-    ('open questions', [('error bars at SNR ~7', 'R'), ('adaptive stopping (J0437)', 'R'),
+    ('open questions', [('error bars at SNR ~7 (components)', 'R'), ('J0437 narrow pulls: noise', 'C'),
                         ('J0437 wings in the profile', 'N'), ('detectRFI thresholds per channel', 'N')]),
 ]
 after = [  # what follows C
