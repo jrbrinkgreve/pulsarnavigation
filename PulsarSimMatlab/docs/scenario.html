@@ -25,6 +25,8 @@ targets weak signals, why TOAs must be folded across several passes, and why a f
 <li><a href="#visibility">Who can see what</a></li>
 <li><a href="#conclusions">Conclusions</a></li>
 <li><a href="#consequences">Consequences for the pipeline</a></li>
+<li><a href="#ship">The ship and the Netherlands (20 Oct)</a></li>
+<li><a href="#simulated">Simulated TOA budget (fast simulator, 20 Oct)</a></li>
 </ol></div>
 
 <h2 id="receiver">Receiver</h2>
@@ -218,6 +220,30 @@ there is no feasible MSP.</li>
 <li><b>Scintillation</b> dominates the per-pass SNR of low-DM pulsars → weight passes by measured SNR; adaptive sub-int length.</li>
 <li><b>RFI is far stronger than the pulsar</b> → excision must blank, before dedispersion (block B).</li>
 </ol></div>
+
+<h2 id="ship">The ship and the Netherlands (20 Oct)</h2>
+<p>The array will go on a ship (Jasper, 20 Oct): the site moves, and a fixed flat installation is not an option, so the simulations assume a
+steered array with constant gain over a pass. For now the location is the Netherlands (52° N). From there J0437 (max. elevation −9°) and
+Vela (−7°) never rise; <b>B0329+54</b> never sets and is above 20° for 19.6 h a day. The scenario runs therefore use B0329+54 from 52° N and
+J0437 from 30° S (12.3 h a day; a ship that sailed south). B0329+54 at 1.4 GHz: P 714.5 ms, DM 26.8 (hence the default DM 25 since 20 Oct),
+W<sub>50</sub> 6.6 ms, S<sub>1400</sub> 203 mJy, scintles ~7 MHz × ~13 min (ATA 2025, Wang et al. 2005), five profile components and an abnormal
+mode ~15 % of the time. Its ρ in the simulator's convention: −41.9 dB nominal, −45.5 dB worst case.</p>
+
+<h2 id="simulated">Simulated TOA budget (fast simulator, 20 Oct)</h2>
+<p><a href="scripts.html#scenario"><code>runScenario.m</code></a>, 30 simulated days per case: daily passes above 20°, dual polarization, 128
+channels with the band-edge taper, receiver noise only ("clean"; RFI and scintillation next), TOAs formed by merging 120 s / 300 s sub-ints
+until SNR ~7 (also over the gap to the next pass), the true pulse 0.1 FWHM from the prediction, no motion. Claude's run, 20 Oct.</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h [µs·√h]</th></tr>
+<tr><td>B0329+54, nominal (−41.9 dB)</td><td>28.4</td><td>0.67 (0.47–0.93)</td><td>534 µs (160 km)</td><td>1.04</td><td>101 µs (30 km)</td><td>436</td></tr>
+<tr><td>B0329+54, worst case (−45.5 dB)</td><td>5.5</td><td>3.5 (2.4–4.7)</td><td>543 µs (163 km)</td><td>0.99</td><td>232 µs (70 km)</td><td>1016</td></tr>
+<tr><td>J0437, nominal (−47.4 dB)</td><td>3.8</td><td>3.2 (2.1–4.4)</td><td>11.4 µs (3.4 km)</td><td>0.94</td><td>5.9 µs (1.8 km)</td><td>20</td></tr>
+<tr><td>J0437, worst case (−51.0 dB)</td><td>0.77</td><td>15.2 (11.1–20.2); 27 h calendar time</td><td>11.6 µs (3.5 km)</td><td>0.84 ± 0.12</td><td>13 µs (4 km)</td><td>45</td></tr>
+</table></div>
+<p>The hours per TOA agree with the radiometer equation (with ~10 % for the band-edge taper), the error bars are honest, and there are no
+outliers. A worst-case J0437 TOA needs more data than one pass holds and spans the gap to the next pass. The figures of merit are below this
+page's estimates (1160 and 55 µs·√h), which used the margin W<sub>eq</sub> = 2·W<sub>50</sub>. These are TOA budgets: with motion
+(block D) the TOAs become positions; per day B0329+54 constrains the line-of-sight distance to 30–70 km, J0437 to 2–4 km.</p>
 
 </main>
 <script src="nav.js"></script>
