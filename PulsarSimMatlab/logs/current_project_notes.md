@@ -219,9 +219,9 @@ deviations from it.)
 | | A | 1 | pulsar noise std at pulse peak (signal scale) |
 | | dutycycle | 5 % | FWHM of the **power** profile = 0.5 ms, σ = 212.3 µs |
 | | genEnvMode | `'power'` | power profile Gaussian with that FWHM |
-| | DM | 5 pc cm⁻³ | sweep across the band τ(1.2 GHz) − τ(1.6 GHz) = 6.302 ms |
+| | DM | **25** pc cm⁻³ (since 20 Oct, Jasper; near B0329+54's 26.8; was 5) | sweep across the band τ(1.2 GHz) − τ(1.6 GHz) = 31.51 ms (6.302 ms at DM 5); forward dispersion still 2^28 (~12 GB), limit ~DM 30 (§10 item 5) |
 | Simulation | f_in | 4 GHz | real RF sampling |
-| | L | 0.1 s | 10 pulse centres at 5, 15, …, 95 ms; turn k = [10k, 10k + 10) ms. Complete turns: **9 on the full band** (0–8), **8 on the channel path** (1–8): turn 9 is cut at 93.7 ms (full band) / 93.4 ms (channel path): the last 6.3 ms (+ the guard) lack part of the dispersion sweep and lie outside `fullySupported`; and on the channel path turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard 20/edge width = 20/62.5 kHz; the full band's is 20/8 MHz = 2.5 µs), coverage 0.968 < `MinCoverage` 1 (fold files of 13 Oct). The synthetic file starts exactly on a turn boundary, so any guard longer than ~2.4 µs costs turn 0 |
+| | L | **0.2 s** (since 20 Oct, Jasper, with DM 25; was 0.1 s — the text in this row is for 0.1 s at DM 5; at 0.2 s / DM 25 the supported range ends at ~168.5 ms: 16 / 15 complete turns; the DM-5 dataset is kept in `data/ref_DM5_L0.1/`) | 10 pulse centres at 5, 15, …, 95 ms; turn k = [10k, 10k + 10) ms. Complete turns: **9 on the full band** (0–8), **8 on the channel path** (1–8): turn 9 is cut at 93.7 ms (full band) / 93.4 ms (channel path): the last 6.3 ms (+ the guard) lack part of the dispersion sweep and lie outside `fullySupported`; and on the channel path turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard 20/edge width = 20/62.5 kHz; the full band's is 20/8 MHz = 2.5 µs), coverage 0.968 < `MinCoverage` 1 (fold files of 13 Oct). The synthetic file starts exactly on a turn boundary, so any guard longer than ~2.4 µs costs turn 0 |
 | | seed | 42 | pulsar signal |
 | Receiver | band | 1.2–1.6 GHz | B = 400 MHz |
 | | fLO | 1.3 GHz | off centre on purpose: band at −100…+300 MHz baseband, which tests the RF↔baseband mapping |
@@ -2315,7 +2315,10 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    Planned `tests/testRFIChain.m`: the same comparison on a voltage-chain run (split halves). Next: the
    scenario runs — Jasper (20 Oct): location the Netherlands (52° N; the array will go on a ship, steered),
    so **B0329+54** (J0437 and Vela never rise there), plus **J0437 at −30°** (a ship that sailed south);
-   needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps'. **Parallel workflow trial (20 Oct, Jasper)**:
+   needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps' — **both done 20 Oct** (NPol: average of NPol
+   polarizations, variance / NPol = Bnoise × NPol for the observer, works with RFI profiles; AcrossGaps:
+   groups continue over gaps, 'TargetSNR' Inf + 'MaxSubints' = fixed groups; testSimulateFold 13, Claude's
+   run, all 13 pass). **Parallel workflow trial (20 Oct, Jasper)**:
    main session + role agents (`.claude/workflow.md`, `.claude/agents/*.md`, `059e0d5`) — stopped the
    same hour (Jasper: "go back to the old development routine ... I liked the visibility of the
    development in the old form"); log `2026-10-20_blockC.md`. **expSimRFI part 2 (20 Oct, 1 s
@@ -2434,7 +2437,8 @@ barycentric corrections, navigation solution).
    stages now.
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
-   (item 3) covers it statistically first.
+   (item 3) covers it statistically first — done 20 Oct: simulateFold 'NPol' (the voltage chain
+   itself stays single-pol).
 9. **[done 12 Oct] Legacy `envelopeReconstruction` and `plotEnvelope`**: kept in `old/` as
    legacy (Jasper), with the other `old/` files; no active code calls them and `old/` is not on
    the path. Not updated (`binTime0`, `'ieee-le'`).
@@ -2939,6 +2943,22 @@ circumpolar (19.6 h/day above 20°): ρ −41.9 / −45.5 dB (nominal / worst, s
 SNR 7 after ~0.6 / 3.2 h, σ_TOA ~0.5 ms (~170 km). Scenario runs: B0329+54 from the Netherlands and
 J0437 at −30° (12.3 h passes; a ship that sailed south). On a ship its own Inmarsat terminal
 (uplink 1626.5–1660.5 MHz) transmits just above the band — front-end/RFI point for later.
+
+*B0329+54 parameters for the scenario (20 Oct 2026, Claude's literature search).* ATNF (6 Oct table):
+P 714.5 ms, DM 26.8, W50 6.6 ms (FWHM 0.0092 turns), S1400 203 mJy, dec +54.6. Profile: five
+emission components (Gangadhara & Gupta 2001, astro-ph/0103109), abnormal mode ~15 % of the time
+(Chen et al. 2011, arXiv:1107.4676; switches simultaneously at 1.4 and 9 GHz) → the single-Gaussian
+template is a first approximation (changes σ_TOA, not feasibility). Scintillation, same
+definitions as simulateFold (bandwidth = HWHM of the frequency ACF, time = 1/e of the time ACF):
+ATA 2025 (ApJ, doi 10.3847/1538-4357/ae0fff, 900–1956 MHz) Δν_d 2.64 ± 1.26 MHz at 1140 MHz and
+14.7 ± 9.1 MHz at 1668 MHz → ~6.5–6.8 MHz at 1.4 GHz (ν^4.4); Wang et al. 2005 (MNRAS 358, 270;
+Urumqi 1540 MHz) 5–15 MHz and 10–30 min (index ~3.6, wide epoch variation); timescale literature
+average ~780 s at 1426 MHz (ATA paper; NE2001 ~675 s). **Simulation values: bandwidth ~7 MHz,
+timescale ~780 s** (vary ×2–3 between epochs). Consequences: ~30–60 scintles across 400 MHz →
+band-averaged fading small (~15 %), but each 3.125 MHz channel is modulated ~100 %; sub-ints
+must be ≲ 150 s (timescale/5) → ~10× more sub-ints than planned (memory: chunk a day into hours);
+simulateFold's scintField evaluates one frequency point per channel at 128 channels — fine at
+7 MHz, too coarse below ~3 MHz (channel average needed).
 
 ---
 

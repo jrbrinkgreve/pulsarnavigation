@@ -61,6 +61,14 @@ Run from the PulsarSimMatlab folder: run('tests/testSimulateFold.m'). Needs no d
       rule does not bias the arrival times; with scintillation (2 s scintles) the same, and
       bright stretches need fewer sub-ints than faint ones; two passes with a gap: no group
       spans the gap.
+  Dual polarization and groups over gaps (20 Oct):
+  13. 'NPol', 1 = no option, bit for bit (with and without the RFI profile of test 9);
+      'NPol', 2 = 'Bnoise' x 2 (1e-12); with the RFI profile and NPol 2, the variance against
+      the observer's model with Bnoise x 2 = the profile's ratios (as test 9, 4 sigma).
+      adaptiveSubints 'AcrossGaps': false = the default of test 12, unchanged; true on the
+      two-pass fold of test 12: some groups span the gap, at most one incomplete group (the
+      last), their TOAs within 5 sigma of the truth; 'TargetSNR' Inf with 'MaxSubints' 10:
+      fixed groups of 10.
 Errors at the end if any check fails.
 %}
 
@@ -409,6 +417,42 @@ fprintf(['12. adaptive sub-ints: mergeSubints = 5-turn foldProfile fold %d; adap
     numel(pullsA{1}), nMed(1), mean(pullsA{1}), std(pullsA{1}), numel(pullsA{2}), nMed(2), ...
     mean(pullsA{2}), std(pullsA{2}), noSpan, passStr(pass));
 if ~pass, fails{end+1} = 'adaptive sub-ints'; end
+
+% ---------------------------------------------------------------------------------
+% 13. NPol (dual polarization) and AcrossGaps (groups over the gap between passes)
+% ---------------------------------------------------------------------------------
+[~, fn0] = simulateFold(f0, -5, 50, 'Seed', 13, 'Verbose', false);
+[~, fn1] = simulateFold(f0, -5, 50, 'Seed', 13, 'NPol', 1, 'Verbose', false);
+[~, fr0] = simulateFold(f0, -Inf, 20, 'NChan', nC9, 'RFI', P9, 'Seed', 13, 'Verbose', false);
+[~, fr1] = simulateFold(f0, -Inf, 20, 'NChan', nC9, 'RFI', P9, 'Seed', 13, 'NPol', 1, 'Verbose', false);
+okP1 = isequal(fn0, fn1) && isequal(fr0, fr1);      % NPol 1 = no option, bit for bit
+[~, fn2] = simulateFold(f0, -5, 50, 'Seed', 13, 'NPol', 2, 'Verbose', false);
+[~, fnB] = simulateFold(f0, -5, 50, 'Seed', 13, 'Bnoise', 2 * Bn, 'Verbose', false);
+dP2 = max(abs(fn2.prof(:) - fnB.prof(:))) / max(abs(fnB.prof(:)));   % NPol 2 = Bnoise x 2
+[~, f13] = simulateFold(f0, -Inf, nS9, 'NChan', nC9, 'RFI', P9, 'Seed', 9, 'NPol', 2, 'Verbose', false);
+rL2 = zeros(1, nC9);
+for c = 1:nC9                                       % observer's model with Bnoise x 2
+    sM = P9.level(c) * sqrt(f13.weight2(:, :, c) / (2*BnC*dtC)) ./ f13.weight(:, :, c);
+    u = (f13.prof(:, :, c) - P9.level(c)) ./ sM;
+    rL2(c) = mean(u(:).^2);
+end
+okP2 = dP2 < 1e-12 && all(abs(rL2 - rExp9) < 4 * rExp9 * sqrt(2*1.2 / nPer9));
+[~, ~, sD] = adaptiveSubints(fg, ig, tmpl, Bn, 'AcrossGaps', false, 'Verbose', false);
+[fX, iX, sX] = adaptiveSubints(fg, ig, tmpl, Bn, 'AcrossGaps', true, 'Verbose', false);
+spanX = accumarray(sX.group, tg.pass, [], @(p) numel(unique(p))) > 1;
+tX = foldToTOA(fX, iX, fwhm, Bn, 'Verbose', false);
+zX = (tX.toa(spanX & tX.valid) - fX.subint.tRef(spanX & tX.valid)) ./ tX.toaErr(spanX & tX.valid);
+[~, ~, sF] = adaptiveSubints(fg, ig, tmpl, Bn, 'TargetSNR', Inf, 'MaxSubints', 10, 'AcrossGaps', true, ...
+    'Verbose', false);
+okG = isequal(sD, sG) && any(spanX) && nnz(~sX.complete) <= 1 && nnz(~sD.complete) >= 1 && ...
+    ~isempty(zX) && all(abs(zX) < 5) && all(sF.nMerged(1:end-1) == 10);
+pass = okP1 && okP2 && okG;
+fprintf(['13. NPol: NPol 1 = no option %d; NPol 2 = Bnoise x 2 (max rel diff %.1e); with the RFI profile, ' ...
+         'variance / model (Bnoise x 2) %s (expected %s). AcrossGaps: default = before %d; %d of %d groups ' ...
+         'span the gap, incomplete groups %d (default %d), spanning TOAs z %s; fixed groups of 10 %d: %s\n'], ...
+    okP1, dP2, mat2str(round(rL2, 3)), mat2str(rExp9), isequal(sD, sG), nnz(spanX), numel(spanX), ...
+    nnz(~sX.complete), nnz(~sD.complete), mat2str(round(zX.', 2)), all(sF.nMerged(1:end-1) == 10), passStr(pass));
+if ~pass, fails{end+1} = 'NPol / AcrossGaps'; end
 
 if isempty(fails)
     fprintf('testSimulateFold: ALL PASSED\n');

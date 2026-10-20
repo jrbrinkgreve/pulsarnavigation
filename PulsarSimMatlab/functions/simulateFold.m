@@ -15,7 +15,8 @@ noise coefficients (the observer keeps the clean model), blanked fraction.
 C3a (20 Oct): an observation schedule - 'Passes' (start/end of each pass, gaps
 between them) and 'SubintTime' in seconds - with absolute times. C3b (20 Oct):
 interstellar scintillation, a flux factor per sub-int and channel ('FluxScale' given,
-or a random field from 'Scintillation': scintle bandwidth and time). Truth side, like the generator: the
+or a random field from 'Scintillation': scintle bandwidth and time). 'NPol' (20 Oct):
+dual polarization (total intensity). Truth side, like the generator: the
 observer gets only fold and info (which hold nothing foldProfile's would not).
 
   [info, fold, truth] = simulateFold(f0, rhoDB, nTurns)
@@ -27,8 +28,7 @@ profile FWHM 0.141 ms = 0.0245 turns, NBin 512 (11.2 us bins = FWHM/12.5, enough
 estimateTOA's resolution rule; 20 h x 128 channels in 60 s sub-ints ~1.3 GB of folds),
 rhoDB -51.0 (worst case) or -47.4 (nominal) in this convention (deep analysis 13 Oct §8;
 the scenario page's -53.7 / -50.1 use W_eq = 2*W50). The scenario assumes two
-polarizations: with one simulated stream, the same information needs Bnoise x 2 (simulator
-and observer alike).
+polarizations: 'NPol', 2, and the observer passes Bnoise x 2 to foldToTOA.
 
 Inputs:
   f0       [Hz] spin frequency (true and ephemeris)
@@ -71,6 +71,15 @@ Name-value options:
                   band with its dedispersion taper; channel path 3.0596e6, the
                   channel's detectChannels info.noise.Bnoise); Inf: no noise
                   (the mean profile alone)
+  'NPol'          polarizations added into total intensity (default 1; 20 Oct 2026):
+                  the fold is their average - baseline and pulse per polarization as
+                  rhoDB says (an unpolarized pulsar: rho = S_peak/SEFD in each), the
+                  noise variance divided by NPol (independent receiver noise in each;
+                  with 'RFI' the fluctuations RFI leaves are taken as independent too).
+                  The same as Bnoise x NPol, which is what the observer passes to
+                  foldToTOA / estimateTOA / detectPulsar (fold and weights unchanged);
+                  unlike Bnoise it also works with 'RFI', whose Bnoise is fixed by the
+                  calibration run. NPol 1 = the single stream of the voltage chain.
   'BinDt'         [s] time-bin length of the detected power (default 1e-6; channel
                   path 0.96e-6)
   'NChan'         channels (default 1: full-band equivalent)
@@ -144,7 +153,7 @@ Outputs:
   truth  T (= 1/f0), pulseCenters [nSub x 1] (true arrival time of each sub-
          int's reference pulse: tRef + PhaseOffset/f0; with T the fields
          validateTOA reads), phaseOffset, rhoDB, rho, signalGain,
-         channelGain, FWHM, Bnoise, seed, peak (g*rho, pulse peak above baseline
+         channelGain, FWHM, Bnoise, nPol, seed, peak (g*rho, pulse peak above baseline
          for g_c = 1); with 'RFI' also rfiLabel, level, validFraction,
          noiseRatio (long-run true / model noise per channel); pass (each sub-int's
          pass); with FluxScale or Scintillation fluxScale [nSub x NChan]
@@ -166,6 +175,7 @@ arguments
     opts.SubintTime    double = []
     opts.Passes        (:,2) double {mustBeFinite} = zeros(0, 2)
     opts.Bnoise        (1,:) double {mustBePositive} = 391.6e6
+    opts.NPol          (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.BinDt         (1,1) double {mustBePositive, mustBeFinite} = 1e-6
     opts.NChan         (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.ChannelGain   double = []
@@ -352,7 +362,8 @@ Pk  = exp(-2*pi^2*sig^2*k.^2) / peakNorm ...        % Fourier coefficients of th
 % ---- Draw per block of sub-ints -------------------------------------------------------------
 rs   = RandStream('mt19937ar', 'Seed', opts.Seed);
 prof = zeros(N, nSub, nChan);
-c0   = 1 ./ (Bn * dt);                              % radiometer variance factor (0 for Inf)
+c0   = 1 ./ (Bn * dt * opts.NPol);                  % radiometer variance factor (0 for Inf),
+                                                    %   averaged over NPol polarizations
 c0r  = reshape(c0, 1, 1, []);
 pkC  = reshape(peak * gC, 1, 1, nChan);             % pulse peak per channel
 % ---- Flux factor per sub-int and channel (scintillation; C3b) ------------------------------
@@ -479,7 +490,8 @@ info.elapsed      = toc(tStart);
 
 truth = struct('T', 1/f0, 'pulseCenters', fold.subint.tRef + dPhi / f0, ...
     'phaseOffset', dPhi, 'rhoDB', rhoDB, 'rho', rho, 'signalGain', opts.SignalGain, ...
-    'channelGain', gC, 'pass', passOf, 'FWHM', opts.FWHM, 'Bnoise', opts.Bnoise, 'seed', opts.Seed, 'peak', peak);
+    'channelGain', gC, 'pass', passOf, 'FWHM', opts.FWHM, 'Bnoise', opts.Bnoise, 'nPol', opts.NPol, ...
+    'seed', opts.Seed, 'peak', peak);
 if haveF, truth.fluxScale = Fsc; end
 if haveRFI
     truth.rfiLabel = RP.label; truth.level = RP.level; truth.validFraction = RP.validFraction;

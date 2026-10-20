@@ -10,10 +10,12 @@ detection.html), where every TOA is good.
 
   [foldM, infoM, sel] = adaptiveSubints(fold, info_fold, template, Bnoise)
   ... = adaptiveSubints(..., 'TargetSNR', 7, 'Weighting', 'optimal')
+  ... = adaptiveSubints(..., 'AcrossGaps', true)     % groups may span gaps between passes
 
 Steps:
   1. Runs: consecutive sub-ints whose turns follow without a gap (turnFirst(s+1) =
      turnLast(s) + 1); a gap between passes ends a run - nothing is merged across it.
+     With 'AcrossGaps' all sub-ints form one run: a group continues in the next pass.
   2. Within a run, from its first sub-int on: add sub-ints one at a time to a running sum
      and compute the matched-filter statistic T0 of the merged profile at the predicted
      phase (detectPulsar, known phase: the SNR as the noise sees it). As soon as T0 reaches
@@ -30,13 +32,20 @@ Inputs:
 Name-value options:
   'TargetSNR'  T0 at which a group is closed (default 7)
   'Weighting'  'equal' (default) or 'optimal', passed to detectPulsar
-  'MaxSubints' at most this many sub-ints per group (default Inf)
+  'MaxSubints' at most this many sub-ints per group (default Inf); with 'TargetSNR' Inf:
+               fixed groups of MaxSubints sub-ints (for comparison)
+  'AcrossGaps' false (default): groups end at a gap between passes; true: a group may span
+               gaps (20 Oct 2026) - needed when one TOA takes longer than a pass (J0437 in
+               the worst case: ~15 h against 8-15 h passes). Physically this needs a phase
+               model that stays coherent over the gap (motion, barycentric correction:
+               notes §10 item 4); the fast simulator's ephemeris equals the truth, so there
+               it is exact.
   'Verbose'    print a summary (default true)
 
 Outputs:
   foldM, infoM  the merged fold (mergeSubints)
   sel           group [nSub x 1], nMerged [nG x 1], T0 [nG x 1] (at closing), complete
-                [nG x 1] (reached the target), run [nG x 1]
+                [nG x 1] (reached the target), run [nG x 1] (all 1 with 'AcrossGaps')
 
 Note on the stopping rule: a group closes when its noise happens to push T0 up, so the
 SNR of the closed groups is biased up a little; the arrival time is not (with a symmetric
@@ -52,12 +61,14 @@ arguments
     opts.TargetSNR  (1,1) double {mustBePositive} = 7
     opts.Weighting  {mustBeTextScalar} = 'equal'
     opts.MaxSubints (1,1) double {mustBePositive} = Inf
+    opts.AcrossGaps (1,1) logical = false
     opts.Verbose    (1,1) logical = true
 end
 
 nSub = size(fold.weight, 2);
 S = fold.subint;
 newRun = [true; S.turnFirst(2:end) ~= S.turnLast(1:end-1) + 1];
+if opts.AcrossGaps, newRun(2:end) = false; end      % one run: groups continue over gaps
 runId = cumsum(newRun);
 nW = size(fold.weight, 3); D = size(fold.weightX, 4); nChan = size(fold.sum, 3);
 N = size(fold.weight, 1);

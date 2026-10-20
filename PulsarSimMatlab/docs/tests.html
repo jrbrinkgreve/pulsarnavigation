@@ -17,19 +17,21 @@
 <div class="callout note"><span class="ttl">In short</span>
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
-scatter the prediction itself gives. <code>tests/runAllTests.m</code> runs all fourteen in one session (6–9 min) on their own frozen
+scatter the prediction itself gives. <code>tests/runAllTests.m</code> runs all sixteen in one session (6–9 min) on their own frozen
 data, so a <code>main.m</code> run can never change what they check.</p></div>
 
 <h2 id="run">How to run</h2>
 <pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
 run('tests/testChannelizeIQ.m')     % one test
-run('tests/runAllTests.m')          % all 14 unit tests, in order, summary at the end (6–9 min)</code></pre>
+run('tests/runAllTests.m')          % all 16 unit tests, in order, summary at the end (6–9 min)
+runAllTests("testRFIChain")         % the slow one, only when named (~1 h)</code></pre>
 <p>From the <code>PulsarSimMatlab</code> folder. Every test is a function (own workspace), prints PASS/FAIL lines and its
 numbers, and can be run one after another in one MATLAB session. <code>runAllTests</code> (13 Oct 2026) does exactly that: the tests
 that write the shared channel files first, each test in its own try/catch (a failure does not stop the rest), then a table
 PASS / FAIL, run time and the first line of each error, and an error at the end if any test failed. A subset:
 <code>runAllTests(["testRfiNoise" "testRadarEdges"])</code> (with <code>tests/</code> on the path; run in dependency order). Not run:
-the <code>demo*</code>, <code>exp*</code> and <code>make*</code> files; a new <code>test*.m</code> that is not in its list runs last, with a note.</p>
+the <code>demo*</code>, <code>exp*</code> and <code>make*</code> files; a new <code>test*.m</code> that is not in its list runs last, with a note.
+Slow tests (<code>testRFIChain</code>, ~1 h) are skipped in the default run (printed as skipped) and run only when named.</p>
 <div class="callout why"><span class="ttl">Design choice: tests are functions, not scripts</span>
 <p><b>Alternative:</b> test scripts, which are quicker to write and leave their variables in the workspace for inspection.</p>
 <p><b>Why not:</b> as scripts they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
@@ -276,8 +278,9 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
-<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) Claude's run</td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) and 13 (NPol, AcrossGaps) Claude's run</td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~1 h</td><td><span class="badge written">noise-only smoke run passes; full run pending (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
@@ -429,7 +432,11 @@ for a narrowed channel, 0.361 for a strong carrier). Schedule (C3a): (10) one pa
 average keeps mean 1 with variance 0.25; <code>'Scintillation', []</code> = off, bit for bit. Adaptive sub-ints (C3c): (12)
 <code>mergeSubints</code> of the one-turn fold in groups of 5 = the 5-turn <code>foldProfile</code> fold (10⁻¹²); <code>adaptiveSubints</code> at −25 dB: 109
 groups closed at T0 ≥ 7 (median 36 turns), TOA pulls mean +0.15, std 0.975; with 2 s scintles 147 groups (median 7), pulls −0.08 / 1.04, bright
-stretches close sooner; no group across a gap between passes.</p>
+stretches close sooner; no group across a gap between passes. Dual polarization and groups over gaps (13, 20 Oct): <code>'NPol', 1</code> =
+no option bit for bit (also with an RFI profile); <code>'NPol', 2</code> = <code>'Bnoise'</code> × 2 exactly; with the RFI profile and NPol 2 the
+variance against the observer's model with <var>B</var><sub>n</sub> × 2 is the profile's (1.301, 0.361, ~1); <code>adaptiveSubints</code>
+<code>'AcrossGaps'</code>: false = test 12 unchanged, true: 1 of 110 groups spans the gap, one incomplete group (default 2), its TOA z = 0.15;
+<code>'TargetSNR', Inf</code> + <code>'MaxSubints', 10</code> gives fixed groups of 10.</p>
 
 <h2 id="rfimodel"><code>testRFIModel</code> (C4b, 20 Oct)</h2>
 <p>The RFI model on synthetic data whose statistics are known in closed form (no data files; ~0.9 GB in tempdir). One complex sample per
@@ -444,8 +451,23 @@ off-pulse level, weight, noise relative to the observer's model (carrier 0.485 /
 neighbour correlation all within 2.6σ. (3) <code>foldToTOA</code> on both: median SNR 8.61 / 8.44, σ 31.9 / 32.5 µs, mean χ²<sub>red</sub>
 0.875 / 0.868 (the observer's model over-predicts the carriers' noise), pull std 1.055 / 1.057 — within 2.1σ. (4) Negative control: RFI
 correlated far beyond the measured lags (AR(1), 0.98) — the real fold's noise is 3.3× the simulated one (z +41), so the fold comparison does
-detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s). The same comparison on the voltage chain is <code>testRFIChain</code>
-(planned).</p>
+detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
+
+<h2 id="rfichain"><code>testRFIChain</code> (C4b, slow, 20 Oct)</h2>
+<p>The same comparison as <code>testRFIModel</code>, on the voltage chain's real RFI and excision. Per case (realistic scenario and
+narrow Inmarsat carriers by default; noise only on request) one pulsar-free 1 s chain run as <code>runRFIProfile</code> makes it
+(beam passages outside the run, its own noise seed, DM from <code>pipelineParams</code>), the detected power split in two halves:
+half A gives the RFI profile, half B is folded by <code>foldProfile</code> with the excision weights (NBin 1024, 1 and 10 turns per
+sub-int) and compared, channel by channel, with 60 <code>simulateFold</code> realizations of the half-A profile. Checks: level; noise
+relative to the observer's model (the core check — correlations beyond the measured lags or slow variation would show as excess,
+more at 10 turns); neighbour correlation; kurtosis and 4σ tails against the clean channels of the same run (a phase bin of one turn
+averages only ~30 complex samples, so the detected power is gamma-like, excess kurtosis ~0.17, which the Gaussian simulation does not
+draw and which vanishes for sub-ints of minutes); flatness over phase of the mean profile and of the blanked fraction, against random
+rotations of the real sub-ints. A channel is flagged at |z| &gt; 5 (~1 % false flags per case); flagged channels are listed with their
+frequency, so a FAIL in the realistic case points at where the second-moment model breaks. Not in <code>runAllTests</code>' default run;
+<code>runAllTests("testRFIChain")</code>, ~30 min per case, 5–8 GB, ~40 GB of temporary files. Smoke run (noise only, 0.3 s, DM 25):
+all checks pass (level, noise/model 0.9995 / 0.9994, neighbour correlation 0.2523 / 0.2524, kurtosis 0.17 in every channel, flatness,
+blanking). Full run: pending.</p>
 
 <h2 id="simvschain"><code>expSimVsChain</code> (experiment, C2, 20 Oct)</h2>
 <p><code>simulateFold</code> against the voltage chain: simulated folds (2000 one-turn sub-ints per point) at the settings of the saved

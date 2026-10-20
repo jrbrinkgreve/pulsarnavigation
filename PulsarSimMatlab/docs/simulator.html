@@ -9,7 +9,7 @@
 <body>
 <main>
 
-<h1>Block C · Fast simulator: <code>simulateFold</code> <span class="badge validated">C1–C4b, C3a–b validated, 20 Oct</span> <span class="badge written">C3c written</span></h1>
+<h1>Block C · Fast simulator: <code>simulateFold</code> <span class="badge validated">C1–C4b, C3a–b validated, 20 Oct</span> <span class="badge written">C3c, NPol, AcrossGaps written</span></h1>
 <p class="lede">Draw the folded profiles directly from their known statistics instead of simulating every voltage sample. Hours of
 observation then take seconds, and everything after the fold (<code>foldToTOA</code>: TOAs, detection, good TOAs) runs unchanged on the
 result.</p>
@@ -122,8 +122,10 @@ coefficients and valid fraction of a carrier, noise-like narrowband RFI and blan
 <code>foldProfile</code> and <code>simulateFold</code> with the measured profile agree in level, weight, noise relative to the observer's model,
 neighbour correlation and TOA statistics; and RFI correlated beyond the measured lags is detected (the real fold 3.3× noisier than the model).</li>
 <li><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 1: against <code>runRFITest</code> on the voltage chain, within ~1 %.</li>
-<li><code>testRFIChain</code> (planned): the same fold comparison on a voltage-chain run — profile from the first half, fold of the second half
-— for (b)–(d) with the chain's real RFI and excision.</li>
+<li><a href="tests.html#rfichain"><code>testRFIChain</code></a> (slow): the same fold comparison on a voltage-chain run — profile from the first
+half, fold of the second half — for (b)–(d) with the chain's real RFI and excision. One known limit of (c): a phase bin of a one-turn
+sub-int averages only ~30 complex samples, so real folds are slightly non-Gaussian there (excess kurtosis ~0.17); it vanishes for
+sub-ints of minutes, where the simulator is used.</li>
 </ol>
 <p><b>What the RFI costs</b> (<a href="tests.html#simrfi"><code>expSimRFI</code></a> part 2, 1 s profiles, −5 dB, 400 TOAs per case): the
 realistic scenario loses 10.5 % SNR after excision (σ ×1.12, 25 % more observing time for the same σ), the narrow-Inmarsat worst case
@@ -139,8 +141,15 @@ belongs to. One pass covering turns 0 … <var>n</var>−1 gives exactly the fol
 <div class="callout note"><span class="ttl">J0437−4715 settings</span>
 <p><var>f</var><sub>0</sub> = 173.6879 Hz (<var>P</var> 5.757452 ms), power-profile FWHM 0.141 ms = 0.0245 turns, NBin 512 (11.2 µs bins, FWHM/12.5:
 enough by <code>estimateTOA</code>'s resolution rule; 20 h × 128 channels in 60 s sub-ints ≈ 1.3 GB of folds), ρ −51.0 dB (worst case) or
-−47.4 dB (nominal) in the simulator's convention. The scenario assumes two polarizations; with one simulated stream the same information
-needs <code>Bnoise</code> × 2, for the simulator and the observer alike.</p></div>
+−47.4 dB (nominal) in the simulator's convention. The scenario assumes two polarizations: <code>'NPol', 2</code> (below), and the
+observer passes <code>Bnoise</code> × 2.</p></div>
+<p><b>Dual polarization</b> (<code>'NPol'</code>, 20 Oct). The array receives two polarizations; the processing adds their detected powers
+into total intensity. The simulated fold is then the average of NPol independent polarizations: an unpolarized pulsar has the same ρ in
+each, so baseline and pulse stay as they are, and the receiver noise, independent between the two, drops by NPol in variance — the
+same as a NPol times larger noise bandwidth, which is what the observer passes to <code>foldToTOA</code>. Unlike raising
+<code>'Bnoise'</code>, it also works with an RFI profile (whose bandwidth is fixed by the calibration run); the fluctuations RFI leaves
+are taken as independent between the polarizations too. NPol 1 (default) is the single stream of the voltage chain, bit for bit
+(<code>testSimulateFold</code> 13).</p>
 <pre><code>[info, fold, truth] = simulateFold(173.6879, -51, [], 'Passes', [0 4; 24 28]*3600, 'SubintTime', 60, 'NBin', 512, 'FWHM', 0.0245)</code></pre>
 
 <h2 id="scint">Scintillation (C3b)</h2>
@@ -169,14 +178,18 @@ is bright, too short when it is faint. Two observer-side functions, usable on re
 noise covariance across an internal boundary is missing, as in <code>foldProfile</code> itself; exact for independent time bins).</li>
 <li><b><code>adaptiveSubints(fold, info_fold, template, Bnoise)</code></b> walks through short sub-ints and adds them one at a time until the
 merged profile's matched-filter statistic T0 at the predicted phase reaches the target (default 7, the design rule), then starts a new group.
-It never merges across a gap between passes; what is left at the end of a pass is a last group below the target, for the good-TOA rule to
-judge.</li>
+By default it never merges across a gap between passes; what is left at the end of a pass is a last group below the target, for the
+good-TOA rule to judge. With <code>'AcrossGaps', true</code> (20 Oct) a group continues in the next pass — needed when one TOA takes longer
+than a pass (J0437 in the worst case: ~15 h against passes of 8–15 h). That assumes a phase model that stays coherent over the gap
+(motion and barycentric correction, block D); in the simulator the ephemeris is the truth, so it is exact there. With
+<code>'TargetSNR', Inf</code> and <code>'MaxSubints'</code> it forms fixed groups instead, for comparison.</li>
 </ol>
 <div class="callout why"><span class="ttl">Does stopping at SNR 7 bias the TOAs?</span>
 <p>A group closes when its noise happens to push T0 up, so the closed groups' SNR is biased up a little. The arrival time is not: with a
 symmetric template the phase estimate is nearly independent of the amplitude. Checked: at −25 dB (SNR ~1.2 per turn) 109 groups of median
 36 turns give TOA pulls with mean +0.15 ± 0.10 and std 0.975; with 2 s scintles 147 groups of median 7 turns, mean −0.08, std 1.04, and the
-bright stretches close sooner than the faint ones (<code>testSimulateFold</code> 12).</p></div>
+bright stretches close sooner than the faint ones (<code>testSimulateFold</code> 12). Across a gap (test 13): with two passes, a group
+spans the gap, only the last group stays incomplete (2 without), and its TOA lands 0.15σ from the truth.</p></div>
 
 <h2 id="rho">Which ρ</h2>
 <div class="callout warn"><span class="ttl">The simulator's ρ, not the scenario page's</span>
