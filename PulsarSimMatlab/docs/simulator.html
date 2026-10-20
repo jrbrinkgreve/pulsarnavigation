@@ -118,7 +118,9 @@ model, so the observer's error bars and χ² are off in the channels RFI reshape
 <code>'ObserverNoise', 'measured'</code> the fold's noise weights use the profile's measured coefficients per channel: the observer that measures
 each channel's noise on its own data. The noise drawn is the same either way. Synthetic check (<code>testSimulateFold</code> 15): every
 channel's noise then matches its model (1.00 instead of 1.30 / 0.36), and χ²<sub>red</sub> goes from 0.958 to 1.0000 ± 0.0017. The voltage
-chain's counterpart (measure on the data, <code>foldProfile</code> <code>'ChannelNoise'</code>) follows.</p>
+chain's counterpart: <code>processIQ</code> with <code>proc.noiseCal</code> measures each channel's noise on the observation's off-pulse
+bins (<code>rfiProfile</code> <code>'OnPulse'</code>) and folds with it (<code>foldProfile</code> <code>'ChannelNoise'</code>);
+<code>testRFIModel</code> 5: χ² 0.875 → 1.010.</p>
 <p><b>What the model assumes, and how it is checked.</b> The profile is a statistical model, not a recording: the simulator draws fresh
 noise with the measured statistics in every sub-int, so it assumes (a) the RFI is stationary (its 1 s average holds every hour, every day),
 (b) the time bins are correlated only over the measured lags (Lmax), so their second moments fix the folded noise, (c) folded profiles are

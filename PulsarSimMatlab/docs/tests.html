@@ -457,7 +457,11 @@ off-pulse level, weight, noise relative to the observer's model (carrier 0.485 /
 neighbour correlation all within 2.6σ. (3) <code>foldToTOA</code> on both: median SNR 8.61 / 8.44, σ 31.9 / 32.5 µs, mean χ²<sub>red</sub>
 0.875 / 0.868 (the observer's model over-predicts the carriers' noise), pull std 1.055 / 1.057 — within 2.1σ. (4) Negative control: RFI
 correlated far beyond the measured lags (AR(1), 0.98) — the real fold's noise is 3.3× the simulated one (z +41), so the fold comparison does
-detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s; Jasper's run, 20 Oct: all passed). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
+detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s; Jasper's run, 20 Oct: all passed). (5, 20 Oct) Per-channel noise
+calibration on the observation itself: <code>rfiProfile</code> with the pulse left out (15 % of the bins) recovers the exact coefficients
+(max |z| 1.79); the fold with <code>'ChannelNoise'</code> has noise / own model 0.99–1.02 in every channel (clean model: carrier 0.49, narrowband
+1.14) and TOAs with χ²<sub>red</sub> 1.010 ± 0.007 (clean model 0.875), pull std 1.06; the model coefficients as calibration give the old fold
+bit for bit (Claude's run). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (C4b, slow, 20 Oct)</h2>
 <p>The same comparison as <code>testRFIModel</code>, on the voltage chain's real RFI and excision. Per case (realistic scenario and
@@ -513,7 +517,8 @@ the pulsar redrawn every run, so rms/pred ≈ 1 for honest error bars, ±0.035):
 <p>The RFI left after excision costs 10.5 / 12.2 % SNR, i.e. 25 / 30 % more observing time for the same σ. The error bars stay honest in
 the realistic case and are ~7 % too small with narrow carriers (2σ). The χ² excess comes from channels whose noise the observer's flat
 model under-predicts; unlike the noise-only excess (band-edge taper, grows with SNR²) it does not shrink at low SNR, so <code>pChi2</code> flags
-every TOA with RFI (the drop rule, χ²<sub>red</sub> &gt; 2, does not) — the case for the parked per-channel noise calibration. Claude's run, 20 Oct
+every TOA with RFI (the drop rule, χ²<sub>red</sub> &gt; 2, does not) — the case for the per-channel noise calibration (implemented 20 Oct,
+<code>noiseCal</code>). Claude's run, 20 Oct
 (386 s).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>

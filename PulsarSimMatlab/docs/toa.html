@@ -223,7 +223,8 @@ and <code>MaxRedChi2</code> = 2 still decide which TOAs are good.</li>
 <div class="callout why"><span class="ttl">Why report, not reject</span>
 <p>A sensitive threshold that drops TOAs would throw away every TOA in the B5e narrow-carrier case, whose error bars are only 3.4 % too
 small: worse for navigation than the problem. Gross failures (wrong peak) are still dropped by the threshold 2; a noise model a few %
-off is made visible, and the parked per-channel noise calibration is the fix for it (design choice 16 Oct, Jasper: option C of three;
+off is made visible, and the per-channel noise calibration (implemented 20 Oct as the switch <code>noiseCal</code>, off by default) is the fix
+for it (design choice 16 Oct, Jasper: option C of three;
 the others were keeping 2 alone, or a probability threshold that drops TOAs).</p></div>
 <p>Test: <code>testOptimalTOA</code> test 4 (800 profiles per SNR level drawn with the exact covariance of a blanked fold, 'equal' and
 'optimal'): <code>pChi2</code> uniform by a Kolmogorov–Smirnov test at the 10⁻³ level.</p>

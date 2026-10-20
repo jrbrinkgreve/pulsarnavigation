@@ -36,6 +36,12 @@ Name-value options:
   'RefLevel'   receiver-noise power per channel (default [] = median of the channel means)
   'MinValid'   W at or above which a time bin counts as fully valid (default 1 - 1e-6)
   'ChunkBins'  time bins read per chunk (default 2^18)
+  'Ephem'      struct with f0, F1, TRef (and optionally Phi0) of the pulsar (20 Oct 2026), with
+  'OnPulse'    [turns] half-width around the predicted pulse (phase 0) whose time bins are left
+               out of level, variance and lags (default 0: none). For a measurement on the
+               observation itself (per-channel noise calibration, processIQ proc.noiseCal):
+               the pulsar's own power would otherwise add to the variance at high SNR. The
+               valid fraction is still over all bins.
   'Verbose'    print a summary (default true)
 
 Output prof: label, nChan, chanFreqs, chanWidth, binDt, BnoiseChan, Lmax, level [1 x nChan],
@@ -51,6 +57,8 @@ arguments
     opts.RefLevel   double = []
     opts.MinValid   (1,1) double {mustBeInRange(opts.MinValid, 0, 1)} = 1 - 1e-6
     opts.ChunkBins  (1,1) double {mustBeInteger, mustBePositive} = 2^18
+    opts.Ephem      = []
+    opts.OnPulse    (1,1) double {mustBeNonnegative} = 0
     opts.Verbose    (1,1) logical = true
 end
 
@@ -80,6 +88,17 @@ if haveW
     cW = onCleanup(@() fclose(fidW));
     fseek(fidW, (k1 - 1) * nChan * nQ * 4, 'bof');
 end
+
+haveOn = opts.OnPulse > 0;
+if haveOn
+    E = opts.Ephem;
+    if ~isstruct(E) || ~all(isfield(E, {'f0', 'F1', 'TRef'}))
+        error('rfiProfile:ephem', 'OnPulse needs ''Ephem'' with fields f0, F1, TRef.');
+    end
+    phi0 = 0;
+    if isfield(E, 'Phi0'), phi0 = E.Phi0; end
+end
+nOn = 0;                                            % time bins left out as on-pulse
 
 % ---- Pass 1: means over the valid bins, valid fraction ---------------------------------------
 s1 = zeros(nChan, 1); n1 = zeros(nChan, 1); sW = zeros(nChan, 1);
@@ -117,6 +136,8 @@ prof.refLevel     = ref;
 prof.duration     = (k2 - k1 + 1) * dt;
 prof.sourceFiles  = {info_det.file, ''};
 if haveW, prof.sourceFiles{2} = info_w.file; end
+prof.onPulse      = opts.OnPulse;                 % [turns] left out around the pulse (0: none)
+prof.onPulseFraction = nOn / (k2 - k1 + 1);
 prof.made         = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'));
 
 if opts.Verbose
@@ -143,20 +164,28 @@ end
             else
                 W = ones(nChan, n);
             end
-            fn(P, W);
+            if haveOn                               % on-pulse bins: not used for the noise
+                tk  = info_det.binTime0 + (kPos - 1 + (0:n-1)) * dt - E.TRef;
+                ph  = phi0 + E.f0 * tk + 0.5 * E.F1 * tk.^2;
+                on  = abs(ph - round(ph)) < opts.OnPulse;
+            else
+                on  = false(1, n);
+            end
+            fn(P, W, on);
             kPos = kPos + n;
         end
     end
 
-    function pass1(P, W)
-        ok = W >= opts.MinValid;
+    function pass1(P, W, on)
+        ok = W >= opts.MinValid & ~on;
+        nOn = nOn + nnz(on);
         s1 = s1 + sum(P .* ok, 2);
         n1 = n1 + sum(ok, 2);
         sW = sW + sum(W, 2);
     end
 
-    function pass2(P, W)
-        ok = W >= opts.MinValid;
+    function pass2(P, W, on)
+        ok = W >= opts.MinValid & ~on;
         D  = (P - mu) .* ok;
         sV = sV + sum(D.^2, 2);
         Dx = [tailD, D]; Vx = [tailV, ok];          % with the previous chunk's tail

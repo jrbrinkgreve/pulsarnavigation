@@ -133,6 +133,10 @@ periodicMask  = false;       % with excision: find periodic RFI (radars) in the 
                              % only needed for radars locked to the pulsar. State and fix
                              % design: logs/2026-10-09_handover-B-closed.md
 periodicArgs  = {};          % name-value options for periodicRFI
+noiseCal      = false;       % channel path: per-channel noise calibration (20 Oct 2026) -
+                             % measure each channel's noise on the observation (off-pulse)
+                             % and fold with it, so error bars and chi^2 follow the noise
+                             % RFI leaves; false = the flat-channel model of all validations
 
 % --- Observer knowledge (ephemeris) - in real use from a pulsar catalogue
 % Synthetic case: spin frequency from T; phase 0 at the first pulse centre
@@ -172,7 +176,7 @@ rx    = struct('fLow', fLow, 'fHigh', fHigh);
 proc  = struct('frontEnd', frontEnd, 'refFreq', refFreq, 'f_out', f_out, 'nBin', nBin, ...
     'subintPeriods', subintPeriods, 'chanWidth', chanWidth, 'weighting', weighting, ...
     'excision', excision, 'excisionArgs', {excisionArgs}, 'periodicMask', periodicMask, ...
-    'periodicArgs', {periodicArgs});
+    'periodicArgs', {periodicArgs}, 'noiseCal', noiseCal);
 files = struct('dedisp', fileDedisp, 'envelope', fileEnvelope, 'fold', fileFold, ...
     'chanIQ', fileChanIQ, 'chanBlank', fileChanBlank, 'chanDedisp', fileChanDedisp, ...
     'chanPower', fileChanPower, 'chanDedispB', fileChanDedispB, 'chanPowerB', fileChanPowerB, ...

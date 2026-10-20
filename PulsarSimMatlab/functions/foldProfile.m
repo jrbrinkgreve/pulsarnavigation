@@ -60,6 +60,14 @@ Name-value options:
                    Replaces NoiseCoeffs. Default: none
                    (W = 1 and the constants of NoiseCoeffs, shared by all
                    channels).
+  'ChannelNoise'   [nChan x (1+Lmax)] measured V X(1..Lmax) of every channel (20 Oct
+                   2026; per-channel noise calibration, e.g. rfiProfile on the observation
+                   itself, processIQ proc.noiseCal): the noise sums use them instead of the
+                   clean flat-channel model, so the error bars and chi^2 follow each
+                   channel's real noise (RFI reshapes it). With DataWeights the per-bin V and
+                   X(L) are scaled per channel by measured / model (info_det.noise V, X; exact
+                   for unblanked bins, proportional near blanks); without, they replace
+                   NoiseCoeffs per channel. The weights are then kept per channel. Default [].
   'UseSupportedOnly' fold only info_det.fullySupportedBins (default true).
   'ChunkBins'      time bins read per chunk (default 2^22; with DataWeights
                    at most 2^25 / (nChan*(2+Lmax)) to limit memory).
@@ -138,6 +146,7 @@ arguments
     opts.Assign                 {mustBeTextScalar} = 'linear'
     opts.NoiseCoeffs      (1,:) double {mustBeNonempty, mustBeFinite} = 1
     opts.DataWeights            = []
+    opts.ChannelNoise     double = []
     opts.UseSupportedOnly (1,1) logical = true
     opts.ChunkBins        (1,1) double {mustBePositive} = 2^22
     opts.MaxMemoryGB      (1,1) double {mustBePositive} = 2
@@ -178,7 +187,33 @@ if haveW
     Lmax = DW.Lmax;
     nW   = nChan;
 end
+CN = opts.ChannelNoise;                             % per-channel noise calibration
+haveCN = ~isempty(CN);
+if haveCN
+    if ~haveW && ~isequal(opts.NoiseCoeffs, 1) && size(CN, 2) ~= numel(opts.NoiseCoeffs)
+        error('foldProfile:channelNoise', 'ChannelNoise must have as many lags as NoiseCoeffs.');
+    end
+    if haveW, Lc = Lmax; else, Lc = size(CN, 2) - 1; end
+    if ~isequal(size(CN), [nChan, 1 + Lc]) || any(CN(:, 1) <= 0) || ~all(isfinite(CN), 'all')
+        error('foldProfile:channelNoise', ['ChannelNoise must be [nChan x (1+Lmax)] = [%d x %d] ' ...
+            'with V > 0.'], nChan, 1 + Lc);
+    end
+    if haveW                                        % scale the per-bin V, X: measured / model
+        mod0 = [info_det.noise.V, info_det.noise.X(:).'];
+        if numel(mod0) ~= 1 + Lmax
+            error('foldProfile:channelNoise', 'info_det.noise (V, X) must have Lmax = %d lags.', Lmax);
+        end
+        cnScale = CN ./ mod0;
+        cnScale(:, mod0 == 0) = 1;
+        cnScaleV = cnScale(:, 1).';                 % 1 x nChan
+        cnScaleX = reshape(cnScale(:, 2:end), 1, nChan, Lmax);
+    else                                            % constants per channel instead of shared
+        Lmax = Lc;
+        nW   = nChan;
+    end
+end
 nQ    = 2 + Lmax;                                   % values per bin and channel in DataWeights
+perBin = haveW || haveCN;                           % noise constants per time bin and channel
 dt    = info_det.binDt;
 t1    = info_det.binTime0;
 F1    = opts.F1;
@@ -271,6 +306,9 @@ if opts.Verbose
     if haveW
         fprintf(['foldProfile: data weights per channel from %s (Lmax %d) -> ' ...
                  'phase-bin covariance over %d lag(s)\n'], DW.file, Lmax, D);
+    elseif haveCN
+        fprintf(['foldProfile: measured noise per channel (V %.4f-%.4f, Lmax %d) -> ' ...
+                 'phase-bin covariance over %d lag(s)\n'], min(CN(:, 1)), max(CN(:, 1)), Lmax, D);
     elseif Lmax > 0
         fprintf(['foldProfile: correlated time bins (V %.4f, X(1) %.4f, Lmax %d) -> ' ...
                  'phase-bin covariance over %d lag(s)\n'], V, Xc(1), Lmax, D);
@@ -328,8 +366,17 @@ while kPos <= k2
         Wk = Y(:, :, 1);
         Vk = Y(:, :, 2);
         Xk = Y(:, :, 3:end);                         % n x nChan x Lmax
+        if haveCN                                    % calibrated: each channel's own noise
+            Vk = Vk .* cnScaleV;
+            Xk = Xk .* cnScaleX;
+        end
         sumW = sumW + sum(Wk, 'all');
         X(Wk.' == 0) = 0;                            % empty bins add no power
+    elseif haveCN                                    % per-channel constants, every bin valid
+        Wk = ones(n, nChan);
+        Vk = repmat(CN(:, 1).', n, 1);
+        Xk = repmat(reshape(CN(:, 2:end), 1, nChan, Lmax), n, 1, 1);
+        sumW = sumW + n * nChan;
     else                                             % the same constants for every bin
         Wk = 1;
         Vk = V;
@@ -359,7 +406,7 @@ while kPos <= k2
         a  = x - j0;
         L  = [mod(j0, Nbin) + 1 + base; mod(j0 + 1, Nbin) + 1 + base];
         w  = [1 - a; a];
-        if haveW, Wk2 = [Wk; Wk]; Vk2 = [Vk; Vk]; else, Wk2 = Wk; Vk2 = Vk; end
+        if perBin, Wk2 = [Wk; Wk]; Vk2 = [Vk; Vk]; else, Wk2 = Wk; Vk2 = Vk; end
         Wt = addTo(Wt, L + off, w .* Wk2);
         W2 = addTo(W2, L + off, Vk2 .* w.^2);
         WX = addTo(WX, mod(j0, Nbin) + 1 + base + off, Vk .* (1 - a) .* a);
@@ -374,7 +421,7 @@ while kPos <= k2
         else
             jA = [mod(j0, Nbin), mod(j0 + 1, Nbin)];  wA = [1 - a, a];
         end
-        [W2, WX, tail] = addLagPairs(W2, WX, tail, jA, wA, sub, Xk, haveW, Nbin);
+        [W2, WX, tail] = addLagPairs(W2, WX, tail, jA, wA, sub, Xk, perBin, Nbin);
     end
     kPos = kPos + n;
 end
@@ -426,6 +473,7 @@ info.noiseModel   = ['var(sum_j) = sigma^2*weight2, cov(sum_j, sum_j+d) = ' ...
                      'sigma^2*weightX(:,:,:,d), sigma^2 = m^2/(Bnoise*binDt)'];
 info.dataWeights  = '';                             % data-weight file (DataWeights)
 if haveW, info.dataWeights = DW.file; end
+info.channelNoise = CN;                             % measured per-channel noise ([]: model)
 info.nWeightChan  = nW;                             % size of dimension 3 of the weights
 info.validFraction = sumW / ((k2 - k1 + 1) * nW);   % mean W over the folded bins
 info.binDt        = dt;                             % time-bin length of the input

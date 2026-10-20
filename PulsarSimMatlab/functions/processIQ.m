@@ -37,6 +37,14 @@ Inputs (pipelineParams builds rx, proc, files from its variables):
              periodicArgs   name-value options for periodicRFI
              weightsArgs    (optional field) name-value options for blankingWeights,
                             e.g. {'MaxMemoryGB', 8} for runs longer than ~0.8 s
+             noiseCal       (optional field, default false; 20 Oct 2026) channel path:
+                            per-channel noise calibration - rfiProfile measures each
+                            channel's noise (V, X) on this observation's off-pulse time
+                            bins, and foldProfile uses it ('ChannelNoise') instead of the
+                            clean flat-channel model, so error bars and chi^2 follow the
+                            noise RFI leaves (out.info_cal)
+             noiseCalOnPulse (optional) [turns] half-width left out around the pulse
+                            (default 1.5 FWHM around each component of ephem.profileFWHM)
   files    output files: full band dedisp, envelope, fold; channels chanIQ,
            chanBlank, chanDedisp, chanPower (no excision), chanDedispB,
            chanPowerB (excision: own files, so the unblanked ones stay),
@@ -198,13 +206,28 @@ if ~reuse
             foldArgs = [foldArgs, {'NoiseCoeffs', [info_det.noise.V, info_det.noise.X]}];
         end
     end
+    if ~fullBand && isfield(proc, 'noiseCal') && proc.noiseCal
+        % per-channel noise calibration: each channel's own noise, measured off-pulse
+        onW = onPulseHalfWidth(ephem.profileFWHM);
+        if isfield(proc, 'noiseCalOnPulse'), onW = proc.noiseCalOnPulse; end
+        wCal = [];
+        if excision, wCal = info_w; end
+        out.info_cal = rfiProfile(info_det, wCal, 'Ephem', ephem, 'OnPulse', onW, ...
+            'Label', 'per-channel noise calibration (processIQ)', vb{:});
+        if excision
+            foldArgs = [foldArgs, {'ChannelNoise', out.info_cal.noiseCoeffs}];
+        else                                        % replaces the shared model coefficients
+            foldArgs = [foldArgs(1:end-2), {'ChannelNoise', out.info_cal.noiseCoeffs}];
+        end
+    end
     [info_fold, fold] = foldProfile(info_det, foldFile, ephem.f0, foldArgs{:}, vb{:});
 else
     S = load(foldFile, 'fold', 'info');
     fold = S.fold; info_fold = S.info;                  % reuse the saved fold
     wFile = '';                                         % data-weight file it must have used
     if excision, wFile = files.chanWeight; end
-    checkFold(info_fold, foldFile, info_det, ephem, proc.nBin, proc.subintPeriods, wFile);
+    cal = ~fullBand && isfield(proc, 'noiseCal') && proc.noiseCal;
+    checkFold(info_fold, foldFile, info_det, ephem, proc.nBin, proc.subintPeriods, wFile, cal);
 end
 out.info_fold = info_fold;
 out.fold      = fold;
@@ -276,9 +299,10 @@ if ~isempty(d)
 end
 end
 
-function checkFold(info_fold, foldFile, info_det, ephem, nBin, subintPeriods, wFile)
+function checkFold(info_fold, foldFile, info_det, ephem, nBin, subintPeriods, wFile, cal)
 %CHECKFOLD  Warn when a reused fold was not made from this power file and these
-% settings (phase model, bins, turns per sub-int, data weights; wFile '' = none).
+% settings (phase model, bins, turns per sub-int, data weights; wFile '' = none;
+% per-channel noise calibration cal true/false).
 d = {};
 if ~strcmp(string(info_fold.sourceFile), string(info_det.file)), d{end+1} = 'power file'; end
 f = dir(foldFile);
@@ -290,10 +314,23 @@ if any(abs([info_fold.f0, info_fold.F1, info_fold.TRef] - [ephem.f0, ephem.F1, e
     d{end+1} = 'ephemeris';
 end
 if ~strcmp(string(info_fold.dataWeights), string(wFile)), d{end+1} = 'data weights'; end
+calSaved = isfield(info_fold, 'channelNoise') && ~isempty(info_fold.channelNoise);
+if calSaved ~= cal, d{end+1} = 'noise calibration'; end
 if ~isempty(d)
     warning('processIQ:staleFold', ['The reused fold does not match this run (%s). ' ...
         'Set runStage.process = true.'], strjoin(d, ', '));
 end
+end
+
+function w = onPulseHalfWidth(profile)
+%ONPULSEHALFWIDTH  [turns] half-width around phase 0 that holds the pulse: 1.5 FWHM for a
+% single Gaussian, the farthest component edge (|centre| + 1.5 FWHM) for components.
+if isscalar(profile)
+    w = 1.5 * profile;
+else
+    w = max(abs(profile(:, 2)) + 1.5 * profile(:, 3));
+end
+w = min(w, 0.45);
 end
 
 function t = infoTime(dataFile)

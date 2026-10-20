@@ -126,9 +126,11 @@ channel chains across channels, so dense flags join a wide range into one group 
 its pulses' channels; fix: cap a group's span, or blank only the inliers' main channel cluster. P4 (text only): "the mask does not depend on
 the noise" means no threshold truncation (a predicted window does not depend on the noise inside it); the windows still depend on the data
 through the fitted period and phase.</li>
-<li><b>Parked: per-channel noise calibration</b> — measure each channel's noise level on the data instead of assuming a flat spectrum (a change
-to the validated TOA / detection noise model, design note first). Justified by B5e: TOA error bars 3.4 % too small with narrow
-Inmarsat-like carriers; it also removes the dense false flags that fed the periodic-mask bug.</li>
+<li><b>Per-channel noise calibration</b> — unparked 20 Oct (Jasper) and implemented as a switch, off by default: <code>processIQ</code>
+<code>proc.noiseCal</code> measures each channel's noise on the observation (<code>rfiProfile</code> off-pulse) and folds with it
+(<code>foldProfile</code> <code>'ChannelNoise'</code>); simulator counterpart <code>simulateFold</code> <code>'ObserverNoise', 'measured'</code>.
+Synthetic checks pass (χ² 0.875 → 1.010); the voltage-chain check (<code>runRFITest</code> narrow Inmarsat, χ² 1.22 → ~1) and the
+detectRFI thresholds per channel (the dense false flags) are next.</li>
 <li><b>B5e</b> <span class="badge validated">done 9 Oct, validated 12 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in
 <code>pipelineParams</code> (<a href="receiver.html#realistic">receiver</a>, <a href="results.html#b5e">results</a>). Frequencies verified online on 8 Oct: GPS L2 1227.6, GLONASS G2
 ~1246, BeiDou B3 1268.52, Galileo E6 1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32 1452–1496 (EU),

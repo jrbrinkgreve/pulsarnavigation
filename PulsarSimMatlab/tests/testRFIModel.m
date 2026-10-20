@@ -44,6 +44,13 @@ generator).
      (AR(1), r_k = 0.98 r_k-1 + ..., power 1). The profile cannot hold it, so the real fold's
      noise must exceed the simulated one by more than 4 sigma: the fold comparison of test 2
      (and of testRFIChain on the voltage chain) does see correlations the profile misses.
+  5. Per-channel noise calibration on the observation itself (20 Oct; processIQ proc.noiseCal):
+     rfiProfile on the pulsar stretch of test 2 with 'Ephem' and 'OnPulse' (1.5 FWHM left out)
+     recovers the closed-form coefficients (4 sigma); foldProfile with 'ChannelNoise' (those
+     coefficients) and the weights file: noise against the fold's own model 1 in every channel
+     (4 sigma; test 2 with the clean model: carrier 0.49, narrowband 1.14), TOAs red. chi^2 1 and
+     pull std 1 (4 sigma); the model coefficients as ChannelNoise give the uncalibrated fold bit
+     for bit, and without DataWeights 'ChannelNoise' equals 'NoiseCoeffs' (1e-12).
 Errors at the end if any check fails. (20 Oct 2026, block C4b.)
 %}
 
@@ -183,6 +190,39 @@ fprintf(['4. negative control (AR(1) 0.98 RFI, profile lags 1-2 only): noise/mod
          'simulated %.3f (x%.2f, z %+.1f): %s\n'], cr.ratio, cs.ratio, cr.ratio / cs.ratio, z, ...
     passStr(pass));
 if ~pass, fails{end+1} = 'negative control'; end
+
+% ---------------------------------------------------------------------------------
+% 5. Per-channel noise calibration on the observation itself (rfiProfile 'OnPulse',
+%    foldProfile 'ChannelNoise'; processIQ proc.noiseCal)
+% ---------------------------------------------------------------------------------
+ephC = struct('f0', f0, 'F1', 0, 'TRef', TRef, 'Phi0', -dphi);   % the observer's phase 0 at the pulse
+pOff = rfiProfile(det2, w2, 'RefLevel', 1, 'Ephem', ephC, 'OnPulse', 1.5*fwhm, 'Verbose', false);
+sOff = sCo * sqrt(N1 / (N2 * (1 - pOff.onPulseFraction)));   % errors scaled from test 1's blocks
+zOff = (pOff.noiseCoeffs - coefT) ./ sOff;
+[i5, f5] = foldProfile(det2, 'x', f0, 'TRef', TRef, 'NBin', NB, 'SubintPeriods', per, ...
+    'DataWeights', w2, 'ChannelNoise', pOff.noiseCoeffs, 'SaveFile', false, 'Verbose', false);
+s5 = foldStats(f5, dphi, Bn, dt);
+z5 = (s5.ratio - 1) ./ sqrt(s5.sRatio.^2 + (sSumRel * sqrt(N1 / N2)).^2);
+q5 = toaStats(foldToTOA(f5, i5, fwhm, Bn, 'Weighting', 'optimal', 'Verbose', false), f5.subint.tRef(:) + dphi/f0);
+[~, fM] = foldProfile(det2, 'x', f0, 'TRef', TRef, 'NBin', NB, 'SubintPeriods', per, ...
+    'DataWeights', w2, 'ChannelNoise', repmat(model, nCh, 1), 'SaveFile', false, 'Verbose', false);
+okId = isequal(fM.weight2, fr.weight2) && isequal(fM.weightX, fr.weightX) && isequal(fM.prof, fr.prof);
+[~, fA] = foldProfile(detF, 'x', f0, 'TRef', TRef, 'NBin', NB, 'SubintPeriods', per, ...
+    'NoiseCoeffs', model, 'SaveFile', false, 'Verbose', false);
+[~, fB] = foldProfile(detF, 'x', f0, 'TRef', TRef, 'NBin', NB, 'SubintPeriods', per, ...
+    'ChannelNoise', model, 'SaveFile', false, 'Verbose', false);
+okNoW = max(abs(fA.weight2(:) - fB.weight2(:))) <= 1e-12 * max(fA.weight2(:)) && ...
+    max(abs(fA.weightX(:) - fB.weightX(:))) <= 1e-12 * max(fA.weight2(:)) && isequal(fA.prof, fB.prof);
+okChi = abs(q5.chi2 - 1) < 4 * q5.schi2 + 0.005 && abs(q5.pullStd - 1) < 4 * q5.spullStd;
+pass = all(abs(zOff) < 4, 'all') && all(abs(z5) < 4) && okChi && okId && okNoW;
+fprintf(['5. per-channel noise calibration: rfiProfile on the pulsar stretch with the pulse left out ' ...
+         '(%.1f %% of the bins): coefficients vs the closed forms max |z| %.2f; fold with ''ChannelNoise'': ' ...
+         'noise / own model %s (clean model in test 2: %s); TOAs red. chi2 %.4f +- %.4f (test 3: %.4f), ' ...
+         'pull std %.3f; model coefficients as ChannelNoise = no calibration, bit for bit %d; without ' ...
+         'DataWeights = NoiseCoeffs %d: %s\n'], 100 * pOff.onPulseFraction, max(abs(zOff), [], 'all'), ...
+    mat2str(round(s5.ratio.', 3)), mat2str(round(sr.ratio.', 3)), q5.chi2, q5.schi2, qr.chi2, q5.pullStd, ...
+    okId, okNoW, passStr(pass));
+if ~pass, fails{end+1} = 'noise calibration'; end
 
 if isempty(fails)
     fprintf('testRFIModel: all passed\n');

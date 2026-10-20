@@ -176,7 +176,8 @@ edge channels whole.</p>
 <p><b>Measured 9 Oct (B5e, <a href="results.html#b5e">results</a>):</b> the TOA fit weights a channel by 1/level², and these channels
 contain the RFI, so χ² overstates the effect: error bars 0.08 % too small at LTE 0 dB, 0.39 % in the realistic scenario. The worst
 case is a narrow noise-like carrier about as strong as its channel's noise: with ten such (Inmarsat-like) carriers χ² 1.22 and error
-bars 3.4 % too small. → The per-channel noise calibration is planned (after the periodic-mask fix below).</p></div>
+bars 3.4 % too small. → Per-channel noise calibration, implemented 20 Oct as a switch (<code>noiseCal</code>, off by default; synthetic
+checks pass, chain check next): the observation's own off-pulse noise per channel replaces the flat-channel model.</p></div>
 <div class="callout warn"><span class="ttl">Periodic mask: false emitters when detections are dense (found 9 Oct, B5e)</span>
 <p><code>periodicRFI</code> looks for a fixed rhythm in the detections and assumes the other detections are few and randomly timed. In the
 realistic scenario the lopsided channels give hundreds of false flags each. In that dense cloud it accepted rhythms that are not there
