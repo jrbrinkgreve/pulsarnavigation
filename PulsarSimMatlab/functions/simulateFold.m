@@ -514,8 +514,9 @@ info.nChan        = nChan;
 info.chanFreqs    = [];
 info.assign       = 'linear';
 info.noiseCoeffs  = nc;
+info.channelNoise = [];                             % as foldProfile: measured noise per channel
 if haveRFI && strcmp(opts.ObserverNoise, 'measured')
-    info.noiseCoeffs = RP.noiseCoeffs;              % per channel [nChan x (1+Lmax)]
+    info.channelNoise = RP.noiseCoeffs;             % [nChan x (1+Lmax)] (calibrated observer)
 end
 info.covLags      = D;
 info.noiseModel   = ['var(sum_j) = sigma^2*weight2, cov(sum_j, sum_j+d) = ' ...
