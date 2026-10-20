@@ -44,9 +44,10 @@ data/test/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
      0.96 us / 24: info.binResolution = max(binDt*f0, 1/NBin), and the
      warning comes exactly when it exceeds 1/10 of info.templateWidth (1/5
      until 20 Oct 2026).
-     templateWidth: a Gaussian gives its FWHM (1e-3); with a narrower second
-     component it gives that component's width at half the global maximum
-     (analytic, 1e-2).
+     templateWidth (spectral, 0.459/k_t; 20 Oct 2026, was the narrowest
+     width at half maximum): a Gaussian gives its FWHM (1e-3); a two-
+     component template and B0329+54's five components give the value
+     from their analytic harmonics (1e-6).
 Errors at the end if any check fails. Writes ~0.5 GB of temporary files to
 tempdir (deleted at the end).
 %}
@@ -262,11 +263,23 @@ for c = 1:size(cases7, 1)
         sg  = @(w) w / (2*sqrt(2*log(2)));
         two = exp(-0.5*(ph7/sg(fw7)).^2) + 0.8*exp(-0.5*((ph7 - 0.25)/sg(0.01)).^2);
         [~, it7b] = estimateTOA(f7, ifo7, two, 'Bnoise', 1e6, 'Verbose', false);
-        wTwo = 0.01 * sqrt(log(0.8/0.5) / log(2));  % 2nd component at half the global max
-        okW = abs(it7.templateWidth / fw7 - 1) < 1e-3 && abs(it7b.templateWidth / wTwo - 1) < 1e-2;
-        fprintf(['   template width: Gaussian %.5f (FWHM %.5f); two components %.5f ' ...
-                 '(narrow one at half the global max %.5f): %s\n'], it7.templateWidth, fw7, ...
-            it7b.templateWidth, wTwo, passStr(okW));
+        cB7 = [0.159 -11.427 1.479; 0.439 -1.123 3.281; 0.585 0 1.055; 0.152 7.719 2.751; ...
+               0.170 9.482 0.847];                    % B0329+54 at 1410 MHz (as runScenario)
+        cB7 = [cB7(:, 1), cB7(:, 2) / 360, cB7(:, 3) * 2*sqrt(2*log(2)) / 360];
+        [~, it7c] = estimateTOA(f7, ifo7, gaussianTemplate(nb7, cB7), 'Bnoise', 1e6, 'Verbose', false);
+        % expected: harmonics of a sum of Gaussians, sum_i a_i sig_i exp(-2 pi^2 sig_i^2 k^2
+        % - 2 pi i k c_i), over the fit's harmonics; w = sqrt(3 ln2)/pi / k_t
+        kk  = (1:floor(nb7/2) - 1).';
+        Tk  = @(cp) exp(-2*pi^2*(kk*sg(cp(:, 3)).').^2 - 2i*pi*kk*cp(:, 2).') * (cp(:, 1).*sg(cp(:, 3)));
+        wSp = @(cp) sqrt(3*log(2))/pi / sqrt(sum(kk.^4.*abs(Tk(cp)).^2) / sum(kk.^2.*abs(Tk(cp)).^2));
+        wTwo = wSp([1 0 fw7; 0.8 0.25 0.01]);
+        wB   = wSp(cB7);
+        okW = abs(it7.templateWidth / fw7 - 1) < 1e-3 && abs(it7b.templateWidth / wTwo - 1) < 1e-6 ...
+              && abs(it7c.templateWidth / wB - 1) < 1e-6;
+        fprintf(['   template width: Gaussian %.5f (FWHM %.5f); two components %.5f (analytic ' ...
+                 '%.5f); B0329+54 %.5f (analytic %.5f, 1/%.1f of NBin 1024): %s\n'], ...
+            it7.templateWidth, fw7, it7b.templateWidth, wTwo, it7c.templateWidth, wB, ...
+            it7c.templateWidth * 1024, passStr(okW));
         pass = pass && okW;
     end
 end

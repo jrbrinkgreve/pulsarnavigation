@@ -269,7 +269,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b, coverage warning</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
-<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~5 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
+<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~15 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span> <span class="badge written">test 7 revised 20 Oct (Claude's run)</span></td></tr>
 <tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a; long time bins (test 4, 12 Oct)</td><td>~110 s</td><td><span class="badge validated">passes, 7 Oct; test 4: 12 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
@@ -350,8 +350,9 @@ with excluded channels): to 4·10⁻¹⁶.</li>
 <li>T0, normProfile, Tmax = explicit full H0 covariance formulas.</li>
 <li><code>noiseRatio</code> = 1 within 4σ on the channel path, blanked and unblanked.</li>
 <li>Resolution warning (9 Oct): six (time bin, NBin) cases from 0.96 µs / 2048 to 200 µs / 32 and 0.96 µs / 24: <code>binResolution</code> = max(binDt·<var>f</var>₀, 1/NBin)
-and the warning exactly when it exceeds <code>templateWidth</code>/5. <code>templateWidth</code>: Gaussian = FWHM (10⁻³); with a narrower second component, that
-component's width at half the global maximum (analytic, 10⁻²).</li>
+and the warning exactly when it exceeds <code>templateWidth</code>/10 (/5 until 20 Oct). <code>templateWidth</code> (spectral, 0.459/<var>k<sub>t</sub></var> since
+20 Oct): Gaussian = FWHM (10⁻³); a two-component template and B0329+54's five components = the value from their analytic harmonics,
+Σ<sub><var>i</var></sub> <var>a<sub>i</sub></var> σ<sub><var>i</var></sub> exp(−2π²σ<sub><var>i</var></sub>²<var>k</var>² − 2πi<var>kc<sub>i</sub></var>) (10⁻⁶; B0329+54 0.00774 turns).</li>
 </ol>
 
 <h2 id="bw"><code>testBlankingWeights</code></h2>

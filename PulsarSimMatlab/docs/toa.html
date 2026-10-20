@@ -452,13 +452,20 @@ maximum 1, and phase 0 is the components' reference point (not necessarily the p
 Gaussian with the catalogue W<sub>50</sub> puts only half its flux in the pulse area, so it overstates the peak by 3 dB.</p>
 <div class="callout warn"><span class="ttl">Bins must be fine compared with the template (warning since 9 Oct)</span>
 <p>A profile bin is the pulse averaged over a time bin (binDt·<var>f</var>₀ turns) and spread over ~1 phase bin; the template is the unsmoothed pulse at the
-bin centres. <code>estimateTOA</code> warns (<code>estimateTOA:resolution</code>) when <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/10 (1/5 until 20 Oct) of the template's
-narrowest width at half maximum <var>w</var>, and returns both in <code>info.binResolution</code> / <code>info.templateWidth</code>. Measured at −5 dB (rms error ÷ error bar,
+bin centres. <code>estimateTOA</code> warns (<code>estimateTOA:resolution</code>) when <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/10 (1/5 until 20 Oct) of the template
+width <var>w</var>, and returns both in <code>info.binResolution</code> / <code>info.templateWidth</code>. Since 20 Oct <var>w</var> comes from the template's harmonics:
+\[ w = \frac{\sqrt{3\ln 2}}{\pi\,k_t} \approx \frac{0.459}{k_t}, \qquad k_t^2 = \frac{\sum_k k^4 |S_k|^2}{\sum_k k^2 |S_k|^2} \]
+over the fit's harmonics. Why: averaging over <var>r</var> turns multiplies harmonic <var>k</var> by sin(π<var>kr</var>)/(π<var>kr</var>) ≈ 1 − (π<var>kr</var>)²/6,
+and the fit weights harmonic <var>k</var> by <var>k</var>²|<var>S<sub>k</sub></var>|², so the model error grows as (π<var>r k<sub>t</sub></var>)²/6. For a Gaussian
+<var>w</var> is exactly its FWHM, so the numbers below hold unchanged. Measured at −5 dB (rms error ÷ error bar,
 1.04 with fine bins): time bins of <var>w</var>/2.5 → <b>2.04</b>, <var>w</var>/5 → 1.08; phase bins alone of <var>w</var>/1.6 → 1.16, <var>w</var>/2.4–6.4 → 1.05.
 Coarse time bins are the critical side. Main's settings: <var>r</var> = <var>w</var>/102. Tightened to 1/10 on 20 Oct: at low SNR the cost
 is larger (B0329+54's five-component template at SNR 7: error bars 18 % too small with bins of 1/5.6 of the narrowest component, 8 % with
-1/11). Caveat: <var>w</var> is the narrowest region above half the template's maximum, so narrow features below half maximum (B0329+54's
-core tip and outer components) are not seen — for that template <var>w</var> = 0.0104 turns and even NBin 1024 passes.</p></div>
+1/11). Until 20 Oct <var>w</var> was the narrowest region above half the template's maximum, which misses narrow features below half maximum
+(B0329+54's core tip and outer components): 0.0104 turns, so even NBin 1024 passed. The spectral width follows the features that carry the
+timing: <b>0.0077 turns</b> for B0329+54 (narrowest component 0.0055), so NBin 1024 warns (1/7.9) and 2048 passes (1/15.8), as the pulls showed.
+Caveat: a noisy template (one measured from data) has a white floor of harmonics that makes <var>w</var> far too small (1 % noise on a 0.05-turn
+Gaussian at NBin 1024 gives 0.0012): smooth it, or limit the fit with <code>MaxHarmonic</code>.</p></div>
 
 <h2 id="outputs">8. Options and outputs</h2>
 <dl class="facts">

@@ -29,9 +29,14 @@ Inputs:
                    It is not smoothed by the bins, so the bins must be fine
                    compared with it: warning 'estimateTOA:resolution' when
                    the time bin (binDt*f0) or the phase bin (1/NBin) is
-                   wider than 1/10 of the template's narrowest width at half
-                   maximum (otherwise red. chi^2 rises and the error bars
-                   come out too small).
+                   wider than 1/10 of the template width w = 0.459/k_t,
+                   k_t the rms harmonic number weighted by k^2|S_k|^2
+                   (a Gaussian's FWHM; with several components set by the
+                   narrow features, also below half maximum); otherwise
+                   red. chi^2 rises and the error bars come out too small.
+                   A noisy template (e.g. measured from data) has a white
+                   harmonic floor that makes w far too small: smooth it,
+                   or set MaxHarmonic.
 
 Name-value options:
   'NoiseModel'  'radiometer' (default): per time bin, var = m^2/(Bnoise*binDt)
@@ -109,8 +114,8 @@ Outputs:
         [s] (= phase/f0), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2,
         pChi2, converged, nChanUsed.
   info  method, noise model, Bnoise, harmonics, template, binResolution
-        (max(binDt*f0, 1/NBin) [turns]), templateWidth (narrowest width at
-        half maximum [turns]).
+        (max(binDt*f0, 1/NBin) [turns]), templateWidth (0.459/k_t over the
+        fit's harmonics [turns]; a Gaussian's FWHM).
 
 Uncertainties:
   tau solves C'(tau) = 0 for the cross-correlation C(tau). C'(tau) is a
@@ -172,28 +177,6 @@ if numel(template) ~= N
 end
 template = template / max(template);
 
-% ---- Resolution: bins coarse compared with the template --------------------------------
-% A profile bin is the pulse averaged over a time bin (binDt*f0 turns) and spread over
-% ~1 phase bin by the fold's assignment; the template is the unsmoothed pulse at the bin
-% centres. When the coarser of the two is not small against the template's narrowest
-% feature (width at half maximum), the fit model is wrong and the error bars come out
-% too small (sweeps 9 Oct, -5 dB, rms error / error bar vs 1.04 with fine bins: time
-% bins of FWHM/2.5 -> 2.04, FWHM/5 -> 1.08; phase bins of FWHM/1.6 -> 1.16, FWHM/2.4-6.4
-% -> 1.05-1.06; from FWHM/12.8 as fine bins). Observer information only. 1/10 since 20 Oct
-% 2026 (was 1/5): at low SNR the cost is larger - B0329+54's five components at SNR 7, error
-% bars 18 % too small with bins of 1/5.6 of the narrowest component, 8 % with 1/11.
-binRes = max(binDt * info_fold.f0, 1/N);            % [turns]
-tmplW  = halfMaxWidth(template);                    % [turns]
-if binRes > tmplW/10
-    warning('estimateTOA:resolution', ...
-        ['Bins are coarse for this template: time bin %.3g turns, phase bin %.3g turns, ' ...
-         'template width at half maximum %.3g turns (bins should be <= 1/10 of it, here ' ...
-         '1/%.1f). The template is not smoothed by the bins, so red. chi^2 rises and the ' ...
-         'TOA error bars come out too small (2x measured for time bins of 1/2.5). Use a ' ...
-         'higher f_out and more phase bins, or a bin-smoothed template.'], ...
-        binDt * info_fold.f0, 1/N, tmplW, tmplW/binRes);
-end
-
 K = floor(N/2) - 1;
 if ~isempty(opts.MaxHarmonic), K = min(K, opts.MaxHarmonic); end
 k  = (1:K).';
@@ -201,6 +184,36 @@ S  = fft(template);
 Sk = S(k + 1);
 sumS2 = sum(abs(Sk).^2);
 ksg = [0:ceil(N/2)-1, -floor(N/2):-1].';               % signed harmonic numbers
+
+% ---- Resolution: bins coarse compared with the template --------------------------------
+% A profile bin is the pulse averaged over a time bin (binDt*f0 turns) and spread over
+% ~1 phase bin by the fold's assignment; the template is the unsmoothed pulse at the bin
+% centres. Averaging over r turns multiplies harmonic k by sin(pi*k*r)/(pi*k*r) ~ 1 -
+% (pi*k*r)^2/6, and the fit weights harmonic k by k^2*|S_k|^2, so the model error scales
+% as (pi*r*k_t)^2/6 with k_t^2 = sum k^4|S_k|^2 / sum k^2|S_k|^2 over the fit's harmonics.
+% The template width w = sqrt(3*ln 2)/pi / k_t (= 0.459/k_t) is a Gaussian's FWHM exactly;
+% with several components it follows the narrow features that carry the timing, also those
+% below half maximum (B0329+54: w = 0.0077 turns, the narrowest region above half maximum
+% 0.0104). When the coarser bin is not small against w, the fit model is wrong and the
+% error bars come out too small (sweeps 9 Oct, -5 dB, rms error / error bar vs 1.04 with
+% fine bins: time bins of FWHM/2.5 -> 2.04, FWHM/5 -> 1.08; phase bins of FWHM/1.6 ->
+% 1.16, FWHM/2.4-6.4 -> 1.05-1.06; from FWHM/12.8 as fine bins). Observer information
+% only. 1/10 since 20 Oct 2026 (was 1/5): at low SNR the cost is larger - B0329+54's five
+% components at SNR 7, error bars 18 % too small at NBin 1024 (w/7.9), 8 % at 2048
+% (w/15.8). Spectral width since 20 Oct 2026 (was the narrowest width at half maximum,
+% which missed B0329+54's narrow features: NBin 1024 gave no warning).
+binRes = max(binDt * info_fold.f0, 1/N);            % [turns]
+tmplW  = spectralWidth(k, Sk);                      % [turns]
+if binRes > tmplW/10
+    warning('estimateTOA:resolution', ...
+        ['Bins are coarse for this template: time bin %.3g turns, phase bin %.3g turns, ' ...
+         'template width %.3g turns (0.459/k_t, a Gaussian''s FWHM; bins should be <= 1/10 ' ...
+         'of it, here 1/%.1f). The template is not smoothed by the bins, so red. chi^2 ' ...
+         'rises and the TOA error bars come out too small (2x measured for time bins of ' ...
+         '1/2.5). Use a higher f_out and more phase bins, or a bin-smoothed template. A ' ...
+         'noisy template (from data) also gives a small width: smooth it, or set MaxHarmonic.'], ...
+        binDt * info_fold.f0, 1/N, tmplW, tmplW/binRes);
+end
 
 % Weights: [NBin x nSub x nW (x nLag)], nW = nChan (per channel) or 1 (shared)
 nChan = size(fold.prof, 3);
@@ -665,17 +678,11 @@ p    = gammainc(chi2 / (2*g), nu / 2, 'upper');
 end
 
 
-function w = halfMaxWidth(tmpl)
-%HALFMAXWIDTH  Narrowest width [turns] of the regions where tmpl is above half its range.
-% Circular; edges by linear interpolation between bins. Inf for a flat template.
-N = numel(tmpl);
-y = (tmpl - min(tmpl)) / (max(tmpl) - min(tmpl)) - 0.5;   % > 0 above half maximum
-if ~all(isfinite(y)), w = Inf; return; end
-[~, i0] = min(y);
-y = [circshift(y, -(i0 - 1)); y(i0)];                     % start (and end) below half
-up = find(y(1:N) <= 0 & y(2:N+1) > 0);                    % rising: between j and j+1
-dn = find(y(1:N) > 0 & y(2:N+1) <= 0);                    % falling
-xu = up + y(up) ./ (y(up) - y(up + 1));
-xd = dn + y(dn) ./ (y(dn) - y(dn + 1));
-w  = min(xd - xu) / N;                                    % regions pair up in order
+function w = spectralWidth(k, Sk)
+%SPECTRALWIDTH  Template width [turns] from its harmonics: sqrt(3*ln 2)/pi / k_t, with
+% k_t^2 = sum k^4|S_k|^2 / sum k^2|S_k|^2 (the rms harmonic number, weighted as the fit
+% weights the timing information). A Gaussian's FWHM exactly. Inf for a flat template.
+P2 = k.^2 .* abs(Sk).^2;
+if ~(sum(P2) > 0), w = Inf; return; end
+w = sqrt(3*log(2)) / pi / sqrt(sum(k.^2 .* P2) / sum(P2));
 end
