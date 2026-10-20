@@ -163,7 +163,10 @@ one TOA at 6.9σ). Fixed sub-ints at SNR 5–40 separate two effects: (1) the fi
 template makes the error bars too small at low SNR whatever the grouping (pull width 1.82 at SNR 5, 1.19 at 7, 1.09 at 10, 1.03 at 20), while
 single Gaussians are honest from SNR 7 (0.97–1.10); (2) J0437's narrow pulls were a statistical fluctuation, not an effect: its two
 scenario runs give 0.94 and 0.87 (the robust width of ~110 TOAs scatters by ±0.16), and adaptive and fixed groups on the same simulated data
-both give ~1.1 ± 0.07. Options for (1): a higher target SNR for multi-component pulsars, or an SNR-dependent σ.</li>
+both give ~1.1 ± 0.07. Most of (1) is bin resolution: B0329+54's narrowest component (FWHM 0.0055 turns) is 5.6 bins wide at NBin 1024
+— within <code>estimateTOA</code>'s rule (bins ≤ FWHM/5), but at low SNR that costs more than the rule assumed: with NBin 2048 (11 bins) the pull
+width at SNR 7 drops from 1.18 to 1.08 ± 0.03, the ~5–10 % that single Gaussians show at SNR 7 too. Fix: NBin 2048 for B0329+54 (narrowest
+component ≥ ~10 bins).</li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
 <li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).
