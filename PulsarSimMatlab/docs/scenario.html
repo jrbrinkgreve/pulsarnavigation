@@ -263,11 +263,20 @@ the first side peak is at ±0.025 turns): a narrow core on a broad component let
 which the error bar (from the curvature at the peak) does not cover — the estimator's threshold effect. None at SNR 10 (0 of 600). For
 navigation: a robust (outlier-tolerant) position fit, or a target SNR of ~10 for B0329+54. J0437's 0.88 was statistical scatter (a second
 run gave 0.94; adaptive and fixed groups on the same data both ~1.1). See <a href="limits.html#estimation">limits</a>.</p></div>
-<div class="callout warn"><span class="ttl">J0437's real profile has wings (20 Oct, not yet simulated)</span>
-<p>The J0437 rows still use a single Gaussian with the catalogue W<sub>50</sub> (0.141 ms), but its W<sub>10</sub> is 1.02 ms, four times a
-Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database) gives W<sub>eq</sub> 2.4× the Gaussian's, so ρ is
-3.75 dB lower; a white-noise estimate gives ~5× more data per TOA and a 2.5× larger σ·√h (the wings add flux but little timing). Its core
-is sharper than a Gaussian: the resolution rule needs NBin 1024. A component fit and a rerun are proposed (log, 20 Oct).</p></div>
+<div class="callout warn"><span class="ttl">J0437's real profile has wings: ~5× more data per TOA (20–21 Oct)</span>
+<p>The J0437 rows above use a single Gaussian with the catalogue W<sub>50</sub> (0.141 ms), but its W<sub>10</sub> is 1.02 ms, four times a
+Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database, CC BY 4.0) gives W<sub>eq</sub> 2.4× the Gaussian's,
+so ρ is 3.75 dB lower (−51.2 / −54.8 dB); the wings add flux but little timing, and the core is sharper than a Gaussian (the resolution rule
+needs NBin 1024). Fitted with 8 Gaussian components (W<sub>50</sub>, W<sub>10</sub>, W<sub>eq</sub>, spectral width and timing merit within
+1 % of the measured profile) and simulated, 60 days, clean, NBin 1024 (Claude's scratch run, 21 Oct; <code>runScenario</code> itself not yet
+changed):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>span</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h</th></tr>
+<tr><td>J0437, nominal, 8 components</td><td>0.68</td><td>16.9 (11.8–22.8)</td><td>31 h</td><td>13.0 µs (3.9 km)</td><td>1.10 (41 TOAs)</td><td>15.7 µs (4.7 km)</td><td>53</td></tr>
+<tr><td>J0437, worst case, 8 components</td><td>0.12</td><td>95 (69–129)</td><td>7.4 days</td><td>12.9 µs (3.9 km)</td><td>1.46 (7 TOAs)</td><td>37 µs (11 km)</td><td>126</td></tr>
+</table></div>
+<p>Against the single Gaussian: 5.3× the data per TOA and 2.5× the σ·√h, as the white-noise estimate predicted (5.1×, 2.53×); per day
+J0437 constrains the range to ~5 km (nominal) and ~11 km (worst case) instead of 2–4 km. In the worst case one TOA spans a week of passes.</p></div>
 
 </main>
 <script src="nav.js"></script>
