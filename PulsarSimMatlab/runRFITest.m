@@ -49,7 +49,8 @@ foldToTOA, as main.m (19 Oct 2026; before, its own copy of the stage calls).
 
 Needs: the sky files (main.m with runStage.sky once). Files go to data/rfi
 and are overwritten per case; main's files and data/chan are not touched.
-~50 s per case; runCases picks a subset.
+~50 s per case; runCases picks a subset. calPass = true adds a third pass per case: excision
+plus the per-channel noise calibration (proc.noiseCal, 20 Oct 2026; res.noiseCal, column 'cal').
 %}
 
 % Paths and parameters
@@ -83,6 +84,8 @@ cases = {[], 1, 2, 3, 4, 5, 1:5, ...
     {rfiRealistic, 'realistic scenario (B5e)'}, ...
     {[rfiRealistic(~startsWith({rfiRealistic.label}, 'Inmarsat')), inmNarrow], 'realistic, Inmarsat narrow'}};
 runCases = 1:numel(cases);           % e.g. 8:11 rotating radar, 12:13 LTE, 14:15 realistic (B5e)
+calPass  = false;                    % also a third pass: excision + per-channel noise calibration
+                                     % (proc.noiseCal, 20 Oct 2026); false = the two passes as before
 rThr     = 1.1;                      % per-channel check: list channels with r above this
 
 rfiDir  = fullfile(dataDir, "rfi");
@@ -105,7 +108,7 @@ if ~isempty(d)
 end
 
 nC = numel(runCases);
-res = struct('label', {}, 'excision', {}, 'blanked', {}, 'nGood', {}, 'nValid', {}, ...
+res = struct('label', {}, 'excision', {}, 'noiseCal', {}, 'blanked', {}, 'nGood', {}, 'nValid', {}, ...
     'snr', {}, 'err', {}, 'ratio', {}, 'redChi2', {}, 'offset', {}, 'offsetErr', {}, ...
     'pulses', {}, 'missedE', {}, 'chan', {});
 fprintf('runRFITest: %d cases, SNR %.1f dB, L = %.3g s, noise seed %d\n', nC, snrDB, L, noiseSeed);
@@ -135,8 +138,11 @@ for c = runCases
 
     % Processing (ephemeris + receiver settings only), as in main.m: processIQ twice, without
     % and with excision (each channelizes the IQ file itself), then foldToTOA
-    for exc = [false true]
-        procC = proc; procC.frontEnd = 'channels'; procC.excision = exc;
+    passes = [false false; true false];             % [excision, noise calibration]
+    if calPass, passes(end+1, :) = [true true]; end %#ok<AGROW>
+    for ip = 1:size(passes, 1)
+        exc = passes(ip, 1);
+        procC = proc; procC.frontEnd = 'channels'; procC.excision = exc; procC.noiseCal = passes(ip, 2);
         out = processIQ(info_IQ, rx, ephem, procC, rFiles, 'Verbose', false);
         info_chan = out.info_chan;
         fold = out.fold;
@@ -170,7 +176,7 @@ for c = runCases
         ch = channelNoise(fold, toa, ephem.profileFWHM);
         ch.freq = info_chan.chanFreqs(:).'; ch.flags = flags; ch.expFlags = expFlags;
         ch.src = srcLabels; ch.prf = prfs;
-        res(end+1) = struct('label', label, 'excision', exc, 'blanked', blanked, ...
+        res(end+1) = struct('label', label, 'excision', exc, 'noiseCal', passes(ip, 2), 'blanked', blanked, ...
             'nGood', nnz(good), 'nValid', nnz(v), 'snr', median(toa.snr(v)), ...
             'err', median(toa.toaErr(v)) * 1e6, 'ratio', val.ratio, ...
             'redChi2', median(toa.redChi2(v)), 'offset', val.totalOffset * 1e6, ...
@@ -183,15 +189,15 @@ end
 fprintf('runRFITest: done in %.0f s\n\n', toc(tAll));
 
 % Table
-fprintf('%-34s %4s %9s %6s %7s %9s %8s %8s %16s %8s %9s %5s %9s\n', 'case', 'exc', 'blanked', 'good', ...
+fprintf('%-34s %4s %3s %9s %6s %7s %9s %8s %8s %16s %8s %9s %5s %9s\n', 'case', 'exc', 'cal', 'blanked', 'good', ...
     'SNR', 'err [us]', 'rms/pred', 'redChi2', 'offset [us]', 'pulses', 'E missed', ...
     sprintf('r>%g', rThr), 'err bars');
 for k = 1:numel(res)
     r = res(k);
     pc = '       -'; me = '        -';
     if ~isnan(r.pulses), pc = sprintf('%7.1f%%', 100*r.pulses); me = sprintf('%9.1e', r.missedE); end
-    fprintf('%-34s %4d %8.4f%% %3d/%-2d %7.1f %9.3f %8.3f %8.2f %+8.2f +- %5.2f %s %s %5d %+8.2f%%\n', ...
-        r.label, r.excision, 100*r.blanked, r.nGood, r.nValid, r.snr, r.err, r.ratio, r.redChi2, ...
+    fprintf('%-34s %4d %3d %8.4f%% %3d/%-2d %7.1f %9.3f %8.3f %8.2f %+8.2f +- %5.2f %s %s %5d %+8.2f%%\n', ...
+        r.label, r.excision, r.noiseCal, 100*r.blanked, r.nGood, r.nValid, r.snr, r.err, r.ratio, r.redChi2, ...
         r.offset, r.offsetErr, pc, me, nnz(r.chan.r > rThr), 100 * (r.chan.errBarFactor - 1));
 end
 fprintf(['pulses: fraction of the pulsed source''s pulses blanked in its own channels; E missed: ' ...
