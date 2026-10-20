@@ -78,6 +78,12 @@ Run from the PulsarSimMatlab folder: run('tests/testSimulateFold.m'). Needs no d
       noise-free synthetic series (box-averaged components, as test 1): within 5e-4 of the peak;
       foldToTOA with the component template at -5 dB (400 one-turn sub-ints, random offsets):
       pulls mean 0, std 1 within 4 sigma (the TOA is the components' reference point).
+  Per-channel noise calibration in the simulator (20 Oct):
+  15. 'ObserverNoise', 'model' = the default bit for bit; 'measured' draws the same noise and
+      gives the fold the profile's measured coefficients: with test 9's profile the variance
+      against the fold's own model is 1 in every channel (4 sigma; with the clean model 1.3 /
+      0.36 in the narrowed / carrier channels); with a pulse at -5 dB (400 sub-ints) red. chi2
+      = 1 (4 sigma, at least 2e-3) and the pull std = 1 (4 sigma).
 Errors at the end if any check fails.
 %}
 
@@ -518,6 +524,39 @@ fprintf(['14. components: template [1 0 FWHM] = single Gaussian %d; simulateFold
          'foldToTOA with the component template at -5 dB: %d TOAs, pulls mean %+.3f std %.3f: %s\n'], okT, dC1, ...
     dC2, nnz(tt14.valid), mean(z14), std(z14), passStr(pass));
 if ~pass, fails{end+1} = 'components'; end
+
+% ---------------------------------------------------------------------------------
+% 15. ObserverNoise 'measured' (per-channel noise calibration) with the RFI profile of test 9
+% ---------------------------------------------------------------------------------
+[~, f15d] = simulateFold(f0, -Inf, 20, 'NChan', nC9, 'RFI', P9, 'Seed', 13, 'ObserverNoise', 'model', ...
+    'Verbose', false);
+[~, f15] = simulateFold(f0, -Inf, nS9, 'NChan', nC9, 'RFI', P9, 'Seed', 9, 'ObserverNoise', 'measured', ...
+    'Verbose', false);
+okD = isequal(f15d, fr0) && isequal(f15.prof, f9.prof) && isequal(f15.weight, f9.weight);
+rM = zeros(1, nC9);
+for c = 1:nC9                                       % against the fold's own (calibrated) model
+    sM = P9.level(c) * sqrt(f15.weight2(:, :, c) / (BnC*dtC)) ./ f15.weight(:, :, c);
+    u = (f15.prof(:, :, c) - P9.level(c)) ./ sM;
+    rM(c) = mean(u(:).^2);
+end
+okM = all(abs(rM - 1) < 4 * sqrt(2*1.2 / nPer9));
+c2 = zeros(2, 1); zs = zeros(2, 1); sc2 = zeros(2, 1);
+for kase = 1:2
+    on = {'model', 'measured'};
+    [i15, g15, t15] = simulateFold(f0, -5, 400, 'NChan', nC9, 'RFI', P9, 'PhaseOffset', offs, ...
+        'Seed', 24, 'ObserverNoise', on{kase}, 'Verbose', false);
+    tt = foldToTOA(g15, i15, fwhm, BnC, 'Weighting', 'optimal', 'Verbose', false);
+    v = tt.valid;
+    c2(kase) = mean(tt.redChi2(v)); sc2(kase) = std(tt.redChi2(v)) / sqrt(nnz(v));
+    zs(kase) = std((tt.toa(v) - t15.pulseCenters(v)) ./ tt.toaErr(v));
+end
+okC = abs(c2(2) - 1) < max(4 * sc2(2), 2e-3) && abs(zs(2) - 1) < 4/sqrt(2*400);
+pass = okD && okM && okC;
+fprintf(['15. ObserverNoise: ''model'' = default %d, same noise draws %d; ''measured'': variance / own model %s ' ...
+         '(test 9 with the clean model: %s); with a pulse at -5 dB, 400 sub-ints: red. chi2 model %.4f, ' ...
+         'measured %.4f (+- %.4f), pull std model %.3f, measured %.3f: %s\n'], okD, isequal(f15.prof, f9.prof), ...
+    mat2str(round(rM, 3)), mat2str(round(rLR, 3)), c2(1), c2(2), sc2(2), zs(1), zs(2), passStr(pass));
+if ~pass, fails{end+1} = 'ObserverNoise'; end
 
 if isempty(fails)
     fprintf('testSimulateFold: ALL PASSED\n');

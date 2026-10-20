@@ -102,6 +102,13 @@ Name-value options:
                   v_c. NChan must match; BinDt, Bnoise and NoiseCoeffs are then the
                   profile's (binDt, BnoiseChan, modelCoeffs: the observer's clean
                   model) unless given equal. Asymptotic weights only.
+  'ObserverNoise' with 'RFI' (20 Oct 2026): 'model' (default) - the fold's weight2 /
+                  weightX come from the clean model coefficients, as an observer that
+                  assumes flat channels has them; 'measured' - from the profile's measured
+                  coefficients per channel, as an observer that calibrates each channel's
+                  noise on its own data has them (per-channel noise calibration, block B
+                  item; the chain's counterpart is foldProfile 'ChannelNoise'). The noise
+                  itself is drawn with the measured coefficients either way.
   'SignalGain'    pulse power factor g: peak power above baseline = g*rho
                   (default 1; the voltage chain's band tapers give slightly
                   less - pass expectedPowerModel's sigScale/(Pn*rho) to compare)
@@ -137,7 +144,8 @@ Model (per sub-int, phase bin j at phase phi_j = (j-1)/NBin):
           fold's weight2/weightX from the clean model coefficients (what the observer
           assumes), the noise drawn with the measured ones (n*v_c*sum_L c_c(L)K(..)):
           so a channel whose RFI narrows the spectrum is noisier than the observer's
-          model, a strong carrier's channel quieter (B5e). Blanked bins are taken as
+          model, a strong carrier's channel quieter (B5e); with 'ObserverNoise'
+          'measured' the fold's weights use the measured ones too. Blanked bins are taken as
           spread evenly over pulse phase (RFI not locked to the pulsar).
   noise   Gaussian, var(prof_j) = s_j^2 = m_j^2/(Bnoise*BinDt) * weight2/weight^2,
           cov(prof_j, prof_j+1) = m_j*m_j+1/(Bnoise*BinDt) * weightX/(weight_j*weight_j+1),
@@ -191,6 +199,7 @@ arguments
     opts.NoiseCoeffs   (1,:) double {mustBeNonempty, mustBeFinite} = 1
     opts.MaxMemoryGB   (1,1) double {mustBePositive} = 2
     opts.RFI           = []
+    opts.ObserverNoise {mustBeMember(opts.ObserverNoise, {'model', 'measured'})} = 'model'
     opts.FluxScale     double {mustBeNonnegative} = []
     opts.Scintillation = []
     opts.SignalGain    (1,1) double {mustBeNonnegative, mustBeFinite} = 1
@@ -460,8 +469,13 @@ end
 if haveRFI                                          % per-channel weights x v_c (observer's model)
     vR = reshape(vC, 1, 1, nChan);
     W  = W  .* vR;
-    W2 = W2 .* vR;
-    WX = permute(WX, [1 2 3 4]) .* vR;              % [N x nSub x nChan x D]
+    if strcmp(opts.ObserverNoise, 'measured')       % calibrated observer: the measured
+        W2 = nPhase * ones(N, nSub) .* reshape(w2t .* vC, 1, 1, nChan);           %   coefficients
+        WX = nPhase * ones(N, nSub) .* reshape(wxt .* vC, 1, 1, nChan, D);
+    else
+        W2 = W2 .* vR;
+        WX = permute(WX, [1 2 3 4]) .* vR;          % [N x nSub x nChan x D]
+    end
     if any(vC == 0)                                 % fully blanked channels: no data
         prof(:, :, vC == 0) = NaN;
     end
@@ -500,6 +514,9 @@ info.nChan        = nChan;
 info.chanFreqs    = [];
 info.assign       = 'linear';
 info.noiseCoeffs  = nc;
+if haveRFI && strcmp(opts.ObserverNoise, 'measured')
+    info.noiseCoeffs = RP.noiseCoeffs;              % per channel [nChan x (1+Lmax)]
+end
 info.covLags      = D;
 info.noiseModel   = ['var(sum_j) = sigma^2*weight2, cov(sum_j, sum_j+d) = ' ...
                      'sigma^2*weightX(:,:,:,d), sigma^2 = m^2/(Bnoise*binDt)'];

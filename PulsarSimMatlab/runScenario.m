@@ -16,7 +16,9 @@ Assumptions (notes §11, simulator.html):
     sizeable fraction of the FWHM would make the groups longer than needed, not the TOAs wrong);
   - rho in the simulator's convention (peak of the Gaussian pulse / receiver noise per
     polarization, rho = S_peak/SEFD), 'NPol' 2; the observer passes Bnoise x 2;
-  - single-Gaussian pulse and template (B0329+54 has five components: a first approximation);
+  - pulse and template: B0329+54's five Gaussian components at 1410 MHz (since 20 Oct; a single
+    Gaussian with W50 overstated its peak by 3 dB), J0437 a single Gaussian (wings not modelled);
+    rho from S1400, the SEFD and the pulse area of the profile;
   - 128 channels with the forward band-edge taper on the truth side (item 3); channel noise
     settings (Bnoise, binDt, clean noise coefficients) of the 1 s noise-only RFI profile;
   - variants: 'clean' (receiver noise only); 'rfi' (realistic RFI profile, stationary);
@@ -51,15 +53,32 @@ nCh = P0.nChan; BnC = P0.BnoiseChan; dtC = P0.binDt; ncC = P0.modelCoeffs;
 gc  = chanGain(fLow, fHigh, chanWidth, nCh);
 nPol = 2; elMin = 20; tSid = 86164.0905;
 
-% pulsar settings (ATNF; scintillation: notes §11; rho: simulator convention, deep analysis §8)
+% pulsar settings (ATNF; scintillation: notes §11). Profile: B0329+54 five Gaussian components at
+% 1410 MHz (arXiv:1703.03582 Table 2: centre and sigma in degrees, amplitude) -> [amplitude, centre,
+% FWHM] in turns; J0437 a single Gaussian with W50 (its wings are not modelled yet). rho (simulator
+% convention: pulse peak / receiver noise per polarization) = S1400 / (SEFD * W_eq), W_eq the pulse
+% area of the unit-peak profile in turns; SEFD 3.2e5 Jy nominal, 7.4e5 Jy worst case (notes §11).
+cB = [0.159 -11.427 1.479; 0.439 -1.123 3.281; 0.585 0 1.055; 0.152 7.719 2.751; 0.170 9.482 0.847];
+cB = [cB(:, 1), cB(:, 2) / 360, cB(:, 3) * 2*sqrt(2*log(2)) / 360];
+sefd = struct('nominal', 3.2e5, 'worst', 7.4e5);
 psr.B0329 = struct('name', 'B0329+54', 'f0', 1/0.714519699726, 'dec', 54.5787, 'lat', 52.0, ...
-    'fwhm', 0.0092, 'nBin', 1024, 'rho', struct('nominal', -41.9, 'worst', -45.5), ...
+    'fwhm', 0.0092, 'comps', cB, 'S1400', 0.203, 'nBin', 1024, ...
     'scint', struct('bandwidth', 7e6, 'timescale', 780, 'band', [fLow fHigh]), ...
     'subintTime', 120, 'chunkHours', 4);
 psr.J0437 = struct('name', 'J0437-4715', 'f0', 173.6879458, 'dec', -47.2525, 'lat', -30.0, ...
-    'fwhm', 0.0245, 'nBin', 512, 'rho', struct('nominal', -47.4, 'worst', -51.0), ...
+    'fwhm', 0.0245, 'comps', [], 'S1400', 0.150, 'nBin', 512, ...
     'scint', struct('bandwidth', 740e6, 'timescale', 2290, 'band', [fLow fHigh]), ...
     'subintTime', 300, 'chunkHours', 24);
+for pn = string(fieldnames(psr)).'
+    ps = psr.(pn);
+    prof = gaussianTemplate(2^16, profileOf(ps));
+    wEq = sum(prof) / 2^16;                         % pulse area [turns] of the unit-peak profile
+    for fl = ["nominal", "worst"]
+        psr.(pn).rho.(fl) = 10*log10(ps.S1400 / (sefd.(fl) * wEq));
+    end
+    fprintf('runScenario: %s, W_eq %.2f ms, rho %.2f / %.2f dB (nominal / worst)\n', ps.name, ...
+        wEq / ps.f0 * 1e3, psr.(pn).rho.nominal, psr.(pn).rho.worst);
+end
 
 summary = struct([]);
 for ip = 1:numel(pulsars)
@@ -67,7 +86,7 @@ for ip = 1:numel(pulsars)
     passes = passTimes(ps.lat, ps.dec, elMin, nDays, tSid);
     nPer = max(1, round(ps.subintTime * ps.f0)); tSub = nPer / ps.f0;
     TRef = 0.5 / ps.f0;
-    tmpl = gaussianTemplate(ps.nBin, ps.fwhm);
+    tmpl = gaussianTemplate(ps.nBin, profileOf(ps));
     dPhi = 0.1 * ps.fwhm;              % true pulse phase against the ephemeris [turns]
     for fl = fluxes
         for va = variants
@@ -79,7 +98,9 @@ for ip = 1:numel(pulsars)
             end
             tCase = tic;
             simArgs = {'NChan', nCh, 'ChannelGain', gc, 'NPol', nPol, 'NBin', ps.nBin, ...
-                'FWHM', ps.fwhm, 'SubintPeriods', nPer, 'PhaseOffset', dPhi, 'Verbose', false};
+                'SubintPeriods', nPer, 'PhaseOffset', dPhi, 'Verbose', false};
+            if isempty(ps.comps), simArgs = [simArgs, {'FWHM', ps.fwhm}]; %#ok<AGROW>
+            else, simArgs = [simArgs, {'Components', ps.comps}]; end %#ok<AGROW>
             switch va
                 case "clean"
                     simArgs = [simArgs, {'Bnoise', BnC, 'BinDt', dtC, 'NoiseCoeffs', ncC}]; %#ok<AGROW>
@@ -119,7 +140,7 @@ for ip = 1:numel(pulsars)
                     end
                     if nClosed == 0, continue, end
                     [fT, iT] = subFold(fM, iM, 1:nClosed);
-                    toa = foldToTOA(fT, iT, ps.fwhm, BnC * nPol, 'Weighting', 'optimal', 'Verbose', false);
+                    toa = foldToTOA(fT, iT, profileOf(ps), BnC * nPol, 'Weighting', 'optimal', 'Verbose', false);
                     truth = fT.subint.tRef + dPhi / ps.f0;
                     for g = 1:nClosed
                         G(end+1) = struct('day', d, 'nMerged', sel.nMerged(g), ...
@@ -216,6 +237,12 @@ S = struct('pulsar', ps.name, 'flux', fl, 'variant', va, 'nTOA', nTOA, 'nGood', 
     'zMean', mean(zg), 'zStd', std(zg), 'zOut', mean(abs(zg) > 5), ...
     'chi2Mean', mean([G(good).chi2]), 'pLow', mean([G(good).pChi2] < 0.05), ...
     'leftover', nLeft / max(nSubTotal, 1), 'merit', median(sg) * 1e6 * sqrt(median(hg)));
+end
+
+function prof = profileOf(ps)
+%PROFILEOF  The pulse profile for gaussianTemplate / foldToTOA: components, or the single FWHM.
+prof = ps.comps;
+if isempty(prof), prof = ps.fwhm; end
 end
 
 function v = pct(x, p)
