@@ -123,7 +123,9 @@ bins (<code>rfiProfile</code> <code>'OnPulse'</code>) and folds with it (<code>f
 <code>testRFIModel</code> 5: χ² 0.875 → 1.010.</p>
 <p><b>What the model assumes, and how it is checked.</b> The profile is a statistical model, not a recording: the simulator draws fresh
 noise with the measured statistics in every sub-int, so it assumes (a) the RFI is stationary (its 1 s average holds every hour, every day),
-(b) the time bins are correlated only over the measured lags (Lmax), so their second moments fix the folded noise, (c) folded profiles are
+(b) the time bins are correlated only over the measured lags (Lmax = 7, 6.7 µs), so their second moments fix the folded noise — RFI
+narrower than ~1 MHz correlates further (a 200 kHz carrier's power has a sidelobe at lags 7–9; <code>testRFIChain</code>'s narrow-Inmarsat case
+fails at 1 turn, 20 Oct, under investigation), (c) folded profiles are
 Gaussian, and (d) blanking is not locked to the pulse phase. Three checks:</p>
 <ol>
 <li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> (synthetic, closed-form truth): <code>rfiProfile</code> recovers level, noise

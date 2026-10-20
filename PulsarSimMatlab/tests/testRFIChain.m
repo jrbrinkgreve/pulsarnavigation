@@ -221,7 +221,9 @@ for ci = 1:numel(cases)
         for q = 1:numel(checks)
             ok = ~isnan(z(:, q));
             if ~any(ok)
-                fprintf('    %-11s (no channel with blanking)\n', checks(q));
+                if checks(q) == "kurt. decay", why = 'checked at 1 turn only';
+                else, why = 'no channel with blanking'; end
+                fprintf('    %-11s (%s)\n', checks(q), why);
                 continue
             end
             if q == 5
