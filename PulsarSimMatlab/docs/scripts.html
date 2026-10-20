@@ -20,13 +20,15 @@ honest (8–9 TOAs say little), so the experiments repeat the same stages many t
 noise, the pulsar, the signal strength or the interference. Each experiment answers one question.</p></div>
 
 <div class="table-wrap"><table>
-<tr><th>Script</th><th>Question it answers</th><th>Files</th><th>Cost (L = 0.1 s)</th></tr>
+<tr><th>Script</th><th>Question it answers</th><th>Files</th><th>Cost (measured at L = 0.1 s, DM 5; about twice at the 0.2 s default since 20 Oct)</th></tr>
 <tr><td><a href="#main"><code>main.m</code></a></td><td>One run through the pipeline; TOAs vs truth</td><td><code>data/</code>, <code>data/chan/</code></td><td>~1 min (sky stage dominates)</td></tr>
 <tr><td><a href="#mc"><code>runMonteCarlo.m</code></a></td><td>Are the error bars honest at one SNR?</td><td><code>data/mc/mc_*</code></td><td>15–20 s per seed (full band), ~45 s (channels)</td></tr>
 <tr><td><a href="#sweep"><code>runSNRSweep.m</code></a></td><td>How do precision, honesty, outliers and detection change with SNR?</td><td><code>data/mc/sweep_*</code></td><td>~13 min</td></tr>
 <tr><td><a href="#h0"><code>runH0.m</code></a></td><td>Is the false-alarm rate right? Is the noise model complete?</td><td><code>data/mc/h0_*</code></td><td>~14 min</td></tr>
 <tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case; realistic 3–6 min</td></tr>
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
+<tr><td><a href="#rfiprofile"><code>runRFIProfile.m</code></a></td><td>What does RFI leave per channel after excision? (profiles for the fast simulator)</td><td><code>data/rfi/profile/</code></td><td>1 s: 25–50 min per case</td></tr>
+<tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S)</td><td><code>data/scenario/</code></td><td>~10 min per B0329+54 case for 30 simulated days</td></tr>
 </table></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 276" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
@@ -271,6 +273,29 @@ the 0.1 µs radar on a rotating antenna seen only through −35 dB sidelobes. Ca
 <code>runCases</code> picks a subset, and only the radars it needs are simulated.</p>
 <p>Results and the frequency-guard sweep: <a href="excision.html#locked">locked radar</a>; the periodic mask:
 <a href="excision.html#periodic"><code>periodicRFI</code></a>.</p>
+
+<h2 id="rfiprofile"><code>runRFIProfile.m</code> (C4b, 20 Oct)</h2>
+<p>A voltage-chain run without pulsar (zero sky + receiver noise + RFI, channel path with excision), measured by <code>rfiProfile</code>:
+per channel the level, the noise coefficients and the valid fraction (<a href="simulator.html#rfi">simulator</a>). Cases realistic, narrow
+Inmarsat and noise only; 0.1 s (<code>runRFITest</code>'s settings) and 1 s (the steady part, radar beam passages outside the run). The
+profiles were measured at DM 5; <code>testRFIChain</code>'s half-A profile at DM 25 agrees with them within its scatter, so they stay.</p>
+
+<h2 id="scenario"><code>runScenario.m</code> (block C, 20 Oct)</h2>
+<p>The reference scenario with the fast simulator: B0329+54 from the Netherlands (52° N, 19.6 h passes above 20°) and J0437 from 30° S
+(12.3 h), nominal and worst-case flux, dual polarization, 128 channels with the band-edge taper. In plain steps:</p>
+<ol>
+<li>Daily passes from latitude, declination and the 20° elevation mask, one per sidereal day.</li>
+<li>Each pass is cut into chunks (4 h for B0329+54, for memory) on the sub-int grid (120 s / 300 s sub-ints), and <code>simulateFold</code>
+draws the folds.</li>
+<li><code>adaptiveSubints</code> merges sub-ints until SNR ~7 (also over the gap to the next day); the sub-ints of the group still open at the
+end of a chunk are carried into the next one, which is exact because fold sums add.</li>
+<li><code>foldToTOA</code> on every closed group; the TOA against the truth.</li>
+</ol>
+<p>Per case: good TOAs per day, hours of data per TOA, calendar span, σ (and c·σ), honesty of the error bars, χ², data left over, and the
+figure of merit σ·√hours. The true pulse sits 0.1 FWHM from the predicted phase: <code>adaptiveSubints</code> judges the SNR at the
+predicted phase, which assumes a good ephemeris (a first test with an offset of 0.12 turns closed no group at all). Variants: clean
+(running); RFI, RFI + scintillation, and fixed groups for comparison follow once <code>testRFIChain</code> is in. Results:
+<a href="scenario.html">scenario</a>.</p>
 
 <h2>Planned</h2>
 <p>The processing is factored out since 19 Oct (<code>processIQ</code>, <code>foldToTOA</code>), used by <code>main</code> and all run scripts except

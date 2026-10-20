@@ -31,32 +31,42 @@ Per channel and sub-int length, real (half B) against simulated:
                  observer's clean model) - THE second-moment check: correlations beyond Lmax or
                  slow variation make the real value exceed the simulated one, more at 10 turns;
   3. nb. corr    correlation of u in neighbouring phase bins;
-  4. kurtosis    excess kurtosis of u against the median over the channels of the same run,
-                 sigma = 1.4826 x the median absolute deviation over the channels;
-  5. tails       count of |u| > 4 sigma against the mean count of the lowest 90 % of channels
-                 (Poisson tail per channel) - 4 and 5 use the clean channels as reference
-                 because a phase bin of a short sub-int averages few complex samples, so the
-                 detected power is gamma-like (excess kurtosis ~6/(Bn x phase-bin time): ~0.25
-                 at 1 turn, NBin 1024), which simulateFold's Gaussian draw does not reproduce
-                 (irrelevant for sub-ints of minutes: it falls as 1/time bins per phase bin);
-                 they flag only the extra non-Gaussianity that RFI brings;
+  4. kurtosis    (information) excess kurtosis of u against the median over the channels of the
+                 same run, sigma = 1.4826 x the median absolute deviation over the channels;
+  5. tails       (information) count of |u| > 4 sigma against the mean count of the lowest 90 %
+                 of channels (Poisson tail per channel). A phase bin of a short sub-int averages
+                 few complex samples, so the detected power is gamma-like (excess kurtosis
+                 ~6/(Bn x phase-bin time): ~0.18 at 1 turn, NBin 1024), which simulateFold's
+                 Gaussian draw does not reproduce; RFI adds more in some channels. What matters
+                 for the simulator (sub-ints of minutes) is whether it averages out: check 8;
   6. flatness    variance of the sub-int-averaged profile over phase / the scatter between
                  sub-ints, against the same statistic with every sub-int rotated by a random
                  number of phase bins (100 rotations of the real data: the null keeps all its
                  correlations and non-Gaussianity) - catches RFI that builds up in the fold;
   7. blanking    the same flatness statistic for the blanked fraction per phase bin (1 - the
                  fold weight / the weight of an unblanked fold of the same data) in channels
-                 with blanking - catches blanking locked to the period.
+                 with blanking - catches blanking locked to the period;
+  8. kurt. decay (1 turn) the 1-turn fold merged in groups of 4 turns (mergeSubints): with
+                 independent turns the excess kurtosis falls to k1/4; z = (k4 - k1/4) / jackknife
+                 error (over the sub-ints, valid for non-Gaussian data) - a slower decay is
+                 non-Gaussianity that does not average out (bursts longer than a turn), which
+                 the Gaussian draw would miss also for long sub-ints.
 z = (real - simulated mean) / sqrt(simulated variance + calibration variance) for 1-3, against
-the clean-channel reference and spread for 4, from the rotation null for 6-7. A channel is flagged at |z| > 5 (tails: Poisson tail p < 2.9e-7, the
-same one-sided level); with ~1800 tests per case the Gaussian false-flag rate is 0.1 %, ~1 %
-with the 60-realization estimate of sigma (t with 59 dof). Pooled per check: sum(z)/sqrt(n)
-over the channels, |z| > 5 fails (a small bias common to all channels); not for 4-5, which are
-relative to the channels themselves.
-A check FAILs if any channel is flagged or the pooled z is out. In the realistic case a FAIL can
-be a finding about where the second-moment model breaks (radar sidelobe pulses, bursty
-emitters) rather than a bug: the table of flagged channels (number, frequency, check, real,
-simulated, z) makes it traceable. noiseOnly should pass everything.
+the clean-channel reference and spread for 4, from the rotation null for 6-7, jackknife for 8.
+A channel is flagged at |z| > 5 (6-8 one-sided: only excess structure or slow decay counts;
+less structure than random is harmless; tails: Poisson tail p < 2.9e-7, the same level); with
+~1800 tests per case the Gaussian false-flag rate is 0.1 %, ~1 % with the 60-realization
+estimate of sigma (t with 59 dof). Pooled per check: sum(z)/sqrt(n) over the channels for 1-3,
+|z| > 5 fails (a bias common to all channels; channels sharing RFI make this conservative);
+for 6-7 the statistic of the channel average with shared rotations (broadband impulses blank all
+channels at once: their per-channel z values are not independent, 20 Oct); none for 4, 5, 8.
+A check FAILs if any channel is flagged or the pooled z is out; 4 and 5 never fail (information).
+In the realistic case a FAIL can be a finding about where the second-moment model breaks
+(radar sidelobe pulses, bursty emitters) rather than a bug: the table of flagged channels
+(number, frequency, check, real, simulated or expected, z) makes it traceable. noiseOnly should
+pass everything. Checks 4-8 revised 20 Oct after the first full run (Jasper's OK): realistic
+case, 1 turn: kurtosis/tails flagged the partly covered channels and the carrier channel, and
+the blanking pooled z was -6.5 from correlated channels.
 Errors at the end if any check fails. (20 Oct 2026, block C4b.)
 %}
 
@@ -92,7 +102,8 @@ inmNarrow = arrayfun(@(f) rfiSource('noise', 'Freq', f, 'Bandwidth', 200e3, 'INR
     'Label', sprintf('Inmarsat carrier %.2f MHz', f / 1e6)), inmF, 'UniformOutput', false);
 inmNarrow = [inmNarrow{:}];
 isInm = startsWith({rfiRealistic.label}, 'Inmarsat');
-checks = ["level", "noise/model", "nb. corr", "kurtosis", "tails", "flatness", "blanking"];
+checks = ["level", "noise/model", "nb. corr", "kurtosis", "tails", "flatness", "blanking", "kurt. decay"];
+infoOnly = [4 5]; oneSided = [6 7 8];         % kurtosis, tails: information; structure: excess only
 summary = strings(0, 1); fails = {};
 
 for ci = 1:numel(cases)
@@ -151,7 +162,7 @@ for ci = 1:numel(cases)
     for per = pers
         fa = {'TRef', ephem.TRef, 'F1', ephem.F1, 'NBin', NB, 'SubintPeriods', per, ...
               'SaveFile', false, 'Verbose', false};
-        [~, fR] = foldProfile(detB, 'x', ephem.f0, fa{:}, 'DataWeights', iw);
+        [iR, fR] = foldProfile(detB, 'x', ephem.f0, fa{:}, 'DataWeights', iw);
         [~, fU] = foldProfile(detB, 'x', ephem.f0, fa{:});     % unblanked: the time grid's weights
         use = fR.subint.nTimeBins(:) >= 0.999 * per / (ephem.f0 * dt);
         nS = nnz(use);
@@ -187,9 +198,21 @@ for ci = 1:numel(cases)
         z(:, 5) = (sR.tail - mT) ./ sqrt(mT);      % shown only
         z(:, 6) = sR.flatZ;
         z(blanked, 7) = sR.blankZ(blanked);
-        realV = [sR.lev, sR.ratio, sR.rho1, sR.kurt, sR.tail, sR.flat, sR.blank];
+        % kurtosis decay (1 turn only): merged in groups of 4 turns, independent turns divide the
+        % excess kurtosis by 4; slower decay = non-Gaussianity that does not average out (bursts)
+        k4 = NaN(nChan, 1); kExp = sR.kurt / 4;
+        if per == 1 && nS >= 8
+            iu = find(use); nG4 = floor(nS / 4);
+            grp = zeros(numel(use), 1); grp(iu(1:4*nG4)) = repelem(1:nG4, 4);
+            [fR4, iR4] = mergeSubints(fR, iR, grp);
+            s4 = foldStats(fR4, true(nG4, 1), Bn, dt, prof.refLevel, [], 0, rs);
+            k4 = s4.kurt;
+            z(:, 8) = (k4 - kExp) ./ sqrt(s4.kurtSig.^2 + (sR.kurtSig / 4).^2);
+        end
+        realV = [sR.lev, sR.ratio, sR.rho1, sR.kurt, sR.tail, sR.flat, sR.blank, k4];
         simV  = [mS('lev'), mS('ratio'), mS('rho1'), repmat(kRef, nChan, 1), repmat(mT, nChan, 1), ...
-                 sR.flatNull, sR.blankNull];       % kurtosis, tails: the clean-channel reference
+                 sR.flatNull, sR.blankNull, kExp]; % kurtosis, tails: clean-channel reference; decay: k1/4
+        zPoolOne = [NaN(1, 5), sR.poolFlatZ, sR.poolBlankZ, NaN];   % channel averages, shared rotations
 
         fprintf(['  half B, %2d turn(s) per sub-int: %d complete sub-ints; real vs %d simulated folds ' ...
                  '(mean over channels); radiometer non-Gaussianity: median excess kurtosis %.3f ' ...
@@ -206,18 +229,28 @@ for ci = 1:numel(cases)
             elseif q == 4
                 flag  = ok & abs(z(:, q)) > zThr;
                 zPool = 0;
+            elseif ismember(q, oneSided)
+                flag  = ok & z(:, q) > zThr;
+                zPool = zPoolOne(q);               % NaN for the decay: per channel only
+                if isnan(zPool), zPool = 0; end
             else
                 flag  = ok & abs(z(:, q)) > zThr;
                 zPool = sum(z(ok, q)) / sqrt(nnz(ok));
             end
-            pass = ~any(flag) && abs(zPool) <= zThr;
+            if ismember(q, oneSided)
+                pass = ~any(flag) && zPool <= zThr;
+            else
+                pass = ~any(flag) && abs(zPool) <= zThr;
+            end
+            res = passStr(pass);
+            if ismember(q, infoOnly), res = 'info'; pass = true; end
             fprintf('    %-11s real %9.4f, sim %9.4f, pooled z %+6.2f, flagged %3d of %3d: %s\n', ...
-                checks(q), mean(realV(ok, q)), mean(simV(ok, q)), zPool, nnz(flag), nnz(ok), passStr(pass));
+                checks(q), mean(realV(ok, q)), mean(simV(ok, q)), zPool, nnz(flag), nnz(ok), res);
             for c = find(flag).'
                 fprintf('      ch %3d  %8.3f MHz  real %9.4f  sim %9.4f  z %+7.2f\n', c, ...
                     det.chanFreqs(c) / 1e6, realV(c, q), simV(c, q), z(c, q));
             end
-            summary(end+1, 1) = sprintf('%-15s %2d turn(s)  %-11s %s', cs, per, checks(q), passStr(pass)); %#ok<AGROW>
+            summary(end+1, 1) = sprintf('%-15s %2d turn(s)  %-11s %s', cs, per, checks(q), res); %#ok<AGROW>
             if ~pass, fails{end+1} = sprintf('%s %d turn(s) %s', cs, per, checks(q)); end %#ok<AGROW>
         end
     end
@@ -248,16 +281,22 @@ end
 function st = foldStats(fold, use, Bn, dt, ref, W0, nRot, rs)
 %FOLDSTATS  Per channel over the sub-ints in use: level (prof/ref), noise relative to the
 % observer's model (mean u^2, u = (prof - level)/s_j, s_j = level*sqrt(weight2/(Bn*dt))/weight),
-% neighbour-bin correlation and excess kurtosis of u, count of |u| > 4 sigma; with nRot > 0 also
-% the flatness z of the mean profile and (W0: the unblanked fold's weights) of the blanked
-% fraction, against random rotations of the sub-ints.
+% neighbour-bin correlation and excess kurtosis of u (with its jackknife error over the
+% sub-ints: right also for non-Gaussian data), count of |u| > 4 sigma; with nRot > 0 also the
+% flatness z of the mean profile and (W0: the unblanked fold's weights) of the blanked
+% fraction, against random rotations of the sub-ints - per channel, and for the averages over
+% the channels with one shared rotation per sub-int (channels share RFI, e.g. broadband
+% impulses blank all of them at once, so their z values are not independent).
 P  = fold.prof(:, use, :) / ref;
 W  = fold.weight(:, use, :); W2 = fold.weight2(:, use, :);
-[~, ~, nChan] = size(P); nW = size(W, 3);
-z0 = zeros(nChan, 1);
-st = struct('lev', z0, 'ratio', z0, 'rho1', z0, 'kurt', z0, 'tail', z0, 'flat', NaN(nChan, 1), ...
-    'flatNull', NaN(nChan, 1), 'flatZ', NaN(nChan, 1), 'blank', NaN(nChan, 1), ...
-    'blankNull', NaN(nChan, 1), 'blankZ', NaN(nChan, 1));
+[N, nS, nChan] = size(P); nW = size(W, 3);
+z0 = zeros(nChan, 1); n0 = NaN(nChan, 1);
+st = struct('lev', z0, 'ratio', z0, 'rho1', z0, 'kurt', z0, 'kurtSig', z0, 'tail', z0, ...
+    'flat', n0, 'flatNull', n0, 'flatZ', n0, 'blank', n0, 'blankNull', n0, 'blankZ', n0, ...
+    'poolFlatZ', NaN, 'poolBlankZ', NaN);
+if nRot > 0
+    Dall = NaN(N, nS, nChan); Ball = NaN(N, nS, nChan);
+end
 for c = 1:nChan
     Wc = W(:, :, min(c, nW)); W2c = W2(:, :, min(c, nW)); Pc = P(:, :, c);
     ok = Wc > 0 & isfinite(Pc);
@@ -267,19 +306,30 @@ for c = 1:nChan
     r  = mean(u(ok).^2);
     nb = u .* circshift(u, -1, 1);
     v  = u(ok) / sqrt(r);
-    st.lev(c)   = L;
-    st.ratio(c) = r;
-    st.rho1(c)  = mean(nb(~isnan(nb))) / r;
-    st.kurt(c)  = mean(v.^4) - 3;
-    st.tail(c)  = nnz(abs(v) > 4);
+    S2 = sum(u.^2, 1, 'omitnan'); S4 = sum(u.^4, 1, 'omitnan'); Nn = sum(ok, 1);
+    kj = ((sum(S4) - S4) ./ (sum(Nn) - Nn)) ./ ((sum(S2) - S2) ./ (sum(Nn) - Nn)).^2 - 3;
+    st.lev(c)     = L;
+    st.ratio(c)   = r;
+    st.rho1(c)    = mean(nb(~isnan(nb))) / r;
+    st.kurt(c)    = mean(v.^4) - 3;
+    st.kurtSig(c) = sqrt((nS - 1) / nS * sum((kj - mean(kj)).^2));   % jackknife over sub-ints
+    st.tail(c)    = nnz(abs(v) > 4);
     if nRot > 0
         D = Pc - L; D(~ok) = NaN;
         [st.flat(c), st.flatNull(c), st.flatZ(c)] = flatness(D, nRot, rs);
+        Dall(:, :, c) = D / L;
         if ~isempty(W0)
             B = 1 - Wc ./ W0(:, use);
             B(~(W0(:, use) > 0)) = NaN;
             [st.blank(c), st.blankNull(c), st.blankZ(c)] = flatness(B, nRot, rs);
+            Ball(:, :, c) = B;
         end
+    end
+end
+if nRot > 0
+    [~, ~, st.poolFlatZ] = flatness(mean(Dall, 3, 'omitnan'), nRot, rs);
+    if ~isempty(W0)
+        [~, ~, st.poolBlankZ] = flatness(mean(Ball, 3, 'omitnan'), nRot, rs);
     end
 end
 end

@@ -9,7 +9,7 @@
 <body>
 <main>
 
-<h1>Block C · Fast simulator: <code>simulateFold</code> <span class="badge validated">C1–C4b, C3a–b validated, 20 Oct</span> <span class="badge written">C3c, NPol, AcrossGaps written</span></h1>
+<h1>Block C · Fast simulator: <code>simulateFold</code> <span class="badge validated">C1–C4b, C3a–c, NPol, AcrossGaps validated, 20 Oct</span></h1>
 <p class="lede">Draw the folded profiles directly from their known statistics instead of simulating every voltage sample. Hours of
 observation then take seconds, and everything after the fold (<code>foldToTOA</code>: TOAs, detection, good TOAs) runs unchanged on the
 result.</p>
@@ -123,9 +123,12 @@ coefficients and valid fraction of a carrier, noise-like narrowband RFI and blan
 neighbour correlation and TOA statistics; and RFI correlated beyond the measured lags is detected (the real fold 3.3× noisier than the model).</li>
 <li><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 1: against <code>runRFITest</code> on the voltage chain, within ~1 %.</li>
 <li><a href="tests.html#rfichain"><code>testRFIChain</code></a> (slow): the same fold comparison on a voltage-chain run — profile from the first
-half, fold of the second half — for (b)–(d) with the chain's real RFI and excision. One known limit of (c): a phase bin of a one-turn
-sub-int averages only ~30 complex samples, so real folds are slightly non-Gaussian there (excess kurtosis ~0.17); it vanishes for
-sub-ints of minutes, where the simulator is used.</li>
+half, fold of the second half — for (b)–(d) with the chain's real RFI and excision. First full run (realistic case, DM 25): (b) holds —
+the noise relative to the observer's model is 1.0715 real against 1.0702 simulated at 1 turn and 1.0699 / 1.0702 at 10 turns, so the
+measured lags carry all the correlation; level and flatness agree too. Open on (c): a phase bin of a one-turn sub-int averages only ~30
+complex samples, so real folds are slightly non-Gaussian (excess kurtosis ~0.18, gone for sub-ints of minutes if turns are independent);
+the partly covered channels and, unexpectedly, the carrier channel are more so. Whether that averages out is now checked directly
+(kurtosis decay over 4 turns); rerun pending.</li>
 </ol>
 <p><b>What the RFI costs</b> (<a href="tests.html#simrfi"><code>expSimRFI</code></a> part 2, 1 s profiles, −5 dB, 400 TOAs per case): the
 realistic scenario loses 10.5 % SNR after excision (σ ×1.12, 25 % more observing time for the same σ), the narrow-Inmarsat worst case

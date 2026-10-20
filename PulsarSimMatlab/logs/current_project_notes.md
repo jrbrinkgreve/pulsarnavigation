@@ -146,7 +146,7 @@ PROCESSING, channelized (frontEnd = 'channels' in main.m since A4, 8 Oct; fold
       blankingWeights → foldProfile 'DataWeights' (instead of NoiseCoeffs) [validated]
       periodicRFI: periodic emitters from detectRFI's events → mask of every predicted
       pulse, merged before blankChannels (B6; periodicMask, default false since 9 Oct) [validated]
-      (block B closed 9 Oct; next block C, not started)
+      (block B closed 9 Oct; block C, the fast simulator, started 20 Oct: simulateFold & co., §10 item 3)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
@@ -2129,8 +2129,8 @@ Inmarsat-like carriers (χ² 1.22). New: periodicRFI false emitters from dense f
 blank ~30 % of the data when the periodic mask is on (§9). **Block B closed 9 Oct** (Jasper: "are we not
 stuck in a very tiny hole about RFI?" — essentials done, the rest second-order against
 estimated RFI): periodic mask default off; periodicRFI fix and per-channel noise calibration
-parked with ready designs (`2026-10-09_handover-B-closed.md`). **Next block: C — not started,
-Jasper decides when.** Spectral kurtosis /
+parked with ready designs (`2026-10-09_handover-B-closed.md`). **Next block: C — started 20 Oct
+(Jasper; §10 item 3).** Spectral kurtosis /
 whole-channel flags only if needed. A3b (multi-seed Monte Carlo with blanking) optional.
 
 **Simple labels (from 6 Oct 2026 evening; recap in `2026-10-06_phase-e.md`):**
@@ -2312,7 +2312,11 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    the measured profile agree in level, weight, noise/model, neighbour correlation and TOAs (≤ 2.6σ);
    a negative control (AR(1) RFI beyond the measured lags) is detected (3.3×). Assumptions of the model:
    stationary RFI, correlations only over the measured lags, Gaussian folds, blanking not phase-locked.
-   Planned `tests/testRFIChain.m`: the same comparison on a voltage-chain run (split halves). Next: the
+   `tests/testRFIChain.m` (20 Oct): the same comparison on a voltage-chain run (split halves). First full
+   run (realistic, DM 25): second moments hold (noise/model 1.0715 / 1.0702 at 1 turn, 1.0699 / 1.0702 at
+   10); 1-turn kurtosis excess in partly covered channels and the carrier channel 61 (unexplained: a
+   carrier should make it more Gaussian) → checks revised (kurtosis decay over 4 turns, one-sided
+   flatness/blanking pooled over the channel average); rerun pending. Next: the
    scenario runs — Jasper (20 Oct): location the Netherlands (52° N; the array will go on a ship, steered),
    so **B0329+54** (J0437 and Vela never rise there), plus **J0437 at −30°** (a ship that sailed south);
    needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps' — **both done 20 Oct** (NPol: average of NPol

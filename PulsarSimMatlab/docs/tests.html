@@ -278,9 +278,9 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
-<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) and 13 (NPol, AcrossGaps) Claude's run</td></tr>
-<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 20 Oct)</span></td></tr>
-<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~1 h</td><td><span class="badge written">noise-only smoke run passes; full run pending (Claude's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–13 pass (Jasper's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge validated">passes (Jasper's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~1 h 40 min</td><td><span class="badge written">model holds (realistic, Claude's run); revised checks, rerun pending</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
@@ -451,7 +451,7 @@ off-pulse level, weight, noise relative to the observer's model (carrier 0.485 /
 neighbour correlation all within 2.6σ. (3) <code>foldToTOA</code> on both: median SNR 8.61 / 8.44, σ 31.9 / 32.5 µs, mean χ²<sub>red</sub>
 0.875 / 0.868 (the observer's model over-predicts the carriers' noise), pull std 1.055 / 1.057 — within 2.1σ. (4) Negative control: RFI
 correlated far beyond the measured lags (AR(1), 0.98) — the real fold's noise is 3.3× the simulated one (z +41), so the fold comparison does
-detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
+detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s; Jasper's run, 20 Oct: all passed). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (C4b, slow, 20 Oct)</h2>
 <p>The same comparison as <code>testRFIModel</code>, on the voltage chain's real RFI and excision. Per case (realistic scenario and
@@ -467,7 +467,16 @@ rotations of the real sub-ints. A channel is flagged at |z| &gt; 5 (~1 % false f
 frequency, so a FAIL in the realistic case points at where the second-moment model breaks. Not in <code>runAllTests</code>' default run;
 <code>runAllTests("testRFIChain")</code>, ~30 min per case, 5–8 GB, ~40 GB of temporary files. Smoke run (noise only, 0.3 s, DM 25):
 all checks pass (level, noise/model 0.9995 / 0.9994, neighbour correlation 0.2523 / 0.2524, kurtosis 0.17 in every channel, flatness,
-blanking). Full run: pending.</p>
+blanking). <b>First full run</b> (realistic case, DM 25, 51 min): the second-moment model holds — noise relative to the observer's
+model 1.0715 real / 1.0702 simulated at 1 turn, 1.0699 / 1.0702 at 10 turns (no correlations beyond the measured lags), level, neighbour
+correlation and flatness all within 5σ; the half-A profile at DM 25 equals the DM-5 production profile within its scatter. At 1 turn the
+partly covered channels (LTE edges 81, 86, 94; GNSS L1 120, 121) and the carrier channel 61 had heavier tails than the clean channels — the
+carrier channel unexpectedly so (a carrier makes the detected power <em>more</em> Gaussian), under investigation. Revised after that run
+(20 Oct, Jasper's OK): kurtosis and tails are information only; new check <b>kurtosis decay</b> (the 1-turn fold merged in groups of 4:
+independent turns divide the excess kurtosis by 4; slower decay would mean bursts that do not average out — a model error for long
+sub-ints), with jackknife errors; flatness and blanking one-sided and pooled over the channel average (broadband impulses blank all channels
+at once, so per-channel z values are correlated: the first run's pooled blanking z −6.5 came from that). Noise-only smoke run of the revised
+test: all pass. Full rerun: pending.</p>
 
 <h2 id="simvschain"><code>expSimVsChain</code> (experiment, C2, 20 Oct)</h2>
 <p><code>simulateFold</code> against the voltage chain: simulated folds (2000 one-turn sub-ints per point) at the settings of the saved
