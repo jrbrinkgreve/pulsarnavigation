@@ -21,8 +21,11 @@ Assumptions (notes §11, simulator.html):
     rho from S1400, the SEFD and the pulse area of the profile;
   - 128 channels with the forward band-edge taper on the truth side (item 3); channel noise
     settings (Bnoise, binDt, clean noise coefficients) of the 1 s noise-only RFI profile;
-  - variants: 'clean' (receiver noise only); 'rfi' (realistic RFI profile, stationary);
-    'rfiScint' (+ scintillation, adaptive); 'rfiScintFixed' (fixed groups for comparison).
+  - variants: 'clean' (receiver noise only); 'rfi' (realistic RFI profile of the 1 s chain run,
+    stationary; the observer's flat-channel noise model, as the pipeline by default); 'rfiCal'
+    (the same, the observer calibrates each channel's noise: 'ObserverNoise' 'measured', the
+    pipeline's proc.noiseCal); 'rfiCalScint' (+ scintillation, adaptive groups); 'rfiCalScintFixed'
+    (fixed groups of the median length of rfiCalScint, for comparison: what the adaptive length buys).
 Per day, the pass is cut into chunks (memory) on sub-int boundaries, so the sub-int grid is
 the one a single call would give. The sub-ints of the group still open at the end of a chunk
 are carried into the next chunk (also over the gap to the next day: 'AcrossGaps'), which is
@@ -38,8 +41,8 @@ sqrt(h)]. (20 Oct 2026, block C; design agreed with Jasper the same day.)
 
 pulsars  = ["B0329", "J0437"];
 fluxes   = ["nominal", "worst"];
-variants = "clean";                  % "clean"; next (after testRFIChain): "rfi", "rfiScint",
-                                     % "rfiScintFixed"
+variants = "clean";                  % "clean", "rfi", "rfiCal", "rfiCalScint", "rfiCalScintFixed"
+                                     % (the fixed variant needs the rfiCalScint result first)
 nDays    = 30;                       % simulated days
 overwrite = false;                   % false: skip cases whose result file exists
 
@@ -49,6 +52,7 @@ pipelineParams;
 outDir = fullfile(dataDir, "scenario");
 if ~isfolder(outDir), mkdir(outDir); end
 P0 = load(fullfile(dataDir, "rfi", "profile", "rfiProfile_noiseOnly_1s.mat")).prof;   % channel settings
+PR = load(fullfile(dataDir, "rfi", "profile", "rfiProfile_realistic_1s.mat")).prof;   % realistic RFI
 nCh = P0.nChan; BnC = P0.BnoiseChan; dtC = P0.binDt; ncC = P0.modelCoeffs;
 gc  = chanGain(fLow, fHigh, chanWidth, nCh);
 nPol = 2; elMin = 20; tSid = 86164.0905;
@@ -101,14 +105,31 @@ for ip = 1:numel(pulsars)
                 'SubintPeriods', nPer, 'PhaseOffset', dPhi, 'Verbose', false};
             if isempty(ps.comps), simArgs = [simArgs, {'FWHM', ps.fwhm}]; %#ok<AGROW>
             else, simArgs = [simArgs, {'Components', ps.comps}]; end %#ok<AGROW>
-            switch va
-                case "clean"
-                    simArgs = [simArgs, {'Bnoise', BnC, 'BinDt', dtC, 'NoiseCoeffs', ncC}]; %#ok<AGROW>
-                otherwise
-                    error('runScenario:variant', 'Variant %s is not implemented yet.', va);
-            end
             adArgs = {'TargetSNR', 7, 'Weighting', 'optimal', 'AcrossGaps', true, 'Verbose', false};
             maxS = Inf;
+            switch va
+                case "clean"                        % receiver noise only
+                    simArgs = [simArgs, {'Bnoise', BnC, 'BinDt', dtC, 'NoiseCoeffs', ncC}]; %#ok<AGROW>
+                case {"rfi", "rfiCal", "rfiCalScint", "rfiCalScintFixed"}
+                    simArgs = [simArgs, {'RFI', PR}]; %#ok<AGROW>     % realistic RFI after excision
+                    if contains(va, "Cal")          % the observer calibrates each channel's noise
+                        simArgs = [simArgs, {'ObserverNoise', 'measured'}]; %#ok<AGROW>
+                    end
+                    if contains(va, "Scint")
+                        simArgs = [simArgs, {'Scintillation', ps.scint}]; %#ok<AGROW>
+                    end
+                    if endsWith(va, "Fixed")        % fixed groups: the adaptive case's median length
+                        fA = fullfile(outDir, sprintf('scenario_%s_%s_rfiCalScint_%dd.mat', pulsars(ip), fl, nDays));
+                        if ~isfile(fA)
+                            error('runScenario:fixed', 'Run the rfiCalScint case first (%s).', fA);
+                        end
+                        RA = load(fA).R;
+                        maxS = round(median([RA.groups.nMerged]));
+                        adArgs = {'TargetSNR', Inf, 'Weighting', 'optimal', 'AcrossGaps', true, 'Verbose', false};
+                    end
+                otherwise
+                    error('runScenario:variant', 'Unknown variant %s.', va);
+            end
             G = struct('day', {}, 'nMerged', {}, 'hours', {}, 'spanHours', {}, 'T0', {}, ...
                 'valid', {}, 'good', {}, 'err', {}, 'sigma', {}, 'snr', {}, 'chi2', {}, 'pChi2', {});
             carry = []; nSubTotal = 0;

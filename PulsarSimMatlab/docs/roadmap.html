@@ -11,7 +11,7 @@
 
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 14 October 2026 (commit <code>6ad5b4c</code>). Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 20 October 2026, evening. Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the review
@@ -38,55 +38,140 @@ periodic mask off by default, open items parked with designs. C not started yet 
 <tr><td>12–13 Oct</td><td>Review week: understand and refine the pipeline stage by stage. <code>blankingWeights</code> long-bin crash and lag memory fixed; B5e and
 B5b-2 validated by reruns. Code review of the whole codebase (33 items, <code>logs/2026-10-13_code-review.md</code>): minor fixes, <code>main.m</code> checks
 reused files, <code>runAllTests</code>, a generator unit test, frozen test data (<code>data/test/</code>); diagrams added to these docs.</td></tr>
+<tr><td>14–16 Oct</td><td>Review week continued: every stage explained in these docs; χ² decision (option C: drop at χ²<sub>red</sub> &gt; 2,
+<code>pChi2</code> reported).</td></tr>
+<tr><td>19 Oct</td><td><code>processIQ</code> (IQ in, fold out) and <code>foldToTOA</code>; <code>main</code> and the run scripts on them; multi-seed
+Monte Carlo of the channel path (A3b).</td></tr>
+<tr><td>20 Oct</td><td><b>Block C</b>: <code>simulateFold</code> C1–C4b, C3a–c, RFI profiles, scintillation, adaptive sub-ints, dual polarization,
+multi-component profiles, per-channel noise calibration; <code>testRFIModel</code>, <code>testRFIChain</code>; default DM 25 / L 0.2 s; the ship and
+the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simulated">TOA budgets</a>).</td></tr>
 </table></div>
 
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 236" role="img" aria-label="Project blocks in order: block 1, A, B and the review week done; C, D and E to come">
+<svg class="wide" viewBox="0 0 860 632" role="img" aria-label="Roadmap: the blocks on the calendar from 29 September, block C's steps with their status, and what blocks D and E hold">
   <defs>
-    <marker id="ar-rm" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <marker id="ar-rd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path class="ah" d="M0 0 L10 5 L0 10 z"/>
     </marker>
   </defs>
-  <text class="ttl" x="10" y="16">done, and now</text>
-  <rect class="box proc" x="10" y="26" width="190" height="74" rx="7"/>
-  <text class="ttl" x="105" y="46" text-anchor="middle">Block 1 · 29 Sep – 6 Oct</text>
-  <text class="sub" x="105" y="64" text-anchor="middle">full-band chain validated:</text>
-  <text class="sub" x="105" y="80" text-anchor="middle">noise, SNR sweep, detection</text>
-  <rect class="box proc" x="225" y="26" width="190" height="74" rx="7"/>
-  <text class="ttl" x="320" y="46" text-anchor="middle">A · 6 – 8 Oct</text>
-  <text class="sub" x="320" y="64" text-anchor="middle">channelized front end, exact</text>
-  <text class="sub" x="320" y="80" text-anchor="middle">noise, optimal weighting</text>
-  <rect class="box proc" x="440" y="26" width="190" height="74" rx="7"/>
-  <text class="ttl" x="535" y="46" text-anchor="middle">B · 8 – 9 Oct</text>
-  <text class="sub" x="535" y="64" text-anchor="middle">RFI excision, closed for now;</text>
-  <text class="sub" x="535" y="80" text-anchor="middle">periodic-mask fix parked</text>
-  <rect class="box val" x="655" y="26" width="195" height="74" rx="7"/>
-  <text class="ttl" x="752" y="46" text-anchor="middle">review week · 12 Oct –</text>
-  <text class="sub" x="752" y="64" text-anchor="middle">understand and refine each</text>
-  <text class="sub" x="752" y="80" text-anchor="middle">stage; code review (13 Oct)</text>
-  <path class="line" marker-end="url(#ar-rm)" d="M200 63 H223"/>
-  <path class="line" marker-end="url(#ar-rm)" d="M415 63 H438"/>
-  <path class="line" marker-end="url(#ar-rm)" d="M630 63 H653"/>
-
-  <text class="ttl" x="10" y="138">next</text>
-  <rect class="box" x="10" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
-  <text class="ttl" x="142" y="168" text-anchor="middle">C · fast simulator</text>
-  <text class="sub" x="142" y="186" text-anchor="middle">draw folded profiles with the validated</text>
-  <text class="sub" x="142" y="202" text-anchor="middle">noise model: hours, not seconds</text>
-  <rect class="box" x="297" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
-  <text class="ttl" x="430" y="168" text-anchor="middle">D · motion and phase</text>
-  <text class="sub" x="430" y="186" text-anchor="middle">relative motion, barycentric phase</text>
-  <text class="sub" x="430" y="202" text-anchor="middle">prediction, clock</text>
-  <rect class="box" x="585" y="148" width="265" height="74" rx="7" stroke-dasharray="5 4"/>
-  <text class="ttl" x="718" y="168" text-anchor="middle">E · navigation</text>
-  <text class="sub" x="718" y="186" text-anchor="middle">several pulsars, navigation solution,</text>
-  <text class="sub" x="718" y="202" text-anchor="middle">3×3 array, second polarization</text>
-  <path class="line" marker-end="url(#ar-rm)" d="M752 100 V124 H142 V146"/>
-  <path class="line" marker-end="url(#ar-rm)" d="M275 185 H295"/>
-  <path class="line" marker-end="url(#ar-rm)" d="M562 185 H583"/>
+  <text class="ttl" x="10" y="16">1 · the blocks on the calendar</text>
+  <path class="axis" d="M20 112 H590"/>
+  <path class="axis" d="M20.0 112 v4"/>
+  <text class="sub" x="20.0" y="128" text-anchor="middle">29 Sep</text>
+  <path class="axis" d="M193.5 112 v4"/>
+  <text class="sub" x="193.5" y="128" text-anchor="middle">6 Oct</text>
+  <path class="axis" d="M367.0 112 v4"/>
+  <text class="sub" x="367.0" y="128" text-anchor="middle">13 Oct</text>
+  <path class="axis" d="M540.4 112 v4"/>
+  <text class="sub" x="540.4" y="128" text-anchor="middle">20 Oct</text>
+  <rect class="box val" x="20.0" y="36" width="198.3" height="18" rx="4"/>
+  <text class="lbl" x="20.0" y="32">Block 1 · full-band chain</text>
+  <rect class="box val" x="193.5" y="72" width="74.3" height="18" rx="4"/>
+  <text class="lbl" x="193.5" y="68">A · channels</text>
+  <rect class="box val" x="243.0" y="36" width="49.6" height="18" rx="4"/>
+  <text class="lbl" x="243.0" y="32">B · excision</text>
+  <rect class="box val" x="342.2" y="72" width="123.9" height="18" rx="4"/>
+  <text class="lbl" x="342.2" y="68">review week</text>
+  <rect class="box val" x="515.7" y="36" width="24.8" height="18" rx="4"/>
+  <text class="lbl" x="515.7" y="32">processIQ</text>
+  <rect class="box rx" x="540.4" y="72" width="24.8" height="18" rx="4"/>
+  <text class="lbl" x="540.4" y="68">C · fast simulator</text>
+  <path class="dash" d="M565.2 76 V112"/><text class="sub" x="569.2" y="108">today</text>
+  <path class="line" d="M565.2 81 h18" marker-end="url(#ar-rd)"/>
+  <rect class="box" x="640" y="36" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
+  <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (next)</text>
+  <rect class="box" x="640" y="72" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
+  <text class="lbl" x="745" y="85" text-anchor="middle">E · navigation (next)</text>
+  <text class="ttl" x="10" y="156">2 · block C, step by step</text>
+  <text class="lbl" x="10" y="178" font-weight="600">simulator (simulateFold)</text>
+  <rect class="box val" x="10" y="186" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="201">C1 noise model</text>
+  <rect class="box proc" x="10" y="214" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="229">C2 against the voltage chain</text>
+  <rect class="box val" x="10" y="242" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="257">C4a channels, band-edge taper</text>
+  <rect class="box val" x="10" y="270" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="285">C3a passes and gaps</text>
+  <rect class="box val" x="10" y="298" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="313">C3b scintillation (+ grid fix)</text>
+  <rect class="box val" x="10" y="326" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="341">C3c adaptive sub-ints</text>
+  <rect class="box val" x="10" y="354" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="369">dual pol, groups over gaps</text>
+  <rect class="box val" x="10" y="382" width="205" height="22" rx="5"/>
+  <text class="sub" x="18" y="397">multi-component profiles</text>
+  <text class="lbl" x="225" y="178" font-weight="600">RFI model</text>
+  <rect class="box val" x="225" y="186" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="201">C4b RFI profiles</text>
+  <rect class="box val" x="225" y="214" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="229">testRFIModel (synthetic)</text>
+  <rect class="box proc" x="225" y="242" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="257">expSimRFI: cost of RFI</text>
+  <rect class="box rx" x="225" y="270" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="285">testRFIChain (voltage chain)</text>
+  <rect class="box val" x="225" y="298" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="313">noise calibration: simulator</text>
+  <rect class="box" x="225" y="326" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="233" y="341">noise calibration: chain check</text>
+  <rect class="box rx" x="225" y="354" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="369">channel 61 non-Gaussianity</text>
+  <text class="lbl" x="440" y="178" font-weight="600">scenario (runScenario)</text>
+  <rect class="box proc" x="440" y="186" width="205" height="22" rx="5"/>
+  <text class="sub" x="448" y="201">default DM 25, L 0.2 s</text>
+  <rect class="box proc" x="440" y="214" width="205" height="22" rx="5"/>
+  <text class="sub" x="448" y="229">clean, 30 days</text>
+  <rect class="box proc" x="440" y="242" width="205" height="22" rx="5"/>
+  <text class="sub" x="448" y="257">B0329+54 five components</text>
+  <rect class="box" x="440" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="448" y="285">RFI variants, calibrated</text>
+  <rect class="box" x="440" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="448" y="313">100-day final runs</text>
+  <text class="lbl" x="655" y="178" font-weight="600">open questions</text>
+  <rect class="box rx" x="655" y="186" width="205" height="22" rx="5"/>
+  <text class="sub" x="663" y="201">error bars at SNR ~7</text>
+  <rect class="box rx" x="655" y="214" width="205" height="22" rx="5"/>
+  <text class="sub" x="663" y="229">adaptive stopping (J0437)</text>
+  <rect class="box" x="655" y="242" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="663" y="257">J0437 wings in the profile</text>
+  <rect class="box" x="655" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="663" y="285">detectRFI thresholds per channel</text>
+  <text class="ttl" x="10" y="436">3 · after C</text>
+  <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase</text>
+  <rect class="box" x="10" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="18" y="481">Earth rotation and orbit (Doppler)</text>
+  <rect class="box" x="10" y="494" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="18" y="509">station on a ship: moving position</text>
+  <rect class="box" x="10" y="522" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="18" y="537">barycentric phase prediction</text>
+  <rect class="box" x="10" y="550" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="18" y="565">binary model (J0437, ELL1)</text>
+  <rect class="box" x="10" y="578" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="18" y="593">clock model</text>
+  <text class="lbl" x="435" y="458" font-weight="600">E · navigation</text>
+  <rect class="box" x="435" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="443" y="481">several pulsars (B0329+54, J0437, …)</text>
+  <rect class="box" x="435" y="494" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="443" y="509">navigation solution (position + clock)</text>
+  <rect class="box" x="435" y="522" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="443" y="537">3×3 array, second polarization</text>
+  <rect class="box" x="435" y="550" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="443" y="565">real IQ recordings from the hardware</text>
+  <rect class="box" x="435" y="578" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="443" y="593">FPGA / GPU port of processIQ</text>
+  <rect class="box val" x="10" y="611" width="22" height="14" rx="3"/>
+  <text class="sub" x="40" y="622">validated (Jasper's run)</text>
+  <rect class="box proc" x="220" y="611" width="22" height="14" rx="3"/>
+  <text class="sub" x="250" y="622">done (Claude's run)</text>
+  <rect class="box rx" x="430" y="611" width="22" height="14" rx="3"/>
+  <text class="sub" x="460" y="622">running / under investigation</text>
+  <rect class="box" x="640" y="611" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
+  <text class="sub" x="670" y="622">next / open</text>
 </svg>
-<figcaption>The blocks in order (details in the tables below). C comes before D because one J0437 TOA at the worst-case design point
-takes ~20 h, far beyond what the voltage-level simulation can produce; D is then needed to fold coherently across passes.</figcaption>
+<figcaption>The roadmap on 20 October. (1) The blocks on the calendar; C, the fast simulator, started on
+20 Oct and comes before D because a TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. (2) Block C's
+steps: the simulator itself is complete and validated; open are the voltage-chain checks of the RFI model and the noise calibration, the
+RFI variants of the scenario and two findings about error bars at low SNR. (3) Blocks D and E: motion and the phase prediction, then
+several pulsars and the navigation solution. Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
 <div class="table-wrap"><table>

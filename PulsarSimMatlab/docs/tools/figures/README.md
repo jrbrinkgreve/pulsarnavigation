@@ -24,6 +24,7 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_effects.py` | size of each effect left out of the simulation, as a timing error | limits.html |
 | `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html |
 | `gen_timeline.py` | the blocks on the calendar, 29 Sep – 13 Oct, with session days | history.html |
+| `gen_roadmap.py` | the roadmap: blocks on the calendar, block C's steps by status, what D and E hold | roadmap.html |
 | `gen_voltage.py` | the generated voltage: noise louder once per turn; power follows G (toy rate) | sky.html (stage 1) |
 | `gen_profile.py` | power profile G(t), neighbour sum at 20 % duty | sky.html (stage 1) |
 | `gen_rfspec.py` | RF spectrum: white to f_in/2, the band the dispersion stage keeps | sky.html (stage 1, design choices) |
