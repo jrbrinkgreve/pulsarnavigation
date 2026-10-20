@@ -125,6 +125,10 @@ neighbour correlation and TOA statistics; and RFI correlated beyond the measured
 <li><code>testRFIChain</code> (planned): the same fold comparison on a voltage-chain run — profile from the first half, fold of the second half
 — for (b)–(d) with the chain's real RFI and excision.</li>
 </ol>
+<p><b>What the RFI costs</b> (<a href="tests.html#simrfi"><code>expSimRFI</code></a> part 2, 1 s profiles, −5 dB, 400 TOAs per case): the
+realistic scenario loses 10.5 % SNR after excision (σ ×1.12, 25 % more observing time for the same σ), the narrow-Inmarsat worst case
+12.2 % (σ ×1.14, 30 %). Error bars stay honest within ~7 %, but the reduced χ² rises to 1.07 / 1.25 — noise the observer's flat
+channel model misses, which does not shrink at low SNR, so <code>pChi2</code> flags every TOA with RFI.</p>
 
 <h2 id="schedule">Observing schedule (C3a)</h2>
 <p>Long observations come in passes: the pulsar is above the horizon for some hours a day. With <code>'Passes'</code> (start and end of each

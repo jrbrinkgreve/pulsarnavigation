@@ -12,7 +12,7 @@ observer fitting with 'optimal' weighting and ChannelGain 1 (as main):
      red. chi^2 and pChi2 - for noise only, the realistic scenario and the narrow-Inmarsat
      worst case. (The pulsar is resampled every run, so rms/pred is ~1 for honest error
      bars; runMonteCarlo's 0.956 kept the pulsar fixed.)
-Needs data/rfi/profile/rfiProfile_*.mat (runRFIProfile) and runRFITest's results. ~2 min.
+Needs data/rfi/profile/rfiProfile_*.mat (runRFIProfile) and runRFITest's results. ~6 min (part 1 ~1 min).
 %}
 
 root = fileparts(fileparts(mfilename('fullpath')));

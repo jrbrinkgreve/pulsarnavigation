@@ -2315,7 +2315,16 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    Planned `tests/testRFIChain.m`: the same comparison on a voltage-chain run (split halves). Next: the
    scenario runs — Jasper (20 Oct): location the Netherlands (52° N; the array will go on a ship, steered),
    so **B0329+54** (J0437 and Vela never rise there), plus **J0437 at −30°** (a ship that sailed south);
-   needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps'.
+   needs simulateFold 'NPol' and adaptiveSubints 'AcrossGaps'. **Parallel workflow trial (20 Oct, Jasper)**:
+   main session + role agents (`.claude/workflow.md`, `.claude/agents/*.md`, `059e0d5`) — stopped the
+   same hour (Jasper: "go back to the old development routine ... I liked the visibility of the
+   development in the old form"); log `2026-10-20_blockC.md`. **expSimRFI part 2 (20 Oct, 1 s
+   profiles, −5 dB, 400 TOAs each)**: noise only SNR 92.4, σ 2.940 µs, rms/pred 1.004, χ² 1.0068;
+   realistic 82.6 (×0.895), 3.293 µs (×1.120), rms/pred 0.957 ± 0.035, χ² 1.073; narrow Inmarsat
+   81.1 (×0.878), 3.357 µs (×1.142), 1.069, χ² 1.246 → RFI after excision costs 25–30 % observing
+   time for the same σ; error bars honest within ~7 %; the χ² excess (noise mis-modelled in the
+   partly covered channels) does not shrink with SNR, so pChi2 < 0.05 for every TOA with RFI (the
+   drop rule MaxRedChi2 2 is unaffected) — an argument for the parked per-channel noise calibration.
 4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
@@ -2356,7 +2365,8 @@ barycentric corrections, navigation solution).
    **Generator side still open** (forward dispersion ~47 GB at DM 60–100): memory-efficient
    FFT, dispersion at complex baseband, or per-channel generation; only a simulation
    problem.
-6. **[todo] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
+6. **[done 20 Oct as C3c: `mergeSubints` + `adaptiveSubints`, greedy merging of short sub-ints until
+   T0 ≥ 7; test 12 of testSimulateFold] Adaptive sub-int length (6 Oct).** `subintPeriods` is fixed by hand in
    `pipelineParams` (foldProfile also accepts `'SubintTime'`). Observer-only choice from the
    data: fold a first chunk or the whole observation, measure its SNR (`toa.total.snr` or
    `detection.total.T0`), SNR_turn ≈ SNR_total/√N_total, N = (SNR_target/SNR_turn)² with

@@ -279,7 +279,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–11 pass (Jasper's run, 20 Oct)</span>; 12 (C3c) Claude's run</td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
-<tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~2 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
@@ -465,7 +465,19 @@ with all gains 1 the χ² excess and the <code>pChi2</code> skew vanish (item 3 
 pulsar: level, true noise coefficients and valid fraction per channel) against <code>runRFITest</code> at −5 dB with excision: noise only SNR
 91.9 / 92.3 (chain / simulated), σ 2.956 / 2.942 µs, χ² 1.008 / 1.006; realistic scenario 82.0 / 82.8, 3.317 / 3.286 µs, 1.063 / 1.071;
 narrow Inmarsat carriers 80.5 / 81.2, 3.382 / 3.351 µs, 1.223 / 1.245 — within ~1 % (the chain's SNR ~0.5 % lower in every case: its
-excision clips a few pulse peaks at −5 dB). Part 2: production numbers with the 1 s profiles (steady part).</p>
+excision clips a few pulse peaks at −5 dB). <b>Part 2</b>, production numbers with the 1 s profiles (steady part; 50 × 8 TOAs per case,
+the pulsar redrawn every run, so rms/pred ≈ 1 for honest error bars, ±0.035):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>SNR (/ noise only)</th><th>median σ (/ noise only)</th><th>rms/pred</th><th>median χ²<sub>red</sub></th><th><code>pChi2</code> &lt; 0.05</th><th>channels: level &gt; 1.05, noise ratio &gt; 1.02</th></tr>
+<tr><td>noise only</td><td>92.4 (1.000)</td><td>2.940 µs (1.000)</td><td>1.004</td><td>1.0068</td><td>22.8 %</td><td>0, 0</td></tr>
+<tr><td>realistic scenario (B5e)</td><td>82.6 (0.895)</td><td>3.293 µs (1.120)</td><td>0.957</td><td>1.0733</td><td>100 %</td><td>38, 12</td></tr>
+<tr><td>narrow Inmarsat carriers</td><td>81.1 (0.878)</td><td>3.357 µs (1.142)</td><td>1.069</td><td>1.2455</td><td>100 %</td><td>41, 16</td></tr>
+</table></div>
+<p>The RFI left after excision costs 10.5 / 12.2 % SNR, i.e. 25 / 30 % more observing time for the same σ. The error bars stay honest in
+the realistic case and are ~7 % too small with narrow carriers (2σ). The χ² excess comes from channels whose noise the observer's flat
+model under-predicts; unlike the noise-only excess (band-edge taper, grows with SNR²) it does not shrink at low SNR, so <code>pChi2</code> flags
+every TOA with RFI (the drop rule, χ²<sub>red</sub> &gt; 2, does not) — the case for the parked per-channel noise calibration. Claude's run, 20 Oct
+(386 s).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
 <p>Question from a meeting: a matched filter at 100 kHz looks less noisy than at 1 kHz, so should a higher <code>f_out</code> help? Two experiments, 300 trials,
