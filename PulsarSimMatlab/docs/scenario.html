@@ -244,6 +244,19 @@ until SNR ~7 (also over the gap to the next pass), the true pulse 0.1 FWHM from 
 outliers. A worst-case J0437 TOA needs more data than one pass holds and spans the gap to the next pass. The figures of merit are below this
 page's estimates (1160 and 55 µs·√h), which used the margin W<sub>eq</sub> = 2·W<sub>50</sub>. These are TOA budgets: with motion
 (block D) the TOAs become positions; per day B0329+54 constrains the line-of-sight distance to 30–70 km, J0437 to 2–4 km.</p>
+<div class="callout warn"><span class="ttl">With B0329+54's real profile (five components, 20 Oct)</span>
+<p>The table above used a single Gaussian with the catalogue W<sub>50</sub>. B0329+54's five components at 1410 MHz spread the same flux
+over twice the pulse area, so the peak is 3 dB lower (ρ −45.0 / −48.6 dB) and a TOA needs ~3× more data. Rerun, 30 days, clean:</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h</th></tr>
+<tr><td>B0329+54, nominal</td><td>9.6</td><td>2.0 (1.4–2.8)</td><td>729 µs (219 km)</td><td>1.18 (robust 1.01)</td><td>236 µs (71 km)</td><td>1031</td></tr>
+<tr><td>B0329+54, worst case</td><td>1.8</td><td>11.0 (7.8–14.4)</td><td>734 µs (220 km)</td><td>1.17</td><td>552 µs (165 km)</td><td>2431</td></tr>
+<tr><td>J0437, nominal</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs (3.4 km)</td><td>0.88 (robust 0.67)</td><td>5.9 µs (1.8 km)</td><td>21</td></tr>
+<tr><td>J0437, worst case</td><td>0.73</td><td>16.5 (11.6–21.4)</td><td>11.5 µs (3.5 km)</td><td>0.89</td><td>13 µs (4 km)</td><td>47</td></tr>
+</table></div>
+<p>Under investigation: at SNR ~7 the error bars are not uniformly honest. B0329+54 with components has a fat tail (one TOA at 6.9σ;
+the robust width is 1.01), J0437 has error bars ~30 % too large in the core. Whether this is the estimator at low SNR or the adaptive
+stopping rule is being checked with fixed sub-ints.</p></div>
 
 </main>
 <script src="nav.js"></script>
