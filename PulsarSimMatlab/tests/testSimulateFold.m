@@ -51,8 +51,11 @@ Run from the PulsarSimMatlab folder: run('tests/testSimulateFold.m'). Needs no d
       bandwidth 50 MHz, scintle time 60 s, 20000 sub-ints of 6 s): F mean 1, variance 1,
       P(F < 0.1) = 1 - exp(-0.1) (exponential statistics), normalized intensity ACF 1/e at
       the scintle time and 1/2 at the scintle bandwidth (within 0.06); one channel over
-      400 MHz (the band average) keeps mean 1 with variance below 0.3. 'Scintillation', [] (the
-      switch off, pipelineParams scintOn = false) = no option, bit for bit.
+      400 MHz (the band average) keeps mean 1 with variance below 0.3; scintles narrower than a
+      channel (2 MHz in 128 channels of 3.125 MHz, 5000 sub-ints): mean 1 (0.02), variance = the
+      channel average of the intensity ACF, 0.79 (0.05; one point per channel gave 1 before the
+      grid fix of 20 Oct). 'Scintillation', [] (the switch off, pipelineParams scintOn = false)
+      = no option, bit for bit.
   Adaptive sub-ints (C3c, 20 Oct):
   12. mergeSubints: the one-turn foldProfile fold of test 1 merged in groups of 5 = the
       5-turn foldProfile fold (sum, weight, weight2, weightX, prof, turnRef, tRef; 1e-12).
@@ -363,17 +366,26 @@ rF = acf(F11(:, 1:end-8), F11(:, 9:end));           % 8 channels = 50 MHz
 [~, ~, tb11] = simulateFold(f0, -Inf, 20000 * 600, 'SubintPeriods', 600, 'NBin', 64, 'NChan', 1, ...
     'Bnoise', Inf, 'Scintillation', S11, 'Seed', 15, 'Verbose', false);
 mB = mean(tb11.fluxScale); vB = var(tb11.fluxScale);
+S11n = struct('bandwidth', 2e6, 'timescale', 60); % scintles narrower than a 3.125 MHz channel
+[~, ~, tn11] = simulateFold(f0, -Inf, 5000 * 600, 'SubintPeriods', 600, 'NBin', 16, 'NChan', 128, ...
+    'Bnoise', Inf, 'Scintillation', S11n, 'Seed', 17, 'Verbose', false);
+Wc = 400e6 / 128; aS = sqrt(log(2)) / S11n.bandwidth;          % channel mean of a field with
+vExp = 2 / Wc^2 * (Wc * sqrt(pi) / (2*aS) * erf(aS*Wc) - ...   %   intensity ACF exp(-(aS*dnu)^2)
+    (1 - exp(-(aS*Wc)^2)) / (2*aS^2));
+mN = mean(tn11.fluxScale(:)); vN = var(tn11.fluxScale(:));
+okN = abs(mN - 1) < 0.02 && abs(vN - vExp) < 0.05;
 [~, fOff] = simulateFold(f0, -5, 20, 'Seed', 16, 'Verbose', false);           % switch off:
 [~, fNo]  = simulateFold(f0, -5, 20, 'Scintillation', [], 'Seed', 16, 'Verbose', false);   % [] = off
 okOff = isequaln(fOff, fNo);
 okS = abs(mF - 1) < 0.05 && abs(vF - 1) < 0.1 && abs(p01 - (1 - exp(-0.1))) < 0.01 && ...
-    abs(rT - exp(-1)) < 0.06 && abs(rF - 0.5) < 0.06 && abs(mB - 1) < 0.05 && vB < 0.3 && okOff;
+    abs(rT - exp(-1)) < 0.06 && abs(rF - 0.5) < 0.06 && abs(mB - 1) < 0.05 && vB < 0.3 && okOff && okN;
 pass = okF && okS;
 fprintf(['11. scintillation: FluxScale 0.25 -> fitted amplitude ratio %.3f (+- %.3f); field: mean %.3f, ' ...
          'var %.3f, P(F<0.1) %.4f (exp: %.4f), ACF at the scintle time %.3f (1/e %.3f), at the ' ...
-         'scintle bandwidth %.3f (0.5); band average: mean %.3f, var %.3f; ''Scintillation'', [] = ' ...
+         'scintle bandwidth %.3f (0.5); band average: mean %.3f, var %.3f; 2 MHz scintles in 128 channels: ' ...
+         'mean %.3f, var %.3f (channel average of the ACF %.3f); ''Scintillation'', [] = ' ...
          'off, bit for bit %d: %s\n'], rA, eA, mF, vF, p01, 1 - exp(-0.1), rT, exp(-1), rF, mB, vB, ...
-    okOff, passStr(pass));
+    mN, vN, vExp, okOff, passStr(pass));
 if ~pass, fails{end+1} = 'scintillation'; end
 
 % ---------------------------------------------------------------------------------

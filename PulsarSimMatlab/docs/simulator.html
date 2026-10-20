@@ -157,10 +157,10 @@ are taken as independent between the polarizations too. NPol 1 (default) is the 
 channel gets a true flux factor <var>F</var> that multiplies its pulse: either given (<code>'FluxScale'</code>, [nSub × 1] or [nSub × NChan]) or
 drawn (<code>'Scintillation'</code>, with the scintle bandwidth and time):</p>
 <ol>
-<li>White complex noise on a time × frequency grid (steps of a tenth of the scintle time; 64 or more points across the band, padded).</li>
+<li>White complex noise on a time × frequency grid (steps of a tenth of the scintle time; 64 or more points across the band and a frequency step of at most a quarter of the scintle bandwidth, padded).</li>
 <li>Smoothed with Gaussian kernels along both axes, so the field <var>g</var> has the right correlation lengths and unit mean power.</li>
 <li><var>F</var> = |<var>g</var>|²: exponential statistics, intensity correlation 1/e at the scintle time and ½ at the scintle bandwidth.</li>
-<li>Taken at each sub-int's mid time and averaged over each channel's frequencies (one channel = the band average).</li>
+<li>Taken at each sub-int's mid time and averaged over each channel's frequencies (one channel = the band average). A channel's power integrates its whole width, so when the scintles are not much wider than a channel it fades less than a single frequency does: 2 MHz scintles in 3.125 MHz channels give a variance of 0.79, not 1 (<code>testSimulateFold</code> 11; until 20 Oct the grid had one point per channel at 128 channels, which missed this — it matters for B0329+54's ~7 MHz scintles at the 2 % level, more for narrower ones).</li>
 </ol>
 <p><b>Switch:</b> off by default – without the option (or with <code>[]</code>) the output is bit for bit what it was before C3b, so
 every validation stays as it was. <code>pipelineParams</code> has <code>scintOn</code> (false), the J0437 values in <code>scint</code>, and

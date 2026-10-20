@@ -538,7 +538,10 @@ function F = scintField(t, nChan, S, seed)
 % scintle time) and exp(-ln2*(dnu/bandwidth)^2) in frequency (1/2 at the scintle
 % bandwidth). g = white complex noise convolved with Gaussian kernels of std sigma/sqrt(2)
 % (so the field's own correlation has std sigma) on a padded uniform grid; time by linear
-% interpolation; channels = mean of F over their frequency points. Own random stream.
+% interpolation; channels = mean of F over their frequency points. Frequency grid: at least
+% 64 points across the band and a step of at most a quarter of the scintle bandwidth (20 Oct
+% 2026; was one point per channel at 128 channels, which over-states a channel's fading when
+% the scintles are not much wider than the channel). Own random stream.
 need = {'bandwidth', 'timescale'};
 if ~isstruct(S) || ~all(isfield(S, need))
     error('simulateFold:scint', 'Scintillation must be a struct with fields bandwidth, timescale.');
@@ -547,7 +550,14 @@ band = [1.2e9 1.6e9];
 if isfield(S, 'band'), band = S.band; end
 sigT = S.timescale;                                 % std of the field's time correlation
 sigF = S.bandwidth / sqrt(log(2));                  % ... and of its frequency correlation
-nPerCh = max(1, ceil(64 / nChan));                  % frequency points per channel
+chanW  = diff(band) / nChan;
+nPerCh = max([1, ceil(64 / nChan), ceil(4 * chanW / S.bandwidth)]);   % frequency points per
+if nChan * nPerCh > 2^16                            %   channel: step <= bandwidth/4
+    warning('simulateFold:scintGrid', ['Scintle bandwidth %.3g Hz needs %d frequency points; ' ...
+        'limited to %d (the channel averages over-state the fading).'], S.bandwidth, ...
+        nChan * nPerCh, nChan * floor(2^16 / nChan));
+    nPerCh = max(1, floor(2^16 / nChan));
+end
 nuS = band(1) + ((1:nChan*nPerCh) - 0.5) * diff(band) / (nChan*nPerCh);
 dNu = diff(band) / (nChan*nPerCh);
 dT  = sigT / 10;

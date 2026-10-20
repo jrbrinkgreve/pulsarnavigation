@@ -429,7 +429,7 @@ for a narrowed channel, 0.361 for a strong carrier). Schedule (C3a): (10) one pa
 10 s sub-ints → 3 + 3 sub-ints, every turn inside its pass, the expected turnRef / tRef; TOAs valid on the absolute time axis. Scintillation
 (C3b): (11) <code>'FluxScale'</code> 0.25 → fitted amplitude ratio 0.250 ± 0.001; the drawn field: mean 0.97, variance 0.92, P(<var>F</var> &lt; 0.1)
 0.097 (exponential: 0.095), intensity correlation 0.363 at the scintle time (1/e = 0.368) and 0.490 at the scintle bandwidth (0.5); the band
-average keeps mean 1 with variance 0.25; <code>'Scintillation', []</code> = off, bit for bit. Adaptive sub-ints (C3c): (12)
+average keeps mean 1 with variance 0.25; 2 MHz scintles in 128 channels of 3.125 MHz: mean 1.001, variance 0.801 against the channel average of the intensity ACF, 0.791 (grid fix of 20 Oct; one point per channel gave 1); <code>'Scintillation', []</code> = off, bit for bit. Adaptive sub-ints (C3c): (12)
 <code>mergeSubints</code> of the one-turn fold in groups of 5 = the 5-turn <code>foldProfile</code> fold (10⁻¹²); <code>adaptiveSubints</code> at −25 dB: 109
 groups closed at T0 ≥ 7 (median 36 turns), TOA pulls mean +0.15, std 0.975; with 2 s scintles 147 groups (median 7), pulls −0.08 / 1.04, bright
 stretches close sooner; no group across a gap between passes. Dual polarization and groups over gaps (13, 20 Oct): <code>'NPol', 1</code> =
