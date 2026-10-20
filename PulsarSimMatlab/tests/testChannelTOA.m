@@ -42,7 +42,8 @@ data/test/chan/test_dedisp_chan_power.dat (tests/testDetectChannels.m).
   7. Resolution warning (9 Oct): synthetic folds of random power, six
      (time bin, NBin) cases from 0.96 us / 2048 to 200 us / 32 and
      0.96 us / 24: info.binResolution = max(binDt*f0, 1/NBin), and the
-     warning comes exactly when it exceeds 1/5 of info.templateWidth.
+     warning comes exactly when it exceeds 1/10 of info.templateWidth (1/5
+     until 20 Oct 2026).
      templateWidth: a Gaussian gives its FWHM (1e-3); with a narrower second
      component it gives that component's width at half the global maximum
      (analytic, 1e-2).
@@ -230,7 +231,7 @@ if ~samePh, fails{end+1} = 'detection per-channel vs summed'; end
 % ---------------------------------------------------------------------------------
 % Synthetic folds of random power (P ~ 10 ms, 0.3 s). {time bin [s], NBin}; template
 % Gaussian FWHM 0.05 turns. Pass when info.binResolution = max(binDt*f0, 1/NBin) and
-% the warning comes exactly when it exceeds templateWidth/5.
+% the warning comes exactly when it exceeds templateWidth/10 (1/5 until 20 Oct 2026).
 fprintf('7. resolution warning (estimateTOA:resolution)\n');
 f07 = 100.3; fw7 = 0.05; pass = true;
 cases7 = {0.96e-6, 2048; 200e-6, 32; 100e-6, 64; 33.3e-6, 256; 0.96e-6, 24; 0.96e-6, 128};
@@ -250,7 +251,7 @@ for c = 1:size(cases7, 1)
     [~, id7] = lastwarn;
     warned = strcmp(id7, 'estimateTOA:resolution');
     res7 = max(dt7 * f07, 1/nb7);
-    ok = abs(it7.binResolution - res7) < 1e-12 && warned == (res7 > it7.templateWidth/5);
+    ok = abs(it7.binResolution - res7) < 1e-12 && warned == (res7 > it7.templateWidth/10);
     fprintf(['   bins %6.2f us, NBin %4d: resolution %.4f turns, template width %.4f ' ...
              '(1/%.1f), warning %d: %s\n'], dt7*1e6, nb7, it7.binResolution, ...
         it7.templateWidth, it7.templateWidth/it7.binResolution, warned, passStr(ok));

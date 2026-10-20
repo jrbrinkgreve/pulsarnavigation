@@ -29,7 +29,7 @@ Inputs:
                    It is not smoothed by the bins, so the bins must be fine
                    compared with it: warning 'estimateTOA:resolution' when
                    the time bin (binDt*f0) or the phase bin (1/NBin) is
-                   wider than 1/5 of the template's narrowest width at half
+                   wider than 1/10 of the template's narrowest width at half
                    maximum (otherwise red. chi^2 rises and the error bars
                    come out too small).
 
@@ -179,13 +179,15 @@ template = template / max(template);
 % feature (width at half maximum), the fit model is wrong and the error bars come out
 % too small (sweeps 9 Oct, -5 dB, rms error / error bar vs 1.04 with fine bins: time
 % bins of FWHM/2.5 -> 2.04, FWHM/5 -> 1.08; phase bins of FWHM/1.6 -> 1.16, FWHM/2.4-6.4
-% -> 1.05-1.06; from FWHM/12.8 as fine bins). Observer information only.
+% -> 1.05-1.06; from FWHM/12.8 as fine bins). Observer information only. 1/10 since 20 Oct
+% 2026 (was 1/5): at low SNR the cost is larger - B0329+54's five components at SNR 7, error
+% bars 18 % too small with bins of 1/5.6 of the narrowest component, 8 % with 1/11.
 binRes = max(binDt * info_fold.f0, 1/N);            % [turns]
 tmplW  = halfMaxWidth(template);                    % [turns]
-if binRes > tmplW/5
+if binRes > tmplW/10
     warning('estimateTOA:resolution', ...
         ['Bins are coarse for this template: time bin %.3g turns, phase bin %.3g turns, ' ...
-         'template width at half maximum %.3g turns (bins should be <= 1/5 of it, here ' ...
+         'template width at half maximum %.3g turns (bins should be <= 1/10 of it, here ' ...
          '1/%.1f). The template is not smoothed by the bins, so red. chi^2 rises and the ' ...
          'TOA error bars come out too small (2x measured for time bins of 1/2.5). Use a ' ...
          'higher f_out and more phase bins, or a bin-smoothed template.'], ...
