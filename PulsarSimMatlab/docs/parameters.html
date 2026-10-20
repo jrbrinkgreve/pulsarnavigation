@@ -216,14 +216,14 @@ is why block C plans a fast simulator.</figcaption>
 <tr><td><code>A</code></td><td>1</td><td>pulsar noise std at the pulse peak (signal scale)</td><td>Sets the scale only; the receiver noise is set relative to it through <code>snrDB</code>.</td><td>generator; <code>addNoiseAndRFI</code> via <code>info_gen</code></td></tr>
 <tr><td><code>dutycycle</code></td><td>5 %</td><td>pulse FWHM as a percentage of <var>T</var> → 0.5 ms, σ<sub>t</sub> = 212.3 µs</td><td>Typical of real pulsars (a few percent).</td><td>generator; <code>ephem.profileFWHM</code></td></tr>
 <tr><td><code>genEnvMode</code></td><td><code>'power'</code></td><td>the FWHM refers to the power profile</td><td>The processing detects power; see <a href="sky.html#gen">sky</a>.</td><td>generator</td></tr>
-<tr><td><code>DM</code></td><td>5 pc cm⁻³</td><td>dispersion measure</td><td>Low (J0437 has 2.6), so the forward dispersion fits in memory. The target is up to 100 (<a href="roadmap.html#dm">roadmap</a>).</td><td>dispersion; <code>ephem.DM</code></td></tr>
+<tr><td><code>DM</code></td><td>25 pc cm⁻³</td><td>dispersion measure</td><td>25 since 20 Oct (Jasper), close to B0329+54 (26.8), the pulsar for the Netherlands scenario; was 5 until then (all results before 20 Oct are at DM 5). Sweep across the band 31.5 ms: the forward dispersion still fits the 2<sup>28</sup> FFT (~12 GB) the DM-5 runs used; ~30 is this machine's limit. The target is up to 100 (<a href="roadmap.html#dm">roadmap</a>).</td><td>dispersion; <code>ephem.DM</code></td></tr>
 </table></div>
 
 <h2 id="sim">2. Simulation</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>f_in</code></td><td>4 GHz</td><td>real RF sample rate of the sky and receiver files</td><td>Nyquist 2 GHz covers the 1.6 GHz band edge with room for the IQ filter; 4 GHz / 800 MHz is an integer decimation (5).</td><td>generator, dispersion, noise, IQ</td></tr>
-<tr><td><code>L</code></td><td>0.1 s</td><td>signal length</td><td>About 6 GB of files and ~1 min per run; enough for 9 complete turns. The reference runs of 29 Sep–1 Oct used 1 s (~61 GB).</td><td>generator</td></tr>
+<tr><td><code>L</code></td><td>0.2 s</td><td>signal length</td><td>0.2 s since 20 Oct (Jasper), with DM 25: dedispersion leaves the last sweep (31.5 ms) of the run not fully supported, so ~168 ms are usable — 16 complete turns on the full band, 15 on the channel path. About 12 GB of files. Until 20 Oct 0.1 s at DM 5 (93.7 ms usable, 9 / 8 turns; that dataset is kept in <code>data/ref_DM5_L0.1/</code> for comparison). The reference runs of 29 Sep–1 Oct used 1 s (~61 GB).</td><td>generator</td></tr>
 <tr><td><code>seed</code></td><td>42</td><td>pulsar random stream</td><td>Fixed, so every run shares one pulsar realization; Monte Carlo scripts vary it explicitly.</td><td>generator</td></tr>
 </table></div>
 
@@ -310,17 +310,18 @@ when the unit tests' data are re-frozen (the tests themselves read their own cop
 <tr><th>Quantity</th><th>Value</th><th>From</th></tr>
 <tr><td>IQ decimation <var>D</var></td><td>5</td><td>round(<code>f_in</code>/<code>fs</code>)</td></tr>
 <tr><td>Baseband band</td><td>−100…+300 MHz</td><td><code>fLow</code>/<code>fHigh</code> − <code>fLO</code></td></tr>
-<tr><td>Dispersion smear across the band</td><td>6.302 ms</td><td>τ(1.2 GHz) − τ(1.6 GHz) at DM 5</td></tr>
+<tr><td>Dispersion smear across the band</td><td>31.51 ms</td><td>τ(1.2 GHz) − τ(1.6 GHz) at DM 25 (6.302 ms at the earlier DM 5)</td></tr>
 <tr><td>Forward dispersion kernel</td><td>25,229,772 taps</td><td><a href="sky.html#disp">sky</a></td></tr>
 <tr><td>Channels</td><td>128 × 3.125 MHz, slots <var>K</var> = 256, decimation 192, rate 4.17 MHz</td><td><code>chanWidth</code>, oversampling 4/3</td></tr>
 <tr><td>Detected bin</td><td>1 µs (full band, 800 samples); 0.96 µs (channels, 4 samples)</td><td><code>f_out</code></td></tr>
 <tr><td>Noise bandwidth</td><td>391.6 MHz (full band); 3.0596 MHz per channel</td><td>8 MHz / 2 % edge tapers</td></tr>
 <tr><td>Expected SNR per pulse at −5 dB</td><td>96.5 (exact tapers); measured median 93.4</td><td><a href="validation.html#epm"><code>expectedPowerModel</code></a></td></tr>
 <tr><td>Best TOA error per pulse at −5 dB</td><td>2.892 µs; measured median σ 2.880 µs</td><td>same</td></tr>
-<tr><td>Complete turns in 0.1 s</td><td>9 full band (turns 0–8), 8 channel path (1–8)</td><td>fully-supported range: on both paths turn 9 lacks the
-last 6.3 ms (the dispersion sweep); on the channel path turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard,
-20/62.5 kHz; full band 20/8 MHz = 2.5 µs), because the file starts exactly on a turn boundary</td></tr>
-<tr><td>Disk</td><td>~6 GB (full band) + channel and excision files</td><td>printed by <code>main.m</code></td></tr>
+<tr><td>Complete turns in 0.2 s (DM 25)</td><td>16 full band (turns 0–15), 15 channel path (1–15); 9 / 8 in 0.1 s at DM 5</td><td>fully-supported range: the last
+dispersion sweep (31.5 ms; 6.3 ms at DM 5) is not fully supported, so it ends at ~168.5 ms and turn 16 is incomplete; on the channel path
+turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard, 20/62.5 kHz; full band 20/8 MHz = 2.5 µs), because the file
+starts exactly on a turn boundary</td></tr>
+<tr><td>Disk</td><td>~12 GB (full band) + channel and excision files (~6 GB at the earlier 0.1 s)</td><td>printed by <code>main.m</code></td></tr>
 </table></div>
 
 <h2 id="main">9. Run control in <code>main.m</code></h2>

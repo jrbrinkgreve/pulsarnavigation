@@ -18,11 +18,14 @@ T          = 10e-3;     % [s]  pulsar period
 A          = 1;         % [V]  pulsar noise std at pulse peak (sets the signal scale)
 dutycycle  = 5;         % [%]  pulse FWHM as percent of T
 genEnvMode = 'power';   % 'power': power profile has FWHM = dutycycle% of T
-DM         = 5;         % [pc cm^-3] dispersion measure
+DM         = 25;        % [pc cm^-3] dispersion measure (25 since 20 Oct 2026, near B0329+54's 26.8; was 5)
 
 % --- Simulation
 f_in = 4e9;             % [Hz] RF sampling rate
-L    = 100e-3;               % [s]  total signal length
+L    = 200e-3;          % [s]  total signal length (0.2 s since 20 Oct 2026, with DM 25: the last
+                       % dispersion sweep, 31.5 ms, is not fully supported -> ~168 ms usable,
+                       % 16 / 15 complete turns full band / channel path; was 0.1 s at DM 5,
+                       % that dataset kept in data/ref_DM5_L0.1)
 seed = 42;              % RNG seed of the pulsar signal
 
 % --- Receiver (known to the observer)
