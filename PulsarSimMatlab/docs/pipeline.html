@@ -127,7 +127,7 @@ fold and TOA fit, and only the final validation looks at the truth.</p></div>
   <text class="sub" x="440" y="590">good = fitted ∧ detected ∧ χ² ok</text>
 </svg>
 <figcaption>Blue: simulated sky. Orange: simulated receiver. Green: processing (observer-only). Bottom box:
-validation against ground truth. The full-band path is the validated reference; the channel path is the default since 8 Oct 2026.</figcaption>
+validation against ground truth. The full-band path is the validated reference; the channel path is the default.</figcaption>
 </figure>
 <p>Read it from top to bottom:</p>
 <ol>
@@ -152,11 +152,11 @@ channel after a filterbank (middle), with RFI excision in between (right).</li>
 <tr><td>6</td><td><a href="fullband.html#detect"><code>detectPower</code></a></td><td><code>test_envelope.dat</code></td><td>power, 1 µs bins</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Channelized front end (<code>frontEnd = 'channels'</code>, default)</th></tr>
 <tr><td>5a</td><td><a href="channels.html#chan"><code>channelizeIQ</code></a></td><td><code>data/chan/test_rx_IQ_chan_ch###.dat</code></td><td>128 × complex, 4.17 MHz</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>B2</td><td><a href="excision.html#detect"><code>detectRFI</code></a></td><td>(mask in memory)</td><td>rows [channel, first, last]</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>B1</td><td><a href="excision.html#blank"><code>blankChannels</code></a></td><td><code>…_chan_blanked_ch###.dat</code></td><td>128 × complex, masked samples 0</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="excision.html#detect"><code>detectRFI</code></a></td><td>(mask in memory)</td><td>rows [channel, first, last]</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="excision.html#blank"><code>blankChannels</code></a></td><td><code>…_chan_blanked_ch###.dat</code></td><td>128 × complex, masked samples 0</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>5b</td><td><a href="channels.html#dedisp"><code>dedisperseChannels</code></a></td><td><code>test_dedispB_chan_ch###.dat</code> (or <code>test_dedisp_chan_*</code> without excision)</td><td>128 × complex, aligned at 1.6 GHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>6b</td><td><a href="channels.html#detect"><code>detectChannels</code></a></td><td><code>…_chan_power.dat</code></td><td>power [128 × nBins], 0.96 µs</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>A3a</td><td><a href="excision.html#weights"><code>blankingWeights</code></a></td><td><code>test_dedispB_chan_weights.dat</code></td><td>[128 × 9 × nBins]: W, V, X(1..7)</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="excision.html#weights"><code>blankingWeights</code></a></td><td><code>test_dedispB_chan_weights.dat</code></td><td>[128 × 9 × nBins]: W, V, X(1..7)</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Both</th></tr>
 <tr><td>7</td><td><a href="fold.html"><code>foldProfile</code></a></td><td><code>test_fold.mat</code> / <code>test_fold_chan.mat</code></td><td>profiles + weights</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>8</td><td><a href="toa.html"><code>estimateTOA</code></a></td><td>(in memory: <code>toa</code>)</td><td>TOA, σ, SNR, χ² per sub-int</td><td><span class="badge validated">validated</span></td></tr>
@@ -196,23 +196,34 @@ the fold stays unbiased.</p></div>
 <tr><td><code>runStage.process</code></td><td><code>processIQ</code>: dedispersion + detection (and channelizer, excision, weights) + fold</td><td>front end, excision, processing or fold settings (nBin, sub-int length) changed</td></tr>
 <tr><td><code>runStage.toa</code></td><td><code>foldToTOA</code>: TOAs, detection, good TOAs; validation</td><td>always cheap</td></tr>
 </table></div>
-<p>Skipped stages reload their <code>info</code> from disk. <code>checkConsistency</code> (sky, receiver), <code>checkProcessing</code> and
-<code>checkFold</code> (13 Oct 2026; inside <code>processIQ</code> since 19 Oct) warn if those files were made with different parameters or from older inputs. <code>plots.*</code>
-switch the ground-truth check figures (the IQ, detected and fold checks are for the full-band path only).</p>
-<p>Since 19 Oct one switch covers the processing up to the fold (<code>processIQ</code>'s <code>'Reuse'</code> option; the separate
-<code>runStage.fold</code> is gone: refolding alone saved ~2 s of ~45 s); the TOAs keep their own switch and function. All intermediate files stay
-on disk for checks before folding.</p>
-<div class="callout why"><span class="ttl">Design choice: simulate, process, evaluate (19 Oct)</span>
-<p><b>Three roles.</b> <i>Simulate</i> (the truth; a stand-in for antenna + ADC/DDC): generator, dispersion, <code>addNoiseAndRFI</code>,
-<code>applyIQmodulation</code>, called in <code>main.m</code>. <i>Process</i>: <code>processIQ(info_IQ, rx, ephem, proc, files)</code>, IQ file in,
-fold out, then <code>foldToTOA</code> (fold in, TOAs and detection out). <i>Evaluate</i>: check plots, <code>validateTOA</code>, the exact optimum (truth vs
-result), in <code>main.m</code>.</p>
-<p><b>Alternative:</b> one function from the sky to the TOAs (first idea, 16 Oct).</p>
-<p><b>Why not</b> (Jasper): real IQ data enter between the simulation and the processing, and the operational processing will run on an
-FPGA/GPU. Cut at the IQ file, <code>processIQ</code> gets only the IQ file, receiver settings, ephemeris and processing settings, so the
-ground-truth rule holds by its inputs; a recording goes in unchanged; the FPGA/GPU port is checked against its outputs; a fast simulator
-(block C) feeds <code>foldToTOA</code> directly; the multi-seed Monte Carlo (A3b) is simulate(seed) → <code>processIQ</code> → evaluate
-(<a href="roadmap.html#processiq">roadmap</a>).</p></div>
+<p>Skipped stages reload their <code>info</code> from disk. <code>checkConsistency</code> (sky, receiver) and, inside
+<code>processIQ</code>, <code>checkProcessing</code> and <code>checkFold</code> warn if those files were made with different parameters or
+from older inputs. <code>plots.*</code> switch the ground-truth check figures; the IQ, detected and fold checks are for the full-band
+path only.</p>
+<p>One switch covers the processing up to the fold (<code>processIQ</code>'s <code>'Reuse'</code> option). A separate fold switch is not
+worth it: refolding alone saved about 2 s of 45 s. The TOAs keep their own switch and function. All intermediate files stay on disk, for
+checks before folding.</p>
+<div class="callout why"><span class="ttl">Design choice: simulate, process, evaluate</span>
+<p>The code has three roles:</p>
+<ul>
+<li><b>Simulate</b> the truth, as a stand-in for the antenna and the ADC/DDC: the generator, dispersion, <code>addNoiseAndRFI</code> and
+<code>applyIQmodulation</code>, called in <code>main.m</code>.</li>
+<li><b>Process</b>: <code>processIQ(info_IQ, rx, ephem, proc, files)</code> takes the IQ file in and gives the fold out. Then
+<code>foldToTOA</code> takes the fold in and gives TOAs and detection out.</li>
+<li><b>Evaluate</b>: check plots, <code>validateTOA</code>, and the exact optimum (truth against result), in <code>main.m</code>.</li>
+</ul>
+<p><b>Alternative:</b> one function from the sky to the TOAs (the first idea).</p>
+<p><b>Why not:</b> real IQ data enter between the simulation and the processing, and the operational processing will run on an
+FPGA or GPU. Cut at the IQ file, <code>processIQ</code> gets only the IQ file, the receiver settings, the ephemeris and the processing
+settings. So:</p>
+<ul>
+<li>the ground-truth rule holds by its inputs alone;</li>
+<li>a real recording goes in unchanged;</li>
+<li>the FPGA/GPU port can be checked against its outputs;</li>
+<li>the fast simulator feeds <code>foldToTOA</code> directly;</li>
+<li>the multi-seed Monte Carlo is simply simulate(seed) → <code>processIQ</code> → evaluate.</li>
+</ul>
+<p>(Jasper's decision, 19 Oct 2026; the single-function idea was from 16 Oct. See the <a href="roadmap.html#processiq">roadmap</a>.)</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">
   <defs>
@@ -314,7 +325,7 @@ only needs the later stages. A mismatch gives a warning rather than an error, so
 <p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
 The channel path adds the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the blanked copies
 and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first. At <var>L</var> = 1 s and 800 MHz the
-full-band files alone are about 61 GB; the default <var>L</var> = 0.2 s (since 20 Oct) needs a fifth of that.</p>
+full-band files alone are about 61 GB; the default <var>L</var> = 0.2 s needs a fifth of that.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 390" role="img" aria-label="Bytes written per second of simulated signal by each stage, on a log scale, against the 24 GB memory">
   <text class="ttl" x="10" y="20">bytes written per second of simulated signal (the default L = 0.2 s writes a fifth)</text>
