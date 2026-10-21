@@ -235,7 +235,8 @@ The default path's detection statistics are calibrated end to end.</p>
 blanked fraction, good TOAs, median SNR, median TOA error, rms/pred, median χ², total offset. Since 19 Oct both passes are <code>processIQ</code>
 (with <code>excision</code> false / true; the filterbank runs in each) + <code>foldToTOA</code>. Requires <code>frontEnd = 'channels'</code>;
 stops if main's sky files do not match the parameters (<code>checkSkyFiles</code>, 13 Oct).</p>
-<p>Results: <a href="excision.html#results">RFI excision</a>.</p>
+<p>Results: <a href="excision.html#results">RFI excision</a>. Saved to <code>data/rfi/runRFITest_results.mat</code> (the reference
+<code>expSimRFI</code> reads), or <code>runRFITest_results_cal.mat</code> with <code>calPass</code> = true (21 Oct: a calibration run keeps the reference).</p>
 <p><b>Rotating radar cases (B5c-2, 8 Oct):</b> cases 8–11 use the scenario radar on a rotating antenna (10 s scan, 39 ms beam): one beam
 passage centred in the file (−30 dB floor), and sidelobes only (beam 5 s away) at −25 / −30 / −35 dB. For pulsed sources the table adds,
 from the source's parameters (ground truth, validation only), the fraction of its pulses blanked in its own channels and the fraction of
@@ -282,7 +283,9 @@ profiles were measured at DM 5; <code>testRFIChain</code>'s half-A profile at DM
 
 <h2 id="scenario"><code>runScenario.m</code> (block C, 20 Oct)</h2>
 <p>The reference scenario with the fast simulator: B0329+54 from the Netherlands (52° N, 19.6 h passes above 20°) and J0437 from 30° S
-(12.3 h), nominal and worst-case flux, dual polarization, 128 channels with the band-edge taper. In plain steps:</p>
+(12.3 h), nominal and worst-case flux, dual polarization, 128 channels with the band-edge taper. Profiles: B0329+54 five Gaussian
+components (NBin 2048), J0437 eight components fitted to its measured Parkes profile (NBin 1024; since 21 Oct, before a single Gaussian;
+old results kept as <code>*_singleGauss512.mat</code>). In plain steps:</p>
 <ol>
 <li>Daily passes from latitude, declination and the 20° elevation mask, one per sidereal day.</li>
 <li>Each pass is cut into chunks (4 h for B0329+54, for memory) on the sub-int grid (120 s / 300 s sub-ints), and <code>simulateFold</code>

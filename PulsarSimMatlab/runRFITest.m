@@ -51,6 +51,8 @@ Needs: the sky files (main.m with runStage.sky once). Files go to data/rfi
 and are overwritten per case; main's files and data/chan are not touched.
 ~50 s per case; runCases picks a subset. calPass = true adds a third pass per case: excision
 plus the per-channel noise calibration (proc.noiseCal, 20 Oct 2026; res.noiseCal, column 'cal').
+Results: data/rfi/runRFITest_results.mat (the reference expSimRFI reads), or
+runRFITest_results_cal.mat with calPass = true (21 Oct 2026, so a calibration run keeps the reference).
 %}
 
 % Paths and parameters
@@ -222,7 +224,9 @@ for k = find([res.excision])
             c.freq(j) / 1e6, c.r(j), c.level(j), c.flags(j), c.expFlags, c.src{j});
     end
 end
-save(fullfile(rfiDir, "runRFITest_results.mat"), 'res', 'cases', 'runCases');
+resFile = "runRFITest_results.mat";                  % the reference expSimRFI reads
+if calPass, resFile = "runRFITest_results_cal.mat"; end   % (21 Oct 2026: kept apart)
+save(fullfile(rfiDir, resFile), 'res', 'cases', 'runCases');
 
 
 % ======================================================================

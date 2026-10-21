@@ -17,7 +17,9 @@ Assumptions (notes §11, simulator.html):
   - rho in the simulator's convention (peak of the Gaussian pulse / receiver noise per
     polarization, rho = S_peak/SEFD), 'NPol' 2; the observer passes Bnoise x 2;
   - pulse and template: B0329+54's five Gaussian components at 1410 MHz (since 20 Oct; a single
-    Gaussian with W50 overstated its peak by 3 dB), J0437 a single Gaussian (wings not modelled);
+    Gaussian with W50 overstated its peak by 3 dB), J0437 eight components fitted to its measured
+    profile (since 21 Oct; the single Gaussian with W50 left out its wings: W_eq 2.4x, ~5x the data
+    per TOA);
     rho from S1400, the SEFD and the pulse area of the profile;
   - 128 channels with the forward band-edge taper on the truth side (item 3); channel noise
     settings (Bnoise, binDt, clean noise coefficients) of the 1 s noise-only RFI profile;
@@ -59,18 +61,24 @@ nPol = 2; elMin = 20; tSid = 86164.0905;
 
 % pulsar settings (ATNF; scintillation: notes §11). Profile: B0329+54 five Gaussian components at
 % 1410 MHz (arXiv:1703.03582 Table 2: centre and sigma in degrees, amplitude) -> [amplitude, centre,
-% FWHM] in turns; J0437 a single Gaussian with W50 (its wings are not modelled yet). rho (simulator
+% FWHM] in turns; J0437 eight Gaussian components fitted (21 Oct 2026) to the Parkes 1369 MHz profile
+% of Dai et al. 2015 (MNRAS 449, 3223; EPN database dhm+15, CC BY 4.0; phase 0 = the peak): W50, W10,
+% W_eq, spectral width and timing merit within 1 % of the measured profile, residual 1.6x its noise
+% (its core is sharper than a Gaussian: NBin 1024 for estimateTOA's resolution rule). rho (simulator
 % convention: pulse peak / receiver noise per polarization) = S1400 / (SEFD * W_eq), W_eq the pulse
 % area of the unit-peak profile in turns; SEFD 3.2e5 Jy nominal, 7.4e5 Jy worst case (notes §11).
 cB = [0.159 -11.427 1.479; 0.439 -1.123 3.281; 0.585 0 1.055; 0.152 7.719 2.751; 0.170 9.482 0.847];
 cB = [cB(:, 1), cB(:, 2) / 360, cB(:, 3) * 2*sqrt(2*log(2)) / 360];
+cJ = [0.045599 -0.205164 0.029901; 0.043891 -0.113820 0.028824; 0.103938 -0.038174 0.261016;
+      0.215798 -0.000947 0.053271; 0.462737 -0.000766 0.010044; 0.262274  0.007027 0.027132;
+      0.310520  0.009091 0.008531; 0.028718  0.147582 0.073914];   % [amplitude, centre, FWHM] (turns)
 sefd = struct('nominal', 3.2e5, 'worst', 7.4e5);
 psr.B0329 = struct('name', 'B0329+54', 'f0', 1/0.714519699726, 'dec', 54.5787, 'lat', 52.0, ...
     'fwhm', 0.0092, 'comps', cB, 'S1400', 0.203, 'nBin', 2048, ...   % narrowest component 11 bins
     'scint', struct('bandwidth', 7e6, 'timescale', 780, 'band', [fLow fHigh]), ...   % (1024: 5.6 bins,
     'subintTime', 120, 'chunkHours', 2);                       % error bars 18 % small at SNR 7)
 psr.J0437 = struct('name', 'J0437-4715', 'f0', 173.6879458, 'dec', -47.2525, 'lat', -30.0, ...
-    'fwhm', 0.0245, 'comps', [], 'S1400', 0.150, 'nBin', 512, ...
+    'fwhm', 0.0245, 'comps', cJ, 'S1400', 0.150, 'nBin', 1024, ...   % fwhm: W50 (truth offset)
     'scint', struct('bandwidth', 740e6, 'timescale', 2290, 'band', [fLow fHigh]), ...
     'subintTime', 300, 'chunkHours', 24);
 for pn = string(fieldnames(psr)).'
