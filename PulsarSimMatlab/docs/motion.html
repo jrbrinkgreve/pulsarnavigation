@@ -203,6 +203,10 @@ TRef)², the pulsar's timing model.</li>
 split in two, until it passes. A ship's sharp turn is the typical case: around it the segments shrink to a few seconds.</li>
 </ol>
 <p>The predictor returns the phase and the observed spin frequency. That frequency includes the Doppler shift.</p>
+<p>The receiver's samples are timed by its own oscillator, so the data's time stamps are clock readings, not true time. With the option
+<code>'Clock'</code> the predictor gets the observer's estimate of its clock error. It turns each clock reading into its best estimate of
+true time before it computes the delays. A commercial SDR's oscillator is specified to ±2 ppm. Without this correction that rate would
+move the pulse by 240 µs within a 120 s sub-integration, like an uncorrected Doppler shift.</p>
 <div class="callout why"><span class="ttl">Polynomials instead of delays inside the fold</span>
 <p>Radio observatories do the same: they compute "polycos" before an observation. It keeps all the physics out of the streaming fold,
 which only evaluates a polynomial. That is also the interface an FPGA or GPU version needs. The trajectory is the predictor's only
@@ -224,10 +228,13 @@ March is −8.3·10⁻⁵.</td></tr>
 <tr><td>5 · Ship's turn</td><td>A kink in the delay.</td><td>Split into 15 segments, down to 7 s. Accurate to 6.3·10⁻¹⁰ s next to the
 turn.</td></tr>
 <tr><td>6–7 · Probe, inputs</td><td>A moving probe; bad inputs.</td><td>Accurate to 2·10⁻¹⁰ s. Bad inputs are refused.</td></tr>
+<tr><td>8 · Clock estimate</td><td>A 2.5 ms offset, a rate of 1.7·10⁻⁶ and ageing.</td><td>The phase at clock readings is accurate to
+2.6·10⁻¹⁰ s, the frequency per clock second to 2.6·10⁻¹¹. A zero estimate changes nothing, bit for bit.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 as step D2a. Three test criteria were corrected while writing the test: the step bound, a truth computed from
-absolute times, and a ship's turn that fell on a segment boundary.</p></details>
+absolute times, and a ship's turn that fell on a segment boundary. The option <code>'Clock'</code> was added the same day as the first
+part of D3c, after Jasper chose to fold with the observer's own clock estimate.</p></details>
 
 <h2 id="fold">5 · Folding with a predictor <span class="badge written">done</span></h2>
 <p><code>foldProfile</code> takes the predictor with the option <code>'Predictor'</code>. Each time bin then gets its phase from the
@@ -372,8 +379,8 @@ a 100 km offset the residual changes by 1.4·10⁻⁸ s per second. Over a 120 s
 offset per sub-integration is therefore enough for a position error.</p>
 <p>A clock rate is different. At the 2 ppm of a commercial SDR the pulse moves by 240 µs within a 120 s sub-integration. For B0329+54
 that is 5 % of its 5 ms core. For J0437 a 300 s sub-integration moves it by 600 µs, four times its pulse width. The observer must
-therefore fold with its own estimate of the clock rate, as it does with the Doppler shift. How the simulator and the predictor handle
-that is the open design question of this step.</p>
+therefore fold with its own estimate of the clock rate, as it does with the Doppler shift. The predictor takes that estimate
+(<a href="#predictor">section 4</a>). What is left for the simulator is the clock error the observer has not estimated.</p>
 <h3>D4 · the navigation fit</h3>
 <p>The first goal is a site 100 km from where the observer thinks it is, found from B0329+54 alone. A site offset changes each TOA by
 the offset projected onto the pulsar direction. That direction turns once per sidereal day in the Earth-fixed frame. The two equatorial

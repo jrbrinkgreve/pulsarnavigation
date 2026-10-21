@@ -21,7 +21,8 @@ Inputs:
   psr    timing model: f0 [Hz], F1 [Hz/s] (default 0), TRef [s since J2000, at the SSB], Phi0
          [turns] (default 0), raDeg, decDeg, distance [m] (optional; delayModel).
   traj   makeTrajectory struct (the receiver).
-  tSpan  [t1 t2] s since J2000 (TT): the span to predict; t1 is the local time origin.
+  tSpan  [t1 t2] s since J2000 (TT): the span to predict; t1 is the local time origin. With
+         'Clock' these are clock readings (the data's own time stamps).
 
 Name-value options:
   'SegLength'  [s] segment length before refinement (default 3600).
@@ -31,17 +32,27 @@ Name-value options:
                phase error is below Tol x f0 (a ship's turn on a linear track is a kink in the
                delay; the split isolates it). Shortest segment 'MinSeg' (default 1 s).
   'DelayArgs'  name-value pairs for delayModel (default {}), e.g. {'Terms', "roemer"}.
+  'Clock'      [] (default: the time stamps are true time) or the observer's ESTIMATE of its clock
+               error, as a function of the clock reading c: @(c) epsHat [s], or a struct with such
+               a handle in the field 'offset'. The receiver's samples are timed by its own
+               oscillator, so the data's times are clock readings; the predictor turns each into
+               its best estimate of true time, t = c - epsHat(c), before the delays. An SDR's
+               +-2 ppm rate would otherwise smear the fold like an uncorrected Doppler shift
+               (240 us in a 120 s sub-int). Local time tau and freq are then in clock seconds.
+               Block D3c, option (a): the observer folds with its own clock estimate.
 
 Precision: absolute times (~8e8 s) and absolute phases (up to ~1e11 turns) never enter the
 polynomials. The phase is kept relative to N0 = the integer turn at t1:
   phi_rel(tau) = frac0 + f0 (tau + delta(t) - delta0) + F1 (u - u0)(u + u0) / 2,
 u = t + delta(t) - TRef; only frac0 = phi(t1) - N0 carries the double rounding of the big
 product (~1e-6 turns), and it is one constant for the whole span (no steps between segments).
+With 'Clock', tau is replaced by tau - (epsHat(t1 + tau) - epsHat(t1)), also a small difference.
 
 Output pred: tOrigin (= t1), tSpanLocal [0, t2 - t1], N0, frac0, seg [nSeg x 2] (local start and
 end), coef [nSeg x (Degree+1)] (Chebyshev coefficients of phi_rel), phase (@(tau) phi_rel, turns
 since N0), freq (@(tau) d phi / d tau [Hz]: the observed spin frequency), fRange [min max],
-maxErr [s] (largest timing error found by the checks), psr, trajType, delayArgs, made.
+maxErr [s] (largest timing error found by the checks), psr, trajType, delayArgs, clock (the
+estimate's handle, or []), tOriginTrue (the true time estimated at t1), made.
 Evaluation outside tSpanLocal: error 'makePredictor:range'.
 %}
 
@@ -54,6 +65,7 @@ arguments
     opts.Tol       (1,1) double {mustBePositive} = 1e-9
     opts.MinSeg    (1,1) double {mustBePositive} = 1
     opts.DelayArgs cell = {}
+    opts.Clock = []
 end
 
 if tSpan(2) <= tSpan(1)
@@ -62,13 +74,16 @@ end
 F1 = 0; if isfield(psr, 'F1') && ~isempty(psr.F1), F1 = psr.F1; end
 Phi0 = 0; if isfield(psr, 'Phi0') && ~isempty(psr.Phi0), Phi0 = psr.Phi0; end
 f0 = psr.f0; t0 = tSpan(1); L = tSpan(2) - t0; K = opts.Degree;
+epsHat = clockHandle(opts.Clock);
 
 % reference at t0: the only place where absolute time and phase meet
-d0 = delayModel(t0, traj, psr, opts.DelayArgs{:});
-u0 = (t0 - psr.TRef) + d0.total;
+e0 = epsHat(t0);
+tt0 = t0 - e0;                                         % the true time estimated at the first reading
+d0 = delayModel(tt0, traj, psr, opts.DelayArgs{:});
+u0 = (tt0 - psr.TRef) + d0.total;
 phAbs0 = Phi0 + f0 * u0 + 0.5 * F1 * u0^2;
 N0 = round(phAbs0); frac0 = phAbs0 - N0;
-phiRel = @(tau) phiRelative(tau, t0, traj, psr, opts.DelayArgs, d0.total, u0, f0, F1, frac0);
+phiRel = @(tau) phiRelative(tau, t0, tt0, e0, epsHat, traj, psr, opts.DelayArgs, d0.total, u0, f0, F1, frac0);
 
 % segments: Chebyshev fits, split until the checks pass
 edges = unique([0:opts.SegLength:L, L]);
@@ -110,16 +125,33 @@ pred.maxErr     = maxErr;
 pred.psr        = psr;
 pred.trajType   = traj.type;
 pred.delayArgs  = opts.DelayArgs;
+pred.clock      = [];
+if ~isempty(opts.Clock), pred.clock = epsHat; end
+pred.tOriginTrue = tt0;
 pred.made       = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'));
 end
 
 
 % =====================================================================================
-function ph = phiRelative(tau, t0, traj, psr, dArgs, delta0, u0, f0, F1, frac0)
-%PHIRELATIVE  Phase since N0 at local times tau, from small differences only.
-d = delayModel(t0 + tau, traj, psr, dArgs{:});
-du = tau + (d.total - delta0);                         % u - u0
+function ph = phiRelative(tau, t0, tt0, e0, epsHat, traj, psr, dArgs, delta0, u0, f0, F1, frac0)
+%PHIRELATIVE  Phase since N0 at local (clock) times tau, from small differences only.
+dt = tau - (epsHat(t0 + tau) - e0);                    % true time since tt0 (= tau for a perfect clock)
+d = delayModel(tt0 + dt, traj, psr, dArgs{:});
+du = dt + (d.total - delta0);                          % u - u0
 ph = frac0 + f0 * du + 0.5 * F1 * du .* (du + 2 * u0);
+end
+
+function h = clockHandle(clk)
+%CLOCKHANDLE  The observer's clock estimate as a handle @(c) (zero for a perfect clock).
+if isempty(clk)
+    h = @(c) zeros(size(c));
+elseif isa(clk, 'function_handle')
+    h = clk;
+elseif isstruct(clk) && isfield(clk, 'offset') && isa(clk.offset, 'function_handle')
+    h = clk.offset;
+else
+    error('makePredictor:clock', 'Clock must be [], a function handle @(c) or a struct with a field offset = @(c).');
+end
 end
 
 function y = chebEval(c, x)

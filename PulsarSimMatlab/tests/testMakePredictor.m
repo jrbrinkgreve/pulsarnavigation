@@ -22,7 +22,13 @@ direction (fast spin stresses the precision), 2026.
      it repeatedly (more than the unrefined count) and stays within Tol next to the turn.
   6. A probe ('SSB' frame) moving at 30 km/s: phase within Tol.
   7. Evaluation outside the span and a reversed span are refused with their ids.
-Errors at the end if any check fails. (21 Oct 2026, block D2a.)
+  8. The observer's clock estimate ('Clock', block D3c): epsHat(c) = 2.5 ms + 1.7e-6 (c - t1) +
+     1.5e-13 (c - t1)^2 (an SDR-class rate and ageing). The phase at clock readings equals the
+     direct computation at the estimated true times t = c - epsHat(c) (Tol); N0 + frac0 the
+     absolute phase there (1e-5 turns); freq the phase's slope per clock second (central
+     difference, 1e-9 relative); a zero estimate gives bit-identical coefficients; a bad clock is
+     refused ('makePredictor:clock').
+Errors at the end if any check fails. (21 Oct 2026, block D2a; test 8 block D3c.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -118,6 +124,27 @@ ok7 = strcmp(errId(@() pr.phase(-1)), 'makePredictor:range') && ...
       strcmp(errId(@() makePredictor(psr, site, [t1, t1 - 1])), 'makePredictor:span');
 fprintf('7. outside the span and a reversed span refused %d: %s\n', ok7, passStr(ok7));
 if ~ok7, fails{end+1} = 'input checks'; end
+
+% ---------------------------------------------------------------------------------
+% 8. The observer's clock estimate
+% ---------------------------------------------------------------------------------
+eh = @(c) 2.5e-3 + 1.7e-6 * (c - t1) + 1.5e-13 * (c - t1).^2;
+pc = makePredictor(psr, site, [t1, t1 + L], 'Clock', eh);
+phiC = @(tv) psr.f0 * ((tv - (eh(t1 + tv) - eh(t1))) + delayModel(t1 + tv - eh(t1 + tv), site, psr).total);
+tv = [0, tau];
+ph8 = phiC(tv);
+e8 = max(abs((pc.phase(tau) - pc.phase(0)) - (ph8(2:end) - ph8(1)))) / psr.f0;
+tt0 = t1 - eh(t1);
+abs8 = psr.Phi0 + psr.f0 * ((tt0 - psr.TRef) + delayModel(tt0, site, psr).total);
+eAbs8 = abs((pc.N0 + pc.frac0) - abs8);
+e8f = max(abs(pc.freq(tq) ./ ((phiC(tq + 1) - phiC(tq - 1)) / 2) - 1));
+pz = makePredictor(psr, site, [t1, t1 + L], 'Clock', @(c) zeros(size(c)));
+ok8 = e8 < tol && eAbs8 < 1e-5 && e8f < 1e-9 && isequal(pz.coef, pr.coef) && isequal(pz.seg, pr.seg) && ...
+      strcmp(errId(@() makePredictor(psr, site, [t1, t1 + 10], 'Clock', 5)), 'makePredictor:clock');
+fprintf(['8. clock estimate (2.5 ms, 1.7e-6, ageing): phase vs direct %.2e s; N0 + frac0 %.1e turns; freq vs ' ...
+         'slope %.1e; zero estimate bit-identical %d; Doppler + rate %.3e ... %.3e: %s\n'], e8, eAbs8, e8f, ...
+    isequal(pz.coef, pr.coef), pc.fRange / psr.f0 - 1, passStr(ok8));
+if ~ok8, fails{end+1} = 'clock estimate'; end
 
 if isempty(fails)
     fprintf('testMakePredictor: ALL PASSED\n');
