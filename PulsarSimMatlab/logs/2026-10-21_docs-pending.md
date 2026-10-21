@@ -49,6 +49,26 @@ template (ephem.profileFWHM then holds the component matrix; foldToTOA, gaussian
 either). checkSkyFiles compares it too (sky files made before count as []), so reused sky files with
 another profile are flagged.
 
+## 5. roadmap.html (block D / open items) and limits.html: clock jitter (Jasper, 21 Oct: "we completely forgot about clock jitter")
+
+Listed long ago under "Block 2 – robustness" but never planned. Three effects, all for block D:
+1. Time-base error of the station clock (oscillator offset, rate, wander; Allan deviation σ_y(τ)): shifts every
+   time stamp, so every TOA, directly. Offset = the clock unknown already in the fit (degenerate with the polar
+   position component for one pulsar); rate and wander accumulate: ~σ_y(τ)·τ over a TOA's integration — TCXO
+   (~1e-9 at 1 h) 3.6 µs per hour, OCXO (~1e-11–1e-12) 4–36 ns per hour, rubidium ~ns. B0329+54's TOAs
+   (734 µs) tolerate a TCXO; J0437's (13 µs over ~17 h) need ≲ 1e-10, i.e. an OCXO or better. Without GNSS (the
+   point of pulsar navigation) the clock is a state of the navigation filter: offset and rate (and aging), with
+   process noise from the oscillator's Allan variance (the standard two-state clock model, h0 / h-2).
+2. Within an integration a fractional frequency error y shifts the phase by y·T, like a Doppler error: smearing
+   when it drifts (1e-9 over 1 h = 3.6 µs, below B0329+54's bins, comparable to J0437's 5.6 µs bins only over
+   many hours).
+3. ADC sampling (aperture) jitter σ_j: phase noise on the RF samples, noise fraction (2π f σ_j)² — 1 ps at
+   1.6 GHz: 1e-4 (-40 dB) of the input power: negligible for the noise-like pulsar, but strong RFI (a +40 dB
+   radar) then brings a noise floor near the noise level during its pulses (blanked anyway).
+Plan: D3 truth gets a clock process (offset + rate + random-walk frequency) on the true time stamps; D4's
+state includes clock offset and rate (Kalman two-state clock model); ADC jitter in the voltage chain
+(applyIQmodulation, truth side) as a later item.
+
 ## Still to come (results of the runs of 21–22 Oct; added here as they land)
 
 - Validation run (Claude's run of the frozen 171a716): tests.html / results.html status.
