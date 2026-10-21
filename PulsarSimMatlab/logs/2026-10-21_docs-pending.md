@@ -57,6 +57,19 @@ voltage chain 108 TOAs, median SNR 48.1, median sigma 1.505 us, rms/pred 1.026 (
 1.0027, pChi2 < 0.05 0.083; simulateFold 1800 TOAs: 48.4, 1.495 us, 1.010 (+- 0.017), 1.0030, 0.082 -> agree
 within ~1 %: the components are checked end to end (as C2 / C4a for the single Gaussian).
 
+## 4c. New page section (block D, D1a): makeTrajectory — where the receiver is (21 Oct)
+
+makeTrajectory(type, ...) -> struct with pos(t), vel(t) ([3 x N], m, m/s), frame ('ECEF' Earth-fixed or 'SSB'
+barycentric equatorial), tRange, params. Time t = s since J2000.0 (2000-01-01 12:00 TT). Types: 'fixed'
+(WGS84 lat/lon/h, 'OffsetENU' e.g. the true site 100 km east of the assumed one), 'track' (ship waypoints ->
+ECEF, 'Interp' linear (default) / pchip (turns) / spline (orbits); across 180 deg fine), 'barycentric' (a
+probe's tabulated SSB positions), 'custom' (PosFcn / VelFcn handles: the entry point for a Kalman filter's
+propagated state; default velocity by central difference). testMakeTrajectory (7 tests, closed forms and an
+independent Bowring inverse): fixed site to 1e-9 m / 1e-10 deg, 100 km east = 100.000000 km horizontal,
+linear legs exact (10.02 m/s), pchip velocity = derivative (2e-8 m/s) and continuous at turns, 180 deg
+crossing (midpoint 180.00000000 deg, chord 8.6 m below), 1 AU orbit with hourly spline samples to 1 mm,
+custom velocity exact, 4 bad inputs refused. Claude's run 21 Oct: all passed (0.5 s); in runAllTests (17).
+
 ## 5. roadmap.html (block D / open items) and limits.html: clock jitter (Jasper, 21 Oct: "we completely forgot about clock jitter")
 
 Listed long ago under "Block 2 – robustness" but never planned. Three effects, all for block D:
