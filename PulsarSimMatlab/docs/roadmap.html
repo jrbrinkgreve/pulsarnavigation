@@ -316,6 +316,10 @@ circular correlation matrix.</li>
 <h2>Block D: motion and barycentric phase</h2>
 <p>Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's orbital speed), Earth rotation, station position as input,
 clock model. A hard requirement since the reference scenario: a TOA is folded across passes.</p>
+<p><b>Agreed for D (21 Oct): an outlier-tolerant fit.</b> The adaptive SNR-7 groups give the most TOAs but ~0.5 % of B0329+54's land one core
+width off (<a href="limits.html#estimation">limits</a>). The navigation fit uses redundancy: each TOA is checked against the prediction from
+the others plus the ship's dead reckoning (innovation gating at ~4σ), with an error model that includes a small outlier part. D's first
+deliverable — a 1-D range from B0329+54 recovering a 100 km site offset — is tested on simulated TOAs that contain these outliers.</p>
 
 <h2>Open items</h2>
 <div class="table-wrap"><table>
