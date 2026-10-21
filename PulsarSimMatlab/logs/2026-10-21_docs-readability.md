@@ -50,10 +50,28 @@ with the detail instead of the problem.
 - tests.html: test counts differ between sections ("all sixteen", "All 14 tests pass … 13 Oct", "the fourteen unit
   tests") — a record of different dates, not changed.
 
+## Second round (Jasper: "continue working like this for the full site")
+
+- tests.html: every test starts with its conclusion; sub-tests as numbered lists (testSimulateFold 1–15 under
+  subheadings), paired numbers as tables (slash lists 67 → 1). testRFIChain run time ~2.5 h (two cases of 72 and 78 min,
+  log of 20 Oct), not ~1 h; the overview figure is the 13 Oct set of 14 tests, now said in its caption.
+- scripts.html: dense paragraphs split, H0 false alarms and the weak-regime sweep as tables, history into boxes;
+  `runScenario` variants were still "follow once testRFIChain is in" → all variants done (scenario page).
+- roadmap.html: status brought to 21 Oct — `processIQ` row had badge "next" though done 19 Oct; block C row said C3a/C3c
+  "written" while the status paragraph said validated → rewritten from the tests table (Jasper's runs: testSimulateFold
+  1–15, testRFIModel 1–5; Claude's runs: expSimVsChain, expSimRFI, testRFIChain, scenario); status list for 21 Oct;
+  21 Oct timeline row; In short no longer lists the J0437 profile and detectRFI thresholds as open decisions. Figure
+  caption (said thresholds, lags and J0437 adoption were open, while the figure's own items are marked done) fixed in the
+  page and in `docs/tools/figures/gen_roadmap.py`.
+- validation, lessons, glossary, history: light pass. history's In short said the review week "goes through" the stages
+  (present tense); it now says the page covers sessions up to 13 Oct and points to the roadmap timeline and logs.
+- Whole-site check: 592 links resolve, KaTeX errors 0 on every page, balanced details/table tags.
+
 ## Open items
 
-- Not yet done (record pages, lighter pass per the style rules 1, 4, 5, 6): tests.html (largest: ~20 dense test
-  descriptions, 67 slash lists), scripts.html, roadmap.html. glossary, lessons, validation, formulas read fine; history.html
-  is a dated log by design; api.html is generated.
+- `tests/runAllTests.m` help text says testRFIChain takes ~1 h; the full run is ~2.5 h (code comment, not edited).
+- history.html stops at 12–13 Oct (sessions and decision log); 14–21 Oct are only in the logs and the roadmap timeline.
+- lessons.html "Findings that changed the design" has nothing after block B (e.g. the lag cut-off, detectRFI false flags on
+  narrow carriers, bin resolution at low SNR).
 - After each code change, weave the change into the page in this style rather than appending a dated paragraph
   (memory updated).
