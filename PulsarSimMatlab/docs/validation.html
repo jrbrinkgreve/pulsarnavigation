@@ -22,7 +22,7 @@ make a result, only to check one.</p>
 <li><b>Physics / statistics:</b> measured noisy quantities match predictions within <var>n</var>·σ, with σ <em>predicted</em>, not guessed.</li>
 </ul>
 <p>A result is marked <span class="badge validated">validated</span> only after Jasper's own MATLAB run.</p>
-<div class="callout why"><span class="ttl">Why predicted σ, not guessed tolerances (6 Oct)</span>
+<div class="callout why"><span class="ttl">Why predicted σ, not guessed tolerances</span>
 <p>A tolerance like "within 1 %" proves nothing unless you know how large the scatter should be. Every statistical test therefore
 predicts its own σ from the physics (the number of samples, the noise model) and passes at a few σ. A test that passes at 4σ of a
 <em>predicted</em> scatter says the code and the theory agree; a test that passes a guessed tolerance only says the number was not
@@ -415,13 +415,16 @@ taper <var>W</var><sub>i</sub>.</li>
 <dt>\(W_f\), \(W_i\)</dt><dd>the simulator's dispersion taper and the observer's dedispersion taper, as functions of frequency</dd>
 <dt>\(J_s\), \(J_n\)</dt><dd>\(\int (W_f W_i)^2\) and \(\int W_i^2\): the bandwidths that set the mean powers [Hz]</dd>
 </dl>
-<p>(Isserlis with <var>S</var> = pulsar + noise: squaring the sum gives self-noise, cross and noise terms. Flat band: all <var>c</var> = 1/<var>B</var>, var =
-(<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>).) Verified numerically within 1 % for 0 ≤ ρ ≤ 100.</p>
-<h3>Best achievable (added 5 Oct)</h3>
-<p>The Fisher information with \(v = c_{ss}P_s^2 + 2c_{sn}P_sP_n + c_{nn}P_n^2\) (the variance above times \(dt\)):
-\(\mathrm{SNR}^2 = \int P_s^2/v\,dt\), \(1/\sigma_\mathrm{TOA}^2 = \int P_s'^2/v\,dt\) (\(P_s' = dP_s/dt\)) →
-<code>M.snrPulse</code>, <code>M.toaErrPulse</code> (NaN without noise: the integrals diverge in the tails). At −5 dB: 96.5 and 2.892 µs, also checked
-against a Python port. RFI is not in the model; it shows up as excess in the checks.</p>
+<p>This is Isserlis' theorem with <var>S</var> = pulsar + noise: squaring the sum gives a self-noise term, a cross term and a noise
+term. For a flat band all <var>c</var> = 1/<var>B</var>, and var = (<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>).
+The formula was verified numerically, within 1 %, for 0 ≤ ρ ≤ 100.</p>
+<h3>Best achievable</h3>
+<p>The best achievable precision follows from the Fisher information. With \(v = c_{ss}P_s^2 + 2c_{sn}P_sP_n + c_{nn}P_n^2\), the variance
+above times \(dt\):</p>
+<div class="eq">\[ \mathrm{SNR}^2 = \int \frac{P_s^2}{v}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = \int \frac{P_s'^2}{v}\,dt, \qquad P_s' = \frac{dP_s}{dt} \]</div>
+<p>These give <code>M.snrPulse</code> and <code>M.toaErrPulse</code>. Without noise they are NaN, because the integrals diverge in the tails.
+At −5 dB they are 96.5 and 2.892 µs, also checked against a Python port. RFI is not in the model; it shows up as an excess in the
+checks. (Added 5 Oct 2026.)</p>
 <div class="callout why"><span class="ttl">Why compute the exact optimum</span>
 <p>Without it you cannot tell whether FFTFIT is 2 % or 0.5 % from optimal (it is 0.5 % at −5 dB). The integrals ∫<var>W</var>² for the mean and
 (∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance are also the prototype of the narrow-channel and blanking noise models. On real data with ripple,

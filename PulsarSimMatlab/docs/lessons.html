@@ -136,16 +136,16 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 <p>Not bugs, but results that changed a plan:</p>
 <ul>
 <li><b>Narrow-channel noise (6 Oct).</b> The radiometer model assumes independent time bins; in 3.125 MHz channels bins are correlated.
-→ exact <var>V</var>, <var>X</var>(<var>L</var>) through the fold (<a href="channels.html#powcov"><code>powerCovariance</code></a>, A1a).</li>
+→ exact <var>V</var>, <var>X</var>(<var>L</var>) through the fold (<a href="channels.html#powcov"><code>powerCovariance</code></a>, <code>'NoiseCoeffs'</code>).</li>
 <li><b>No simple variance rule after blanking (experiment 3a).</b> Errors up to ±45 % for <var>W</var>² and <var>W</var> models. → exact per-bin weights
 (<a href="excision.html#weights"><code>blankingWeights</code></a>).</li>
-<li><b>W = 0 bins still had power (A3a).</b> Filter-tail leftovers biased nearly empty phase bins by up to +285 %. → the fold drops their power.</li>
-<li><b>White-input assumption for blanking (A3a).</b> Channel samples are not white; ~1 % error in <var>W</var> for nearly empty bins. → the mean uses the true channel spectrum.</li>
-<li><b>Exclusion rule lost data (A3a).</b> Whole channels dropped from sub-ints with any empty phase bin. → optimal weighting (A2c).</li>
-<li><b>Gamma threshold tail too thin (B2).</b> 1.1× the intended false flags at 10⁻⁶. → exact phase-type thresholds.</li>
-<li><b>Long detection windows blanked the bright pulse (B2).</b> 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
-<li><b>Radar sidelobes survive per-sample excision (B5b).</b> Locked radar → 150 µs bias at −54 dB. → frequency guard ±7.</li>
-<li><b>Rotating-radar sidelobe pulses are missed one by one (B5c).</b> → periodic mask (B6, done: predicted pulses blanked).</li>
+<li><b>W = 0 bins still had power</b> (found with <code>blankingWeights</code>). Filter-tail leftovers biased nearly empty phase bins by up to +285 %. → the fold drops their power.</li>
+<li><b>White-input assumption for blanking</b> (<code>blankingWeights</code>). Channel samples are not white; ~1 % error in <var>W</var> for nearly empty bins. → the mean uses the true channel spectrum.</li>
+<li><b>Exclusion rule lost data</b> (found with <code>blankingWeights</code>). Whole channels dropped from sub-ints with any empty phase bin. → optimal weighting.</li>
+<li><b>Gamma threshold tail too thin</b> (<code>detectRFI</code>). 1.1× the intended false flags at 10⁻⁶. → exact phase-type thresholds.</li>
+<li><b>Long detection windows blanked the bright pulse</b> (<code>detectRFI</code>). 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
+<li><b>Radar sidelobes survive per-sample excision</b> (the locked radar). A locked radar left a 150 µs bias at −54 dB. → the frequency guard, ±7 channels.</li>
+<li><b>Rotating-radar sidelobe pulses are missed one by one.</b> → the periodic mask (<code>periodicRFI</code>), which blanks the predicted pulses.</li>
 </ul>
 
 <h2 id="statistics">Statistical lessons</h2>
