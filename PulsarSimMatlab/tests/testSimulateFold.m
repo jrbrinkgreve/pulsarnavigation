@@ -84,6 +84,11 @@ Run from the PulsarSimMatlab folder: run('tests/testSimulateFold.m'). Needs no d
       against the fold's own model is 1 in every channel (4 sigma; with the clean model 1.3 /
       0.36 in the narrowed / carrier channels); with a pulse at -5 dB (400 sub-ints) red. chi2
       = 1 (4 sigma, at least 2e-3) and the pull std = 1 (4 sigma).
+  The truth of a moving receiver (block D3c, 21 Oct):
+  16. 'PhaseOffset' as a function of time: a constant handle = the scalar, bit for bit; a
+      handle of the time on a two-pass schedule = the same values given per sub-int, bit for
+      bit, with truth.phaseOffset = the handle at fold.subint.tRef exactly; a handle that
+      returns the wrong number of values is refused ('simulateFold:offset').
 Errors at the end if any check fails.
 %}
 
@@ -558,6 +563,25 @@ fprintf(['15. ObserverNoise: ''model'' = default %d, same noise draws %d; ''meas
     mat2str(round(rM, 3)), mat2str(round(rLR, 3)), c2(1), c2(2), sc2(2), zs(1), zs(2), passStr(pass));
 if ~pass, fails{end+1} = 'ObserverNoise'; end
 
+% ---------------------------------------------------------------------------------
+% 16. PhaseOffset as a function of time
+% ---------------------------------------------------------------------------------
+sA = {f0, -5, 30, 'NBin', 256, 'SubintPeriods', 4, 'Seed', 16, 'Verbose', false};
+[~, gS, tS] = simulateFold(sA{:}, 'PhaseOffset', 0.0123);
+[~, gH, tH] = simulateFold(sA{:}, 'PhaseOffset', @(t) 0.0123 * ones(size(t)));
+okA = isequal(gS, gH) && isequal(tS.pulseCenters, tH.pulseCenters);
+offF = @(t) 0.01 + 2e-3 * sin(2 * pi * t / 7);       % varies over the sub-ints of both passes
+pB = {f0, -5, [], 'Passes', [0 20; 30 50], 'SubintTime', 2, 'NBin', 256, 'Seed', 17, 'Verbose', false};
+[iF, gF, tF] = simulateFold(pB{:}, 'PhaseOffset', offF);
+[~, gV, tV] = simulateFold(pB{:}, 'PhaseOffset', offF(gF.subint.tRef.'));
+okB = isequal(gF, gV) && isequal(tF.phaseOffset, offF(gF.subint.tRef)) && isequal(tF.pulseCenters, tV.pulseCenters);
+okC = strcmp(errId(@() simulateFold(pB{:}, 'PhaseOffset', @(t) 0.01)), 'simulateFold:offset');
+pass = okA && okB && okC;
+fprintf(['16. PhaseOffset handle: constant = scalar %d; on two passes (%d sub-ints) = per-sub-int values %d, ' ...
+         'truth at tRef %d; wrong size refused %d: %s\n'], okA, iF.nSub, isequal(gF, gV), ...
+    isequal(tF.phaseOffset, offF(gF.subint.tRef)), okC, passStr(pass));
+if ~pass, fails{end+1} = 'PhaseOffset handle'; end
+
 if isempty(fails)
     fprintf('testSimulateFold: ALL PASSED\n');
 else
@@ -565,6 +589,15 @@ else
 end
 end
 
+
+function id = errId(f)
+id = '';
+try
+    f();
+catch err
+    id = err.identifier;
+end
+end
 
 function s = passStr(p)
 if p, s = 'PASS'; else, s = 'FAIL'; end

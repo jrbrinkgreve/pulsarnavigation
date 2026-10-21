@@ -50,7 +50,11 @@ Name-value options:
                   One row [1 0 FWHM] = 'FWHM' (to 1e-12)
   'PhaseOffset'   [turns] true pulse phase against the ephemeris (the pulse
                   peak is at phase PhaseOffset; a perfect TOA fit returns it):
-                  scalar or one value per sub-int (default 0)
+                  scalar, one value per sub-int (default 0), or a function handle
+                  @(t) -> turns of the sub-ints' reference times tRef [1 x nSub] (this
+                  simulator's time base), evaluated once per sub-int: e.g. the observer's
+                  residual against the truth (trueResiduals' phaseOffset, block D3c). The
+                  offset is constant within a sub-int; merged sub-ints average theirs.
   'NBin'          phase bins (default 2048)
   'SubintPeriods' turns per sub-int (default 1)
   'SubintTime'    [s] alternative: sub-int length, rounded to whole turns (as foldProfile)
@@ -186,7 +190,7 @@ arguments
     nTurns double {mustBeInteger, mustBeNonnegative}
     opts.FWHM          (1,1) double {mustBePositive, mustBeLessThan(opts.FWHM, 0.5)} = 0.05
     opts.Components    double = []
-    opts.PhaseOffset   double {mustBeFinite} = 0
+    opts.PhaseOffset   {mustBeOffset} = 0
     opts.NBin          (1,1) double {mustBeInteger, mustBePositive} = 2048
     opts.SubintPeriods (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.SubintTime    double = []
@@ -253,7 +257,15 @@ end
 dt   = opts.BinDt;
 rho  = 10^(rhoDB / 10);                             % 0 for -Inf (no pulsar)
 peak = opts.SignalGain * rho;
-dPhi = opts.PhaseOffset(:);
+dPhi = opts.PhaseOffset;
+if isa(dPhi, 'function_handle')                     % at each sub-int's reference time (fold.subint.tRef)
+    trS = round((2*tfAll + nPer - 1) / 2);
+    dPhi = dPhi((TRef + trS / f0).');
+    if numel(dPhi) ~= nSub || ~all(isfinite(dPhi(:)))
+        error('simulateFold:offset', 'The PhaseOffset function must return nSub = %d finite values.', nSub);
+    end
+end
+dPhi = dPhi(:);
 if isscalar(dPhi)
     dPhi = repmat(dPhi, nSub, 1);
 elseif numel(dPhi) ~= nSub
@@ -622,4 +634,11 @@ gt  = interp1(tG, g, t(:), 'linear');               % at the sub-int times
 Fp  = abs(gt).^2;
 F   = squeeze(mean(reshape(Fp, numel(t), nPerCh, nChan), 2));
 F   = reshape(F, numel(t), nChan);
+end
+
+function mustBeOffset(x)
+%MUSTBEOFFSET  PhaseOffset: finite numbers or a function handle.
+if ~(isa(x, 'function_handle') || (isnumeric(x) && all(isfinite(x(:)))))
+    error('simulateFold:offset', 'PhaseOffset must be finite numbers or a function handle @(t).');
+end
 end

@@ -430,7 +430,9 @@ The drawn noise uses the measured ones. Otherwise the simulation would hide exac
 <ul>
 <li><b>Time structure</b> still to come: the time variation of rotating radars (roadmap item C3d), and refractive (slow)
 scintillation.</li>
-<li><b>Motion</b> (block D): the true phase drifting against the ephemeris within a sub-int (the hook is <code>'PhaseOffset'</code> per sub-int).</li>
+<li><b>Motion within a sub-int</b>: <code>'PhaseOffset'</code> takes one value per sub-int, or a function of time that is evaluated
+once per sub-int. A position error moves the pulse by only nanoseconds within a sub-int. An unestimated clock rate can move it by
+hundreds of microseconds, so the observer folds with its clock estimate (<a href="motion.html#truth">block D</a>).</li>
 <li><b>Excision of bright pulses</b> (the chain clips pulse peaks above ~−5 dB) and RFI locked to the pulsar's period.</li>
 <li><b>Memory:</b> 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array. For hours of data, channels with identical
 statistics will be merged into effective channels.</li>
