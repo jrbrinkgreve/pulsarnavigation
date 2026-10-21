@@ -21,8 +21,8 @@ rewrite the seed-43 channel files in data/test/chan/, testDetectChannels the 128
 file; the rest read them (or make their own data in tempdir). Not run: demo*, exp*
 (demonstrations, experiments), make* (they freeze data and references) and testParams (the
 settings). A test*.m file that is not in the list below runs at the end, with a note.
-Slow tests (testRFIChain: a 1 s voltage-chain run per case, ~1 h) are skipped in the default
-run and run only when named: runAllTests("testRFIChain").
+Slow tests (testRFIChain: a 1 s voltage-chain run per case, ~75 min per case, ~2.5 h for its two
+default cases) are skipped in the default run and run only when named: runAllTests("testRFIChain").
 
 Never run two test sessions at once: they share data/test/chan/ and their tempdir folders
 (notes §8). main.m at the same time is fine now (it does not touch data/test/).
@@ -39,7 +39,7 @@ order = ["testGeneratePulsarSignal", "testChannelizeIQ", "testDedisperseChannels
 testDir = fileparts(mfilename('fullpath'));
 found = string({dir(fullfile(testDir, 'test*.m')).name});
 found = setdiff(erase(found, ".m"), "testParams");  % the settings script, not a test
-slow  = "testRFIChain";                             % only when named (~1 h)
+slow  = "testRFIChain";                             % only when named (~2.5 h)
 extra = setdiff(found, [order, slow]);              % new tests not yet in the list
 order = [order(ismember(order, found)), extra, slow(ismember(slow, found))];
 if ~isempty(names)

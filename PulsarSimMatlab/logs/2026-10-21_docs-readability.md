@@ -69,7 +69,11 @@ with the detail instead of the problem.
 
 ## Open items
 
-- `tests/runAllTests.m` help text says testRFIChain takes ~1 h; the full run is ~2.5 h (code comment, not edited).
+- `tests/runAllTests.m` help text said testRFIChain takes ~1 h; fixed with Jasper's OK ("for this time, you can also edit the
+  help text error"): ~75 min per case, ~2.5 h for the two default cases. Comments only.
+- Handover (Jasper: "tell the block D session the rewrite is done"): message sent to the session "Development
+  continuation", which now owns docs/*.html and works in its held items (`logs/2026-10-21_docs-pending.md`) in the new
+  style. Noted for it: runAllTests now lists 19 tests (block D added three), so "all sixteen" on tests.html is out of date.
 - Done after Jasper's OK ("yes, add the history and lessons updates"): history.html now has the sessions 14–16, 19, 20 and
   21 Oct, 21 decision rows (14–21 Oct, attributions checked against the logs: NBin 2048 was a proposal, the 1/10 warning
   Jasper's), and 10 more rows in the log table (2026-10-13_review-week.md was also missing); the calendar figure
