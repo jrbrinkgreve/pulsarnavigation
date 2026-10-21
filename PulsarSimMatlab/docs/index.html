@@ -96,16 +96,21 @@ offset. It works like GNSS, with natural beacons.</p>
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
   <div class="done"><b>B ✓ (for now)</b>RFI excision: essentials done; two items parked with designs</div>
-  <div class="later"><b>C (now)</b>fast simulator for hours of data: built and validated; <a href="scenario.html#simulated">scenario runs</a> under way</div>
-  <div class="later"><b>D</b>Earth's motion, barycentric phase, clock</div>
+  <div class="done"><b>C ✓</b>fast simulator for hours of data: built and validated; 100-day <a href="scenario.html#simulated">scenario runs</a> under way</div>
+  <div class="later"><b>D (now)</b>motion, barycentric phase, clock: prediction and truth built, the navigation fit next</div>
   <div class="later"><b>E</b>several pulsars, navigation, array</div>
 </div>
-<p><b>Now: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
+<p><b>Now: block D, motion and the clock.</b> The receiver moves with the Earth and its ship, and it times its data with its own
+oscillator. Block D predicts the pulse phase the receiver should see, so that a fold stays aligned over hours. It also gives the
+simulator a true trajectory and clock, against which the observer's assumed ones are wrong. The difference is the navigation signal.
+The <a href="motion.html">motion page</a> has the functions, and the <a href="localisation.html">localisation page</a> the frames,
+time scales and relativistic corrections behind them.</p>
+<p><b>Before that: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
 handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
-of data take seconds. It is built and validated in Jasper's runs. The first scenario runs give TOA budgets for B0329+54, seen from the
-Netherlands, and for J0437, seen from 30° S.</p>
-<p><b>Next:</b> Jasper's validation runs and the 100-day scenario runs. After that: Earth's motion and the phase prediction (D),
-then several pulsars and the navigation solution (E). Details and reasons: <a href="roadmap.html">roadmap</a>.</p>
+of data take seconds. It is validated in Jasper's runs, and its scenario runs give TOA budgets for B0329+54, seen from the Netherlands,
+and for J0437, seen from 30° S.</p>
+<p><b>Next:</b> the simulator's truth in the scenario runs, then the navigation fit: first B0329+54's 2-D site offset (D4). After that:
+several pulsars and the navigation solution (E). Details and reasons: <a href="roadmap.html">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -122,8 +127,10 @@ then several pulsars and the navigation solution (E). Details and reasons: <a hr
 <tr><td>B parked</td><td>Periodic-mask fix; per-channel noise level measured on the data (designs in the block-B handover)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
 <tr><td>Review</td><td>Review week: <code>blankingWeights</code> long-bin fix (12 Oct); code review of the whole codebase (13 Oct, 33 items): fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, generator unit test, frozen test data in <code>data/test/</code>; every stage explained in these docs (14–16 Oct)</td><td><span class="badge validated">12–16 Oct</span></td></tr>
 <tr><td><code>processIQ</code></td><td>The whole processing as one function (IQ in, fold out), and <code>foldToTOA</code> (TOAs, detection, good TOAs); <code>main.m</code> and the run scripts use them</td><td><span class="badge validated">19 Oct</span></td></tr>
-<tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. Then the first scenario runs (TOA budgets, Claude's runs); next the 100-day runs</td><td><span class="badge written">in progress since 20 Oct</span></td></tr>
-<tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. Then the first scenario runs (TOA budgets, Claude's runs); the 100-day runs are under way</td><td><span class="badge validated">built 20 Oct</span></td></tr>
+<tr><td>D</td><td>Barycentric phase prediction, Doppler, clock: <code>makeTrajectory</code>, <code>delayModel</code>, <code>makePredictor</code>,
+<code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate. Next: the
+simulator's truth in <code>runScenario</code>, then the navigation fit</td><td><span class="badge written">in progress since 21 Oct (Claude's runs)</span></td></tr>
 <tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 </details>
