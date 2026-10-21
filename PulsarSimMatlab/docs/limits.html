@@ -102,7 +102,7 @@ matters for nanosecond navigation: DM changes, the ionosphere, scattering at hig
 <tr><th>Effect</th><th>Size</th><th>Matters for</th><th>Plan</th></tr>
 <tr><td><b>Ionosphere</b> (noted 8 Oct, Jasper)</td><td>dispersive delay 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz; TEC 5–100 TECU → ~3–70 ns, time-variable. Also Faraday rotation (with one linear polarization the received fraction changes), ionospheric scintillation (equatorial and high latitudes), refraction.</td><td>ns-level navigation (1 ns ≈ 30 cm); small against today's µs TOAs</td><td>size for target site and hardware; sub-band TOAs or GNSS TEC maps (IGS) could correct it; likely block D or later</td></tr>
 <tr><td><b>DM variations</b></td><td>δDM = 10⁻³ pc cm⁻³ → ≈ 2.1 µs at 1.4 GHz</td><td>long-term timing, more for Vela</td><td>sub-band TOAs → DM fit (block 2)</td></tr>
-<tr><td><b>Scintillation</b> (low DM)</td><td>scintles 0.1–1 GHz wide at DM 5 → ~100 % band-averaged flux fading over minutes–hours</td><td>SNR budget (fading margin, missed TOAs), not timing</td><td>in the fast simulator since 20 Oct (<code>simulateFold</code> <code>'FluxScale'</code> / <code>'Scintillation'</code>, C3b; J0437: ~740 MHz × ~38 min, <a href="physics.html#scint">physics</a>); adaptive sub-int length next (C3c)</td></tr>
+<tr><td><b>Scintillation</b> (low DM)</td><td>scintles 0.1–1 GHz wide at DM 5 → ~100 % band-averaged flux fading over minutes–hours</td><td>SNR budget (fading margin, missed TOAs), not timing</td><td>in the fast simulator since 20 Oct (<code>simulateFold</code> <code>'FluxScale'</code> or <code>'Scintillation'</code>; J0437: ~740 MHz × ~38 min, <a href="physics.html#scint">physics</a>); adaptive sub-int lengths (<code>adaptiveSubints</code>) ride the bright spells</td></tr>
 <tr><td><b>Scattering</b></td><td>τ<sub>d</sub> ≈ 0.4 ns at DM 5; µs at DM ≳ 100</td><td>timing noise at high DM</td><td>block 4</td></tr>
 <tr><td>Higher-order frequency terms</td><td>–</td><td>–</td><td>not planned</td></tr>
 </table></div>
@@ -121,12 +121,13 @@ with profile evolution and a DM error it biases wideband TOAs.</li>
 intermodulation, bandpass ripple, gain drift. Single polarization (dual pol gives √2 in SNR; the hardware is dual pol).
 Ideal I/Q (a digital downconverter): no I/Q imbalance (a mirror image, −25…−40 dB before correction), no DC offset or LO leakage, no LO phase noise.
 Our LO (1.3 GHz) lies inside the band, so a DC spike and imbalance ghosts (RFI at 1.35 GHz → ghost at 1.25 GHz) would land in it; real hardware needs a low-IF LO or imbalance calibration.</li>
-<li><b>Receiver noise does not pass the dispersion taper</b> in the simulation (only the pulsar is tapered at the band edges):
-+0.4 % in σ<sub>TOA</sub> on the full band, but <b>+2.5 % on the default channel path</b>. There the pulsar sees the band-edge
-taper and every channel's edges, while the noise sees only the channel edges, and the six edge channels hold 2–96 % of the pulse
-although the optimal fit assumes equal pulse strength (<code>ChannelGain</code> 1). This is the whole 2.2 % gap between the
-channel path's and the full band's error bars (2.943 vs 2.880 µs; predicted +2.13 %, measured +2.19 %). With a realistic
-receiver (bandpass on pulsar and noise) the channel path would cost 0.37 % (<code>logs/2026-10-13_deep-analysis.md</code>, section 2).</li>
+<li><b>Receiver noise does not pass the dispersion taper</b> in the simulation: only the pulsar is tapered at the band edges. On the
+full band this costs +0.4 % in σ<sub>TOA</sub>, but <b>+2.5 % on the default channel path</b>. There the pulsar sees the band-edge taper
+and every channel's edges, while the noise sees only the channel edges. So the six edge channels hold 2–96 % of the pulse, although the
+optimal fit assumes equal pulse strength (<code>ChannelGain</code> 1).<br>
+This is the whole 2.2 % gap between the channel path's and the full band's error bars: 2.943 against 2.880 µs (predicted +2.13 %,
+measured +2.19 %). With a realistic receiver, which applies the bandpass to pulsar and noise alike, the channel path would cost 0.37 %
+(<code>logs/2026-10-13_deep-analysis.md</code>, section 2).</li>
 <li><b>Real bandpass</b> is not ideal and not known exactly: measure <var>W</var>² from the off-pulse spectrum and use it in (∫<var>W</var>²)²/∫<var>W</var>⁴; can be 10–30 % on real data.</li>
 </ul>
 
@@ -136,38 +137,49 @@ receiver (bandpass on pulsar and noise) the channel path would cost 0.37 % (<cod
 wander cannot. Belongs in the phase predictor (D); "what oscillator does the hardware have?" is an open question.</li>
 <li><b>No relative motion.</b> Earth's orbital v/c ≈ 10⁻⁴ → ≈ 100 µs per second of phase drift at 100 Hz. That drift is the navigation signal; it needs
 Doppler terms in the fold phase model (block D, a hard requirement for multi-day folds).</li>
-<li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day orbit
-(projected size 3.37 light-seconds): its orbit moves the arrival time by ~3 s within one 20 h fold (0.15 s per hour), ~2·10⁵× the fold's
-phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. The phase predictor (D) needs a binary timing model
-(circular-orbit ELL1 suffices for J0437 at the µs level), and end-to-end tests of D need binary motion in the simulator.</li>
+<li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day
+orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).
+That is about 2·10⁵× the fold's phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. So the phase
+predictor (D) needs a binary timing model; the circular-orbit model ELL1 suffices for J0437 at the µs level. End-to-end tests of D also
+need binary motion in the simulator.</li>
 <li><b>Position prior for folding.</b> A station position error δr gives a daily-varying delay error up to δr/c, which smears a long fold:
 J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km. A fix from scratch starts from the normal pulsars and refines with J0437.</li>
-<li><b>Navigation expectations</b> (rough, from the scenario numbers, no timing noise): a first 4-pulsar fix from 30° S (J0437, Vela,
-B0950+08, B1749−28) is ~300 km (3-D), limited by the normal pulsars' 0.3–0.7 ms TOAs, after 184 h on source worst case (34 h nominal),
-~2–3 weeks of calendar time with visibility; from 52° N (no MSP) ~1500 km after weeks to months. See <a href="scenario.html">scenario</a>.</li>
+<li><b>Navigation expectations</b> (rough, from the scenario numbers, without timing noise). From 30° S, a first fix with four pulsars
+(J0437, Vela, B0950+08, B1749−28) is good to about 300 km in 3-D. It is limited by the normal pulsars' TOAs of 0.3–0.7 ms. It needs 184 h on
+source in the worst case (34 h nominal): with visibility, about 2–3 weeks of calendar time. From 52° N, with no millisecond pulsar, a fix
+is about 1500 km, after weeks to months. See <a href="scenario.html">scenario</a>.</li>
 <li><b>Single pulsar.</b></li>
-<li><b>Stable profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization, no mode changes (B0329+54: abnormal
-mode ~15 % of the time). Since 20 Oct the fast simulator and the TOA code take multi-component profiles (B0329+54's five Gaussians at
-1410 MHz; a single Gaussian with the catalogue W<sub>50</sub> overstated its peak by 3 dB, and its TOA budget by 3×); the voltage-chain generator
-and <code>expectedPowerModel</code> are still single-Gaussian, and J0437's wings (W<sub>10</sub> 1.02 ms vs W<sub>50</sub> 0.14 ms) are not modelled yet.</li>
+<li><b>Stable profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization, and no mode changes
+(B0329+54 is in an abnormal mode about 15 % of the time).<br>
+Since 20 Oct the fast simulator and the TOA code take multi-component profiles. For B0329+54 these are five Gaussians at 1410 MHz; a single
+Gaussian with the catalogue W<sub>50</sub> overstated its peak by 3 dB, and its TOA budget by 3×. J0437's wings (W<sub>10</sub> 1.02 ms
+against W<sub>50</sub> 0.14 ms) are modelled in the fast simulator since 21 Oct, with an eight-component fit to the measured profile
+(<a href="scenario.html#simulated">scenario</a>). The voltage-chain generator and <code>expectedPowerModel</code> are still
+single-Gaussian.</li>
 </ul>
 
 <h2 id="estimation">Estimation and detection</h2>
 <ul>
 <li>FFTFIT is not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB); irrelevant at weak signal.</li>
 <li>Below SNR ≈ 6 per sub-int TOAs have outliers; the good-TOA definition removes them.</li>
-<li><b>Error bars at SNR ~7 (found 20 Oct, under investigation).</b> The formal σ uses the fitted amplitude, so at low SNR it is too small when
-noise inflates the amplitude and too large when it deflates it (scenario runs: pull width 0.7 below the median fitted SNR, 1.1–1.4 above).
-Overall honest for single Gaussians (B0329+54 1.04, J0437 0.87–0.94), a fat tail with a five-component template (1.18, robust 1.01,
-one TOA at 6.9σ). Fixed sub-ints at SNR 5–40 separate two effects: (1) the five-component
-template makes the error bars too small at low SNR whatever the grouping (pull width 1.82 at SNR 5, 1.19 at 7, 1.09 at 10, 1.03 at 20), while
-single Gaussians are honest from SNR 7 (0.97–1.10); (2) J0437's narrow pulls were a statistical fluctuation, not an effect: its two
-scenario runs give 0.94 and 0.87 (the robust width of ~110 TOAs scatters by ±0.16), and adaptive and fixed groups on the same simulated data
-both give ~1.1 ± 0.07. Most of (1) is bin resolution: B0329+54's narrowest component (FWHM 0.0055 turns) is 5.6 bins wide at NBin 1024
-— within <code>estimateTOA</code>'s rule then (bins ≤ 1/5 of the width at half maximum), but at low SNR that costs more than the rule assumed: with NBin 2048 (11 bins) the pull
-width at SNR 7 drops from 1.18 to 1.08 ± 0.03, the ~5–10 % that single Gaussians show at SNR 7 too. Fix: NBin 2048 for B0329+54 (narrowest
-component ≥ ~10 bins), and since 20 Oct the warning catches it: bins ≤ 1/10 of the spectral template width (0.0077 turns for B0329+54,
-so NBin 1024 warns at 1/7.9; see <a href="toa.html#template">TOA</a>).</li>
+<li><b>Error bars at SNR ~7</b> (found 20 Oct).
+<ul>
+<li><b>The effect.</b> The formal σ uses the fitted amplitude. So at low SNR it is too small when noise inflates the amplitude, and too
+large when noise deflates it. In the scenario runs the pull width was 0.7 below the median fitted SNR, and 1.1–1.4 above it.</li>
+<li><b>Overall</b> the error bars are honest for single Gaussians (B0329+54 1.04, J0437 0.87–0.94). With a five-component template
+there was a fat tail: 1.18, robust 1.01, and one TOA at 6.9σ.</li>
+<li><b>Two separate effects</b> showed up with fixed sub-ints at SNR 5–40. (1) The five-component template makes the error bars too
+small at low SNR, whatever the grouping: pull width 1.82 at SNR 5, 1.19 at 7, 1.09 at 10, 1.03 at 20. Single Gaussians are honest from
+SNR 7 (0.97–1.10). (2) J0437's narrow pulls were a statistical fluctuation, not an effect. Its two scenario runs gave 0.94 and 0.87, and
+the robust width of ~110 TOAs scatters by ±0.16. Adaptive and fixed groups on the same simulated data both give ~1.1 ± 0.07.</li>
+<li><b>The cause of (1) is mostly bin resolution.</b> B0329+54's narrowest component (FWHM 0.0055 turns) is only 5.6 bins wide at NBin
+1024. That was within <code>estimateTOA</code>'s rule then (bins ≤ 1/5 of the width at half maximum), but at low SNR it costs more than
+the rule assumed. With NBin 2048 (11 bins), the pull width at SNR 7 drops from 1.18 to 1.08 ± 0.03: the ~5–10 % that single Gaussians
+show at SNR 7 too.</li>
+<li><b>The fix:</b> NBin 2048 for B0329+54, so that the narrowest component is ≥ ~10 bins wide. Since 20 Oct the warning catches
+such cases: bins must be ≤ 1/10 of the spectral template width. That width is 0.0077 turns for B0329+54, so NBin 1024 warns, at 1/7.9
+(see <a href="toa.html#template">TOA</a>).</li>
+</ul></li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
 <li>Blanking: <var>V</var> and <var>X</var> use white input (error bars only, within 1–2 % in heavily blanked bins).
@@ -175,40 +187,61 @@ Only the first 7 lags of <var>X</var> are stored; near a blank 0.4–0.7 % of a 
 </ul>
 
 <h2 id="rfi">RFI excision</h2>
-<p>See <a href="excision.html#limits">RFI excision: limits</a>: data-dependent truncation (−0.4 % pulse amplitude at −5 dB), bright pulsars (above −5 dB, or noise-free) blanking themselves
-(<code>main.m</code> warns), residual bias from
-an exactly locked radar (0.41 µs at −54 dB with the frequency guard and the periodic mask), the periodic mask for fixed PRFs only (staggered
-PRFs not yet), carrier/GNSS channels with high baselines, windows ≤ 16 samples, noise-like RFI undetectable, assumed 0.1 µs radar rise time.</p>
-<div class="callout warn"><span class="ttl">Flat spectrum within a channel (found 8 Oct, B5d)</span>
-<p><code>detectRFI</code>'s thresholds and the fold's noise model (<var>V</var>, <var>X</var>) assume each channel's noise spectrum is flat (the channelizer's).
-A channel only partly covered by strong wideband RFI — the band edges of an LTE carrier — has a lopsided spectrum: its samples stay
-correlated over microseconds, so a window holds fewer independent samples than assumed. Result at LTE 0 dB: false flags in the two
-edge channels (540 and 367 windows vs ~3), and detected-power noise above the model (red. χ² 1.04, so slightly too small TOA error bars).
-Possible remedies: a per-channel noise level measured on the data, per-channel thresholds from the measured spectrum, or flagging such
-edge channels whole.</p>
-<p><b>Measured 9 Oct (B5e, <a href="results.html#b5e">results</a>):</b> the TOA fit weights a channel by 1/level², and these channels
-contain the RFI, so χ² overstates the effect: error bars 0.08 % too small at LTE 0 dB, 0.39 % in the realistic scenario. The worst
-case is a narrow noise-like carrier about as strong as its channel's noise: with ten such (Inmarsat-like) carriers χ² 1.22 and error
-bars 3.4 % too small. → Per-channel noise calibration, implemented 20 Oct as a switch (<code>noiseCal</code>, off by default; synthetic
-checks pass; on the voltage chain χ² 1.24 → 0.99 for the narrow carriers and 1.07 → 1.00 for the realistic scenario, 20 Oct): the observation's own off-pulse noise per channel replaces the flat-channel model.</p></div>
-<div class="callout warn"><span class="ttl">Periodic mask: false emitters when detections are dense (found 9 Oct, B5e)</span>
-<p><code>periodicRFI</code> looks for a fixed rhythm in the detections and assumes the other detections are few and randomly timed. In the
-realistic scenario the lopsided channels give hundreds of false flags each. In that dense cloud it accepted rhythms that are not there
-(14.1 kHz: every second pulse of a real 973 Hz radar plus random flags; 14.5 kHz: <code>detectRFI</code>'s window steps put all detection
-times on a 4-sample grid, which the chance calculation ignores) and blanked every predicted "pulse" — every ~70 µs across ~100 channels:
-<b>29–32 % of the data</b> (SNR −15 %). Nothing checks physical plausibility (only ~5 % of these "radars'" predicted pulses were detected,
-≥ 40 % for real ones). <b>The periodic mask is therefore off by default since 9 Oct</b> (it is only needed for radars locked to the pulsar).
-Fix designed, not implemented: a grid-aware chance calculation, a minimum fraction of predicted pulses detected, and trial periods from
-strong pulses (block-B handover <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p></div>
+<p>The full list is on <a href="excision.html#limits">RFI excision: limits</a>. In brief:</p>
+<ul>
+<li>data-dependent truncation: −0.4 % pulse amplitude at −5 dB;</li>
+<li>bright pulsars (above −5 dB, or noise-free) blank themselves; <code>main.m</code> warns;</li>
+<li>an exactly locked radar leaves a bias of 0.41 µs at −54 dB, with the frequency guard and the periodic mask;</li>
+<li>the periodic mask handles fixed PRFs only, not staggered ones yet;</li>
+<li>carrier and GNSS channels have high baselines;</li>
+<li>windows are at most 16 samples;</li>
+<li>noise-like RFI cannot be detected;</li>
+<li>the 0.1 µs radar rise time is an assumption.</li>
+</ul>
+<div class="callout warn"><span class="ttl">Flat spectrum within a channel (found 8 Oct)</span>
+<p><b>The problem.</b> <code>detectRFI</code>'s thresholds and the fold's noise model (<var>V</var>, <var>X</var>) assume that each
+channel's noise spectrum is flat: the channelizer's. A channel only partly covered by strong wideband RFI, such as the band edge of an
+LTE carrier, has a lopsided spectrum. Its samples stay correlated over microseconds, so a window holds fewer independent samples than
+assumed. At LTE 0 dB this gave false flags in the two edge channels (540 and 367 windows, instead of about 3). And the detected-power noise
+was above the model: reduced χ² 1.04, so the TOA error bars were slightly too small.</p>
+<p><b>How much it matters</b> (measured 9 Oct in the realistic scenario, <a href="results.html#b5e">results</a>). The TOA fit weights a
+channel by 1/level², and these channels contain the RFI. So χ² overstates the effect: the error bars are 0.08 % too small at LTE 0 dB,
+and 0.39 % in the realistic scenario. The worst case is a narrow noise-like carrier about as strong as its channel's noise. With ten such
+Inmarsat-like carriers, χ² is 1.22 and the error bars are 3.4 % too small.</p>
+<p><b>What is done.</b> Per-channel noise calibration exists since 20 Oct, as a switch (<code>noiseCal</code>, off by default): the
+observation's own off-pulse noise per channel replaces the flat-channel model. Synthetic checks pass. On the voltage chain χ² goes from
+1.24 to 0.99 for the narrow carriers, and from 1.07 to 1.00 for the realistic scenario. Per-channel <code>detectRFI</code> thresholds
+from each channel's own correlation exist since 21 Oct, against the false flags
+(<a href="excision.html#chanthr">excision</a>); the realistic scenario has not been rerun with them yet. Flagging such edge channels
+whole remains an option.</p></div>
+<div class="callout warn"><span class="ttl">Periodic mask: false emitters when detections are dense (found 9 Oct, realistic scenario)</span>
+<p><b>The problem.</b> <code>periodicRFI</code> looks for a fixed rhythm in the detections. It assumes that the other detections are few
+and randomly timed. In the realistic scenario, the lopsided channels give hundreds of false flags each. In that dense cloud it accepted
+rhythms that are not there:</p>
+<ul>
+<li>14.1 kHz: every second pulse of a real 973 Hz radar, plus random flags;</li>
+<li>14.5 kHz: <code>detectRFI</code>'s window steps put all detection times on a 4-sample grid, which the chance calculation
+ignores.</li>
+</ul>
+<p>It then blanked every predicted "pulse": every ~70 µs, across ~100 channels. That is <b>29–32 % of the data</b>, and costs 15 % SNR.
+Nothing checks physical plausibility: only about 5 % of these "radars'" predicted pulses were detected, against ≥ 40 % for real ones.</p>
+<p><b>What is done.</b> The periodic mask is <b>off by default since 9 Oct</b>; it is only needed for radars locked to the pulsar. A fix is
+designed but not implemented: a chance calculation that knows the grid, a minimum fraction of predicted pulses that must be detected, and
+trial periods from strong pulses only (block-B handover
+<a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p></div>
 
 <h2 id="edges">Edges and scale</h2>
 <ul>
 <li>The last sweep of each file (31.5 ms at DM 25; 6.3 ms at DM 5) is not fully supported; partial first and last turns are skipped (<code>MinCoverage</code> = 1).</li>
-<li><b>High DM in the generator:</b> forward dispersion needs ~47 GB from DM ~54 up to DM ~106, so at both DM 60 and DM 100 (24 GB machine). The processing side is solved by the
-channelized front end; the generator side is open (<a href="roadmap.html#dm">roadmap</a>).</li>
+<li><b>High DM in the generator:</b> forward dispersion needs about 47 GB from DM ~54 up to DM ~106, so at both DM 60 and DM 100. The
+machine has 24 GB. The channelized front end solves the processing side; the generator side is open
+(<a href="roadmap.html#dm">roadmap</a>).</li>
 <li>Disk per second of simulated data: ~61 GB on the full band, ~63 GB on the channel path, ~72 GB with excision
 (blanked copies and the weight file). Hours of data need the fast simulator (block C).</li>
-<li><b>Excision on long files</b> (12 Oct): the front end streams, but <code>detectRFI</code> (reads each channel whole), <code>periodicRFI</code> (all events at once) and <code>blankingWeights</code> (each blanked channel whole; weight array 4.8 GB at <var>L</var> = 1 s, above its 4 GB default) do not. Fine for 0.1 s simulations and for block C; needed for real data. Designed (time blocks with the filter reach as overlap), not built.</li>
+<li><b>Excision on long files</b> (12 Oct). The front end streams, but three excision functions do not: <code>detectRFI</code> reads
+each channel whole, <code>periodicRFI</code> takes all events at once, and <code>blankingWeights</code> processes each blanked channel whole
+(its weight array is 4.8 GB at <var>L</var> = 1 s, above its 4 GB default). That is fine for 0.1 s simulations and for the fast
+simulator, but real data will need it. A design exists (time blocks, with the filter reach as overlap); it is not built.</li>
 </ul>
 
 </main>
