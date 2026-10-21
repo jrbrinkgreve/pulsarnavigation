@@ -6,6 +6,7 @@ const PAGES = [
   { group: "Start" },
   { file: "index.html",       title: "Home" },
   { file: "physics.html",     title: "Physics background" },
+  { file: "localisation.html", title: "Localisation: frames, time, relativity" },
   { file: "conventions.html", title: "Conventions and why" },
   { file: "pipeline.html",    title: "Pipeline overview" },
   { file: "parameters.html",  title: "Parameters" },

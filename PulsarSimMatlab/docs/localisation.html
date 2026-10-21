@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Localisation and Frames</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Localisation: frames, time and relativity</h1>
+<p class="lede">A pulse's arrival time becomes a position only after every other reason for it to be early or late has been taken out.
+This page explains how a position follows from arrival times, which coordinate frames and time scales the code uses, and which
+geometric and relativistic delays sit between the pulsar and the receiver. It ends with what the model still leaves out, and what each
+omission would cost against real data.</p>
+<p class="meta">Code: <code>makeTrajectory</code> (frames), <code>delayModel</code> (delays and time scales), <code>makePredictor</code>
+(phase), <code>trueResiduals</code> and <code>makeClock</code> (the simulator's truth) · details per function on the
+<a href="motion.html">block D page</a></p>
+
+<div class="callout note"><span class="ttl">In short</span>
+<p>A pulsar's phase is defined at the barycentre of the solar system, in its own time scale. The receiver sits on a ship on a rotating
+Earth that orbits the Sun, and it time-stamps the data with its own oscillator. The code therefore carries every arrival time through
+a chain: from the clock reading to true time, from the Earth's clock to the barycentre's clock, and from the receiver's position to the
+barycentre. What is left after that chain is the position error, seen along the pulsar's direction.</p>
+<p>One microsecond of residual is 300 m along the line of sight. The delays that are removed are up to ±412 s over a year for
+B0329+54, several hundred million times larger.</p></div>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#fix">From arrival times to a position</a></li>
+<li><a href="#frames">Coordinate frames</a></li>
+<li><a href="#time">Time scales and the receiver's clock</a></li>
+<li><a href="#delays">The delays, term by term</a></li>
+<li><a href="#relativity">Relativistic corrections</a></li>
+<li><a href="#missing">What the model leaves out</a></li>
+</ol></div>
+
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Two chains. Position: the barycentre, the Sun, the Earth-Moon barycentre, the geocentre, the site and the ship, each an offset from the one before. Time: the clock reading, the clock estimate, terrestrial time, the Einstein term to barycentric time at the receiver, then the Roemer, curvature and Shapiro terms to barycentric time at the barycentre, and the pulsar's phase.">
+  <defs>
+    <marker id="ar-lo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <text class="ttl" x="10" y="20">position: each box is an offset from the one before</text>
+  <rect class="box sky" x="10" y="32" width="120" height="50" rx="6"/>
+  <text class="lbl" x="70" y="52" text-anchor="middle">barycentre</text>
+  <text class="sub" x="70" y="69" text-anchor="middle">origin, ICRS axes</text>
+  <rect class="box sky" x="152" y="32" width="120" height="50" rx="6"/>
+  <text class="lbl" x="212" y="52" text-anchor="middle">Sun</text>
+  <text class="sub" x="212" y="69" text-anchor="middle">+ Jupiter, Saturn</text>
+  <rect class="box sky" x="294" y="32" width="120" height="50" rx="6"/>
+  <text class="lbl" x="354" y="52" text-anchor="middle">Earth–Moon</text>
+  <text class="sub" x="354" y="69" text-anchor="middle">Kepler orbit</text>
+  <rect class="box sky" x="436" y="32" width="120" height="50" rx="6"/>
+  <text class="lbl" x="496" y="52" text-anchor="middle">geocentre</text>
+  <text class="sub" x="496" y="69" text-anchor="middle">lunar offset</text>
+  <rect class="box proc" x="578" y="32" width="120" height="50" rx="6"/>
+  <text class="lbl" x="638" y="52" text-anchor="middle">site</text>
+  <text class="sub" x="638" y="69" text-anchor="middle">WGS84, rotation</text>
+  <rect class="box proc" x="720" y="32" width="130" height="50" rx="6"/>
+  <text class="lbl" x="785" y="52" text-anchor="middle">ship or probe</text>
+  <text class="sub" x="785" y="69" text-anchor="middle">track, trajectory</text>
+  <path class="line" marker-end="url(#ar-lo)" d="M130 57 H150 M272 57 H292 M414 57 H434 M556 57 H576 M698 57 H718"/>
+
+  <text class="ttl" x="10" y="130">time: each box is one step from the data's time stamp to the pulsar's phase</text>
+  <rect class="box rx" x="10" y="142" width="120" height="50" rx="6"/>
+  <text class="lbl" x="70" y="162" text-anchor="middle">clock reading</text>
+  <text class="sub" x="70" y="179" text-anchor="middle">SDR oscillator</text>
+  <rect class="box proc" x="152" y="142" width="120" height="50" rx="6"/>
+  <text class="lbl" x="212" y="162" text-anchor="middle">TT</text>
+  <text class="sub" x="212" y="179" text-anchor="middle">− clock estimate</text>
+  <rect class="box proc" x="294" y="142" width="120" height="50" rx="6"/>
+  <text class="lbl" x="354" y="162" text-anchor="middle">TDB at receiver</text>
+  <text class="sub" x="354" y="179" text-anchor="middle">+ Einstein term</text>
+  <rect class="box proc" x="436" y="142" width="196" height="50" rx="6"/>
+  <text class="lbl" x="534" y="162" text-anchor="middle">TDB at barycentre</text>
+  <text class="sub" x="534" y="179" text-anchor="middle">+ Roemer, curvature, Shapiro</text>
+  <rect class="box sky" x="654" y="142" width="120" height="50" rx="6"/>
+  <text class="lbl" x="714" y="162" text-anchor="middle">pulsar phase</text>
+  <text class="sub" x="714" y="179" text-anchor="middle">timing model</text>
+  <path class="line" marker-end="url(#ar-lo)" d="M130 167 H150 M272 167 H292 M414 167 H434 M632 167 H652"/>
+
+  <text class="sub" x="10" y="230">The position chain feeds the Roemer term: the light-travel time across the receiver's offset from the barycentre.</text>
+  <text class="sub" x="10" y="250">Blue: astronomy (ephemerides). Green: computed by the code from the receiver's trajectory. The clock reading: the hardware.</text>
+  <text class="sub" x="10" y="270">The simulator uses this chain twice: once with the true trajectory and clock, once with the observer's assumed ones.</text>
+</svg>
+<figcaption>The two chains behind every arrival time. The position chain gives the receiver's offset from the barycentre. The time chain
+turns the data's clock reading into barycentric time, where the pulsar's timing model applies.</figcaption>
+</figure>
+
+<h2 id="fix">1. From arrival times to a position</h2>
+<p>A pulse front is a plane, because the pulsar is so far away. A receiver that is closer to the pulsar along its direction meets the
+front earlier. A sideways offset changes nothing. Each arrival time therefore measures one component of the position: the one along
+the pulsar's direction <var>n̂</var>.</p>
+<p>The residual of a TOA is the measured arrival time minus the predicted one. For a receiver that is δ<var>r</var> away from where the
+observer thinks it is, and a clock that is off by δ<var>b</var>, the residual is</p>
+<p>\[ r = -\frac{\delta\mathbf{r}\cdot\hat{\mathbf{n}}}{c} + \delta b + \text{noise}. \]</p>
+<p>A true receiver closer to the pulsar gives a negative residual: the pulse arrives early. One microsecond is 300 m.</p>
+<h3>One pulsar on a rotating Earth</h3>
+<p>On the Earth, the pulsar's direction turns once per sidereal day. A fixed position error therefore shows up as a daily sine. Its
+amplitude is the offset's equatorial part times cos δ, where δ is the pulsar's declination. For B0329+54, with cos δ = 0.58, a site 100 km
+east of the assumed one gives a daily sine of 193.33 µs.</p>
+<p>The offset's component along the Earth's axis does not rotate. It gives a constant, which cannot be told apart from the clock offset.
+So one pulsar finds the two equatorial components of a fixed site, and the third merges with the clock.</p>
+<h3>Several pulsars, and a moving ship</h3>
+<p>Each pulsar measures the position along its own direction. With pulsars in well-separated directions the three components and the
+clock offset are four unknowns, so four TOAs at one moment fix them. A moving ship adds its velocity, and the clock adds its rate. These
+unknowns change in time, so a Kalman filter estimates them together, with a motion model per vehicle.</p>
+<h3>How precise, and the half-turn limit</h3>
+<p>One TOA with an uncertainty σ locates the receiver to <var>c</var>·σ along the pulsar's direction. B0329+54's TOAs have about 734 µs,
+which is 220 km per TOA. After 30 days of TOAs, each equatorial component of a fixed site should be known to about ±30 km. J0437's TOAs
+have about 13 µs, which is 3.9 km per TOA. J0437 is too far south to be seen from the Netherlands, though.</p>
+<p>The fold cannot tell a pulse that is <var>f</var>·<var>r</var> turns late from one that is a whole turn later. A TOA is therefore
+unambiguous only while the position error stays below half a period times <var>c</var>.</p>
+<div class="table-wrap"><table>
+<tr><th>Pulsar</th><th>Period</th><th>Position error that stays unambiguous</th></tr>
+<tr><td>B0329+54</td><td>714 ms</td><td>±107,000 km</td></tr>
+<tr><td>J0437−4715</td><td>5.76 ms</td><td>±863 km</td></tr>
+</table></div>
+<p>A millisecond pulsar therefore needs a prior position, for example from dead reckoning, that is good to a few hundred km.</p>
+
+<h2 id="frames">2. Coordinate frames</h2>
+<p>Positions are needed in several frames: the pulsar's direction is fixed on the sky, the Earth's orbit is given in the ecliptic,
+and a ship's position is given in latitude and longitude on a rotating Earth. The code converts all of them into one frame before
+any delay is computed.</p>
+<div class="table-wrap"><table>
+<tr><th>Frame</th><th>Origin and axes</th><th>What uses it</th></tr>
+<tr><td>Equatorial, J2000 (ICRS)</td><td>The barycentre; the axes are fixed on the sky, with <var>z</var> along the Earth's axis of
+2000.</td><td>The pulsar's direction (right ascension, declination); all delays; probes (<code>'SSB'</code> trajectories).</td></tr>
+<tr><td>Ecliptic, J2000</td><td>As above, tilted by the obliquity 23.439281° about the <var>x</var> axis.</td><td>The orbital elements of
+the Earth–Moon barycentre, Jupiter and Saturn; turned into equatorial at once.</td></tr>
+<tr><td>Earth-fixed (ECEF)</td><td>The geocentre; the axes turn with the Earth.</td><td>Sites and ships (<code>'ECEF'</code>
+trajectories).</td></tr>
+<tr><td>Geodetic (WGS84)</td><td>Latitude, longitude and height on the WGS84 ellipsoid.</td><td>The inputs of <code>'fixed'</code> and
+<code>'track'</code> trajectories; converted to Earth-fixed.</td></tr>
+<tr><td>Local east-north-up</td><td>A site; the axes point east, north and up.</td><td>Offsets of a site (<code>'OffsetENU'</code>),
+such as the true site 100 km east of the assumed one.</td></tr>
+</table></div>
+<p>An Earth-fixed position becomes equatorial through the Earth's rotation: a turn about the <var>z</var> axis by the Earth rotation
+angle. The site's velocity gets the rotation's 465 m/s at the equator added. The geocentre's own position comes from the position
+chain in the figure above.</p>
+<div class="callout why"><span class="ttl">Every trajectory in one of two frames</span>
+<p>A trajectory is either Earth-fixed or barycentric. A ship and a ground site are naturally Earth-fixed: their tracks come as latitude
+and longitude. A deep-space probe is naturally barycentric. The delay model turns both into the barycentric frame itself, so the
+predictor and a later Kalman filter never need to know which kind of vehicle they handle (<a href="motion.html#trajectory">block D</a>).</p></div>
+
+<h2 id="time">3. Time scales and the receiver's clock</h2>
+<p>Several clocks are involved, and they disagree by up to minutes. The code counts every time in seconds since J2000.0, which is
+2000-01-01 12:00 in terrestrial time.</p>
+<div class="table-wrap"><table>
+<tr><th>Time scale</th><th>What it is</th><th>Relation</th></tr>
+<tr><td>The receiver's clock</td><td>The reading of the SDR's own oscillator. It also times the samples.</td><td>Clock reading − true time
+= ε(<var>t</var>): an offset, a rate (up to 2·10⁻⁶ for a ±2 ppm oscillator) and noise.</td></tr>
+<tr><td>TAI</td><td>International atomic time.</td><td>The reference for the atomic clocks.</td></tr>
+<tr><td>TT</td><td>Terrestrial time: an ideal clock on the rotating geoid.</td><td>TT = TAI + 32.184 s, exactly.</td></tr>
+<tr><td>UTC</td><td>Civil time, kept within 0.9 s of the Earth's rotation by leap seconds.</td><td>TAI − UTC = 37 s since 2017.</td></tr>
+<tr><td>UT1</td><td>The Earth's rotation itself, as an angle.</td><td>The code takes UT1 = TT − 69.184 s, that is UT1 = UTC.</td></tr>
+<tr><td>TDB</td><td>Barycentric dynamical time: the time of the solar-system ephemerides and of pulsar timing models.</td><td>TDB − TT
+= the Einstein term, ±1.66 ms over a year.</td></tr>
+<tr><td>TCB</td><td>Barycentric coordinate time, the relativistically "pure" version.</td><td>Runs faster than TDB by 1.55·10⁻⁸: 0.49 s
+per year.</td></tr>
+</table></div>
+<p>The observer never knows true time directly. It corrects its clock readings with its own estimate of the clock error, and the
+predictor uses the corrected time (<a href="motion.html#predictor">block D</a>). In the simulator the true clock comes from
+<code>makeClock</code>, and only the part of it that the observer has not estimated moves the pulse.</p>
+<div class="callout warn"><span class="ttl">The ephemeris must match the time scale</span>
+<p>Published timing models come in TDB or in TCB units. Their spin frequencies differ by 1.55·10⁻⁸ of the value. Using a TCB model as if
+it were TDB makes the phase drift by 1.3 ms per day for any pulsar. The code's delays end in TDB, so a timing model must be in TDB units,
+or be converted first.</p></div>
+
+<h2 id="delays">4. The delays, term by term</h2>
+<p>The delay Δ is the time to add to a pulse's arrival at the receiver to get its arrival at the barycentre. <code>delayModel</code>
+computes it as a sum of terms. The table gives each term's size for B0329+54 seen from 52° N.</p>
+<div class="table-wrap"><table>
+<tr><th>Term</th><th>What it is</th><th>Size</th></tr>
+<tr><td>Roemer, Earth's orbit</td><td>The light-travel time across the Earth's offset from the barycentre.</td><td>±412 s over a year.
+At most ±499 s, for a pulsar in the ecliptic.</td></tr>
+<tr><td>Roemer, Earth's rotation</td><td>The site turns with the Earth.</td><td>±7.6 ms per day. At most ±21 ms, the Earth's radius.</td></tr>
+<tr><td>Roemer, the ship</td><td>The ship's position on the Earth: what navigation wants to find.</td><td>333 µs per 100 km along
+the line of sight.</td></tr>
+<tr><td>Curvature</td><td>The pulse front is a sphere around the pulsar, not a plane.</td><td>About 1.2 µs over a year at 1 kpc.</td></tr>
+<tr><td>Einstein</td><td>The Earth's clock runs at a varying rate (next section).</td><td>±1.66 ms over a year; up to about 2 µs daily
+from the site.</td></tr>
+<tr><td>Shapiro</td><td>The Sun's gravity delays the pulse (next section).</td><td>−17 to +6 µs over a year. About −110 µs for a line of
+sight that grazes the Sun.</td></tr>
+<tr><td>Dispersion</td><td>The interstellar plasma delays low frequencies.</td><td>Removed by dedispersion; every TOA is referred to
+1.6 GHz (<a href="physics.html#dispersion">physics</a>).</td></tr>
+</table></div>
+<details><summary>The formulas</summary>
+<p>With <var>r</var> the receiver's position relative to the barycentre and <var>D</var> the pulsar's distance:</p>
+<p>\[ \Delta_\mathrm{R} = \frac{\mathbf{r}\cdot\hat{\mathbf{n}}}{c}, \qquad
+\Delta_\mathrm{curv} = -\frac{|\mathbf{r}|^2 - (\mathbf{r}\cdot\hat{\mathbf{n}})^2}{2cD}, \]</p>
+<p>\[ \Delta_\mathrm{E} = 1.657\,\mathrm{ms}\,\sin g + 14\,\mu\mathrm{s}\,\sin 2g + \frac{\mathbf{v}_\oplus\cdot\mathbf{r}_\mathrm{site}}{c^2},
+\qquad \Delta_\mathrm{S} = 2T_\odot \ln\frac{|\mathbf{r}_\odot| + \mathbf{r}_\odot\cdot\hat{\mathbf{n}}}{1\,\mathrm{AU}}, \]</p>
+<p>with <var>g</var> the Earth's mean anomaly, <var>r</var>⊙ the receiver relative to the Sun, and <var>T</var>⊙ = <var>GM</var>⊙/<var>c</var>³
+= 4.925 µs.</p></details>
+
+<h2 id="relativity">5. Relativistic corrections</h2>
+<p>Two effects of general relativity are large enough to matter, and a third concerns which clock is meant.</p>
+<h3>The Einstein delay: the receiver's clock runs at a varying rate</h3>
+<p>A clock on the Earth moves at 30 km/s through the Sun's gravitational field. Both the speed and the field strength change along the
+slightly eccentric orbit. The clock therefore runs a little slow near perihelion, where it is faster and deeper in the field, and a
+little fast near aphelion, compared with the uniform barycentric time TDB. Accumulated over a year this is ±1.66 ms. The site adds a
+smaller daily term, because it moves with the Earth's rotation: up to about 2 µs. Converting the Earth's time TT into TDB removes these
+variations, and that conversion is the Einstein term.</p>
+<h3>The Shapiro delay: gravity slows the pulse</h3>
+<p>A pulse that passes the Sun travels through curved space-time and arrives later. The delay grows as the line of sight passes closer to
+the Sun. For B0329+54 it varies between −17 and +6 µs over a year. For a pulsar near the ecliptic, the line of sight can graze the Sun,
+and the delay reaches about −110 µs. Jupiter adds up to about 180 ns, but only when the line of sight passes close to it.</p>
+<h3>Whose clock: TT, TDB and a probe's own time</h3>
+<p>The Einstein term converts terrestrial time into barycentric time. That is right for a receiver on the Earth. A deep-space probe's
+clock follows neither: its proper time runs at a rate set by its own speed and its distance from the Sun. TDB's rate already contains
+the Earth's orbital speed and the Sun's pull at 1 AU, so a probe near the Earth's orbit runs within about 10⁻⁹ of TDB. A probe at
+Jupiter's distance feels less of both, and runs 1.3·10⁻⁸ fast: 1.1 ms per day. Most of that is a constant rate, which the clock estimate
+absorbs. The code does not yet model a probe's own clock; it treats a probe's time stamps as TDB.</p>
+<h3>Height</h3>
+<p>A clock higher up runs faster: 1.1·10⁻¹³ per km of height. At sea level this is part of TT's definition. On an aircraft at 10 km it is
+95 ns per day, again a rate that the clock estimate absorbs.</p>
+<div class="callout why"><span class="ttl">The simulator only needs the model to be consistent</span>
+<p>In the simulator, the truth and the observer's prediction use the same delay model. Its own errors therefore cancel in the
+residual, and only the difference between the true and the assumed trajectory and clock remains. That is why an analytic Earth orbit
+was enough to start with. Real data are different: there every omission below shows up in the residual (<a href="motion.html#delay">block D</a>).</p></div>
+
+<h2 id="missing">6. What the model leaves out</h2>
+<p>Each item below is the same for the truth and the prediction in the simulator, so it cancels there. Against real data it would
+add the systematic error in the last column, unless it is modelled.</p>
+<div class="table-wrap"><table>
+<tr><th>Left out</th><th>What it is</th><th>Error against real data</th></tr>
+<tr><td>The exact Earth orbit</td><td>A Keplerian orbit with the Moon and two planets, instead of JPL's DE440.</td><td>About 10⁴ km, or
+30 ms, absolute. Planned for the end of block D.</td></tr>
+<tr><td>Precession</td><td>The Earth's axis and equinox move by about 0.37° between 2000 and 2026.</td><td>The site lands up to about
+40 km from its place in the J2000 frame: up to 136 µs, daily.</td></tr>
+<tr><td>Nutation</td><td>The axis also nods by up to 17″.</td><td>About 0.5 km: up to 1.8 µs.</td></tr>
+<tr><td>UT1 − UTC</td><td>The Earth's rotation runs up to 0.9 s ahead of or behind UTC.</td><td>About 260 m at 52° N: up to 0.9 µs.</td></tr>
+<tr><td>Polar motion</td><td>The axis wanders over the Earth's surface by about 0.3″.</td><td>About 9 m: 30 ns.</td></tr>
+<tr><td>Ionosphere</td><td>Free electrons near the Earth add dispersion.</td><td>About 34 ns at 1.4 GHz for 50 TEC units; it changes
+with the time of day and the season.</td></tr>
+<tr><td>Troposphere</td><td>The lower atmosphere slows the signal, at all frequencies alike.</td><td>About 8 ns at the zenith and 44 ns at
+10° elevation.</td></tr>
+<tr><td>The pulsar's own position</td><td>Its right ascension, declination, proper motion and parallax.</td><td>A 1 mas error gives up to
+2.4 µs over a year.</td></tr>
+<tr><td>Binary orbits</td><td>J0437 orbits a companion.</td><td>±3.4 s per 5.74 days. Planned for the end of block D.</td></tr>
+<tr><td>A probe's own clock</td><td>Proper time instead of TDB (section 5).</td><td>A rate of up to about 10⁻⁸ in the outer solar system,
+mostly absorbed by the clock estimate.</td></tr>
+</table></div>
+<p>B0329+54's TOAs have about 734 µs of noise, so only precession and the exact orbit matter for it against real data. J0437's 13 µs
+TOAs also need nutation, and its binary orbit. A timing precision near 100 ns would need every row.</p>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 at Jasper's request: the docs had the delay terms on the block D page, but no overview of how a position follows
+from arrival times, of the frames and time scales, and of the relativistic corrections. The sizes on this page were computed from the
+code's own constants (<code>delayModel</code>), from the IERS conventions for the time scales, and from standard values for the
+atmosphere.</p></details>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>
