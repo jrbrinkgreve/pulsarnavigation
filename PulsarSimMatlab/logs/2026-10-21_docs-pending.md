@@ -14,5 +14,4 @@ history. Only the results still to come are held here.
 - Validation run (Claude's run of the frozen 171a716): tests.html / results.html status.
 - expSimVsChain at DM 25 / L 0.2 s (after main on the full band): tests.html.
 - New RFI profiles (per-channel detectRFI thresholds, 30 lags): simulator.html.
-- testRFIChain on the new code (narrow Inmarsat): tests.html, simulator.html assumptions b and d.
 - 100-day runs: scenario.html (final budgets), roadmap status.

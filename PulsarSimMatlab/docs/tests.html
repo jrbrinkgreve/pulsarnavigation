@@ -296,7 +296,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, diagnosed (Claude's runs, 20–21 Oct)</span></td></tr>
+<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">all pass on the new code, narrow Inmarsat included (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#compchain"><code>expComponentsChain</code></a></td><td>experiment: a multi-component pulse on the voltage chain vs <code>simulateFold</code></td><td>~30 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 21 Oct)</span></td></tr>
@@ -690,8 +690,9 @@ the <a href="motion.html#truth">block D page</a>.</p>
 grows from a known start as the Kalman model says. The five checks are on the <a href="motion.html#clock">block D page</a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
-<p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. The realistic scenario passes. The
-narrow-Inmarsat case had two failures at 1 turn; they are diagnosed below.</p>
+<p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic
+scenario and the narrow Inmarsat carriers. The narrow case first had two failures at 1 turn. They were diagnosed (below), and the two
+fixes, per-channel <code>detectRFI</code> thresholds and 30 lags, removed them.</p>
 <p><b>How it works.</b> For each case it makes one pulsar-free 1 s chain run, as <code>runRFIProfile</code> does: beam passages outside the
 run, its own noise seed, and the DM from <code>pipelineParams</code>. The default cases are the realistic scenario and the narrow Inmarsat
 carriers; noise only is on request. The detected power is split in two halves. Half A gives the RFI profile. Half B is folded by
@@ -735,6 +736,12 @@ channels and of channel 61 averages out as 1/turns.</li>
 simulated (pooled z +3.3; channel 105: 3.72 against 3.49, z +6.7). The neighbour correlation is 0.2552 against 0.2541 (pooled +3.1;
 channel 105: 0.287 against 0.266). At 10 turns the excess is the same size (1.2853 against 1.2696), but 3 sub-ints cannot resolve it.</li>
 </ul></li>
+<li><b>Rerun on the new code</b> (per-channel <code>detectRFI</code> thresholds, 30 lags; 21 Oct, Claude's run, 61 + 114 min): <b>all
+pass</b>, in both cases at 1 and 10 turns. In the narrow-Inmarsat case at 1 turn the noise relative to the model is 1.3286 real against
+1.3292 simulated (pooled z +0.30, no channel flagged; before: z +3.3, channel 105 z +6.7). The neighbour correlation is 0.2564 against
+0.2566 (z −0.56; before +3.1). The realistic case gives 1.0729 against 1.0729. Kurtosis and tails still flag the carrier channels
+105–114 at 1 turn, as information: the Gaussian simulation does not draw the radiometer's non-Gaussianity, and the check that it decays
+with longer sub-ints passes.</li>
 </ol>
 <h3>Diagnosis of the narrow-Inmarsat failures (21 Oct)</h3>
 <p>The scratch script <code>diagNarrow</code> ran the same chain with and without excision, with lags to 30 in both halves. It split

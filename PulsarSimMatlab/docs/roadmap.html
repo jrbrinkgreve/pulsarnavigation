@@ -299,8 +299,8 @@ the grid fix, adaptive sub-ints, dual polarization <code>'NPol'</code>, groups o
 profiles <code>'Components'</code> with component templates, and the calibrated observer <code>'ObserverNoise'</code>), and
 <code>testRFIModel</code> 1–5 (the RFI model, and the per-channel noise calibration on synthetic data).</li>
 <li><b>Done in Claude's runs</b> (20–21 Oct): <code>expSimVsChain</code>; <code>expSimRFI</code> (RFI costs 10–12 % SNR); the default
-DM 25 and L 0.2 s, with a comparison dataset; <code>testRFIChain</code> (the realistic case passes; the narrow-carrier failures are
-diagnosed); the chain check of <code>noiseCal</code>; <code>runScenario</code>, clean and with all variants
+DM 25 and L 0.2 s, with a comparison dataset; <code>testRFIChain</code> (both cases pass on the new code, the narrow carriers
+included, after the two fixes); the chain check of <code>noiseCal</code>; <code>runScenario</code>, clean and with all variants
 (<a href="scenario.html#simulated">scenario</a>); J0437's measured profile; per-channel <code>detectRFI</code> thresholds; 30-lag RFI
 profiles.</li>
 <li><b>Understood:</b> channel 61's extra non-Gaussianity averages out as 1/turns (the <code>testRFIChain</code> rerun). The error bars at

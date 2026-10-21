@@ -144,7 +144,8 @@ noise. With 7 lags, the neighbour-bin correlation of short phase bins, and the n
 <li><b>Blanking is not locked to the pulse phase, and does not depend on the data.</b> False flags on strong continuous RFI break this.
 <code>detectRFI</code> cut the power peaks of narrow carriers, and phase bins with blanking then came out 4–9 % noisier than modelled
 (the narrow-Inmarsat case). The observer's noise calibration absorbs this. The per-channel <code>detectRFI</code> thresholds now remove
-those false flags (<a href="excision.html#chanthr">excision</a>).</li>
+those false flags (<a href="excision.html#chanthr">excision</a>). With them and 30 lags, <code>testRFIChain</code> passes in the
+narrow-Inmarsat case too: noise relative to the model 1.3286 real against 1.3292 simulated.</li>
 </ol>
 <p>Three checks test these assumptions:</p>
 <ol>
