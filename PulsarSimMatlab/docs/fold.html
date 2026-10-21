@@ -37,8 +37,9 @@ and how strongly neighbouring bins share noise.</p>
 <dt>\(f_0\)</dt><dd>spin frequency at \(T_\mathrm{ref}\) [Hz] (<code>f0</code> input, <code>ephem.f0</code>)</dd>
 <dt>\(F_1\)</dt><dd>its time derivative [Hz/s] (<code>'F1'</code>, <code>ephem.F1</code> = 0)</dd>
 </dl>
-<p>With <var>T</var><sub>ref</sub> = first true pulse centre (<var>T</var>/2, from <code>ephem.TRef</code>) and Φ<sub>0</sub> = 0, every true pulse peak is at an
-integer phase. Each detected time bin is assigned to phase bins by its phase; averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
+<p>The model uses only what the observer knows: the ephemeris. <var>T</var><sub>ref</sub> is set to the first true pulse centre
+(<var>T</var>/2, from <code>ephem.TRef</code>), and Φ<sub>0</sub> = 0. Every true pulse peak is then at a whole number of turns.</p>
+<p>Each detected time bin is assigned to phase bins by its phase. Averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
 
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 380" role="img" aria-label="Folding: the time series is cut into turns by the ephemeris phase, the turns are stacked by phase and averaged into a profile">
@@ -120,11 +121,11 @@ pulse sits at both ends of the array; it is drawn here from −½ to ½.</figcap
 <li><b>Phase:</b> compute its rotational phase φ from the ephemeris, in double precision.</li>
 <li><b>Turn and place:</b> the nearest whole number of φ is its turn; the rest (between −½ and ½) is its place in the profile. So each turn
 runs from half a turn before its pulse to half a turn after, and the cuts fall between pulses.</li>
-<li><b>Share it</b> between the two nearest phase bins (linear assignment, figure below), and add it to that sub-int's sums.</li>
+<li id="assign"><b>Share it</b> between the two nearest phase bins (linear assignment, figure below), and add it to that sub-int's sums.</li>
 <li><b>Divide:</b> the profile of each sub-int is its sum divided by how much data went in. Alongside, keep what is needed to know the
 noise of every phase bin exactly (<a href="#weights">the weights</a>).</li>
 </ol>
-<p>The exact rules:</p>
+<details><summary>The exact rules</summary>
 <ol>
 <li>Use only <code>fullySupportedBins</code> (data that saw the complete dedispersion sweep).</li>
 <li>Phase per time bin, in double.</li>
@@ -132,7 +133,7 @@ noise of every phase bin exactly (<a href="#weights">the weights</a>).</li>
 so cuts fall between pulses.</li>
 <li><code>NBin</code> phase bins; bin <var>j</var> (1-based) is centred at phase (<var>j</var>−1)/<code>NBin</code>; negative phases wrap to the end. Position
 <var>x</var> = <code>frac</code>·<code>NBin</code>.</li>
-<li id="assign"><b>Linear assignment</b> (default): <var>j</var><sub>0</sub> = ⌊<var>x</var>⌋, <var>a</var> = <var>x</var> − <var>j</var><sub>0</sub>; the time bin contributes with weight 1 − <var>a</var> to bin
+<li><b>Linear assignment</b> (default): <var>j</var><sub>0</sub> = ⌊<var>x</var>⌋, <var>a</var> = <var>x</var> − <var>j</var><sub>0</sub>; the time bin contributes with weight 1 − <var>a</var> to bin
 <var>j</var><sub>0</sub> and <var>a</var> to bin <var>j</var><sub>0</sub> + 1.</li>
 <li>Accumulate per (phase bin, sub-int, channel): <code>sum</code> Σ<var>w</var>·<var>P</var>, <code>weight</code> Σ<var>w</var>, <code>weight2</code>, <code>weightX</code> (below).</li>
 <li>Sub-integrations of <code>SubintPeriods</code> turns (or <code>SubintTime</code>); <code>prof</code> = sum/weight; <code>profTotal</code> = Σsum/Σweight over all sub-ints.</li>
@@ -140,6 +141,7 @@ so cuts fall between pulses.</li>
 frequency at <code>tRef</code>, <code>tMean</code>, <code>nTimeBins</code>. These define the TOA later.</li>
 <li>Saved to a <code>.mat</code> file (fold + info). Vectorized <code>accumarray</code>, chunked reading.</li>
 </ol>
+</details>
 
 <figure>
 <svg viewBox="0 0 860 150" role="img" aria-label="Linear assignment of a time bin to two phase bins">
@@ -448,20 +450,27 @@ neighbouring phase bins so that its average position is exact: no rounding error
 <tr><td><code>weight2</code></td><td>Σ<sub>k</sub> <var>a</var><sub>kj</sub>² (× <var>V</var>, plus lag terms)</td><td>var(prof<sub>j</sub>) = σ²·weight2/weight² (variance of a weighted mean)</td></tr>
 <tr><td><code>weightX(:,:,:,d)</code></td><td>Σ <var>a</var><sub>kj</sub>·<var>a</var><sub>k,j+d</sub> (× correlations)</td><td>cov(prof<sub>j</sub>, prof<sub>j+d</sub>) = σ²·weightX/(weight<sub>j</sub>·weight<sub>j+d</sub>)</td></tr>
 </table></div>
-<p>Example: a time bin 30 % of the way from bin <var>j</var> to <var>j</var>+1 gives 0.7 and 0.3, adds 0.49 and 0.09 to the two <code>weight2</code> values and
-0.21 to <code>weightX</code>. Over many turns the ratios settle at <var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6, a neighbour correlation of 0.25,
-exactly the 0.2484 measured in the long noise-only run.</p>
+<p>An example. A time bin 30 % of the way from bin <var>j</var> to <var>j</var>+1 is split 0.7 and 0.3. It adds 0.49 and 0.09 to the two
+<code>weight2</code> values, and 0.21 to <code>weightX</code>. Over many turns the ratios settle at
+<var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6. That is a neighbour correlation of 0.25, exactly the 0.2484
+measured in the long noise-only run.</p>
 <div class="callout why"><span class="ttl">Why <code>weightX</code> matters (a real bug once)</span>
-<p>With linear assignment a phase bin looks like it has variance (2/3)·σ²/<var>n</var> per turn instead of σ²/<var>n</var> (<var>n</var> time bins
-per phase bin), because it shares data with its neighbours: σ²/14.7 instead of σ²/9.77 with the 1024 bins where this was found, σ²/7.6
-instead of σ²/5.09 with today's 2048 bins and 0.96 µs channel bins. Ignoring the positive covariance underestimates the variance of any sum over bins (a TOA, a matched filter) by ~1.5×.
-The fold check predicted a centroid scatter of 0.226 µs instead of the correct 0.277 µs until <code>weightX</code> was added
-(<a href="lessons.html">bugs and lessons</a> #8).</p></div>
+<p>With linear assignment, a phase bin shares data with its neighbours. Its variance per turn then looks like (2/3)·σ²/<var>n</var>
+instead of σ²/<var>n</var>, with <var>n</var> the number of time bins per phase bin:</p>
+<div class="table-wrap"><table>
+<tr><th>Phase bins</th><th>Apparent variance</th><th>Independent-bin value</th></tr>
+<tr><td>1024 (where the bug was found)</td><td class="num">σ²/14.7</td><td class="num">σ²/9.77</td></tr>
+<tr><td>2048 with 0.96 µs channel bins (today)</td><td class="num">σ²/7.6</td><td class="num">σ²/5.09</td></tr>
+</table></div>
+<p>Ignoring the positive covariance between neighbours therefore underestimates the variance of any sum over bins, such as a TOA or a
+matched filter, by about 1.5×. Until <code>weightX</code> was added, the fold check predicted a centroid scatter of 0.226 µs instead of the
+correct 0.277 µs (<a href="lessons.html">bugs and lessons</a> #8).</p></div>
 <p>σ² itself is not stored in the fold; see <a href="#why">design choices</a>.</p>
 
-<h2 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code> (A1a, 7 Oct)</h2>
-<p>In a narrow channel neighbouring detected time bins are correlated (variance <var>V</var>, covariance <var>X</var>(<var>L</var>) at <var>L</var> bins apart, relative
-to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>); see <a href="channels.html#powcov"><code>powerCovariance</code></a>). A phase-bin sum then has</p>
+<h2 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code></h2>
+<p>In a narrow channel, neighbouring detected time bins are correlated. Relative to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>), a bin
+has variance <var>V</var>, and covariance <var>X</var>(<var>L</var>) with the bin <var>L</var> places further
+(see <a href="channels.html#powcov"><code>powerCovariance</code></a>). The covariance of two phase-bin sums is then:</p>
 <div class="eq">\[ \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k), \qquad c(0) = V, \quad c(\pm L) = X(L) \]</div>
 <dl class="where">
 <dt>\(S_j\)</dt><dd>the sum in phase bin \(j\) of one sub-int: \(\sum_k a_{kj}\,\times\) power of time bin \(k\) (<code>fold.sum</code>)</dd>
@@ -478,30 +487,50 @@ to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>); see <a href="channels.h
 <var>D</var> = ⌈<var>L</var><sub>max</sub>·binDt·<var>f</var>·NBin⌉ + 1 (3 for the channel data at 10 ms / 2048 bins).</li>
 <li>Every pair of time bins <var>L</var> apart in the same sub-int adds <var>X</var>(<var>L</var>)·<var>a</var>·<var>a</var>′ to its pair of phase bins; the last <var>L</var><sub>max</sub> time
 bins of a chunk are kept for pairs with the next chunk (<code>addLagPairs</code>).</li>
-<li>Effect for the channel data: phase-bin variance 0.987 of the old model, lag-1 correlation 0.258 instead of 0.250.</li>
+<li>Effect for the channel data: the phase-bin variance is 0.987 of the old model, and the lag-1 correlation 0.258 instead of 0.250.</li>
 </ul>
-<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 1–3): the four pre-A1 reference folds reproduced bit for bit; <code>weight2</code>/<code>weightX</code> =
-<var>A</var>ᵀ·<var>C</var>·<var>A</var> built explicitly to 6·10⁻¹⁶; measured fold noise on 128-channel data vs new / old model: variance −1.4σ / −13.1σ, lag 1
-+0.6σ / +5.9σ. The old model is clearly rejected, the new one fits.</p>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 1–3). The new model fits the measured noise, and the old one is clearly rejected:</p>
+<ul>
+<li>the four reference folds from before this option reproduce bit for bit;</li>
+<li><code>weight2</code> and <code>weightX</code> equal <var>A</var>ᵀ·<var>C</var>·<var>A</var>, built explicitly, to 6·10⁻¹⁶;</li>
+<li>the measured fold noise on 128-channel data, compared with each model:</li>
+</ul>
+<div class="table-wrap"><table>
+<tr><th>Measured − predicted</th><th>New model</th><th>Old model (independent bins)</th></tr>
+<tr><td>Variance</td><td class="num">−1.4σ</td><td class="num">−13.1σ</td></tr>
+<tr><td>Lag-1 covariance</td><td class="num">+0.6σ</td><td class="num">+5.9σ</td></tr>
+</table></div>
 
-<h2 id="dataweights">Data weights per channel: <code>'DataWeights'</code> (A1b, 7 Oct)</h2>
-<p>With excision, detected bin <var>k</var> of channel <var>c</var> has mean <var>W</var><sub>kc</sub>·<var>m</var><sub>c</sub> (valid fraction <var>W</var>), variance <var>V</var><sub>kc</sub>·σ<sub>c</sub>² and
-covariance <var>X</var><sub>kc</sub>(<var>L</var>)·σ<sub>c</sub>² with bin <var>k</var>+<var>L</var>, all exact from <a href="excision.html#weights"><code>blankingWeights</code></a>. The fold uses them:</p>
+<h2 id="dataweights">Data weights per channel: <code>'DataWeights'</code></h2>
+<p>With excision, every detected bin <var>k</var> of channel <var>c</var> has its own numbers, all exact from
+<a href="excision.html#weights"><code>blankingWeights</code></a>: a mean <var>W</var><sub>kc</sub>·<var>m</var><sub>c</sub> (with
+<var>W</var> the valid fraction), a variance <var>V</var><sub>kc</sub>·σ<sub>c</sub>², and a covariance
+<var>X</var><sub>kc</sub>(<var>L</var>)·σ<sub>c</sub>² with bin <var>k</var>+<var>L</var>. The fold uses them:</p>
 <ul>
 <li><code>weight</code> = Σ <var>a</var>·<var>W</var>, so <code>prof</code> = Σ<var>a</var>·<var>P</var> / Σ<var>a</var>·<var>W</var> is <b>unbiased even when blanking depends on pulse phase</b>;</li>
-<li><code>weight2</code> / <code>weightX</code> as in A1a, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>);</li>
-<li><b>a time bin with <var>W</var> = 0 adds no power</b> to the sum either (found in A3a: filter-tail leftovers biased nearly empty bins);</li>
+<li><code>weight2</code> and <code>weightX</code> as in the section above, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>);</li>
+<li><b>a time bin with <var>W</var> = 0 adds no power</b> to the sum either. Leftovers from filter tails in such bins biased nearly empty
+phase bins (found while building <code>blankingWeights</code>);</li>
 <li>output arrays get a channel dimension: <code>weight</code>, <code>weight2</code> [NBin × nSub × nChan], <code>weightX</code> [NBin × nSub × nChan × D];
 <code>prof</code>, <code>profTotal</code> per channel with its own weights;</li>
 <li>option value: an info struct with <code>file</code>, <code>nChan</code>, <code>N</code>, <code>Lmax</code>, <code>byteOrder</code>; replaces <code>NoiseCoeffs</code> (error if both).</li>
 </ul>
 <div class="callout why"><span class="ttl">Why divide by Σ<var>a</var>·<var>W</var> instead of Σ<var>a</var></span>
-<p>A bin with <var>W</var> = 0.5 contributes half the power to the numerator and 0.5 to the denominator: it counts as half a sample with the
-right mean. A fully blanked bin contributes nothing. The test with fake blanking at phase 0.30–0.36 shows the difference: the
-weighted fold is unbiased (−0.0019 ± 0.0009), a naive fold is off by −0.574, exactly the predicted 1 − 0.425.</p></div>
-<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 4–6): constant weight file = <code>NoiseCoeffs</code> fold bit for bit; random weight streams =
-<var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶; fake blanking unbiased and noise as modelled. Cost: 1.8 s for 0.1 s of 128 channels with weights
-(0.25 s without).</p>
+<p>A bin with <var>W</var> = 0.5 contributes half the power to the numerator, and 0.5 to the denominator. So it counts as half a
+sample, with the right mean. A fully blanked bin contributes nothing.</p>
+<p>A test with fake blanking at phase 0.30–0.36 shows the difference. The weighted fold is unbiased (−0.0019 ± 0.0009). A naive fold
+is off by −0.574: exactly the predicted 1 − 0.425.</p></div>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 4–6). The data weights are exact, and the fake-blanking fold is unbiased with the
+modelled noise:</p>
+<ul>
+<li>a weight file of constants gives the <code>NoiseCoeffs</code> fold bit for bit;</li>
+<li>random weight streams give <var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶;</li>
+<li>fake blanking: unbiased, and the noise as modelled.</li>
+</ul>
+<p>Cost: 1.8 s for 0.1 s of 128 channels with weights, 0.25 s without.</p>
+<details><summary>History</summary>
+<p><code>'NoiseCoeffs'</code>: step A1a, 7 Oct 2026. <code>'DataWeights'</code>: step A1b, the same day. The rule for bins with
+<var>W</var> = 0 was found in step A3a (<code>blankingWeights</code>).</p></details>
 
 <h2 id="why">Design choices</h2>
 <p>The reasons for linear assignment, <code>weightX</code> and the data weights are with those sections above. Four more:</p>
@@ -536,18 +565,23 @@ and to catch bad data (notes §12).</p></div>
 Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. Rule of thumb NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter
 SNR do not depend on NBin once bins are fine. What NBin does change is cost: weights scale as NBin × sub-ints × channels × lags,
 so long observations will likely use fewer bins or sub-bands.</p></div>
-<div class="callout warn"><span class="ttl">NBin and f_out together: every phase bin needs data (warning since 9 Oct)</span>
-<p>Consecutive time bins are <var>f</var>·binDt·NBin phase bins apart. Above 1, a sub-int can leave phase bins empty, and
-<code>estimateTOA</code> / <code>detectPulsar</code> (MinCoverage 1) then reject every sub-int. Example from the f_out sweep: f_out = 100 kHz
-(10.08 µs bins) with NBin 2048 and 1 turn per sub-int fills 1984 of 2048 bins, so the run gives no TOAs at all. <code>foldProfile</code> now checks the time
-grid of the first complete sub-int before folding and issues <code>foldProfile:coverage</code> with the limits: NBin ≤ time bins per turn,
-binDt ≤ 1/(<var>f</var>·NBin), or more turns per sub-int. Main's settings (0.96 µs bins, 4.9 µs phase bins) are far inside the limit.</p></div>
+<div class="callout warn"><span class="ttl">NBin and f_out together: every phase bin needs data</span>
+<p>Consecutive time bins are <var>f</var>·binDt·NBin phase bins apart. If that is above 1, a sub-int can leave phase bins empty.
+<code>estimateTOA</code> and <code>detectPulsar</code> (MinCoverage 1) then reject every sub-int.</p>
+<p>An example from the f_out sweep: f_out = 100 kHz (10.08 µs bins) with NBin 2048 and 1 turn per sub-int fills only 1984 of the 2048
+bins. That run gave no TOAs at all.</p>
+<p>So <code>foldProfile</code> checks the time grid of the first complete sub-int before folding. If bins would stay empty, it warns
+(<code>foldProfile:coverage</code>) and names the fixes: NBin ≤ time bins per turn, binDt ≤ 1/(<var>f</var>·NBin), or more turns per
+sub-int. Main's settings, 0.96 µs time bins and 4.9 µs phase bins, are far inside the limit. (The check exists since 9 Oct 2026.)</p></div>
 <div class="callout why"><span class="ttl">Sub-int length: SNR ≥ 6–7</span>
-<p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model).
-Sub-ints exist to validate error bars, see drift (phase-model errors, motion, clock, position error) and catch bad data. Below SNR ≈ 6
-per sub-int TOAs start to lock onto noise peaks, so the number of turns per sub-int is
-<var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² (figure below), with SNR<sub>turn</sub> ≈ 373·ρ here (flat-band value; with the real tapers 368·ρ on the full band and 360·ρ on the channel path, i.e. ~3 % / ~7 % more turns). See <a href="results.html#threshold">threshold sweep</a>. An adaptive
-choice from the data is on the roadmap.</p></div>
+<p>Why sub-ints exist at all is explained <a href="#why">above</a>. How long each should be follows from one fact: below an SNR of
+about 6 per sub-int, TOAs start to lock onto noise peaks (<a href="results.html#threshold">threshold sweep</a>). So the number of turns
+per sub-int is <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² (figure below).</p>
+<p>Here SNR<sub>turn</sub> ≈ 373·ρ, the flat-band value. With the real band tapers it is 368·ρ on the full band and 360·ρ on the
+channel path, which needs about 3 % and 7 % more turns.</p>
+<p>For long observations the length can also be chosen from the data. <code>adaptiveSubints</code> folds into short sub-ints, and
+merges consecutive ones until the merged profile reaches SNR ~7. This matters when scintillation changes the flux from hour to hour
+(<a href="simulator.html">fast simulator</a>).</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Turns per sub-int needed for SNR 6 or 7 against snrDB, with the time for the 10 ms pulsar">
   <path class="axis" d="M90 290 H650"/>
