@@ -49,6 +49,14 @@ template (ephem.profileFWHM then holds the component matrix; foldToTOA, gaussian
 either). checkSkyFiles compares it too (sky files made before count as []), so reused sky files with
 another profile are flagged.
 
+## 4b. tests.html (experiments) and simulator.html: expComponentsChain (21 Oct)
+
+Multi-component pulse on the voltage chain vs simulateFold('Components'): B0329+54's five components on the
+10 ms pulsar, DM 2.6, -5 dB, channel path with excision, 6 seeds x 0.2 s (Claude's run, 28 min):
+voltage chain 108 TOAs, median SNR 48.1, median sigma 1.505 us, rms/pred 1.026 (+- 0.068), mean red. chi2
+1.0027, pChi2 < 0.05 0.083; simulateFold 1800 TOAs: 48.4, 1.495 us, 1.010 (+- 0.017), 1.0030, 0.082 -> agree
+within ~1 %: the components are checked end to end (as C2 / C4a for the single Gaussian).
+
 ## 5. roadmap.html (block D / open items) and limits.html: clock jitter (Jasper, 21 Oct: "we completely forgot about clock jitter")
 
 Listed long ago under "Block 2 – robustness" but never planned. Three effects, all for block D:
