@@ -12,6 +12,9 @@
 <h1>Validation record</h1>
 <p class="lede">Every major measured result against its prediction, in time order, with what each one established.
 The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
+<p class="meta">Labels used below: block 1 (the full-band chain) was done in phases; phase D was the SNR sweep, and phase E the detector
+and the good-TOA rule. Blocks A (channelized front end) and B (RFI excision) were done in numbered steps (A1–A4, B1–B6); the
+<a href="roadmap.html">roadmap</a> lists them.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>Every check so far tells the same story. When a sub-integration has an SNR of about 6 or more, the stated TOA error bars are honest
@@ -396,14 +399,16 @@ off-pulse fold noise over the median channel's; "error bars" = how much the TOA 
 <li><b>Lopsided channels are understood.</b> A flat-channel formula predicted exactly which 8 channels stand out (LTE edges, Inmarsat
 block edges, GNSS L1) and the 0.39 %. χ² overstates the problem: every channel counts equally in χ², but the TOA fit weights a
 channel by 1/level², and the lopsided channels contain the RFI, so their weight is small.</li>
-<li><b>Worst case: narrow noise-like carriers</b> about as strong as their channel's noise (they keep ~¼ of their weight with ~3.5×
-the model's noise): χ² 1.22, error bars 3.4 % too small. Enough to matter for navigation → the per-channel noise calibration is
-worth doing (<a href="limits.html">limits</a>). Done 20 Oct (<code>noiseCal</code>): on the chain (DM 25, 0.2 s) χ² 1.24 → 0.99, σ 3.379 → 3.419 µs.</li>
+<li><b>Worst case: narrow noise-like carriers</b> about as strong as their channel's noise. Such a channel keeps about ¼ of its weight,
+with about 3.5× the model's noise. Result: χ² 1.22, and error bars 3.4 % too small. That is enough to matter for navigation, so the
+per-channel noise calibration is worth doing (<a href="limits.html">limits</a>). It was done on 20 Oct (<code>noiseCal</code>). On the
+chain (DM 25, 0.2 s) χ² goes from 1.24 to 0.99, and σ from 3.379 to 3.419 µs.</li>
 <li><b>Cost of the environment:</b> −11 % SNR (~25 % longer observing), mostly LTE band 32 (~14 channels effectively lost). The
 +40 dB radar: all its pulses blanked, none of its energy missed.</li>
-<li><b>Bug found in the periodic mask:</b> with <code>periodicMask</code> on (main's default until 9 Oct) the same cases blank <b>29–32 %</b> of
-the data (SNR 69 / 66): <code>periodicRFI</code> accepts false emitters at ~14.1 kHz from the dense false flags of the lopsided
-channels (<a href="limits.html">limits</a>). The mask is off by default since 9 Oct; fix designed, not implemented.</li>
+<li><b>Bug found in the periodic mask.</b> With <code>periodicMask</code> on (main's default until 9 Oct), the same cases blank
+<b>29–32 %</b> of the data, and the SNR drops to 69 and 66. <code>periodicRFI</code> accepts false emitters at ~14.1 kHz, from the dense
+false flags of the lopsided channels (<a href="limits.html">limits</a>). The mask is off by default since 9 Oct. A fix is designed, not
+implemented.</li>
 </ul>
 
 <h2 id="dm25">11. New default: DM 25, L 0.2 s (20 Oct)</h2>
@@ -419,10 +424,16 @@ kept in <code>data/ref_DM5_L0.1/</code>. Same seeds, −5 dB, channel path with 
 TOAs (Claude's run, 20 Oct). Results above this section are at DM 5.</p>
 
 <h2 id="other">12. Algorithm ports and run times</h2>
-<p><b>NumPy ports</b> (before MATLAB runs): dispersion kernel group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add = direct convolution;
-forward → IQ → inverse round trip ~2·10⁻⁶; IQ tones ~1.5·10⁻⁶; detection channel mapping + Parseval exact; fold indexing and the nearest/linear
-bias; FFTFIT Monte Carlo: bias &lt; 0.1 ps noise-free, σ predicted 0.469 vs empirical 0.46–0.47 µs (0.383 without covariance); mixed signal+noise
-variance formula within 1 %.</p>
+<p><b>NumPy ports</b>, made before the MATLAB runs, checked the algorithms:</p>
+<ul>
+<li>dispersion kernel: group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add equal to direct convolution;</li>
+<li>forward → IQ → inverse round trip: ~2·10⁻⁶; IQ tones: ~1.5·10⁻⁶;</li>
+<li>detection: channel mapping and Parseval exact;</li>
+<li>fold: the indexing, and the bias of nearest-bin against linear assignment;</li>
+<li>FFTFIT Monte Carlo: bias &lt; 0.1 ps noise-free; σ predicted 0.469 µs against 0.46–0.47 µs measured (0.383 µs without the
+covariance);</li>
+<li>the variance formula for mixed signal and noise: within 1 %.</li>
+</ul>
 <p><b>Run times</b> (<var>L</var> = 1 s, M-series Mac, 24 GB): dispersion 81.5 s, IQ 46 s, dedispersion 7.4 s, detection 1.2 s, fold 0.05 s; the generator is
 dominated by random-number generation.</p>
 
