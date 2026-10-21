@@ -24,6 +24,19 @@ Name-value options:
                    Phase 0 is the centre of phase bin 1. For the synthetic
                    data, TRef = info_gen.pulseCenters(1) puts every true
                    pulse peak at phase 0, so a perfect TOA has offset 0.
+  'Predictor'      a makePredictor struct (block D2b, 21 Oct 2026): the phase
+                   is pred.phase(t) instead of the model above (f0, F1, TRef,
+                   Phi0 then unused; f0 only labels the output): the pulsar's
+                   barycentric phase seen from the receiver's trajectory,
+                   Doppler included. Its local time must be this file's time
+                   (makePredictor's tSpan(1) = the absolute time of t = 0 of
+                   the recording) and cover the folded bins. Turns count from
+                   the predictor's N0; each sub-int's tRef solves
+                   pred.phase(tRef) = turnRef (Newton; just outside the span, as
+                   for a partial last sub-int, the phase continues linearly with
+                   the edge frequency) and fRef = pred.freq(tRef),
+                   so TOA = tRef + dphi/fRef as before (in file time; absolute:
+                   + pred.tOrigin).
   'NBin'           phase bins (default 1024). Every phase bin needs data in
                    every sub-integration: time bins of at most one phase bin
                    (binDt <= 1/(f0*NBin)), or enough turns per sub-integration
@@ -140,6 +153,7 @@ arguments
     opts.F1               (1,1) double {mustBeFinite} = 0
     opts.TRef             (1,1) double {mustBeFinite} = 0
     opts.Phi0             (1,1) double {mustBeFinite} = 0
+    opts.Predictor              = []
     opts.NBin             (1,1) double {mustBeInteger, mustBePositive} = 1024
     opts.SubintPeriods    (1,1) double {mustBeInteger, mustBePositive} = 1
     opts.SubintTime             double = []
@@ -219,7 +233,18 @@ t1    = info_det.binTime0;
 F1    = opts.F1;
 TRef  = opts.TRef;
 Phi0  = opts.Phi0;
-phiOf = @(t) Phi0 + f0*(t - TRef) + 0.5*F1*(t - TRef).^2;
+PR    = opts.Predictor;
+havePred = ~isempty(PR);
+if havePred
+    if ~isstruct(PR) || ~all(isfield(PR, {'phase', 'freq', 'seg', 'N0'}))
+        error('foldProfile:predictor', 'Predictor must be a makePredictor struct.');
+    end
+    phiOf = PR.phase;
+    fOf   = PR.freq;
+else
+    phiOf = @(t) Phi0 + f0*(t - TRef) + 0.5*F1*(t - TRef).^2;
+    fOf   = @(t) f0 + F1*(t - TRef);
+end
 
 % ---- Time-bin range --------------------------------------------------------------
 if opts.UseSupportedOnly
@@ -233,13 +258,19 @@ if k2 < k1
 end
 tFirst = t1 + (k1 - 1)*dt;
 tLast  = t1 + (k2 - 1)*dt;
-if f0 + F1*(tFirst - TRef) <= 0 || f0 + F1*(tLast - TRef) <= 0
+if havePred && (tFirst < PR.seg(1, 1) || tLast > PR.seg(end, 2))
+    error('foldProfile:predictor', ['The predictor covers %.6g ... %.6g s (local), the data ' ...
+        '%.6g ... %.6g s: build it for this recording''s span.'], PR.seg(1, 1), PR.seg(end, 2), tFirst, tLast);
+end
+fSpan = fOf(linspace(tFirst, tLast, 101));         % spin frequency over the span (Doppler)
+if any(fSpan <= 0)
     error('foldProfile:model', 'Spin frequency is not positive over the data span.');
 end
 
 % ---- Sub-integrations ---------------------------------------------------------------
 if ~isempty(opts.SubintTime)
-    nPer = max(1, round(opts.SubintTime * f0));
+    fSub = f0; if havePred, fSub = fSpan(1); end      % (without a predictor: f0, as before)
+    nPer = max(1, round(opts.SubintTime * fSub));
 else
     nPer = opts.SubintPeriods;
 end
@@ -250,7 +281,7 @@ nSub = floor((turnLast - turnFirst) / nPer) + 1;
 % ---- Phase-bin lags of the noise covariance ---------------------------------------------
 % Time bins Lmax apart are at most Lmax*dt*fMax*NBin phase bins apart; the
 % linear split adds one more. D = 1 without correlated time bins.
-fMax = max(f0 + F1*(tFirst - TRef), f0 + F1*(tLast - TRef));
+fMax = max(fSpan);
 D = ceil(Lmax * dt * fMax * Nbin * (1 + 1e-9)) + 1;
 if Lmax > 0 && 2*D >= Nbin
     error('foldProfile:lags', ['Correlated time bins span %d of %d phase bins; ' ...
@@ -265,7 +296,7 @@ end
 % first complete one (the first and last are usually partial), assigned as in the
 % fold. Skipped without a complete sub-integration or above 2^22 time bins.
 if fMax * dt * Nbin > 1 && nSub >= 3
-    fMin = min(f0 + F1*(tFirst - TRef), f0 + F1*(tLast - TRef));
+    fMin = min(fSpan);
     nCov = min(k2 - k1 + 1, ceil((2*nPer + 2) / (fMin * dt)));   % reaches past sub-int 2
     if nCov <= 2^22
         phCov   = phiOf(t1 + ((k1 : k1 + nCov - 1).' - 1) * dt);
@@ -444,11 +475,26 @@ sI = (1:nSub).';
 tf = turnFirst + (sI - 1) * nPer;
 tl = min(tf + nPer - 1, turnLast);
 tr = round((tf + tl) / 2);
-d  = tr - Phi0;                                     % phase to advance from TRef
-dtRef = 2*d ./ (f0 + sqrt(f0^2 + 2*F1*d));          % stable root of phi(t) = tr
+if ~havePred
+    d  = tr - Phi0;                                 % phase to advance from TRef
+    dtRef = 2*d ./ (f0 + sqrt(f0^2 + 2*F1*d));      % stable root of phi(t) = tr
+    tRefS = TRef + dtRef; fRefS = f0 + F1*dtRef;
+else                                                % Newton on pred.phase(t) = tr
+    % A partial first or last sub-int can have its reference turn just outside the
+    % predictor's span (its phase 0 before the first or after the last data): there the
+    % phase continues linearly with the frequency at the span's edge (the Doppler rate
+    % changes it by ~1e-9 per s: negligible over a fraction of a turn).
+    tRefS = tFirst + (tr - phiOf(tFirst)) / fOf(tFirst);
+    for it = 1:6
+        tc = min(max(tRefS, PR.seg(1, 1)), PR.seg(end, 2));
+        fc = fOf(tc.').';
+        tRefS = tRefS - (phiOf(tc.').' + fc .* (tRefS - tc) - tr) ./ fc;
+    end
+    fRefS = fOf(min(max(tRefS, PR.seg(1, 1)), PR.seg(end, 2)).').';
+end
 fold.subint = struct( ...
     'turnFirst', tf, 'turnLast', tl, 'turnRef', tr, ...
-    'tRef', TRef + dtRef, 'fRef', f0 + F1*dtRef, ...
+    'tRef', tRefS, 'fRef', fRefS, ...
     'tMean', tSum ./ max(nTB, 1), 'nTimeBins', nTB);
 
 % ---- Info ------------------------------------------------------------------------------------
@@ -460,6 +506,12 @@ info.F1           = F1;
 info.TRef         = TRef;
 info.Phi0         = Phi0;
 info.phaseModel   = 'phi(t) = Phi0 + f0*(t-TRef) + F1*(t-TRef)^2/2';
+info.predictor    = [];                             % makePredictor summary (Predictor option)
+if havePred
+    info.phaseModel = 'makePredictor: phi(t) = turns since N0 (Doppler, delays; local file time)';
+    info.predictor  = struct('tOrigin', PR.tOrigin, 'N0', PR.N0, 'frac0', PR.frac0, ...
+        'nSeg', size(PR.seg, 1), 'maxErr', PR.maxErr, 'fRange', PR.fRange);
+end
 info.phaseConvention = 'bin j (1-based) centred at phase (j-1)/NBin; turn = round(phi)';
 info.NBin         = Nbin;
 info.nSub         = nSub;

@@ -133,10 +133,13 @@ measured +2.19 %). With a realistic receiver, which applies the bandpass to puls
 
 <h2 id="timing">Timing and pulse</h2>
 <ul>
-<li><b>No clock jitter or drift.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, ~6× the J0437 TOA precision. A constant rate can be fitted; random
-wander cannot. Belongs in the phase predictor (D); "what oscillator does the hardware have?" is an open question.</li>
-<li><b>No relative motion.</b> Earth's orbital v/c ≈ 10⁻⁴ → ≈ 100 µs per second of phase drift at 100 Hz. That drift is the navigation signal; it needs
-Doppler terms in the fold phase model (block D, a hard requirement for multi-day folds).</li>
+<li><b>No clock errors yet.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, about 6× the J0437 TOA precision. A constant rate can
+be fitted; random wander cannot. Three effects are planned into block D: the clock's offset, rate and wander, its frequency error within a
+fold, and the ADC's sampling jitter. The simulator's truth will get a clock process, and the navigation state the clock's offset and
+rate (<a href="motion.html#next">block D</a>). Which oscillator the hardware has is still open.</li>
+<li><b>Relative motion: predicted, not yet simulated.</b> Earth's orbital speed changes the pulse rate by up to 10⁻⁴: at 100 Hz, about
+100 µs of phase drift per second. Since 21 Oct the phase predictor follows that drift, and the fold uses it
+(<a href="motion.html">block D</a>). The simulator's truth with a moving receiver, and the navigation fit, are the next steps.</li>
 <li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day
 orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).
 That is about 2·10⁵× the fold's phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. So the phase
@@ -179,6 +182,14 @@ show at SNR 7 too.</li>
 <li><b>The fix:</b> NBin 2048 for B0329+54, so that the narrowest component is ≥ ~10 bins wide. Since 20 Oct the warning catches
 such cases: bins must be ≤ 1/10 of the spectral template width. That width is 0.0077 turns for B0329+54, so NBin 1024 warns, at 1/7.9
 (see <a href="toa.html#template">TOA</a>).</li>
+<li><b>What is left: rare outliers at SNR ~7.</b> With adaptive groups, about 0.5 % of B0329+54's TOAs land one core width off, 5–9
+times their error bar. χ² cannot flag them. The cause is the estimator's threshold effect: the narrow core sits on a broad component,
+and noise now and then moves the best match onto that shoulder (<a href="scenario.html">scenario</a>). At SNR 10 there were none in 600
+TOAs.</li>
+<li><b>How they will be handled (agreed 21 Oct).</b> The groups stay at SNR 7, for the larger number of TOAs. The navigation fit uses
+redundancy: it checks each TOA against the prediction from the others and from the ship's dead reckoning, and its error model has a
+small outlier part. For B0329+54 an outlier then stands 4.8–8.6σ from the prediction. Fixed groups are not used for multi-component
+pulsars. See <a href="motion.html#next">block D</a>.</li>
 </ul></li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>

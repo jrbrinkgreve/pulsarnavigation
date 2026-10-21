@@ -55,7 +55,8 @@ ground-truth rule.</p>
 <ol>
 <li><b>Mean of each phase bin.</b> The baseline is 1, the receiver-noise power. On top comes the pulse: by default the generator's
 periodic Gaussian with peak 1 and FWHM 5 %. With <code>'Components'</code> it is a sum of Gaussians scaled to peak 1, such as B0329+54's
-five components. The pulse is smoothed the way the fold smooths it: averaged over one time bin, and spread over ±1 phase bin by the
+five components; with them the simulator matches the voltage chain within about 1 %
+(<a href="tests.html#compchain"><code>expComponentsChain</code></a>). The pulse is smoothed the way the fold smooths it: averaged over one time bin, and spread over ±1 phase bin by the
 linear assignment. Then it is shifted to the true pulse phase. All of this is computed exactly, in Fourier space.</li>
 <li><b>Weights.</b> If the time bins land evenly in phase, a phase bin collects <var>n</var> time bins per sub-int. Then
 <code>weight</code> = <var>n</var>, <code>weight2</code> = 2<var>n</var>/3 and <code>weightX</code> = <var>n</var>/6: the exact averages of

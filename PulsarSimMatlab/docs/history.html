@@ -271,6 +271,11 @@ narrow-carrier failures diagnosed (the lag cut-off, and <code>detectRFI</code>'s
 per-channel <code>detectRFI</code> thresholds, both built and tested the same day; the rare low-SNR outliers to be handled in block D's
 navigation filter; the 100-day runs in the background; the docs keep their DM-5 worked examples.</li>
 <li>Jasper's MATLAB was down, so Claude ran the validation on a frozen copy of the code.</li>
+<li><b>Multi-component pulses in the voltage chain:</b> the generator takes components, and the chain agrees with the fast simulator within
+about 1 %.</li>
+<li><b>Block D started:</b> its design agreed, and D1 (where the receiver is, the delays to the barycentre) and D2 (the predicted phase,
+the fold that follows it) built and tested (<a href="motion.html">block D</a>). The clock was added to the plan after it had been
+left out.</li>
 <li>These docs rewritten for readability (Jasper: the text was "compact and comprehensive, but very hard to comprehend").</li>
 </ul>
 
@@ -348,6 +353,10 @@ agreed.</p>
 <tr><td>21 Oct</td><td>J0437's eight-component profile in <code>runScenario</code> (Jasper)</td><td>Its wings mean about 5× more data per TOA than the single Gaussian.</td></tr>
 <tr><td>21 Oct</td><td>Per-channel <code>detectRFI</code> thresholds; more lags in <code>rfiProfile</code> (Jasper)</td><td>The two causes of <code>testRFIChain</code>'s narrow-carrier failures.</td></tr>
 <tr><td>21 Oct</td><td>Low-SNR outliers handled in block D's navigation filter, not by longer groups (Jasper)</td><td>Adaptive SNR-7 groups give more TOAs; the rare one-core-width outliers can be caught by innovation gating and a robust likelihood.</td></tr>
+<tr><td>21 Oct</td><td>Block D: an analytic Earth orbit first, DE440 at the end (Jasper)</td><td>In the simulator only the difference between true and predicted delays matters; real data need DE440.</td></tr>
+<tr><td>21 Oct</td><td>Block D: a phase predictor fed by a trajectory (Jasper)</td><td>The end goal is sensor fusion on a ship or a probe: a Kalman-like motion predictor plugs in through the trajectory, and the fold stays simple.</td></tr>
+<tr><td>21 Oct</td><td>Block D's first result: B0329+54's 2-D equatorial site offset (Jasper)</td><td>One pulsar sees the two equatorial components through the Earth's rotation; the polar one merges with the clock.</td></tr>
+<tr><td>21 Oct</td><td>The clock into block D (Jasper)</td><td>Clock offset, rate and wander shift every TOA directly; they had been left out of the plans.</td></tr>
 <tr><td>21 Oct</td><td>The docs keep their DM-5 worked examples (Jasper)</td><td>Visual clarity: at DM 25 a sweep spans three periods.</td></tr>
 <tr><td>21 Oct</td><td>Docs rewritten for readability (Jasper)</td><td>The pages were "compact and comprehensive, but very hard to comprehend".</td></tr>
 </table></div>

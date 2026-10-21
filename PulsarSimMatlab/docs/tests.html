@@ -18,8 +18,8 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all sixteen in one session (6–9 min), on their own frozen data. So a <code>main.m</code> run can
-never change what they check. A seventeenth, the slow <code>testRFIChain</code>, runs only when named.</p></div>
+<p><code>tests/runAllTests.m</code> runs all twenty in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
+can never change what they check. A twenty-first, the slow <code>testRFIChain</code>, runs only when named.</p></div>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision) and C (fast simulator) were built in
 numbered steps (A1–A4, B1–B6, C1–C4); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2" and similar mean "the code before that
 step".</p>
@@ -273,7 +273,7 @@ by chance. Each physics check therefore first predicts the scatter of what it me
 and passes when the measurement lies within a few of those σ. The algebra checks compare with an exact formula, to rounding error.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>Unit</th><th>Time</th><th>Status</th></tr>
-<tr><td><a href="#gen"><code>testGeneratePulsarSignal</code></a></td><td><code>generatePulsarSignal</code> (stage 1; review R1)</td><td>~4 s</td><td><span class="badge validated">passes (Jasper's run, 13 Oct)</span></td></tr>
+<tr><td><a href="#gen"><code>testGeneratePulsarSignal</code></a></td><td><code>generatePulsarSignal</code> (stage 1; review R1)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 13 Oct)</span> <span class="badge written">test 7 (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
@@ -290,9 +290,14 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~30 s</td><td><span class="badge validated">tests 1–5 pass (Jasper's run, 20 Oct)</span> <span class="badge written">test 6 (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#maketraj"><code>testMakeTrajectory</code></a></td><td><code>makeTrajectory</code> D1a (where the receiver is)</td><td>~1 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#delaymodel"><code>testDelayModel</code></a></td><td><code>delayModel</code> D1b (receiver → barycentre)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, diagnosed (Claude's runs, 20–21 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
+<tr><td><a href="#compchain"><code>expComponentsChain</code></a></td><td>experiment: a multi-component pulse on the voltage chain vs <code>simulateFold</code></td><td>~30 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
@@ -506,6 +511,9 @@ checks the generator's sum over neighbours. A copy without that sum fails this c
 <li>The same seed gives identical data. Other block sizes give bit-for-bit identical data (<code>randn</code> drawn in pieces equals one
 piece). <var>A</var> scales exactly (normal floats). The global random generator is untouched. The clock seed reproduces the file.</li>
 <li>Bad inputs are refused. 25 % duty warns (wider than real pulsars); 20 % does not.</li>
+<li>A pulse of three Gaussian components (option <code>'Components'</code>), against the exact sum of the components. The residuals have
+mean 0 and standard deviation 1, and the pulse's centroid and width match the model. One centred component gives the single Gaussian
+bit for bit, and <code>'amplitude'</code> mode is refused with components.</li>
 </ol>
 
 <h2 id="noise"><code>testRfiNoise</code></h2>
@@ -645,6 +653,24 @@ relative to the model is 5.468 real and 5.492 simulated (z −0.2; 1.658 with 2 
 of 20 Oct. Test 6 passed in Claude's run of 21 Oct. The test now uses its own temporary folder per run. The same comparison on the
 voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
+<h2 id="maketraj"><code>testMakeTrajectory</code> (21 Oct)</h2>
+<p>The receiver's positions and velocities agree with closed forms, for a fixed site, a ship, a probe and a custom trajectory. The
+seven checks and their numbers are on the <a href="motion.html#trajectory">block D page</a>.</p>
+
+<h2 id="delaymodel"><code>testDelayModel</code> (21 Oct)</h2>
+<p>Every term of the delay to the barycentre agrees with a closed form computed in the test. For example, a site moved 100 km east
+gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. The nine checks are on the <a href="motion.html#delay">block D
+page</a>.</p>
+
+<h2 id="makepred"><code>testMakePredictor</code> (21 Oct)</h2>
+<p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns, also across a ship's sharp turn. The seven
+checks are on the <a href="motion.html#predictor">block D page</a>.</p>
+
+<h2 id="foldpred"><code>testFoldPredictor</code> (21 Oct)</h2>
+<p>Folding with a predictor removes the Doppler shift completely: a pulsar with a Doppler factor of 10⁻³ folds to within 10⁻⁸ of the
+fold with its true phases. Without a predictor the old fold is unchanged. The five checks are on the
+<a href="motion.html#fold">block D page</a>.</p>
+
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. The realistic scenario passes. The
 narrow-Inmarsat case had two failures at 1 turn; they are diagnosed below.</p>
@@ -765,6 +791,19 @@ for the same σ. The error bars stay honest in the realistic case, and are about
 the band-edge taper and grows with SNR², it does not shrink at low SNR. So <code>pChi2</code> flags every TOA with RFI, while the drop rule
 (χ²<sub>red</sub> &gt; 2) does not. That is the case for the per-channel noise calibration, implemented on 20 Oct (<code>noiseCal</code>).
 On the chain it brings χ² from 1.24 to 0.99 (narrow carriers) and from 1.07 to 1.00 (realistic). Claude's run, 20 Oct (386 s).</p>
+
+<h2 id="compchain"><code>expComponentsChain</code> (experiment, 21 Oct)</h2>
+<p>The fast simulator reproduces the voltage chain for a pulse with several components, within about 1 %.</p>
+<p>The pulse is B0329+54's five-component profile, placed on the pipeline's 10 ms pulsar. The chain runs at DM 2.6 so that it needs
+little memory; the comparison does not depend on DM. It runs at −5 dB on the channel path with excision, without RFI, in six runs of
+0.2 s. <code>simulateFold</code> uses the same components and the chain's own channel settings.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th class="num">TOAs</th><th class="num">median SNR</th><th class="num">median σ</th><th class="num">rms/pred</th><th class="num">χ²<sub>red</sub></th><th class="num"><code>pChi2</code> &lt; 0.05</th></tr>
+<tr><td>voltage chain</td><td class="num">108</td><td class="num">48.1</td><td class="num">1.505 µs</td><td class="num">1.026 ± 0.068</td><td class="num">1.0027</td><td class="num">0.083</td></tr>
+<tr><td><code>simulateFold</code></td><td class="num">1800</td><td class="num">48.4</td><td class="num">1.495 µs</td><td class="num">1.010 ± 0.017</td><td class="num">1.0030</td><td class="num">0.082</td></tr>
+</table></div>
+<p>So multi-component profiles are now checked end to end: in the generator, through the chain, and in the simulator. Claude's run,
+21 Oct (28 min).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
 <p>A higher post-detection rate <code>f_out</code> does not help: the information is set by bandwidth × time.</p>

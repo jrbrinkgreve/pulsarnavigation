@@ -157,7 +157,7 @@ Model (per sub-int, phase bin j at phase phi_j = (j-1)/NBin):
           sub-int.
 
 Outputs:
-  info   the fields of foldProfile's info (f0, F1 = 0, TRef, Phi0 = 0, NBin,
+  info   the fields of foldProfile's info (f0, F1 = 0, TRef, Phi0 = 0, predictor [], NBin,
          nSub, subintPeriods, nChan, assign 'linear', noiseCoeffs, covLags D,
          nWeightChan 1, validFraction 1, binDt, ...); sourceFile
          'simulateFold', units 'receiver-noise power = 1', simulated = true,
@@ -506,6 +506,7 @@ info.TRef         = TRef;
 info.Phi0         = 0;
 info.phaseModel   = 'phi(t) = Phi0 + f0*(t-TRef) + F1*(t-TRef)^2/2';
 info.phaseConvention = 'bin j (1-based) centred at phase (j-1)/NBin; turn = round(phi)';
+info.predictor    = [];                             % as foldProfile without 'Predictor'
 info.NBin         = N;
 info.nSub         = nSub;
 info.subintPeriods = nPer;

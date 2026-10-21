@@ -23,6 +23,7 @@ const PAGES = [
   { file: "scripts.html",     title: "Run scripts" },
   { file: "tests.html",       title: "Unit tests" },
   { file: "simulator.html",   title: "Fast simulator (block C)" },
+  { file: "motion.html",      title: "Motion and phase (block D)" },
   { group: "Results and plans" },
   { file: "history.html",     title: "Development history" },
   { file: "results.html",     title: "Validation record" },
