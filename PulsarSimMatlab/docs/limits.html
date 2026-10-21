@@ -179,16 +179,6 @@ show at SNR 7 too.</li>
 <li><b>The fix:</b> NBin 2048 for B0329+54, so that the narrowest component is ≥ ~10 bins wide. Since 20 Oct the warning catches
 such cases: bins must be ≤ 1/10 of the spectral template width. That width is 0.0077 turns for B0329+54, so NBin 1024 warns, at 1/7.9
 (see <a href="toa.html#template">TOA</a>).</li>
-<li><b>What is left: rare outliers at SNR ~7</b> (20–21 Oct). With adaptive groups about 0.5 % of B0329+54's TOAs land one core
-width off (0.005–0.009 turns, 5–9σ), at SNR 7.3–7.9, and χ² cannot flag them. The template's autocorrelation has no second peak there:
-the narrow core sits on a broad component, and noise now and then moves the best match onto that shoulder, which the error bar (from the
-curvature at the peak) does not cover. Fixed groups reach SNR ~5.5 and add true jumps to the side peak at ±0.025 turns (19σ). None at
-SNR 10 (0 of 600).</li>
-<li><b>Decision (21 Oct, Jasper): keep SNR 7 for more TOAs, and use redundancy.</b> Block D's navigation filter checks each TOA against
-the prediction from the other TOAs and the ship's dead reckoning (B0329+54 nominal: TOA error 220 km, prediction ~70 km; outliers
-1100–2000 km, 4.8–8.6σ from the prediction; a 4σ gate rejects good TOAs about once in 4–5 years), with an error model that has a small
-outlier part (rate and width from the simulator). No fixed groups for multi-component pulsars. Unhandled, one 6σ outlier among a day's
-10 TOAs would bias that day by ~130 km.</li>
 </ul></li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
