@@ -217,19 +217,23 @@ noise model includes it.</p>
 
 <h2 id="dispersion">3. Interstellar dispersion</h2>
 <div class="callout note"><span class="ttl">In short</span>
-<p>Free electrons between the pulsar and us delay low frequencies more than high ones. Across this band the delay differs by
-31.5 ms at the simulation's DM 25: sixty times the pulse width, three rotation periods. The delay is known exactly from one number, the DM, so it can be undone exactly.</p></div>
+<p>Free electrons between the pulsar and us delay low frequencies more than high ones. Across this band, at the simulation's
+DM of 25, the delay differs by 31.5 ms. That is sixty times the pulse width, and more than three rotation periods. The delay is known
+exactly from one number, the DM, so it can be undone exactly.</p></div>
 <p>A cold plasma has a frequency-dependent refractive index, so the <b>group delay</b> depends on frequency:</p>
 <div class="eq">\[ \tau(f) = \frac{K\,\mathrm{DM}}{f^2}, \qquad K = 4.148808\times10^{3}\ \mathrm{s\,MHz^2\,pc^{-1}\,cm^{3}} \]</div>
 <dl class="where">
 <dt>\(\tau(f)\)</dt><dd>dispersion delay at radio frequency \(f\), relative to infinite frequency [s]</dd>
 <dt>\(f\)</dt><dd>radio frequency [MHz in this formula]; the band is 1200–1600 MHz (<code>fLow</code>, <code>fHigh</code>)</dd>
-<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 25 since 20 Oct; 5 before)</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 25)</dd>
 <dt>\(K\)</dt><dd>dispersion constant (from the electron charge and mass)</dd>
 </dl>
-<p>DM (dispersion measure) is the number of free electrons along the line of sight. For DM = 25 pc cm⁻³ the delay is 40.52 ms at
-1.6 GHz and 72.03 ms at 1.2 GHz. So each pulse is smeared over <b>31.51 ms</b> across the 400 MHz band, sixty times the
-0.5 ms pulse width and longer than three rotation periods (at DM 5, the default until 20 Oct: 6.30 ms).</p>
+<p>For DM = 25 pc cm⁻³ the delay is 40.52 ms at 1.6 GHz and 72.03 ms at 1.2 GHz. So each pulse is smeared over <b>31.51 ms</b>
+across the 400 MHz band. That is sixty times the 0.5 ms pulse width, and longer than three rotation periods.</p>
+<p>Several figures on these pages are drawn at DM 5 instead, where the smear is 6.30 ms, because the sweeps then stay apart and are
+easier to see.</p>
+<details><summary>History</summary>
+<p>The default DM was 5 until 20 Oct 2026, and has been 25 since.</p></details>
 <figure>
 <svg viewBox="0 0 860 210" role="img" aria-label="Dispersion sweep: lower frequencies arrive later">
   <path class="axis" d="M60 30 V170 H840"/>
@@ -282,9 +286,12 @@ density, with \(k\) Boltzmann's constant, \(T_\mathrm{sys}\) the system temperat
 collecting area [m²]</dd>
 </dl>
 <p>In the simulation \(\rho = A^2/\sigma_n^2\), with \(A\) the pulsar amplitude of section 2 and \(\sigma_n\) the standard
-deviation of the receiver noise [V]. Two values matter: −5 dB is a bright pulsar on a large dish (used for most
-validation runs, because short runs then give precise checks); about −54 dB is J0437−4715 on the target 0.61 m² array (the
-worst-case design point, <a href="scenario.html">scenario</a>).</p>
+deviation of the receiver noise [V]. Two values matter:</p>
+<ul>
+<li><b>−5 dB</b> is a bright pulsar on a large dish. Most validation runs use it, because short runs then give precise checks.</li>
+<li><b>About −54 dB</b> is J0437−4715 on the target 0.61 m² array. This is the worst-case design point
+(<a href="scenario.html">scenario</a>).</li>
+</ul>
 <div class="callout why"><span class="ttl">Design choice: SNR as a ratio of densities at the pulse peak</span>
 <p><b>Alternative:</b> an SNR per sample, per time bin, or of the folded profile.</p>
 <p><b>Why not:</b> those depend on choices made later in the pipeline (bandwidth, bin width, fold length). ρ depends only on the
@@ -309,10 +316,11 @@ by <var>f</var><sub>LO</sub>.</li>
 <dt>\(f_\mathrm{baseband}\)</dt><dd>where that frequency ends up after the shift, here −100…+300 MHz [Hz]</dd>
 <dt>\(i\), \(\mathrm{Re}\)</dt><dd>the imaginary unit; the real part</dd>
 </dl>
-<p>Complex samples keep the phase, which coherent dedispersion needs, and positive and negative frequencies stay apart. The sample
-rate must be at least the bandwidth of interest (400 MHz). Here it is 800 MHz (instead of the 4 GHz of the real RF simulation)
-because the LO sits off centre on purpose (band at −100…+300 MHz) and the IQ low-pass needs a margin (cutoff 360 MHz). The whole
-frequency plan is drawn on the <a href="parameters.html#plan">parameters page</a>.</p>
+<p>Complex samples keep the phase, which coherent dedispersion needs. They also keep positive and negative frequencies apart.</p>
+<p>The complex sample rate must be at least the bandwidth of interest, 400 MHz. Here it is 800 MHz, for two reasons. The LO sits off
+centre on purpose, so the band lands at −100…+300 MHz. And the IQ low-pass filter needs a margin: its cutoff is at 360 MHz. (The RF
+simulation before the receiver runs at 4 GHz.) The whole frequency plan is drawn on the
+<a href="parameters.html#plan">parameters page</a>.</p>
 <p><b>In the code:</b> <a href="receiver.html#noise"><code>addNoiseAndRFI</code></a>,
 <a href="receiver.html#iq"><code>applyIQmodulation</code></a>.</p>
 
@@ -644,8 +652,9 @@ threshold η.</p>
 <li><b>Known phase</b> (tracking: you know where the pulse should be): one test, η = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for
 <var>P</var><sub>FA</sub> = 10⁻³.</li>
 <li><b>Unknown phase</b> (acquisition: the pulse could be anywhere): search all phases and take the maximum. Rice's formula for the
-maximum of a smooth Gaussian process gives η = 4.15 at 10⁻³. At that threshold the search costs as much as ~60 independent trials
-(the "Rice factor" 5.5 is the number of up-crossings of the mean level per turn, not a number of trials).</li>
+maximum of a smooth Gaussian process gives η = 4.15 at 10⁻³. At that threshold the search costs as much as about 60 independent
+trials. The "Rice factor" of 5.5 in that formula is not a number of trials: it is the number of times per turn that the noise
+crosses its mean level upwards.</li>
 </ul>
 <p>A second check, the reduced χ² of the fit residuals, asks whether what is left after the fit is just noise. It catches a wrong
 profile shape (a radar spike), which detection cannot. Pictures of both tests: <a href="detection.html">Detection and good TOAs</a>.</p>
@@ -666,23 +675,24 @@ TOAs. They must be found and blanked on the channel voltages, before dedispersio
 <tr><td>Spread spectrum (bpsk)</td><td>GNSS L1, L2</td><td>1–20 MHz wide, always on, constant envelope</td><td>lowers SNR; TOAs stay valid</td></tr>
 <tr><td>Pulsed</td><td>L-band radar</td><td>2 µs pulses at a repetition frequency, +20 dB</td><td><b>destroys TOAs</b> with confident error bars</td></tr>
 <tr><td>Impulse</td><td>broadband bursts</td><td>200 ns bursts across the whole band</td><td>harmless after coherent dedispersion (spread over the 31.5 ms sweep)</td></tr>
-<tr><td>Noise-like (noise, since 8 Oct)</td><td>LTE / OFDM, Inmarsat</td><td>band-limited Gaussian noise, indistinguishable from receiver noise</td><td>extra noise in its channels</td></tr>
+<tr><td>Noise-like (noise)</td><td>LTE / OFDM, Inmarsat</td><td>band-limited Gaussian noise, indistinguishable from receiver noise</td><td>extra noise in its channels</td></tr>
 </table></div>
 <div class="callout why"><span class="ttl">Design choice: blank, do not subtract, and do it before dedispersion</span>
 <p><b>Alternative:</b> estimate the interference and subtract it, or remove it after dedispersion.</p>
 <p><b>Why not:</b> at −54 dB one radar pulse carries the energy of about 80,000 pulsar pulses. Even 99.9 % suppression would leave
-more interference than pulsar, so samples with RFI are <b>blanked</b> (set to zero, weight 0). And before dedispersion a radar pulse
-is a 2 µs blip in a few channels; after dedispersion it is smeared over milliseconds and mixed with good data. So excision works on
-the channel voltages, before dedispersion.</p></div>
+more interference than pulsar. So samples with RFI are <b>blanked</b>: set to zero, with weight 0.</p>
+<p>And before dedispersion, a radar pulse is a 2 µs blip in a few channels. After dedispersion it is smeared over milliseconds and
+mixed with good data. So excision works on the channel voltages, before dedispersion.</p></div>
 <p>See <a href="receiver.html#rfi"><code>rfiSource</code></a> and <a href="excision.html">RFI excision</a>.</p>
 
-<h2 id="propagation">10. Other propagation effects (not yet simulated)</h2>
+<h2 id="propagation">10. Other propagation effects</h2>
 <div class="callout note"><span class="ttl">In short</span>
-<p>Scintillation, scattering, the pulsar's spectrum, the ionosphere and motion are not in the simulator yet. Motion matters most:
-the drift it causes is the navigation signal itself. How big each effect is: <a href="limits.html#sizes">Limitations</a>.</p></div>
+<p>Scattering, the pulsar's spectrum, the ionosphere and motion are not in the simulator yet. Scintillation is in the fast simulator
+only. Motion matters most: the drift it causes is the navigation signal itself. How big each effect is:
+<a href="limits.html#sizes">Limitations</a>.</p></div>
 <ul>
 <li><b>Scintillation.</b> The received flux of a nearby pulsar fades and brightens by order 100 % over minutes to hours
-(<a href="#scint">below</a>; in the fast simulator since 20 Oct).</li>
+(<a href="#scint">below</a>). The fast simulator includes it; the voltage simulation does not.</li>
 <li><b>Scattering.</b> The same multipath blurs the pulse with an exponential tail τ<sub>d</sub>: ~0.4 ns at DM 5 (irrelevant), µs at
 DM ≳ 100.</li>
 <li><b>Pulsar spectrum.</b> Real pulsars are brighter at low frequencies (<var>S</var> ∝ <var>f</var><sup>−1.6</sup> on average); the
@@ -715,10 +725,12 @@ pulsar, Earth and plasma). It grows with frequency (∝ ν<sup>1.2</sup>).</li>
 distributed: mean 1 (the catalogue flux), but 10 % of the time below 0.1 and 5 % of the time above 3. Averaging over many scintles (a
 band much wider than Δν<sub>d</sub>, or a time much longer than Δt<sub>d</sub>) smooths this out; within one scintle there is no
 averaging.</p>
-<p><b>J0437−4715 at 1.4 GHz</b> (DM 2.6, 156 pc): Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s (the IAR timing campaign,
-rescaled from Keith et al. 2013); values rescaled from 327 MHz observations give time scales of ~500 s and ~5700 s (two scales, Gwinn et al.
-2006), and the scales vary noticeably from epoch to epoch (refractive scintillation, factors of 2–3). With Δν<sub>d</sub> larger than our 400 MHz
-band, the band holds about one scintle: there is little averaging over frequency, so the band-averaged flux is fully modulated in time.</p>
+<p><b>J0437−4715 at 1.4 GHz</b> (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come
+from the IAR timing campaign, rescaled from Keith et al. 2013. Observations at 327 MHz, rescaled, give two time scales instead: ~500 s
+and ~5700 s (Gwinn et al. 2006). The scales also vary noticeably from epoch to epoch, by factors of 2–3 (refractive
+scintillation).</p>
+<p>Δν<sub>d</sub> is larger than our 400 MHz band, so the band holds about one scintle. There is little averaging over frequency,
+and the band-averaged flux is fully modulated in time.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated interstellar scintillation: dynamic spectra for J0437 and for narrower scintles, and J0437's band-averaged flux against time">
   <text class="ttl" x="60" y="26">a · J0437 at 1.4 GHz: scintles ~740 MHz × ~38 min</text>
@@ -3865,18 +3877,19 @@ faint. (c) J0437's flux over the band against time: it spends long stretches wel
 <ul>
 <li><b>SNR budget:</b> the SNR per sub-int follows the flux, so the time to reach SNR ~7 per TOA varies by large factors from one hour to
 the next. During a fade a sub-int may give no TOA at all; during a bright scintle a TOA comes quickly. That is why the sub-int length should
-adapt to the measured SNR (the adaptive sub-int length, block C3c).</li>
-<li><b>Across the band:</b> when scintles are narrower than the band (more distant pulsars, lower frequencies, panel b), the pulse is
-stronger in some channels than in others. The channel path's fit assumes equal strength in every channel (<code>ChannelGain</code> 1), so it
-then weights the channels sub-optimally and its χ² rises, like at the band edges (item 3). For J0437 at 1.4 GHz this is a mild slope across
-the band, not a pattern.</li>
+adapt to the measured SNR (the <a href="simulator.html">fast simulator</a>'s adaptive sub-ints).</li>
+<li><b>Across the band:</b> scintles can be narrower than the band, for more distant pulsars or at lower frequencies (panel b). The pulse
+is then stronger in some channels than in others. The channel path's fit assumes equal strength in every channel (<code>ChannelGain</code> 1).
+So it weights the channels sub-optimally, and its χ² rises. The same happens in the edge channels, where the band taper weakens the
+pulse. For J0437 at 1.4 GHz the effect is a mild slope across the band, not a pattern.</li>
 <li><b>Timing:</b> diffractive scintillation changes the amplitude, not the arrival time (at DM 2.6 the scattering delay is a fraction of a
 nanosecond). So it costs observing time, not accuracy.</li>
 </ul>
-<p><b>In the simulator</b> (<code>simulateFold</code> <code>'Scintillation'</code>, C3b): a flux factor <var>F</var> = |<var>g</var>|² per
-sub-int and channel from a complex Gaussian field <var>g</var>(<var>t</var>, ν) with these two scales (intensity correlation 1/e at Δt<sub>d</sub>,
-½ at Δν<sub>d</sub>), multiplying the pulse; checked in <a href="tests.html#simfold"><code>testSimulateFold</code></a> 11 (exponential
-statistics, both correlation scales). Refractive (slow, weeks) variation is not included. <a href="simulator.html#scint">Simulator page</a>.</p>
+<p><b>In the simulator</b> (<code>simulateFold</code>, option <code>'Scintillation'</code>): the pulse is multiplied by a flux factor
+<var>F</var> = |<var>g</var>|² per sub-int and channel. Here <var>g</var>(<var>t</var>, ν) is a complex Gaussian field with the two
+scales above: its intensity correlation drops to 1/e at Δt<sub>d</sub> and to ½ at Δν<sub>d</sub>.
+<a href="tests.html#simfold"><code>testSimulateFold</code></a> 11 checks the exponential statistics and both correlation scales.
+Refractive variation, which is slow (weeks), is not included. More on the <a href="simulator.html#scint">simulator page</a>.</p>
 
 </main>
 <script src="nav.js"></script>
