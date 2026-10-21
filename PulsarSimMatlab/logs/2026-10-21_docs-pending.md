@@ -70,6 +70,26 @@ linear legs exact (10.02 m/s), pchip velocity = derivative (2e-8 m/s) and contin
 crossing (midpoint 180.00000000 deg, chord 8.6 m below), 1 AU orbit with hourly spline samples to 1 mm,
 custom velocity exact, 4 bad inputs refused. Claude's run 21 Oct: all passed (0.5 s); in runAllTests (17).
 
+## 4d. Block D page (new): delayModel — receiver -> solar-system barycentre (21 Oct, D1b)
+
+delta = t_SSB - t_obs = roemer (r_obs.n/c) + curvature (-(r^2 - (r.n)^2)/(2cD), with psr.distance) + einstein
+(TDB - TT: 1.657 ms sin g + 14 us sin 2g + v_E.r_site/c^2) + shapiro (+2 T_sun ln((|r| + r.n)/AU), r from the Sun:
+minus the delay -2 T ln(|r| + r.n) of light passing the Sun; T_sun = 4.925 us). Earth model analytic (decision 1):
+EMB Keplerian (Standish elements and rates), Sun around the SSB from Jupiter and Saturn (0.004-0.005 AU in 2026),
+Earth around the EMB (low-precision lunar series, 4424-4932 km), ecliptic -> equator J2000; Earth rotation angle
+from UT1 = TT - 69.184 s, no precession / nutation / polar motion (consistent between the simulator's truth and
+prediction; DE440 and IAU precession-nutation at the end of D). Frames: 'ECEF' trajectories rotated by the ERA,
+'SSB' trajectories (probes) directly (no Einstein term: the probe's own clock later). Options 'Terms', 'Moon',
+'Planets'. Outputs per term plus rObs, vObs, rEarth, vEarth, rSun, nHat.
+Figures worth showing: annual Roemer for B0329+54 (+-412 s), daily term at 52 N (7.6 ms), the 100 km measurement
+equation (193 us daily sine), Shapiro over a year (-17 ... +6 us).
+testDelayModel (9 checks; Claude's run 21 Oct: all passed, 1.5 s): orbit a(1-e) / a(1+e) to 2e-7 AU; annual
+peak-to-peak towards perihelion 998.013534 s vs 998.013536 s (e and a at the two dates; extremes on a 10 s grid -
+the first draft's mid-year e and hourly grid were off by 1.1e-4 / 3e-5 s); daily term vs closed form 2e-13 s,
+amplitude 7.607 ms, maximum at transit; 100 km east = (R dr.n)/c to 1.5e-13 s, amplitude 193.33 us, mean ~0,
+Einstein site change 31 ns; ships (still = fixed bit for bit; moving: rate = v.n/c to 3e-7); probe closed forms;
+Einstein 3.3145 ms peak-to-peak, site term 1.86 us; Shapiro B0329+54 -17.12 ... +5.80 us.
+
 ## 5. roadmap.html (block D / open items) and limits.html: clock jitter (Jasper, 21 Oct: "we completely forgot about clock jitter")
 
 Listed long ago under "Block 2 – robustness" but never planned. Three effects, all for block D:
