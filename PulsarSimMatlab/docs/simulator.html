@@ -9,30 +9,32 @@
 <body>
 <main>
 
-<h1>Block C · Fast simulator: <code>simulateFold</code> <span class="badge validated">C1–C4b, C3a–c, NPol, AcrossGaps, Components, ObserverNoise validated, 20 Oct</span></h1>
-<p class="lede">Draw the folded profiles directly from their known statistics instead of simulating every voltage sample. Hours of
-observation then take seconds, and everything after the fold (<code>foldToTOA</code>: TOAs, detection, good TOAs) runs unchanged on the
-result.</p>
+<h1>Fast simulator: <code>simulateFold</code> <span class="badge validated">validated</span></h1>
+<p class="lede">The fast simulator draws the folded profiles directly from their known statistics, instead of simulating every voltage
+sample. Hours of observation then take seconds. Everything after the fold (<code>foldToTOA</code>: TOAs, detection, good TOAs) runs
+unchanged on the result.</p>
 <div class="sig">[info, fold, truth] = simulateFold(f0, rhoDB, nTurns, 'SubintPeriods', n, 'NChan', 128, 'ChannelGain', g, 'RFI', prof, ...)</div>
 <p class="meta"><a href="api.html#simulatefold">Full interface and help text of <code>simulateFold</code> →</a> · calibration: <code>rfiProfile</code>,
 <code>runRFIProfile.m</code> · tests: <a href="tests.html#simfold"><code>testSimulateFold</code></a>, <a href="tests.html#simvschain"><code>expSimVsChain</code></a>,
-<a href="tests.html#simrfi"><code>expSimRFI</code></a></p>
+<a href="tests.html#simrfi"><code>expSimRFI</code></a> · block C, since 20 Oct 2026</p>
 
 <div class="callout note"><span class="ttl">In short</span>
-<p>A J0437 TOA needs ~20 hours of data; the voltage chain makes ~61 GB per second. But after the fold, everything is described by a few
-validated numbers per phase bin: the mean (baseline plus the smoothed pulse), the variance (the radiometer equation) and the correlation
-with the neighbouring bins. <code>simulateFold</code> draws exactly that. It reproduces the voltage chain within its statistics: the full band
-from the threshold to +20 dB (C2), the channel path including the edge-channel χ² excess of item 3 (C4a), and realistic RFI after excision,
-from profiles measured on the voltage chain (C4b). 20 hours in 60 s sub-ints take 0.05 s.</p></div>
+<p>A J0437 TOA needs about 20 hours of data. The voltage chain writes about 61 GB per second, so hours are out of reach.</p>
+<p>But after the fold, everything is described by a few validated numbers per phase bin: the mean (baseline plus the smoothed pulse),
+the variance (the radiometer equation), and the correlation with the neighbouring bins. <code>simulateFold</code> draws exactly that.
+20 hours in 60 s sub-ints take 0.05 s.</p>
+<p>It reproduces the voltage chain within its statistics, in three settings: the full band from the detection threshold to +20 dB; the
+channel path, including the slightly high χ² of the edge channels; and realistic RFI after excision, using profiles measured on the
+voltage chain.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#idea">The idea</a></li>
 <li><a href="#how">How a fold is drawn</a></li>
-<li><a href="#channels">Channels (C4a)</a></li>
-<li><a href="#rfi">RFI after excision (C4b)</a></li>
-<li><a href="#schedule">Observing schedule (C3a)</a></li>
-<li><a href="#scint">Scintillation (C3b)</a></li>
-<li><a href="#adaptive">Adaptive sub-int length (C3c)</a></li>
+<li><a href="#channels">Channels</a></li>
+<li><a href="#rfi">RFI after excision</a></li>
+<li><a href="#schedule">Observing schedule</a></li>
+<li><a href="#scint">Scintillation</a></li>
+<li><a href="#adaptive">Adaptive sub-int length</a></li>
 <li><a href="#rho">Which ρ</a></li>
 <li><a href="#valid">Validation against the voltage chain</a></li>
 <li><a href="#why">Design choices</a></li>
@@ -40,29 +42,32 @@ from profiles measured on the voltage chain (C4b). 20 hours in 60 s sub-ints tak
 </ol></div>
 
 <h2 id="idea">The idea</h2>
-<p>The fold of one sub-int sums many detected time bins per phase bin (about 5 per turn at 100 Hz, 2048 bins and 1 µs, times the turns
-per sub-int). By then each phase bin is Gaussian, and its mean, variance and covariance with the neighbouring bins follow from the
-noise model that <code>estimateTOA</code> and <code>detectPulsar</code> already use – the model the voltage chain validated end to end
-(<a href="scripts.html#mc">A3b</a>, <a href="scripts.html#h0"><code>runH0</code></a>). So the simulator draws the fold struct straight from
-that model, with the same fields and conventions as <code>foldProfile</code>. The true values (the true pulse phase of every sub-int,
-ρ, the gains, the RFI) go into a separate <code>truth</code> struct; the observer gets only <code>fold</code> and <code>info</code>, which
-hold nothing <code>foldProfile</code>'s would not – the ground-truth rule.</p>
+<p>The fold of one sub-int sums many detected time bins in each phase bin: about 5 per turn at 100 Hz, 2048 bins and 1 µs, times the
+number of turns. By then each phase bin is Gaussian. Its mean, its variance and its covariance with the neighbouring bins follow from the
+noise model that <code>estimateTOA</code> and <code>detectPulsar</code> already use. The voltage chain validated that model end to end
+(the <a href="scripts.html#mc">multi-seed Monte Carlo</a> and the long noise-only run <a href="scripts.html#h0"><code>runH0</code></a>).</p>
+<p>So the simulator draws the fold struct straight from that model, with the same fields and conventions as <code>foldProfile</code>.
+The true values go into a separate <code>truth</code> struct: the true pulse phase of every sub-int, ρ, the gains and the RFI. The
+observer gets only <code>fold</code> and <code>info</code>, which hold nothing that <code>foldProfile</code>'s would not. That is the
+ground-truth rule.</p>
 
 <h2 id="how">How a fold is drawn</h2>
 <ol>
-<li><b>Mean of each phase bin.</b> Baseline 1 (the receiver-noise power) plus the pulse: the generator's unit-peak periodic Gaussian
-(FWHM 5 % by default; or, with <code>'Components'</code> since 20 Oct, a sum of Gaussians scaled to peak 1, e.g. B0329+54's five
-components), smoothed the way the fold smooths it – averaged over one time bin and spread over ±1 phase bin by the linear
-assignment – and shifted to the true pulse phase. Computed exactly in Fourier space.</li>
-<li><b>Weights.</b> If the time bins land evenly in phase, a phase bin collects <var>n</var> time bins per sub-int with
-<code>weight</code> = <var>n</var>, <code>weight2</code> = 2<var>n</var>/3, <code>weightX</code> = <var>n</var>/6 – the exact averages of the
-linear split, so neighbouring bins share noise with correlation ¼ (the value <code>runH0</code> measures). Optionally the weights of a real
-fold are copied (used for validation).</li>
-<li><b>Noise.</b> Gaussian, with the variance of the radiometer equation, <var>m</var>²/(<var>B</var><sub>n</sub>·binDt)·<code>weight2</code>/<code>weight</code>²
-(<var>m</var>² rather than 1²: the pulsar's own noise is included), and the neighbour correlation. The correlation matrix of a sub-int is
-circulant, so the noise is drawn exactly with two FFTs.</li>
-<li><b>Bookkeeping.</b> Sub-int times (<code>tRef</code>, <code>fRef</code>, <code>turnRef</code>) as <code>foldProfile</code> makes them; the
-truth gets each sub-int's true arrival time (<code>pulseCenters</code>), so <code>validateTOA</code> reads it directly.</li>
+<li><b>Mean of each phase bin.</b> The baseline is 1, the receiver-noise power. On top comes the pulse: by default the generator's
+periodic Gaussian with peak 1 and FWHM 5 %. With <code>'Components'</code> it is a sum of Gaussians scaled to peak 1, such as B0329+54's
+five components. The pulse is smoothed the way the fold smooths it: averaged over one time bin, and spread over ±1 phase bin by the
+linear assignment. Then it is shifted to the true pulse phase. All of this is computed exactly, in Fourier space.</li>
+<li><b>Weights.</b> If the time bins land evenly in phase, a phase bin collects <var>n</var> time bins per sub-int. Then
+<code>weight</code> = <var>n</var>, <code>weight2</code> = 2<var>n</var>/3 and <code>weightX</code> = <var>n</var>/6: the exact averages of
+the linear split. Neighbouring bins then share noise with correlation ¼, the value <code>runH0</code> measures. For validation, the
+weights of a real fold can be copied instead.</li>
+<li><b>Noise.</b> Gaussian, with the variance of the radiometer equation,
+<var>m</var>²/(<var>B</var><sub>n</sub>·binDt)·<code>weight2</code>/<code>weight</code>², and the neighbour correlation. It uses
+<var>m</var>² rather than 1², so the pulsar's own noise is included. The correlation matrix of a sub-int is circulant, so the noise is
+drawn exactly with two FFTs.</li>
+<li><b>Bookkeeping.</b> The sub-int times (<code>tRef</code>, <code>fRef</code>, <code>turnRef</code>) are made as
+<code>foldProfile</code> makes them. The truth gets each sub-int's true arrival time (<code>pulseCenters</code>), so
+<code>validateTOA</code> reads it directly.</li>
 </ol>
 <details><summary>The formulas</summary>
 <div class="eq">\[ m_j = 1 + g\,\rho\,\tilde p(\phi_j - \Delta\phi), \qquad \tilde p_k = p_k\,\mathrm{sinc}(k\,f_0\,\Delta t)\,\mathrm{sinc}^2(k/N) \]</div>
@@ -79,141 +84,193 @@ truth gets each sub-int's true arrival time (<code>pulseCenters</code>), so <cod
 <p>The noise is <var>z</var> = IFFT(√λ·FFT(<var>e</var>)) for white <var>e</var>, scaled by the standard deviation of each bin.</p>
 </details>
 
-<h2 id="channels">Channels (C4a)</h2>
+<h2 id="channels">Channels</h2>
 <p>The default path folds 128 channels separately. Three things differ from the full band:</p>
 <ol>
-<li><b>Correlated time bins.</b> In a 3.125 MHz channel, consecutive 0.96 µs detected bins are correlated (<var>V</var> 0.888,
-<var>X</var>(1) 0.046, … up to 7 lags; <code>'NoiseCoeffs'</code>, from <code>detectChannels</code>). For time bins spread evenly in phase
-the weights have a closed form: \( W_2 = n\sum_L c(L)\,K(L\delta) \), \( W_X(d) = n\sum_L c(L)\,K(d - L\delta) \), with \(c(0) = V\),
+<li><b>Correlated time bins.</b> In a 3.125 MHz channel, consecutive 0.96 µs detected bins are correlated: <var>V</var> 0.888,
+<var>X</var>(1) 0.046, and so on up to 7 lags (<code>'NoiseCoeffs'</code>, from <code>detectChannels</code>). For time bins spread
+evenly in phase, the weights have a closed form: \( W_2 = n\sum_L c(L)\,K(L\delta) \), \( W_X(d) = n\sum_L c(L)\,K(d - L\delta) \), with \(c(0) = V\),
 \(c(\pm L) = X(L)\), δ = <var>f</var><sub>0</sub>·binDt·<var>N</var> the phase-bin step between time bins and <var>K</var>(<var>s</var>) the
 overlap of two assignment triangles <var>s</var> bins apart (2/3 − <var>s</var>² + |<var>s</var>|³/2 below 1, (2 − |<var>s</var>|)³/6 up to 2).
 It matches <code>foldProfile</code> to 2·10⁻⁵.</li>
-<li><b>The true pulse fraction per channel</b> (<code>'ChannelGain'</code>, truth): the simulated pulsar passed an 8 MHz band-edge taper
-that the noise did not, so channels 1/128, 2/127 and 3/126 hold 0.023, 0.417 and 0.960 of a normal channel's pulse
-(<a href="roadmap.html">item 3</a>). The observer still fits with gain 1, as <code>main</code> does.</li>
+<li><b>The true pulse fraction per channel</b> (<code>'ChannelGain'</code>, part of the truth). The simulated pulsar passed an 8 MHz
+band-edge taper that the noise did not. So channels 1 and 128 hold 0.023 of a normal channel's pulse, channels 2 and 127 hold 0.417,
+and channels 3 and 126 hold 0.960 (roadmap <a href="roadmap.html">item 3</a>). The observer still fits with gain 1, as <code>main</code>
+does.</li>
 <li><b>Per-channel noise,</b> independent between channels, each drawn by FFT.</li>
 </ol>
 
-<h2 id="rfi">RFI after excision (C4b)</h2>
-<p>Excision acts on voltages, which the simulator never makes. What it leaves in each channel is measured instead, once, on a short
-voltage-chain run without pulsar (zero sky + receiver noise + RFI, <code>processIQ</code> with excision; <code>runRFIProfile.m</code>), by
-<code>rfiProfile</code>, from the detected power of every channel:</p>
+<h2 id="rfi">RFI after excision</h2>
+<p>Excision acts on voltages, which the simulator never makes. So what excision leaves in each channel is measured instead, once. The
+measurement is a short voltage-chain run without a pulsar: zero sky, receiver noise and RFI, through <code>processIQ</code> with excision
+(<code>runRFIProfile.m</code>). <code>rfiProfile</code> then measures three things from the detected power of every channel:</p>
 <ul>
-<li><b>level</b> <var>L</var><sub>c</sub>: the mean power over the receiver-noise level (constant RFI that excision leaves in raises it; LTE
-reaches 31× in its channels);</li>
-<li><b>the true noise coefficients</b> <var>V</var><sub>c</sub>, <var>X</var><sub>c</sub>(<var>L</var>): a channel partly covered by noise-like RFI
-has a narrower spectrum and is noisier than the observer's flat model; a channel with a strong carrier is <em>quieter</em> relative to its
-mean, (1 + 2<var>I</var>)/(1 + <var>I</var>)² (0.36 for the local carrier at <var>I</var> ≈ 4);</li>
-<li><b>valid fraction</b>: 1 − the blanked fraction (0.29 % blanked in the realistic scenario).</li>
+<li><b>the level</b> <var>L</var><sub>c</sub>: the mean power, relative to the receiver-noise level. Constant RFI that excision
+leaves in raises it; LTE reaches 31× in its channels.</li>
+<li><b>the true noise coefficients</b> <var>V</var><sub>c</sub> and <var>X</var><sub>c</sub>(<var>L</var>). A channel partly covered by
+noise-like RFI has a narrower spectrum, and is noisier than the observer's flat model. A channel with a strong carrier is
+<em>quieter</em> relative to its mean: (1 + 2<var>I</var>)/(1 + <var>I</var>)², which is 0.36 for the local carrier at <var>I</var> ≈ 4.</li>
+<li><b>the valid fraction</b>: 1 − the blanked fraction. In the realistic scenario 0.29 % is blanked.</li>
 </ul>
-<p>With <code>'RFI'</code>, channel <var>c</var>'s mean is <var>L</var><sub>c</sub> + the pulse, its weights are scaled by the valid fraction, and
-its noise is drawn with the measured coefficients – while the fold carries the observer's clean model. So the observer's fit makes
-exactly the mistakes it makes on real data: optimal weighting down-weights the loud channels (the SNR loss), and its error bars are too
-small in the partly covered channels. These are time-domain numbers, so a profile transfers to any pulsar, phase-bin count and sub-int
-length. Profiles: <code>data/rfi/profile/rfiProfile_&lt;case&gt;_&lt;L&gt;s.mat</code> for the realistic scenario, the narrow-Inmarsat worst case
-and noise only, at 0.1 s (<code>runRFITest</code>'s exact settings) and 1 s (the steady part, with the rotating radar's beam passage
-outside the run).</p>
-<p><b>Per-channel noise calibration</b> (<code>'ObserverNoise'</code>, 20 Oct). By default the fold carries the observer's clean flat-channel
-model, so the observer's error bars and χ² are off in the channels RFI reshapes — as on real data without calibration. With
-<code>'ObserverNoise', 'measured'</code> the fold's noise weights use the profile's measured coefficients per channel: the observer that measures
-each channel's noise on its own data. The noise drawn is the same either way. Synthetic check (<code>testSimulateFold</code> 15): every
-channel's noise then matches its model (1.00 instead of 1.30 / 0.36), and χ²<sub>red</sub> goes from 0.958 to 1.0000 ± 0.0017. The voltage
-chain's counterpart: <code>processIQ</code> with <code>proc.noiseCal</code> measures each channel's noise on the observation's off-pulse
-bins (<code>rfiProfile</code> <code>'OnPulse'</code>) and folds with it (<code>foldProfile</code> <code>'ChannelNoise'</code>);
-<code>testRFIModel</code> 5: χ² 0.875 → 1.010.</p>
-<p><b>What the model assumes, and how it is checked.</b> The profile is a statistical model, not a recording: the simulator draws fresh
-noise with the measured statistics in every sub-int, so it assumes (a) the RFI is stationary (its 1 s average holds every hour, every day),
-(b) the time bins are correlated only over the measured lags (Lmax = 7, 6.7 µs), so their second moments fix the folded noise — RFI
-narrower than ~1 MHz correlates further (a 200 kHz carrier's power has a sidelobe at lags 7–20 holding 5–7 % of its long-run noise: the
-neighbour-bin correlation of short phase bins, and the noise of the scenario's long phase bins, ~5–7 % low in such channels; since
-21 Oct <code>rfiProfile</code> <code>'Lmax'</code> measures more lags and <code>runRFIProfile</code> uses 30, <code>testRFIModel</code> 6), (c) folded profiles are
-Gaussian, and (d) blanking is not locked to the pulse phase and does not depend on the data — false flags on strong
-continuous RFI violate this: detectRFI cuts the power peaks of narrow carriers, and the phase bins with blanking come out 4–9 % noisier than
-modelled (narrow Inmarsat, 21 Oct; the observer's noise calibration absorbs it; since 21 Oct per-channel detectRFI thresholds remove those false flags). Three checks:</p>
-<ol>
-<li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> (synthetic, closed-form truth): <code>rfiProfile</code> recovers level, noise
-coefficients and valid fraction of a carrier, noise-like narrowband RFI and blanked impulses; folds of that data by
-<code>foldProfile</code> and <code>simulateFold</code> with the measured profile agree in level, weight, noise relative to the observer's model,
-neighbour correlation and TOA statistics; and RFI correlated beyond the measured lags is detected (the real fold 3.3× noisier than the model).</li>
-<li><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 1: against <code>runRFITest</code> on the voltage chain, within ~1 %.</li>
-<li><a href="tests.html#rfichain"><code>testRFIChain</code></a> (slow): the same fold comparison on a voltage-chain run — profile from the first
-half, fold of the second half — for (b)–(d) with the chain's real RFI and excision. First full run (realistic case, DM 25): (b) holds —
-the noise relative to the observer's model is 1.0715 real against 1.0702 simulated at 1 turn and 1.0699 / 1.0702 at 10 turns, so the
-measured lags carry all the correlation; level and flatness agree too. Open on (c): a phase bin of a one-turn sub-int averages only ~30
-complex samples, so real folds are slightly non-Gaussian (excess kurtosis ~0.18, gone for sub-ints of minutes if turns are independent);
-the partly covered channels and, unexpectedly, the carrier channel are more so. Whether that averages out is now checked directly
-(kurtosis decay over 4 turns); rerun pending.</li>
+<p>With <code>'RFI'</code>, channel <var>c</var>'s mean is <var>L</var><sub>c</sub> + the pulse, and its weights are scaled by the
+valid fraction. Its noise is drawn with the measured coefficients, while the fold carries the observer's clean model. So the
+observer's fit makes exactly the mistakes it makes on real data. Optimal weighting down-weights the loud channels, which costs SNR. And
+the error bars are too small in the partly covered channels.</p>
+<p>These are time-domain numbers, so a profile transfers to any pulsar, phase-bin count and sub-int length. The profiles are in
+<code>data/rfi/profile/rfiProfile_&lt;case&gt;_&lt;L&gt;s.mat</code>, for three cases: the realistic scenario, the narrow-Inmarsat worst
+case, and noise only. Each exists at 0.1 s (<code>runRFITest</code>'s exact settings) and at 1 s (the steady part, with the rotating
+radar's beam passage outside the run).</p>
+<p><b>Per-channel noise calibration</b> (<code>'ObserverNoise'</code>). By default the fold carries the observer's clean, flat-channel
+model. So the observer's error bars and χ² are off in the channels that RFI reshapes, as on real data without calibration. With
+<code>'ObserverNoise', 'measured'</code>, the fold's noise weights use the profile's measured coefficients per channel instead. This is an
+observer that measures each channel's noise on its own data. The noise drawn is the same either way.</p>
+<p>A synthetic check (<code>testSimulateFold</code> 15) shows that it works. Every channel's noise then matches its model: 1.00, where
+it was 1.30 or 0.36. And χ²<sub>red</sub> goes from 0.958 to 1.0000 ± 0.0017.</p>
+<p>The voltage chain has the same calibration. <code>processIQ</code> with <code>proc.noiseCal</code> measures each channel's noise on the
+observation's off-pulse bins (<code>rfiProfile</code> <code>'OnPulse'</code>), and folds with it (<code>foldProfile</code>
+<code>'ChannelNoise'</code>). In <code>testRFIModel</code> 5, χ² goes from 0.875 to 1.010.</p>
+<h3>What the model assumes, and how it is checked</h3>
+<p>The profile is a statistical model, not a recording. The simulator draws fresh noise with the measured statistics in every sub-int.
+That rests on four assumptions:</p>
+<ol type="a">
+<li><b>The RFI is stationary.</b> Its 1 s average holds every hour, every day.</li>
+<li><b>Time bins are correlated only over the measured lags</b> (Lmax = 7, 6.7 µs), so their second moments fix the folded noise. RFI
+narrower than about 1 MHz correlates further. A 200 kHz carrier's power has a sidelobe at lags 7–20 that holds 5–7 % of its long-run
+noise. With 7 lags, the neighbour-bin correlation of short phase bins, and the noise of the scenario's long phase bins, come out about
+5–7 % low in such channels. So <code>rfiProfile</code> can measure more lags (<code>'Lmax'</code>), and <code>runRFIProfile</code> uses 30
+(<code>testRFIModel</code> 6).</li>
+<li><b>Folded profiles are Gaussian.</b></li>
+<li><b>Blanking is not locked to the pulse phase, and does not depend on the data.</b> False flags on strong continuous RFI break this.
+<code>detectRFI</code> cut the power peaks of narrow carriers, and phase bins with blanking then came out 4–9 % noisier than modelled
+(the narrow-Inmarsat case). The observer's noise calibration absorbs this. The per-channel <code>detectRFI</code> thresholds now remove
+those false flags (<a href="excision.html#chanthr">excision</a>).</li>
 </ol>
-<p><b>What the RFI costs</b> (<a href="tests.html#simrfi"><code>expSimRFI</code></a> part 2, 1 s profiles, −5 dB, 400 TOAs per case): the
-realistic scenario loses 10.5 % SNR after excision (σ ×1.12, 25 % more observing time for the same σ), the narrow-Inmarsat worst case
-12.2 % (σ ×1.14, 30 %). Error bars stay honest within ~7 %, but the reduced χ² rises to 1.07 / 1.25 — noise the observer's flat
-channel model misses, which does not shrink at low SNR, so <code>pChi2</code> flags every TOA with RFI.</p>
+<p>Three checks test these assumptions:</p>
+<ol>
+<li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> uses synthetic data with a closed-form truth. <code>rfiProfile</code>
+recovers the level, the noise coefficients and the valid fraction of a carrier, of noise-like narrowband RFI and of blanked impulses.
+Folds of that data by <code>foldProfile</code>, and by <code>simulateFold</code> with the measured profile, agree in level, weight, noise
+relative to the observer's model, neighbour correlation and TOA statistics. And RFI correlated beyond the measured lags is detected: the
+real fold is 3.3× noisier than the model.</li>
+<li><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 1 compares with <code>runRFITest</code> on the voltage chain: they agree
+within about 1 %.</li>
+<li><a href="tests.html#rfichain"><code>testRFIChain</code></a> (slow) makes the same fold comparison on a voltage-chain run, with the
+chain's real RFI and excision: the profile comes from the first half, the fold from the second half. It tests (b)–(d). The first full
+run (realistic case, DM 25) gave:
+<ul>
+<li><b>(b) holds.</b> The noise relative to the observer's model is 1.0715 real against 1.0702 simulated at 1 turn, and 1.0699 against
+1.0702 at 10 turns. So the measured lags carry all the correlation. Level and flatness agree too.</li>
+<li><b>(c) is still open.</b> A phase bin of a one-turn sub-int averages only about 30 complex samples, so real folds are slightly
+non-Gaussian: an excess kurtosis of about 0.18. This disappears for sub-ints of minutes, if turns are independent. The partly covered
+channels and, unexpectedly, the carrier channel are more non-Gaussian. Whether that averages out is now checked directly, from how the
+kurtosis decays over 4 turns. That rerun is pending.</li>
+</ul></li>
+</ol>
+<h3>What the RFI costs</h3>
+<p><a href="tests.html#simrfi"><code>expSimRFI</code></a> part 2 measures this with the 1 s profiles, at −5 dB, with 400 TOAs per
+case:</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">SNR lost after excision</th><th class="num">σ</th><th class="num">extra observing time for the same σ</th><th class="num">reduced χ²</th></tr>
+<tr><td>realistic scenario</td><td class="num">10.5 %</td><td class="num">×1.12</td><td class="num">25 %</td><td class="num">1.07</td></tr>
+<tr><td>narrow-Inmarsat worst case</td><td class="num">12.2 %</td><td class="num">×1.14</td><td class="num">30 %</td><td class="num">1.25</td></tr>
+</table></div>
+<p>The error bars stay honest within about 7 %. But the reduced χ² rises: this is noise that the observer's flat channel model misses.
+It does not shrink at low SNR, so <code>pChi2</code> flags every TOA with RFI.</p>
+<details><summary>History</summary>
+<p>Channels: step C4a; RFI after excision: step C4b; both 20 Oct 2026. <code>'ObserverNoise'</code> and <code>proc.noiseCal</code>:
+20 Oct. The lag tail of narrow carriers, more lags in <code>rfiProfile</code>, the 4–9 % finding with narrow carriers, and the per-channel
+<code>detectRFI</code> thresholds: 21 Oct.</p></details>
 
-<h2 id="schedule">Observing schedule (C3a)</h2>
-<p>Long observations come in passes: the pulsar is above the horizon for some hours a day. With <code>'Passes'</code> (start and end of each
-pass, in seconds) and <code>'SubintTime'</code> (seconds, rounded to whole turns, as <code>foldProfile</code>), the simulator makes complete
-sub-ints only inside passes, from the complete turns that fit; the gaps hold no data. Times are absolute (<code>tRef</code> = TRef +
-turnRef/<var>f</var><sub>0</sub>), so TOAs from different passes line up on one time axis, and <code>truth.pass</code> says which pass each sub-int
-belongs to. One pass covering turns 0 … <var>n</var>−1 gives exactly the fold of the plain <code>nTurns</code> interface.</p>
+<h2 id="schedule">Observing schedule</h2>
+<p>Long observations come in passes: the pulsar is above the horizon for some hours a day. Two options describe this.
+<code>'Passes'</code> gives the start and end of each pass, in seconds. <code>'SubintTime'</code> gives the sub-int length in seconds,
+rounded to whole turns as in <code>foldProfile</code>.</p>
+<p>The simulator then makes complete sub-ints only inside passes, from the complete turns that fit. The gaps hold no data. Times are
+absolute (<code>tRef</code> = TRef + turnRef/<var>f</var><sub>0</sub>), so TOAs from different passes line up on one time axis.
+<code>truth.pass</code> says which pass each sub-int belongs to. One pass covering turns 0 … <var>n</var>−1 gives exactly the fold of
+the plain <code>nTurns</code> interface.</p>
 <div class="callout note"><span class="ttl">J0437−4715 settings</span>
-<p><var>f</var><sub>0</sub> = 173.6879 Hz (<var>P</var> 5.757452 ms), power-profile FWHM 0.141 ms = 0.0245 turns, NBin 512 (11.2 µs bins, FWHM/12.5:
-enough by <code>estimateTOA</code>'s resolution rule; 20 h × 128 channels in 60 s sub-ints ≈ 1.3 GB of folds), ρ −51.0 dB (worst case) or
-−47.4 dB (nominal) in the simulator's convention. The scenario assumes two polarizations: <code>'NPol', 2</code> (below), and the
-observer passes <code>Bnoise</code> × 2.</p></div>
-<p><b>Dual polarization</b> (<code>'NPol'</code>, 20 Oct). The array receives two polarizations; the processing adds their detected powers
-into total intensity. The simulated fold is then the average of NPol independent polarizations: an unpolarized pulsar has the same ρ in
-each, so baseline and pulse stay as they are, and the receiver noise, independent between the two, drops by NPol in variance — the
-same as a NPol times larger noise bandwidth, which is what the observer passes to <code>foldToTOA</code>. Unlike raising
-<code>'Bnoise'</code>, it also works with an RFI profile (whose bandwidth is fixed by the calibration run); the fluctuations RFI leaves
-are taken as independent between the polarizations too. NPol 1 (default) is the single stream of the voltage chain, bit for bit
-(<code>testSimulateFold</code> 13).</p>
+<ul>
+<li><var>f</var><sub>0</sub> = 173.6879 Hz (<var>P</var> 5.757452 ms); power-profile FWHM 0.141 ms = 0.0245 turns.</li>
+<li>NBin 512: 11.2 µs bins, FWHM/12.5, which is enough by <code>estimateTOA</code>'s resolution rule. 20 h × 128 channels in 60 s
+sub-ints is then about 1.3 GB of folds.</li>
+<li>ρ = −51.0 dB (worst case) or −47.4 dB (nominal), in the simulator's convention.</li>
+<li>Two polarizations: <code>'NPol', 2</code> (below), and the observer passes <code>Bnoise</code> × 2.</li>
+</ul></div>
+<p><b>Dual polarization</b> (<code>'NPol'</code>). The array receives two polarizations, and the processing adds their detected powers
+into total intensity. The simulated fold is then the average of NPol independent polarizations. An unpolarized pulsar has the same ρ in
+each, so the baseline and the pulse stay as they are. The receiver noise is independent between the polarizations, so its variance
+drops by a factor NPol. That is the same as an NPol times larger noise bandwidth, which is what the observer passes to
+<code>foldToTOA</code>.</p>
+<p>Unlike raising <code>'Bnoise'</code>, this also works with an RFI profile, whose bandwidth is fixed by the calibration run. The
+fluctuations that RFI leaves are taken as independent between the polarizations too. NPol 1 (the default) is the single stream of the
+voltage chain, bit for bit (<code>testSimulateFold</code> 13).</p>
 <pre><code>[info, fold, truth] = simulateFold(173.6879, -51, [], 'Passes', [0 4; 24 28]*3600, 'SubintTime', 60, 'NBin', 512, 'FWHM', 0.0245)</code></pre>
 
-<h2 id="scint">Scintillation (C3b)</h2>
-<p>The pulsar's flux fades and brightens through interstellar scintillation (<a href="physics.html#scint">physics</a>). Each sub-int and
-channel gets a true flux factor <var>F</var> that multiplies its pulse: either given (<code>'FluxScale'</code>, [nSub × 1] or [nSub × NChan]) or
-drawn (<code>'Scintillation'</code>, with the scintle bandwidth and time):</p>
+<h2 id="scint">Scintillation</h2>
+<p>The pulsar's flux fades and brightens through interstellar scintillation (<a href="physics.html#scint">physics</a>). So each sub-int
+and channel gets a true flux factor <var>F</var> that multiplies its pulse. <var>F</var> is either given (<code>'FluxScale'</code>,
+[nSub × 1] or [nSub × NChan]), or drawn (<code>'Scintillation'</code>, with the scintle bandwidth and time):</p>
 <ol>
 <li>White complex noise on a time × frequency grid (steps of a tenth of the scintle time; 64 or more points across the band and a frequency step of at most a quarter of the scintle bandwidth, padded).</li>
 <li>Smoothed with Gaussian kernels along both axes, so the field <var>g</var> has the right correlation lengths and unit mean power.</li>
 <li><var>F</var> = |<var>g</var>|²: exponential statistics, intensity correlation 1/e at the scintle time and ½ at the scintle bandwidth.</li>
-<li>Taken at each sub-int's mid time and averaged over each channel's frequencies (one channel = the band average). A channel's power integrates its whole width, so when the scintles are not much wider than a channel it fades less than a single frequency does: 2 MHz scintles in 3.125 MHz channels give a variance of 0.79, not 1 (<code>testSimulateFold</code> 11; until 20 Oct the grid had one point per channel at 128 channels, which missed this — it matters for B0329+54's ~7 MHz scintles at the 2 % level, more for narrower ones).</li>
+<li>Taken at each sub-int's mid time, and averaged over each channel's frequencies (with one channel: the band average). A channel's
+power integrates its whole width. So when the scintles are not much wider than a channel, the channel fades less than a single
+frequency does: 2 MHz scintles in 3.125 MHz channels give a variance of 0.79, not 1 (<code>testSimulateFold</code> 11). For B0329+54's
+~7 MHz scintles this matters at the 2 % level, and more for narrower ones.</li>
 </ol>
-<p><b>Switch:</b> off by default – without the option (or with <code>[]</code>) the output is bit for bit what it was before C3b, so
-every validation stays as it was. <code>pipelineParams</code> has <code>scintOn</code> (false), the J0437 values in <code>scint</code>, and
-<code>scintSim</code> to pass on (<code>[]</code> while off); the voltage chain ignores them.</p>
-<p>It has its own random stream, so the noise draws are the same with and without it. Sub-ints should be short against the scintle
-time (a warning above a fifth of it); long integrations are made by merging short sub-ints (C3c). J0437 at 1.4 GHz: <code>struct('bandwidth',
-740e6, 'timescale', 2290)</code>. The observer does not know <var>F</var>: its fit has one amplitude per sub-int (which absorbs the fade) and
-equal channel gains (so frequency structure costs it efficiency).</p>
+<p><b>Switch:</b> off by default. Without the option, or with <code>[]</code>, the output is bit for bit what it was before
+scintillation was added, so every validation stays as it was. <code>pipelineParams</code> has <code>scintOn</code> (false), the J0437
+values in <code>scint</code>, and <code>scintSim</code> to pass on (<code>[]</code> while off). The voltage chain ignores them.</p>
+<p>Scintillation has its own random stream, so the noise draws are the same with and without it. Sub-ints should be short compared
+with the scintle time; there is a warning above a fifth of it. Long integrations are made by merging short sub-ints
+(<a href="#adaptive">next section</a>). J0437 at 1.4 GHz is <code>struct('bandwidth', 740e6, 'timescale', 2290)</code>.</p>
+<p>The observer does not know <var>F</var>. Its fit has one amplitude per sub-int, which absorbs the fade. And it assumes equal channel
+gains, so structure across frequency costs it efficiency.</p>
+<details><summary>History</summary>
+<p>Observing schedule: step C3a; scintillation: step C3b; dual polarization; all 20 Oct 2026. Until 20 Oct the scintillation grid had
+one point per channel at 128 channels, which missed the averaging over a channel's width.</p></details>
 
-<h2 id="adaptive">Adaptive sub-int length (C3c, observer side)</h2>
-<p>With scintillation the SNR per sub-int changes by large factors from hour to hour, so no fixed sub-int length fits: too long when the pulsar
-is bright, too short when it is faint. Two observer-side functions, usable on real folds as well as simulated ones:</p>
+<h2 id="adaptive">Adaptive sub-int length (observer side)</h2>
+<p>With scintillation, the SNR per sub-int changes by large factors from hour to hour. So no fixed sub-int length fits: it is too long
+when the pulsar is bright, and too short when it is faint. Two observer-side functions solve this. They work on real folds as well as
+simulated ones:</p>
 <ol>
-<li><b><code>mergeSubints(fold, info_fold, group)</code></b> merges runs of consecutive sub-ints exactly: their sums and weights add (only the
-noise covariance across an internal boundary is missing, as in <code>foldProfile</code> itself; exact for independent time bins).</li>
-<li><b><code>adaptiveSubints(fold, info_fold, template, Bnoise)</code></b> walks through short sub-ints and adds them one at a time until the
-merged profile's matched-filter statistic T0 at the predicted phase reaches the target (default 7, the design rule), then starts a new group.
-By default it never merges across a gap between passes; what is left at the end of a pass is a last group below the target, for the
-good-TOA rule to judge. With <code>'AcrossGaps', true</code> (20 Oct) a group continues in the next pass — needed when one TOA takes longer
-than a pass (J0437 in the worst case: ~15 h against passes of 8–15 h). That assumes a phase model that stays coherent over the gap
-(motion and barycentric correction, block D); in the simulator the ephemeris is the truth, so it is exact there. With
-<code>'TargetSNR', Inf</code> and <code>'MaxSubints'</code> it forms fixed groups instead, for comparison.</li>
+<li><b><code>mergeSubints(fold, info_fold, group)</code></b> merges runs of consecutive sub-ints exactly: their sums and weights add.
+Only the noise covariance across an internal boundary is missing, as in <code>foldProfile</code> itself; with independent time bins it
+is exact.</li>
+<li><b><code>adaptiveSubints(fold, info_fold, template, Bnoise)</code></b> walks through short sub-ints and adds them one at a time. It
+stops when the merged profile's matched-filter statistic T0 at the predicted phase reaches the target: by default 7, the design rule.
+Then it starts a new group.<br>
+By default it never merges across a gap between passes. What is left at the end of a pass becomes a last group below the target, for
+the good-TOA rule to judge. With <code>'AcrossGaps', true</code> a group continues in the next pass. That is needed when one TOA takes
+longer than a pass: J0437 in the worst case needs about 15 h, against passes of 8–15 h. It assumes a phase model that stays coherent
+over the gap, which needs motion and the barycentric correction (block D). In the simulator the ephemeris is the truth, so it is exact
+there.<br>
+With <code>'TargetSNR', Inf</code> and <code>'MaxSubints'</code> it forms fixed groups instead, for comparison.</li>
 </ol>
 <div class="callout why"><span class="ttl">Does stopping at SNR 7 bias the TOAs?</span>
-<p>A group closes when its noise happens to push T0 up, so the closed groups' SNR is biased up a little. The arrival time is not: with a
-symmetric template the phase estimate is nearly independent of the amplitude. Checked: at −25 dB (SNR ~1.2 per turn) 109 groups of median
-36 turns give TOA pulls with mean +0.15 ± 0.10 and std 0.975; with 2 s scintles 147 groups of median 7 turns, mean −0.08, std 1.04, and the
-bright stretches close sooner than the faint ones (<code>testSimulateFold</code> 12). Across a gap (test 13): with two passes, a group
-spans the gap, only the last group stays incomplete (2 without), and its TOA lands 0.15σ from the truth.</p></div>
+<p>A group closes when its noise happens to push T0 up. So the SNR of the closed groups is biased up a little. The arrival time is
+not: with a symmetric template, the phase estimate is nearly independent of the amplitude.</p>
+<p>The check (<code>testSimulateFold</code> 12), at −25 dB (SNR ~1.2 per turn):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">groups</th><th class="num">median turns per group</th><th class="num">TOA pulls: mean</th><th class="num">TOA pulls: std</th></tr>
+<tr><td>no scintillation</td><td class="num">109</td><td class="num">36</td><td class="num">+0.15 ± 0.10</td><td class="num">0.975</td></tr>
+<tr><td>2 s scintles</td><td class="num">147</td><td class="num">7</td><td class="num">−0.08</td><td class="num">1.04</td></tr>
+</table></div>
+<p>With scintles, the bright stretches close sooner than the faint ones, as intended. Across a gap (test 13), with two passes: a group
+spans the gap, and only the last group stays incomplete (2 without <code>'AcrossGaps'</code>). Its TOA lands 0.15σ from the truth.</p></div>
+<details><summary>History</summary>
+<p>Adaptive sub-ints: step C3c; <code>'AcrossGaps'</code>: 20 Oct 2026.</p></details>
 
 <h2 id="rho">Which ρ</h2>
 <div class="callout warn"><span class="ttl">The simulator's ρ, not the scenario page's</span>
-<p><code>rhoDB</code> is the simulator's <code>snrDB</code>: the peak of the Gaussian pulse over the receiver noise, so a simulated fold at −20 dB
-compares one to one with a voltage-chain run at −20 dB. The <a href="scenario.html">reference scenario</a> defines ρ with a pulse width
-W<sub>eq</sub> = 2·W<sub>50</sub> as a margin, which makes its ρ 2.7 dB lower for the same pulsar (J0437 worst case: −53.7 dB there,
-−51.0 dB here). A conversion from catalogue flux and SEFD comes later, with the convention stated explicitly.</p></div>
+<p><code>rhoDB</code> is the simulator's <code>snrDB</code>: the peak of the Gaussian pulse over the receiver noise. So a simulated fold
+at −20 dB compares one to one with a voltage-chain run at −20 dB.</p>
+<p>The <a href="scenario.html">reference scenario</a> defines ρ differently. It uses a pulse width W<sub>eq</sub> = 2·W<sub>50</sub> as a
+margin, which makes its ρ 2.7 dB lower for the same pulsar. For J0437 in the worst case that is −53.7 dB there, and −51.0 dB here. A
+conversion from catalogue flux and SEFD comes later, with the convention stated explicitly.</p></div>
 
 <h2 id="valid">Validation against the voltage chain</h2>
 <!-- generated by docs/tools/figures/gen_simvschain.py -->
@@ -334,40 +391,48 @@ are within the chain's statistics; the two chain sweeps differ from each other b
 </figure>
 <div class="table-wrap"><table>
 <tr><th>Check</th><th>Voltage chain</th><th>simulateFold</th></tr>
-<tr><td>C2 full band, −5 dB: median σ, SNR</td><td>2.907 µs, 93.4</td><td>2.916 µs, 93.3</td></tr>
-<tr><td>C2 H0: T0 std, neighbour correlation</td><td>1.008 ± 0.024, 0.2484</td><td>0.9925 ± 0.010, 0.2491</td></tr>
-<tr><td>C4a channels −5 dB: σ, SNR, mean χ²<sub>red</sub>, <code>pChi2</code> &lt; 0.05</td><td>2.943 µs, 92.3, 1.0063, 20.5 %</td><td>2.943 µs, 92.3, 1.0069, 20.5 %</td></tr>
-<tr><td>C4a channels −15 dB: mean χ²<sub>red</sub>, <code>pChi2</code> mean</td><td>0.9987, 0.537</td><td>0.9991, 0.533</td></tr>
-<tr><td>C4b realistic RFI (0.1 s profile): SNR, σ, χ²<sub>red</sub></td><td>82.0, 3.317 µs, 1.063</td><td>82.8, 3.286 µs, 1.071</td></tr>
-<tr><td>C4b narrow Inmarsat carriers: SNR, σ, χ²<sub>red</sub></td><td>80.5, 3.382 µs, 1.223</td><td>81.2, 3.351 µs, 1.245</td></tr>
+<tr><td>Full band, −5 dB: median σ, SNR</td><td>2.907 µs, 93.4</td><td>2.916 µs, 93.3</td></tr>
+<tr><td>Full band, noise only: T0 std, neighbour correlation</td><td>1.008 ± 0.024, 0.2484</td><td>0.9925 ± 0.010, 0.2491</td></tr>
+<tr><td>Channels, −5 dB: σ, SNR, mean χ²<sub>red</sub>, <code>pChi2</code> &lt; 0.05</td><td>2.943 µs, 92.3, 1.0063, 20.5 %</td><td>2.943 µs, 92.3, 1.0069, 20.5 %</td></tr>
+<tr><td>Channels, −15 dB: mean χ²<sub>red</sub>, mean <code>pChi2</code></td><td>0.9987, 0.537</td><td>0.9991, 0.533</td></tr>
+<tr><td>Realistic RFI (0.1 s profile): SNR, σ, χ²<sub>red</sub></td><td>82.0, 3.317 µs, 1.063</td><td>82.8, 3.286 µs, 1.071</td></tr>
+<tr><td>Narrow Inmarsat carriers: SNR, σ, χ²<sub>red</sub></td><td>80.5, 3.382 µs, 1.223</td><td>81.2, 3.351 µs, 1.245</td></tr>
 </table></div>
-<p>With all channel gains set to 1 the channel path's χ² excess and <code>pChi2</code> skew vanish in the simulator (1.0001, 4.3 % below 0.05):
-the band-edge taper of item 3 is their whole cause. The simulator's SNR is ~0.5 % above the chain's in every RFI case, including noise
-only: at −5 dB the chain's excision also clips a few pulse peaks, which the simulator leaves out (irrelevant in the weak regime).</p>
+<p>Two details explain the small differences:</p>
+<ul>
+<li>With all channel gains set to 1, the channel path's χ² excess and <code>pChi2</code> skew vanish in the simulator: χ² 1.0001, and
+4.3 % below 0.05. So the band-edge taper (roadmap item 3) is their whole cause.</li>
+<li>The simulator's SNR is about 0.5 % above the chain's in every RFI case, including noise only. At −5 dB the chain's excision also
+clips a few pulse peaks, which the simulator leaves out. That is irrelevant in the weak regime.</li>
+</ul>
 
 <h2 id="why">Design choices</h2>
 <div class="callout why"><span class="ttl">Draw the fold, not the voltages</span>
-<p><b>Alternative:</b> a faster voltage simulator. <b>Why not:</b> even a perfect one makes ~61 GB per second; hours are out of reach. Everything
-after the fold depends on the voltages only through the fold's statistics, which are validated end to end – so drawing the fold loses
-nothing the observer could see, and keeps <code>foldToTOA</code> identical for simulated and real folds.</p></div>
-<div class="callout why"><span class="ttl">One channel first, channels second (Jasper, 20 Oct)</span>
-<p>In the weak regime the channel path's optimally weighted fit is the same estimator as the full band's, about 2 % less efficient
-(item 3). A single channel kept C1 simple and exactly checkable; the channels (C4a) came once that was validated.</p></div>
-<div class="callout why"><span class="ttl">RFI from a measured profile, not from formulas (Jasper, 20 Oct: option a)</span>
-<p><b>Alternative:</b> compute each channel's level and excess noise from the source list (INR, bandwidth, type). <b>Why not:</b> that needs a
-formula per RFI type (noise, carrier, BPSK, pulsed with excision), each an approximation to validate anyway. A short voltage run measures
-exactly what the real excision leaves. A 1 s run makes the per-channel noise ratios ~3× more precise than 0.1 s (±0.7 % instead of ±2 %).</p></div>
+<p><b>Alternative:</b> a faster voltage simulator.</p>
+<p><b>Why not:</b> even a perfect one makes about 61 GB per second, so hours are out of reach. Everything after the fold depends on the
+voltages only through the fold's statistics, and those are validated end to end. So drawing the fold loses nothing the observer could
+see. It also keeps <code>foldToTOA</code> identical for simulated and real folds.</p></div>
+<div class="callout why"><span class="ttl">One channel first, channels second</span>
+<p>In the weak regime, the channel path's optimally weighted fit is the same estimator as the full band's, and only about 2 % less
+efficient (roadmap item 3). A single channel kept the first version simple and exactly checkable. The channels came once that was
+validated. (Jasper's decision, 20 Oct 2026.)</p></div>
+<div class="callout why"><span class="ttl">RFI from a measured profile, not from formulas</span>
+<p><b>Alternative:</b> compute each channel's level and excess noise from the source list (INR, bandwidth, type).</p>
+<p><b>Why not:</b> that needs a formula per RFI type (noise, carrier, BPSK, pulsed with excision), and each formula is an approximation
+that has to be validated anyway. A short voltage run measures exactly what the real excision leaves. A 1 s run makes the per-channel
+noise ratios about 3× more precise than 0.1 s: ±0.7 % instead of ±2 %. (Jasper's decision, 20 Oct 2026: option a.)</p></div>
 <div class="callout why"><span class="ttl">The fold carries the observer's model; the noise follows the truth</span>
-<p>With RFI, the stored <code>weight2</code>/<code>weightX</code> are what the observer would compute (the clean coefficients), while the drawn
-noise uses the measured ones. Otherwise the simulation would hide exactly the error-bar mistakes it should show.</p></div>
+<p>With RFI, the stored <code>weight2</code> and <code>weightX</code> are what the observer would compute, from the clean coefficients.
+The drawn noise uses the measured ones. Otherwise the simulation would hide exactly the error-bar mistakes it should show.</p></div>
 
 <h2 id="limits">Not (yet) in the simulator</h2>
 <ul>
-<li><b>Time structure</b> still to come: the time variation of rotating radars (C3d), refractive (slow) scintillation.</li>
+<li><b>Time structure</b> still to come: the time variation of rotating radars (roadmap item C3d), and refractive (slow)
+scintillation.</li>
 <li><b>Motion</b> (block D): the true phase drifting against the ephemeris within a sub-int (the hook is <code>'PhaseOffset'</code> per sub-int).</li>
 <li><b>Excision of bright pulses</b> (the chain clips pulse peaks above ~−5 dB) and RFI locked to the pulsar's period.</li>
-<li><b>Memory:</b> 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array; for hours, channels with identical statistics will be merged
-into effective channels.</li>
+<li><b>Memory:</b> 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array. For hours of data, channels with identical
+statistics will be merged into effective channels.</li>
 <li>Sub-ints are independent (as <code>foldProfile</code>, which does not store the covariance across sub-int boundaries).</li>
 </ul>
 
