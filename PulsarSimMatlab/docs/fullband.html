@@ -12,8 +12,8 @@
 <h1>Stages 5–6 · Full-band front end</h1>
 <p class="lede">The original processing path. One coherent dedispersion filter over the whole 400 MHz band, then square-law
 detection into 1 µs bins. It is simple and exact, and it is the validated reference the channelized path is compared against.</p>
-<p class="meta">Selected with <code>frontEnd = 'fullband'</code> in <code>pipelineParams.m</code>. The default since 8 Oct 2026 is
-<code>'channels'</code> (<a href="channels.html">channelized front end</a>).</p>
+<p class="meta">Selected with <code>frontEnd = 'fullband'</code> in <code>pipelineParams.m</code> · the default is <code>'channels'</code>
+(<a href="channels.html">channelized front end</a>)</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#dedisp"><code>applyInverseDispersion</code></a>: <a href="#dedisp-short">in short</a> · <a href="#dedisp-phys">physics</a> ·
@@ -31,9 +31,15 @@ detection into 1 µs bins. It is simple and exact, and it is the validated refer
 every frequency comes out at the time it would have at 1.6 GHz. It uses only the catalogue DM and the receiver settings.</p>
 
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
-<p>The numbers in this section (figures, FFT sizes, the measured run times) were worked out at DM 5, the default until 20 Oct 2026.
-At today's DM 25 the sweep is 31.51 ms instead of 6.3 ms, so the filter reaches 31.5 ms into the future, the last 31.5 ms of a file are not
-fully supported (a 0.2 s file keeps 16 complete turns), and the smallest full-band FFT the sizing rule allows is 2²⁶ points (3.8 GB). The method is the same.</p></div>
+<p>The figures, FFT sizes and run times in this section are worked out at DM 5, where the figures are easier to read. The default
+DM is 25. The method is the same.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>DM 5 (this section)</th><th>DM 25 (default)</th></tr>
+<tr><td>Sweep, and how far the filter reaches into the future</td><td>6.3 ms</td><td>31.51 ms</td></tr>
+<tr><td>Not fully supported at the end of a file</td><td>the last 6.3 ms</td><td>the last 31.5 ms (a 0.2 s file keeps 16 complete turns)</td></tr>
+</table></div>
+<p>At DM 25 the smallest full-band FFT that the sizing rule allows is 2²⁶ points (3.8 GB). (DM 5 was the default until
+20 Oct 2026.)</p></div>
 
 <h3 id="dedisp-phys">The physics</h3>
 <p>For every FFT bin, with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band, the filter is</p>
@@ -215,7 +221,7 @@ Original 1 s run at 500 MHz: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s. For 
 </ul>
 </details>
 
-<h3 id="refoutside"><code>AllowRefOutsideBand</code> (6 Oct 2026)</h3>
+<h3 id="refoutside"><code>AllowRefOutsideBand</code></h3>
 <p>Added for the channelized front end, so that every 3.125 MHz channel can be referenced to the top of the <em>whole</em> band.</p>
 <ul>
 <li>Default false: <var>f</var><sub>ref</sub> must lie in [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]. True: any <var>f</var><sub>ref</sub> &gt; 0.</li>
@@ -224,14 +230,17 @@ Original 1 s run at 500 MHz: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s. For 
 <li><code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. Regression: the full-band
 path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</li>
 </ul>
+<details><summary>History</summary>
+<p><code>AllowRefOutsideBand</code> was added on 6 Oct 2026, for the channelized front end.</p></details>
 
 <h3 id="dedisp-why">Design choices</h3>
 
 <div class="callout why"><span class="ttl">Coherent dedispersion of the voltage, not shifting sub-bands</span>
 <p><b>Alternative:</b> incoherent dedispersion: split the band into channels, detect each, and shift each channel by its delay.</p>
-<p><b>Why not:</b> the delay also changes inside each channel, so a shift leaves a smear: 372 µs in a 3.125 MHz channel at DM 25 (75 µs at DM 5), 1.5 ms
-at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse. Filtering the voltage removes the sweep at every frequency,
-with no smear at all. This is why the channel path also dedisperses each channel coherently.</p></div>
+<p><b>Why not:</b> the delay also changes inside each channel, so a shift leaves a smear. In a 3.125 MHz channel at the bottom of the
+band the smear is 372 µs at DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse.
+Filtering the voltage removes the sweep at every frequency, with no smear at all. This is why the channel path also dedisperses each
+channel coherently.</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Smear left inside one channel by incoherent dedispersion, against channel width, for DM 25 and DM 100">
   <path class="axis" d="M90 290 H610"/>
@@ -289,8 +298,8 @@ channels. Filtering the voltage with the inverse chirp, as <code>applyInverseDis
 <div class="callout why"><span class="ttl">The same constant, DM, reference and taper as the forward stage</span>
 <p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a constant
 shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>). That is harmless for relative timing, but it changes what a TOA means.
-The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check work. (That
-the simulation and the observer share one <code>refFreq</code> is noted as D2 on the <a href="roadmap.html">roadmap</a>.)</p></div>
+The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check work.</p>
+<p>The simulation and the observer share one <code>refFreq</code>; that is noted on the roadmap (<a href="roadmap.html">item D2</a>).</p></div>
 
 <div class="callout why"><span class="ttl">Overlap-save here, overlap-add in the forward stage</span>
 <p>Both are exact. Overlap-save suits a filter with a very lopsided, non-causal reach (6.3 ms into the future, a few µs into the past):
@@ -405,8 +414,8 @@ phase is gone.</p></div>
 <div class="callout why"><span class="ttl">Average <em>every</em> sample into the bin (integrate and dump)</span>
 <p><b>Alternative:</b> keep one squared sample per bin, as a simple power detector followed by a slow ADC would.</p>
 <p><b>Why not:</b> that throws away most of the data, and its SNR then grows with <var>f</var><sub>out</sub>. Averaging all samples reaches the
-radiometer limit at any <var>f</var><sub>out</sub>: the information is set by bandwidth × time, not by the bin rate (shown 9 Oct, see
-<code>tests/expSamplingRate.m</code>). This also matters for the small-antenna hardware: integrate before decimating.</p></div>
+radiometer limit at any <var>f</var><sub>out</sub>: the information is set by bandwidth × time, not by the bin rate
+(<code>tests/expSamplingRate.m</code> shows this). It also matters for the small-antenna hardware: integrate before decimating.</p></div>
 
 <div class="callout why"><span class="ttl">1 µs bins (<var>f</var><sub>out</sub> = 1 MHz)</span>
 <p>Because every bin averages all its samples, a finer bin does not add sensitivity; <var>f</var><sub>out</sub> is a resolution and
@@ -415,8 +424,8 @@ cost knob. Two limits set it:</p>
 <li>bins must be much finer than the pulse, below about W/5 = 100 µs, or the error bars become too small (figure);</li>
 <li>with <code>NBin</code> = 2048 and one turn per sub-int, every phase bin needs data: bins of at most 4.9 µs.</li>
 </ul>
-<p>1 µs is far inside both, and still collapses the data rate 800-fold. A 9 Oct trial with 10 µs bins and 2048 phase bins gave no TOAs at
-all; the fold now warns about that (<code>foldProfile:coverage</code>).</p></div>
+<p>1 µs is far inside both, and still collapses the data rate 800-fold. A trial with 10 µs bins and 2048 phase bins gave no TOAs at
+all. The fold now warns about that (<code>foldProfile:coverage</code>).</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Measured SNR and error-bar honesty against detected bin width: flat for fine bins, worse for bins coarser than a fifth of the pulse">
   <path class="axis" d="M80 236 H410"/>
@@ -482,7 +491,7 @@ all; the fold now warns about that (<code>foldProfile:coverage</code>).</p></div
   <text class="sub" x="602.9" y="99.1">in one turn</text>
   <text class="sub" x="768.1" y="71.7">2× too small</text>
 </svg>
-<figcaption>The <var>f</var><sub>out</sub> sweep of 9 Oct (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
+<figcaption>The <var>f</var><sub>out</sub> sweep (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
 <var>f</var><sub>out</sub>; <code>logs/2026-10-09_fout-study.md</code>). a: once a bin is finer than about a fifth of the pulse (W/5 = 100 µs),
 finer bins add no sensitivity: every bin averages <em>all</em> its samples, so the noise in a sum of bins does not change. b: coarse
 bins also smear the pulse, which the template does not know about, so the error bars become too small. The second dashed line is the
@@ -503,8 +512,8 @@ it carries through to the TOA.</p></div>
 
 <h3 id="detect-valid">Validation</h3>
 <ul>
-<li>Noise-free, <var>L</var> = 1 s: the normalized residual of 127,512 on-pulse bins has mean −0.0016 and std 1.0015 (expected 0 ± 0.0028
-and 1 ± 0.0020); per-pulse centroid offsets rms 0.301 µs against 0.277 µs expected.</li>
+<li>Noise-free, <var>L</var> = 1 s. The normalized residual of 127,512 on-pulse bins has mean −0.0016 (expected 0 ± 0.0028) and
+standard deviation 1.0015 (expected 1 ± 0.0020). The per-pulse centroid offsets have an rms of 0.301 µs, against 0.277 µs expected.</li>
 <li>−5 dB: noise baseline 1.232 against 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
 <li>Run time 1.2 s per second of data (limited by reading the file).</li>
 </ul>
