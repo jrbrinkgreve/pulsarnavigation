@@ -285,10 +285,15 @@ number for this pulsar.</figcaption>
 <tr><td>−5</td><td class="num">97.9</td><td colspan="2"></td><td class="num">2.85 µs</td></tr>
 </table></div>
 <div class="callout warn"><span class="ttl">The printed prediction is ~1.5 % optimistic</span>
-<p>It assumes a flat band. The real band tapers pass fewer independent samples (effective <var>B</var> 388.4 MHz), so the exact
-optimum is slightly worse: 3.79 per pulse and 79.0 µs at −20 dB; 96.5 and 2.892 µs at −5 dB. The exact numbers come from
-<a href="validation.html#epm"><code>expectedPowerModel</code></a> and are printed by <code>main.m</code>. The quick version stays because
-it needs nothing but the parameters, so you can choose <code>snrDB</code> before anything runs.</p></div>
+<p>It assumes a flat band. The real band tapers pass fewer independent samples (an effective <var>B</var> of 388.4 MHz), so the
+exact optimum is slightly worse:</p>
+<div class="table-wrap"><table>
+<tr><th>snrDB</th><th>SNR per pulse: printed / exact</th><th>best TOA error per pulse: printed / exact</th></tr>
+<tr><td>−20</td><td class="num">3.85 / 3.79</td><td class="num">77.8 / 79.0 µs</td></tr>
+<tr><td>−5</td><td class="num">97.9 / 96.5</td><td class="num">2.85 / 2.892 µs</td></tr>
+</table></div>
+<p>The exact numbers come from <a href="validation.html#epm"><code>expectedPowerModel</code></a>, and <code>main.m</code> prints them.
+The quick version stays because it needs nothing but the parameters. So you can choose <code>snrDB</code> before anything runs.</p></div>
 
 <h3 id="noise-how">How it works</h3>
 <ol>
@@ -321,7 +326,7 @@ the receiver-noise power in the band. 0 dB means as much power as the whole in-b
 <tr><th>Type</th><th>Models</th><th>Parameters</th><th>In time and frequency</th></tr>
 <tr><td><code>'cw'</code></td><td>a carrier</td><td><code>Freq</code>, <code>Drift</code> [Hz/s], <code>Phase</code></td><td>continuous, one frequency</td></tr>
 <tr><td><code>'bpsk'</code></td><td>GNSS-like spread spectrum: random ±1 rectangular chips</td><td><code>Freq</code>, <code>ChipRate</code></td><td>continuous, ± chip rate wide</td></tr>
-<tr><td><code>'noise'</code></td><td>band-limited Gaussian noise: an LTE / OFDM downlink (B5d)</td><td><code>Freq</code> (centre), <code>Bandwidth</code></td><td>continuous, a block of band</td></tr>
+<tr><td><code>'noise'</code></td><td>band-limited Gaussian noise: an LTE / OFDM downlink</td><td><code>Freq</code> (centre), <code>Bandwidth</code></td><td>continuous, a block of band</td></tr>
 <tr><td><code>'pulsed'</code></td><td>a radar: pulses with an optional linear chirp</td><td><code>Freq</code>, <code>PulseWidth</code>, <code>PRF</code>, <code>ChirpBW</code>, <code>StartTime</code> (a phase: pulses at <code>StartTime</code> + <var>k</var>/PRF for every integer <var>k</var>, also before it), <code>RiseTime</code> (default 0.1 µs)</td><td>intermittent, narrow</td></tr>
 <tr><td><code>'impulse'</code></td><td>broadband white bursts at Poisson times</td><td><code>Rate</code>, <code>Duration</code></td><td>intermittent, every frequency</td></tr>
 </table></div>
@@ -427,7 +432,7 @@ and look like extra noise in their channels; red ones are short and strong, whic
 <a href="excision.html">RFI excision</a>).</figcaption>
 </figure>
 
-<h4 id="risetime">Radar edges: <code>RiseTime</code> (B5a, 8 Oct)</h4>
+<h4 id="risetime">Radar edges: <code>RiseTime</code></h4>
 <p>A real transmitter ramps its pulse up and down. Here the envelope rises and falls as a raised cosine lasting <code>RiseTime</code>,
 centred on the nominal edges. So <code>PulseWidth</code> is still the width between the 50 % points (the radar definition), and the
 energy is (<code>PulseWidth</code> − <code>RiseTime</code>/4) × the power while on.</p>
@@ -436,10 +441,13 @@ energy is (<code>PulseWidth</code> − <code>RiseTime</code>/4) × the power whi
 channels, too weak per channel to be detected. With raised-cosine edges it falls as 1/<var>f</var>⁶ beyond ~1/(2·<code>RiseTime</code>)
 = 5 MHz (figure below, a). That difference decides how much radar energy survives excision (see <a href="excision.html#locked">locked
 radar</a>).</p>
-<p>The default 0.1 µs is an assumed realistic value for a solid-state L-band surveillance radar (Jasper's choice; to be checked against
-ITU emission masks). <code>RiseTime</code> = 0 reproduces the pre-8-Oct output bit for bit.</p></div>
+<p>The default of 0.1 µs is an assumed realistic value for a solid-state L-band surveillance radar. It is still to be checked against
+ITU emission masks. <code>RiseTime</code> = 0 gives instant edges, and reproduces the output from before edges were modelled, bit for
+bit.</p></div>
+<details><summary>History</summary>
+<p>Radar edges: step B5a, 8 Oct 2026. The 0.1 µs default is Jasper's choice.</p></details>
 
-<h4 id="rotation">Rotating antenna (B5c-1, 8 Oct) <span class="badge validated">validated</span></h4>
+<h4 id="rotation">Rotating antenna <span class="badge validated">validated</span></h4>
 <p>Any source can have a rotating antenna (<code>ScanPeriod</code>, <code>BeamTime</code>, <code>BeamWidth</code>, <code>SidelobeDB</code>). A
 surveillance radar's antenna turns at 5–6 rpm, a scan of 10–12 s. Its main beam points at us once per scan; the rest of the time only
 its sidelobes do. The source's power is multiplied by the antenna gain towards us at time <var>t</var>:</p>
@@ -527,11 +535,17 @@ us, which puts its pulses close to the noise in their channels.</figcaption>
 <p>Most of the time a surveillance radar reaches us only through its sidelobes, 25–35 dB weaker. Its pulses are then close to the noise in
 their channels, and per-pulse detection starts to miss them. Those missed pulses, not the bright main-beam passage, turn out to dominate
 what a rotating radar leaves behind (see <a href="excision.html#rotating">excision: rotating radar</a>).</p></div>
-<p><b>Test</b> (<code>tests/testRfiGating.m</code>, ~10 s): no rotation = the pre-B5a reference bit for bit; invalid rotations are refused;
-radar pulses and a carrier through two beam passages (toy scan 1 ms, beam 100 µs, −25 dB floor): energy with / without rotation =
-<var>g</var> averaged over each pulse, to 10⁻⁵.</p>
+<p><b>Test</b> (<code>tests/testRfiGating.m</code>, ~10 s). The rotation scales each pulse's energy exactly as the antenna gain says:</p>
+<ul>
+<li>without rotation, the output equals the older reference (from before radar edges were added) bit for bit;</li>
+<li>invalid rotation settings are refused;</li>
+<li>radar pulses and a carrier pass through two beam passages (toy scan 1 ms, beam 100 µs, −25 dB floor). The energy with rotation,
+divided by the energy without, equals <var>g</var> averaged over each pulse, to 10⁻⁵.</li>
+</ul>
+<details><summary>History</summary>
+<p>Rotating antenna: step B5c-1, 8 Oct 2026.</p></details>
 
-<h4 id="noisetype">Band-limited Gaussian noise: <code>'noise'</code> (B5d, 8 Oct) <span class="badge validated">validated 9 Oct</span></h4>
+<h4 id="noisetype">Band-limited Gaussian noise: <code>'noise'</code> <span class="badge validated">validated</span></h4>
 <p>An LTE downlink is OFDM: hundreds of subcarriers carrying random data. By the central limit theorem its voltage is Gaussian, so it
 looks like extra receiver noise with a raised level in its band. The <code>'noise'</code> type makes exactly that: white Gaussian noise
 through a Kaiser band-pass centred on <code>Freq</code> (−6 dB at <code>Freq</code> ± <code>Bandwidth</code>/2, transition 5 % of the
@@ -539,15 +553,26 @@ bandwidth, 60 dB stopband).</p>
 <details><summary>How it stays exact and block-size independent</summary>
 <p>The white noise comes from counter-based random substreams indexed by absolute sample, also before the first sample, and the filter
 overlaps the block edges, so the result does not depend on the block size. Its power is set from the filter's own Σ<var>h</var>², so the
-INR is exact. The filtering runs at the full RF rate (a 2 MHz source needs ~1.4·10⁵ taps, a 200 kHz carrier ~1.4·10⁶), so each source's
-filter spectrum is computed once and kept for all full blocks (13 Oct 2026, bit-identical; 67–134 MB of memory per source).</p>
+INR is exact.</p>
+<p>The filtering runs at the full RF rate, so the filters are long: a 2 MHz source needs ~1.4·10⁵ taps, a 200 kHz carrier ~1.4·10⁶.
+Each source's filter spectrum is therefore computed once and kept for all full blocks. This costs 67–134 MB of memory per source.</p>
 </details>
 <div class="callout why"><span class="ttl">What it shows</span>
 <p>No power or kurtosis test can find Gaussian RFI. Its only signature is the higher level in its channels, which the optimal TOA fit
 already handles (weights 1/level²). In <code>runRFITest</code> (20 MHz at 1472 MHz) it costs 2–3 % SNR and is not flagged. But the two
 channels that the band only partly covers break the flat-spectrum assumption (see <a href="excision.html#limits">excision limits</a>).</p></div>
-<p><b>Test</b> (<code>tests/testRfiNoise.m</code>, ~5 s): other types = the pre-B5a reference bit for bit; an odd block size = one block bit
-for bit; power 0.9945 of INR × the in-band noise (σ 0.0045); flat in band, out of band ≤ 2·10⁻⁷; kurtosis 3.004 (σ 0.016).</p>
+<p><b>Test</b> (<code>tests/testRfiNoise.m</code>, ~5 s). The source has the right power, the right band and Gaussian statistics, and it
+changes nothing else:</p>
+<ul>
+<li>the other RFI types still give the older reference (from before radar edges were added) bit for bit;</li>
+<li>an odd block size gives the same output as one single block, bit for bit;</li>
+<li>the power is 0.9945 of INR × the in-band noise (σ 0.0045);</li>
+<li>the spectrum is flat in band, and ≤ 2·10⁻⁷ out of band;</li>
+<li>the kurtosis is 3.004 (σ 0.016), as for Gaussian noise (3).</li>
+</ul>
+<details><summary>History</summary>
+<p>The <code>'noise'</code> type: step B5d, 8 Oct 2026, validated 9 Oct. Filter spectra kept per source since 13 Oct 2026
+(bit-identical).</p></details>
 
 <h4>The illustrative scenario (default)</h4>
 <p>In <code>pipelineParams.m</code>: <code>rfiOn</code> switches it on, <code>rfiSelect</code> picks sources by index ([] = all).</p>
@@ -567,7 +592,7 @@ bias the TOAs. That hazard is tested separately and on purpose (<code>runLockedR
 unrepresentative special case.</li>
 </ul></div>
 
-<h4 id="realistic">The realistic scenario (B5e, 9 Oct) <span class="badge validated">validated 12 Oct (rerun)</span></h4>
+<h4 id="realistic">The realistic scenario <span class="badge validated">validated</span></h4>
 <p>A second list, <code>rfiRealistic</code>, chosen with <code>rfiList = 'realistic'</code>. It models the radio environment of the
 reference hardware: a 3×3 array, <var>T</var><sub>sys</sub> ≈ 70 K, a ground station.</p>
 <ul>
@@ -579,15 +604,26 @@ estimates (±10 dB).</li>
 <div class="table-wrap"><table>
 <tr><th>Source</th><th>Type</th><th>Parameters</th><th>INR</th></tr>
 <tr><td>GNSS L1 band (~30 satellites)</td><td>noise</td><td>1575.42 MHz, 2.046 MHz (many satellites add up to Gaussian noise)</td><td>−14 dB</td></tr>
-<tr><td>BeiDou B1I · Galileo E6 · BeiDou B3I · GLONASS G2 · GPS L2</td><td>bpsk</td><td>1561.098 · 1278.75 · 1268.52 · 1246 · 1227.60 MHz</td><td>−23 · −17 · −23 · −29 · −22 dB</td></tr>
+<tr><td>BeiDou B1I</td><td>bpsk</td><td>1561.098 MHz</td><td>−23 dB</td></tr>
+<tr><td>Galileo E6</td><td>bpsk</td><td>1278.75 MHz</td><td>−17 dB</td></tr>
+<tr><td>BeiDou B3I</td><td>bpsk</td><td>1268.52 MHz</td><td>−23 dB</td></tr>
+<tr><td>GLONASS G2</td><td>bpsk</td><td>1246 MHz</td><td>−29 dB</td></tr>
+<tr><td>GPS L2</td><td>bpsk</td><td>1227.60 MHz</td><td>−22 dB</td></tr>
 <tr><td>En-route radar, beam passage</td><td>pulsed</td><td>1332.9 MHz, 2 µs, PRF 973 Hz, 10 s scan, 1.4° beam centred in the file, sidelobes −30 dB</td><td>+40 dB main beam</td></tr>
 <tr><td>Radar 2, sidelobes only</td><td>pulsed</td><td>1257.3 MHz, 2 µs, PRF 351 Hz, 12 s scan (beam far away), sidelobes −35 dB</td><td>+20 dB main beam</td></tr>
-<tr><td>LTE band 32, three operators</td><td>noise</td><td>1459.5 · 1472 · 1484.5 MHz, 13.5 · 9 · 13.5 MHz occupied</td><td>0 · −6 · −3 dB</td></tr>
-<tr><td>Inmarsat downlink, three blocks</td><td>noise</td><td>1528.0 · 1541.4 · 1550.5 MHz, 4 · 6.4 · 2.8 MHz</td><td>−17 · −20 · −23 dB</td></tr>
-<tr><td>Broadband impulses · local spurious carrier</td><td>impulse · cw</td><td>200 ns, 50 per second · 1388.9 MHz</td><td>+20 · −15 dB</td></tr>
+<tr><td>LTE band 32, operator 1</td><td>noise</td><td>1459.5 MHz, 13.5 MHz occupied</td><td>0 dB</td></tr>
+<tr><td>LTE band 32, operator 2</td><td>noise</td><td>1472 MHz, 9 MHz occupied</td><td>−6 dB</td></tr>
+<tr><td>LTE band 32, operator 3</td><td>noise</td><td>1484.5 MHz, 13.5 MHz occupied</td><td>−3 dB</td></tr>
+<tr><td>Inmarsat downlink, block 1</td><td>noise</td><td>1528.0 MHz, 4 MHz</td><td>−17 dB</td></tr>
+<tr><td>Inmarsat downlink, block 2</td><td>noise</td><td>1541.4 MHz, 6.4 MHz</td><td>−20 dB</td></tr>
+<tr><td>Inmarsat downlink, block 3</td><td>noise</td><td>1550.5 MHz, 2.8 MHz</td><td>−23 dB</td></tr>
+<tr><td>Broadband impulses</td><td>impulse</td><td>200 ns, 50 per second</td><td>+20 dB</td></tr>
+<tr><td>Local spurious carrier</td><td>cw</td><td>1388.9 MHz</td><td>−15 dB</td></tr>
 </table></div>
-<p>Radar 1 at +40 dB is a radar some tens of km away with terrain in between; a nearby radar is much stronger and would clip a real
-ADC (not modelled). Results: <a href="results.html#b5e">results</a>.</p>
+<p>Radar 1 at +40 dB is a radar some tens of km away, with terrain in between. A nearby radar is much stronger, and would clip a real
+ADC; that is not modelled. Results: <a href="results.html#b5e">results</a>.</p>
+<details><summary>History</summary>
+<p>The realistic scenario: step B5e, 9 Oct 2026; validated by a rerun on 12 Oct.</p></details>
 
 <h3 id="noise-why">Design choices</h3>
 <p>Why this stage is built this way. The reasons for individual RFI features (edges, rotation, the <code>'noise'</code> type, the two
@@ -626,13 +662,13 @@ phases come from the absolute sample index. So a change of block size, for examp
 <a href="conventions.html#rng">conventions §6</a>).</p></div>
 
 <div class="callout why"><span class="ttl">Two RFI lists; the illustrative one is the default</span>
-<p>The illustrative list has a few sources of different kinds at round levels: good for testing each kind on its own. The realistic list
-(9 Oct) estimates what the reference hardware would actually see. The illustrative list stayed the default so that <code>main.m</code>
-and all tests stayed unchanged (Jasper, 9 Oct).</p></div>
+<p>The illustrative list has a few sources of different kinds at round levels. That makes it good for testing each kind on its own.
+The realistic list estimates what the reference hardware would actually see. The illustrative list stayed the default, so that
+<code>main.m</code> and all tests stayed unchanged (Jasper's decision, 9 Oct 2026).</p></div>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
-<dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. No lower SNR limit: the noise dithers the float32 rounding, so even a pulse far below single-precision resolution survives on average (the old warning below −60 dB was removed 13 Oct 2026).</dd>
+<dt>Options</dt><dd><code>Band</code>, <code>SNRdB</code>, <code>SignalInfo</code> (info_gen) or <code>SignalAmp</code>, <code>NoiseStd</code> (alternative to SNRdB), <code>RFI</code>, <code>Seed</code> (default 1; main passes <code>noiseSeed</code>), <code>BlockSize</code>, <code>SaveInfo</code>, <code>Verbose</code>. There is no lower SNR limit: the noise dithers the float32 rounding, so even a pulse far below single-precision resolution survives on average. (An older warning below −60 dB was removed.)</dd>
 <dt>Info</dt><dd>noiseStd, noisePSD, noisePowerBand, snrDB, snrDefinition, noiseAddedAt, rfi (with computed amplitudes and parameters), prediction, seed</dd>
 </dl>
 
@@ -640,10 +676,10 @@ and all tests stayed unchanged (Jasper, 9 Oct).</p></div>
 <ul>
 <li>Noise: the −5 dB reference run (noise seed 43) and a Monte Carlo over 10 noise seeds: noise baseline 1.232 measured vs 1.233
 predicted; error bars honest (<a href="results.html#mc">validation record</a>).</li>
-<li>All five RFI types observed and checked on 5 Oct 2026 (<a href="results.html#rfi5oct">RFI test</a>); the radar edges by
-<code>tests/testRadarEdges.m</code> (B5a); rotation and the <code>'noise'</code> type by their tests above.</li>
-<li>No unit test of the noise level and the INR of each type against their formulas yet; noted as N1 on the
-<a href="roadmap.html">roadmap</a>.</li>
+<li>All five RFI types were observed and checked in the <a href="results.html#rfi5oct">RFI test</a> of 5 Oct 2026. The radar edges
+are checked by <code>tests/testRadarEdges.m</code>, and rotation and the <code>'noise'</code> type by their tests above.</li>
+<li>There is no unit test yet of the noise level and of each type's INR against their formulas. It is noted on the roadmap
+(<a href="roadmap.html">item N1</a>).</li>
 </ul>
 <div class="callout warn"><span class="ttl">Known simplifications</span>
 <ul>
@@ -853,13 +889,13 @@ filtering and decimating streams with bounded memory, like every other stage. It
 explicit: the LO phase, the filter delay and the sample grid. Those must be right for TOAs at the nanosecond level; an unremoved filter
 delay of 256 ns was once a real bug (<a href="lessons.html">#5</a>).</p></div>
 
-<div class="callout why" id="lo"><span class="ttl">The LO at 1.3 GHz, not in the middle of the band (Jasper, 1 Oct)</span>
+<div class="callout why" id="lo"><span class="ttl">The LO at 1.3 GHz, not in the middle of the band</span>
 <p>With <var>f</var><sub>LO</sub> = 1.4 GHz (the band centre), 1.2–1.6 GHz maps to −200…+200 MHz, and its mirror image is the same
 interval. A sign error in the mapping (I and Q swapped, or a conjugated stream) would then be invisible: power, bandwidth and filter
 checks all pass. Worse, if both this stage and dedispersion had the sign flipped, the simulation would be self-consistent, and only real
 hardware would expose it.</p>
 <p>With <var>f</var><sub>LO</sub> = 1.3 GHz the band sits at −100…+300 MHz and its mirror at −300…+100 MHz. A mirrored mapping would put
-half the band outside the dedispersion filter and fail visibly.</p></div>
+half the band outside the dedispersion filter and fail visibly. (Jasper's choice, 1 Oct 2026.)</p></div>
 
 <div class="callout why"><span class="ttl">800 MHz output (keep every 5th sample)</span>
 <p>The off-centre band reaches +300 MHz, which must lie in the flat part of the low-pass, below the output Nyquist frequency
