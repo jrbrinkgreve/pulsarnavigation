@@ -275,8 +275,8 @@ navigation filter; the 100-day runs in the background; the docs keep their DM-5 
 about 1 %.</li>
 <li><b>Block D started:</b> its design agreed, and D1 (where the receiver is, the delays to the barycentre) and D2 (the predicted phase,
 the fold that follows it) built and tested (<a href="motion.html">block D</a>). The clock was added to the plan after it had been
-left out. The first part of D3 followed: the true arrival of each pulse against the observer's prediction, checked end to end through
-the fold.</li>
+left out. Two parts of D3 followed: the true arrival of each pulse against the observer's prediction, checked end to end through the
+fold, and the receiver's clock with white, flicker and random-walk frequency noise.</li>
 <li>The pipeline overview now shows the fast simulator and the motion prediction around the voltage chain.</li>
 <li>These docs rewritten for readability (Jasper: the text was "compact and comprehensive, but very hard to comprehend").</li>
 </ul>
@@ -359,6 +359,7 @@ agreed.</p>
 <tr><td>21 Oct</td><td>Block D: a phase predictor fed by a trajectory (Jasper)</td><td>The end goal is sensor fusion on a ship or a probe: a Kalman-like motion predictor plugs in through the trajectory, and the fold stays simple.</td></tr>
 <tr><td>21 Oct</td><td>Block D's first result: B0329+54's 2-D equatorial site offset (Jasper)</td><td>One pulsar sees the two equatorial components through the Earth's rotation; the polar one merges with the clock.</td></tr>
 <tr><td>21 Oct</td><td>The clock into block D (Jasper)</td><td>Clock offset, rate and wander shift every TOA directly; they had been left out of the plans.</td></tr>
+<tr><td>21 Oct</td><td>The clock model with flicker noise, drawn by FFT; the paper's crystal as the only preset (Jasper)</td><td>Flicker is 42 % of a crystal's time-error variance after 200 s. The planned receiver is a commercial SDR, whose noise is not published and is best measured on the device.</td></tr>
 <tr><td>21 Oct</td><td>The docs keep their DM-5 worked examples (Jasper)</td><td>Visual clarity: at DM 25 a sweep spans three periods.</td></tr>
 <tr><td>21 Oct</td><td>Docs rewritten for readability (Jasper)</td><td>The pages were "compact and comprehensive, but very hard to comprehend".</td></tr>
 </table></div>

@@ -18,8 +18,8 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all twenty-one in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
-can never change what they check. A twenty-second, the slow <code>testRFIChain</code>, runs only when named.</p></div>
+<p><code>tests/runAllTests.m</code> runs all twenty-two in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
+can never change what they check. A twenty-third, the slow <code>testRFIChain</code>, runs only when named.</p></div>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision) and C (fast simulator) were built in
 numbered steps (A1–A4, B1–B6, C1–C4); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2" and similar mean "the code before that
 step".</p>
@@ -295,6 +295,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, diagnosed (Claude's runs, 20–21 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
@@ -676,6 +677,10 @@ fold with its true phases. Without a predictor the old fold is unchanged. The fi
 <p>The residual between the true and the predicted arrival matches closed forms to 5·10⁻¹¹ s. Data whose pulses arrive where a true
 trajectory puts them, folded with the predictor of an assumed trajectory, show the pulse at the phase the function gives, to 5·10⁻⁶
 turns. The six checks are on the <a href="motion.html#truth">block D page</a>.</p>
+
+<h2 id="makeclock"><code>testMakeClock</code> (21 Oct)</h2>
+<p>The drawn clocks have the Allan deviation that their noise coefficients prescribe, from 5 minutes to 17 hours, and the time error
+grows from a known start as the Kalman model says. The five checks are on the <a href="motion.html#clock">block D page</a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. The realistic scenario passes. The

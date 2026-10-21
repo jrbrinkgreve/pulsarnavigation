@@ -3,7 +3,7 @@ function results = runAllTests(names)
 %{
 Run from the PulsarSimMatlab folder: run('tests/runAllTests.m') (all), or
 runAllTests(["testRfiNoise" "testRadarEdges"]) with tests/ on the path (a subset). 6-9 min
-for all 21 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
+for all 22 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
 testRFIModel ~20 s).
 
 Each test runs in its own try/catch, so one failure does not stop the others; its own
@@ -35,7 +35,7 @@ end
 order = ["testGeneratePulsarSignal", "testChannelizeIQ", "testDedisperseChannels", "testDetectChannels", ...
          "testFoldWeights", "testChannelTOA", "testOptimalTOA", "testBlankingWeights", ...
          "testBlankChannels", "testDetectRFI", "testPeriodicRFI", "testRadarEdges", ...
-         "testRfiGating", "testRfiNoise", "testSimulateFold", "testRFIModel", "testMakeTrajectory", "testDelayModel", "testMakePredictor", "testFoldPredictor", "testTrueResiduals"];
+         "testRfiGating", "testRfiNoise", "testSimulateFold", "testRFIModel", "testMakeTrajectory", "testDelayModel", "testMakePredictor", "testFoldPredictor", "testTrueResiduals", "testMakeClock"];
 testDir = fileparts(mfilename('fullpath'));
 found = string({dir(fullfile(testDir, 'test*.m')).name});
 found = setdiff(erase(found, ".m"), "testParams");  % the settings script, not a test
