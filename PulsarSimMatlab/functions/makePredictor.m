@@ -79,8 +79,8 @@ epsHat = clockHandle(opts.Clock);
 % reference at t0: the only place where absolute time and phase meet
 e0 = epsHat(t0);
 tt0 = t0 - e0;                                         % the true time estimated at the first reading
-d0 = delayModel(tt0, traj, psr, opts.DelayArgs{:});
-u0 = (tt0 - psr.TRef) + d0.total;
+d0 = delayModel(tt0, traj, psr, opts.DelayArgs{:});    % (tt0 is rounded to 1.2e-7 s: < 1e-11 s in delta)
+u0 = ((t0 - psr.TRef) - e0) + d0.total;                % the exact difference first, then the small e0
 phAbs0 = Phi0 + f0 * u0 + 0.5 * F1 * u0^2;
 N0 = round(phAbs0); frac0 = phAbs0 - N0;
 phiRel = @(tau) phiRelative(tau, t0, tt0, e0, epsHat, traj, psr, opts.DelayArgs, d0.total, u0, f0, F1, frac0);

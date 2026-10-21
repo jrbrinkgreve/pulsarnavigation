@@ -29,7 +29,16 @@ delayModel on the true trajectory directly.
      b. the folded pulse peak (centroid) sits at phaseOffset, -0.167 turns: early (1e-4 turns).
   6. A bad clock is refused ('trueResiduals:clock'); a pulse more than half a turn off (4000 km
      at 50 Hz) gives the warning 'trueResiduals:wrap'.
-Errors at the end if any check fails. (21 Oct 2026, block D3a.)
+  7. End to end with an SDR-like clock (D3c): the samples are taken at clock readings of a clock
+     with eps(t) = 3 ms + 2e-6 (t - t1); the pulses come from the true probe of check 3. The
+     observer folds with the assumed probe's predictor and its clock ESTIMATE (offset 10 us and
+     rate 2e-7 off, makePredictor 'Clock'):
+     a. at 200 times the predicted phase minus the data's phase equals phaseOffset with
+        'ClockEstimate' (1e-7 turns);
+     b. the folded pulse sits at phaseOffset (1e-4 turns);
+     c. with a perfect estimate the clock drops out: residual = geometric (1e-12 s: the clock
+        reading t + eps is an absolute time, rounded to 6e-8 s, times the rate 2e-6).
+Errors at the end if any check fails. (21 Oct 2026, block D3a; check 7 block D3c.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -138,6 +147,35 @@ warning(ws);
 ok6 = okC && strcmp(wid, 'trueResiduals:wrap');
 fprintf('6. bad clock refused %d; 4000 km at 50 Hz warns %d: %s\n', okC, strcmp(wid, 'trueResiduals:wrap'), passStr(ok6));
 if ~ok6, fails{end+1} = 'input checks'; end
+
+% 7. End to end with an SDR-like clock and the observer's estimate of it
+b = 3e-3; d = 2e-6;
+epsT = @(tt) b + d * (tt - t1);                       % the true clock error at true time
+ehat = @(cc) (b - 1e-5) + (d - 2e-7) * (cc - t1);     % the observer's estimate at clock readings
+pred7 = makePredictor(psr5, probeA, [t1, t1 + Ld], 'Clock', ehat);
+trueOf = @(tc) (tc - b) / (1 + d);                    % true time since t1 of clock reading t1 + tc
+tgT = -0.01:0.01:Ld;                                  % true-time grid of the true delays
+dTg7 = delayModel(t1 + tgT, probeT, psr5).total;
+phiOf = @(tc) f0 * (trueOf(tc) + spline(tgT, dTg7, trueOf(tc))) - pred7.N0;   % the data's phase
+r7 = trueResiduals(t1 + trueOf(tau), psr5, probeT, probeA, 'Clock', epsT, 'ClockEstimate', ehat);
+e7a = max(abs(pred7.phase(tau) - phiOf(tau) - r7.phaseOffset));
+det7 = writePower(fullfile(tmp, 'clock.dat'), pulse(phiOf(tf)), dt);
+[~, f7] = foldProfile(det7, 'x', f0, 'Predictor', pred7, 'NBin', NB, 'SubintPeriods', nPer, ...
+    'SaveFile', false, 'Verbose', false);
+p7 = f7.profTotal(:) - 1;
+[~, jm] = max(p7);
+d7 = mod(ph - ph(jm) + 0.5, 1) - 0.5; w7 = abs(d7) < 0.1;
+cen7 = ph(jm) + sum(d7(w7) .* p7(w7)) / sum(p7(w7));
+off7 = mean(r7.phaseOffset);
+e7b = abs(mod(cen7 - off7 + 0.5, 1) - 0.5);
+ehatP = @(cc) b + d * trueOf(cc - t1);                % a perfect estimate: eps at the reading's true time
+r7p = trueResiduals(t1 + trueOf(tau), psr5, probeT, probeA, 'Clock', epsT, 'ClockEstimate', ehatP);
+e7c = max(abs(r7p.residual - r7p.geometric));
+ok7 = e7a < 1e-7 && e7b < 1e-4 && e7c < 1e-12;
+fprintf(['7. SDR clock (3 ms, 2e-6) with the estimate 10 us / 2e-7 off: predicted - data phase vs phaseOffset %.1e turns; ' ...
+         'folded peak %.5f vs %.5f (diff %.1e); perfect estimate: residual - geometric %.1e s: %s\n'], ...
+    e7a, mod(cen7 + 0.5, 1) - 0.5, off7, e7b, e7c, passStr(ok7));
+if ~ok7, fails{end+1} = 'clock end to end'; end
 
 if isempty(fails)
     fprintf('testTrueResiduals: ALL PASSED\n');

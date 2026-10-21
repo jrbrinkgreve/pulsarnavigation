@@ -15,8 +15,11 @@ rule); the observer sees only the shifted pulse.
 The physics. A pulse that passes the solar-system barycentre (SSB) at time S arrives at the
 receiver at the true time t, with t + delta_T(t) = S (delayModel on the true trajectory). The
 observer expects that pulse at t_A, with t_A + delta_A(t_A) = S (the assumed trajectory). Its
-clock reads t + eps(t) when the pulse arrives (eps: clock reading - true time). The residual is
-  r = (t + eps(t)) - t_A = x + eps(t),   x = t - t_A = (delta_A - delta_T) / (1 + d delta_A/dt)
+clock reads c = t + eps(t) when the pulse arrives (eps: clock reading - true time), and the
+observer corrects that reading with its own estimate epsHat(c) (makePredictor 'Clock'). The
+residual is
+  r = (c - epsHat(c)) - t_A = x + eps(t) - epsHat(c),
+  x = t - t_A = (delta_A - delta_T) / (1 + d delta_A/dt)
 to first order (the factor is 1 + Doppler, |.| < 1e-4 on the Earth). x is solved exactly here,
 by Newton steps on delta_A(t - x) - delta_T(t) - x = 0 in small numbers only (absolute times of
 ~8e8 s carry 1.2e-7 s of rounding; through the Doppler rate that is < 1e-10 s in x).
@@ -42,10 +45,14 @@ Name-value options:
   'Clock'      [] (default: a perfect clock), a function handle @(t) -> clock error eps [s]
                (clock reading - true time, at true times t), or a struct with such a handle in
                the field 'offset' (makeClock, block D3b).
+  'ClockEstimate'  [] (default: none, epsHat = 0) or the observer's estimate of its clock error
+               as a function of the clock reading, @(c) epsHat [s] or a struct with field
+               offset: the same estimate its predictor uses (makePredictor 'Clock'). Only the
+               part of the clock error it has not estimated shifts the pulse.
   'DelayArgs'  name-value pairs for delayModel, used for both trajectories (default {}).
 
 Output res: t; residual [1 x N] (s: observed - predicted arrival, the clock included);
-geometric (x) and clock (eps) parts [1 x N] s; fObs [1 x N] Hz; phaseOffset [1 x N] turns (where
+geometric (x), clock (eps) and clockEstimate (epsHat(c)) parts [1 x N] s; fObs [1 x N] Hz; phaseOffset [1 x N] turns (where
 the pulse sits in the observer's fold); deltaTrue (delta_T(t)) and deltaAssumed (delta_A(t - x))
 [1 x N] s; solveErr (largest |delta_A(t - x) - delta_T(t) - x| left, s); trajTypes; made.
 %}
@@ -56,6 +63,7 @@ arguments
     trajTrue struct
     trajAssumed struct
     opts.Clock = []
+    opts.ClockEstimate = []
     opts.DelayArgs cell = {}
 end
 
@@ -63,18 +71,9 @@ c = 299792458;
 F1 = 0; if isfield(psr, 'F1') && ~isempty(psr.F1), F1 = psr.F1; end
 dArgs = opts.DelayArgs;
 
-% the clock
-clk = opts.Clock;
-if isempty(clk)
-    epsC = zeros(size(t));
-elseif isa(clk, 'function_handle')
-    epsC = clk(t);
-elseif isstruct(clk) && isfield(clk, 'offset') && isa(clk.offset, 'function_handle')
-    epsC = clk.offset(t);
-else
-    error('trueResiduals:clock', 'Clock must be [], a function handle @(t) or a struct with a field offset = @(t).');
-end
-epsC = reshape(epsC, size(t));
+% the clock: its true error at t, and the observer's estimate at the reading c = t + eps(t)
+epsC = clockValues(opts.Clock, t, 'Clock');
+epsHat = clockValues(opts.ClockEstimate, t + epsC, 'ClockEstimate');
 
 % the true arrival: delta_T at t
 dT = delayModel(t, trajTrue, psr, dArgs{:});
@@ -95,7 +94,7 @@ rate = (dA.nHat.' * dA.vObs) / c;
 % where the pulse sits in the observer's fold
 fSpin = psr.f0 + F1 * ((t - psr.TRef) + dT.total);   % spin frequency at the SSB time S
 fObs = fSpin .* (1 + rate);
-r = x + epsC;
+r = x + epsC - epsHat;
 ph = fObs .* r;
 if any(abs(ph) >= 0.5)
     warning('trueResiduals:wrap', ['The pulse is %.3g turns from its predicted phase: beyond half a turn ' ...
@@ -107,6 +106,7 @@ res.t            = t;
 res.residual     = r;
 res.geometric    = x;
 res.clock        = epsC;
+res.clockEstimate = epsHat;
 res.fObs         = fObs;
 res.phaseOffset  = ph;
 res.deltaTrue    = dT.total;
@@ -114,4 +114,20 @@ res.deltaAssumed = dA.total;
 res.solveErr     = solveErr;
 res.trajTypes    = {trajTrue.type, trajAssumed.type};
 res.made         = char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'));
+end
+
+
+% =====================================================================================
+function v = clockValues(clk, t, name)
+%CLOCKVALUES  A clock (or clock estimate) evaluated at t: [] -> 0, a handle, or a struct's offset.
+if isempty(clk)
+    v = zeros(size(t));
+elseif isa(clk, 'function_handle')
+    v = clk(t);
+elseif isstruct(clk) && isfield(clk, 'offset') && isa(clk.offset, 'function_handle')
+    v = clk.offset(t);
+else
+    error('trueResiduals:clock', '%s must be [], a function handle or a struct with a field offset = @(t).', name);
+end
+v = reshape(v, size(t));
 end

@@ -273,9 +273,10 @@ That lateness is the signal navigation measures. Only the simulator calls this f
 trajectory.</li>
 <li><b>The predicted arrival:</b> the observer expects the same pulse at <var>t</var><sub>A</sub>, with <var>t</var><sub>A</sub> +
 Δ<sub>A</sub>(<var>t</var><sub>A</sub>) = <var>S</var>. Δ<sub>A</sub> is <code>delayModel</code> on the assumed trajectory.</li>
-<li><b>The clock:</b> the observer's clock reads <var>t</var> + ε(<var>t</var>) when the pulse arrives. ε is the clock error.</li>
-<li><b>The residual:</b> <var>r</var> = <var>t</var> + ε(<var>t</var>) − <var>t</var><sub>A</sub>. A positive residual means the pulse
-is late.</li>
+<li><b>The clock:</b> the observer's clock reads <var>c</var> = <var>t</var> + ε(<var>t</var>) when the pulse arrives. ε is the clock
+error. The observer corrects the reading with its own estimate ε̂(<var>c</var>), the same one its predictor uses.</li>
+<li><b>The residual:</b> <var>r</var> = <var>c</var> − ε̂(<var>c</var>) − <var>t</var><sub>A</sub>. Only the part of the clock error that
+the observer has not estimated shifts the pulse. A positive residual means the pulse is late.</li>
 <li><b>In the fold:</b> the pulse sits at phase <var>f</var>·<var>r</var> turns. <var>f</var> is the observed spin frequency of the
 observer's predictor.</li>
 </ol>
@@ -283,7 +284,7 @@ observer's predictor.</li>
 the assumed one gives B0329+54 a daily sine of 193.33 µs. That is 2.7·10⁻⁴ of a turn. A true receiver closer to the pulsar than assumed
 gives a negative residual, because the pulse arrives early.</p>
 <details><summary>The exact solution</summary>
-<p><var>r</var> = <var>x</var> + ε(<var>t</var>), with <var>x</var> = <var>t</var> − <var>t</var><sub>A</sub> = (Δ<sub>A</sub> −
+<p><var>r</var> = <var>x</var> + ε(<var>t</var>) − ε̂(<var>c</var>), with <var>x</var> = <var>t</var> − <var>t</var><sub>A</sub> = (Δ<sub>A</sub> −
 Δ<sub>T</sub>)/(1 + dΔ<sub>A</sub>/d<var>t</var>) to first order. On the Earth the Doppler factor dΔ<sub>A</sub>/d<var>t</var> is below
 10⁻⁴, so the division changes 193 µs by at most 19 ns. The function solves <var>x</var> exactly, with Newton steps on
 Δ<sub>A</sub>(<var>t</var> − <var>x</var>) − Δ<sub>T</sub>(<var>t</var>) − <var>x</var> = 0. It works with small differences only,
@@ -306,11 +307,15 @@ sine is 193.328 µs. The pulse is early wherever the true site is closer. The fu
 <tr><td>5 · End to end</td><td>Data whose pulses arrive where the true probe puts them, folded with the assumed probe's
 predictor.</td><td>The folded pulse sits at −0.16678 turns, as predicted, to 4.7·10⁻⁶ turns. It is early, as the probe is closer.</td></tr>
 <tr><td>6 · Inputs</td><td>A bad clock; a pulse 0.67 turns off.</td><td>The clock is refused. The phase gives a warning.</td></tr>
+<tr><td>7 · SDR clock</td><td>Samples timed by a clock with a 3 ms offset and a rate of 2·10⁻⁶. They are folded with the predictor and a
+clock estimate that is 10 µs and 2·10⁻⁷ off.</td><td>The pulse sits where the function says: to 6·10⁻⁹ turns at 200 times, and to
+6·10⁻⁶ turns in the fold. With a perfect estimate the clock drops out.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 as step D3a. Two test criteria were corrected. The first bound, 2·10⁻¹¹ s, was below the analytic model's own
 rounding: the Earth's mean longitude is about 9500° in 2026, and its rounding in double is worth 1.6·10⁻¹¹ s. The amplitude check had
-left out the Doppler factor, which is −8.3·10⁻⁵ on 1 March.</p></details>
+left out the Doppler factor, which is −8.3·10⁻⁵ on 1 March. The observer's clock estimate and check 7 were added as the second part of
+D3c. Check 7 also exposed a constant rounding of up to 60 ns in the predictor's clock origin, which was fixed.</p></details>
 
 <h2 id="clock">7 · <code>makeClock</code>: the receiver's clock <span class="badge written">done</span></h2>
 <div class="sig">clk = makeClock([t1 t2], ...)</div>
