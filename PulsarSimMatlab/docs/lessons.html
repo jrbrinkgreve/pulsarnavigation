@@ -50,6 +50,10 @@ built-ins (also why the detector output is <code>detection</code>, not <code>det
 its cleanup ran at once and changed the folder → "Unrecognized function 'pipelineParams'". Claude's runs used a fresh MATLAB per test and never saw it.</td>
 <td>All tests are functions.</td><td>Run tests the way Jasper does (several in one session); never run two test sessions at once (they share
 <code>data/chan/</code>; an overlapping run gave noise 72× the radiometer value).</td></tr>
+<tr><td>12</td><td><b>Two runs of <code>testRFIChain</code> collided</b> (20 Oct): a run in Jasper's MATLAB and one of Claude's wrote into the
+same fixed temporary folder, and one died with "Unexpected end of p_zero.dat".</td><td>Each run makes its own folder
+(<code>tempname</code>), removed at the end; <code>testRFIModel</code> and <code>testDetectRFI</code> too (21 Oct).</td><td>Anything that
+can run twice at the same time needs its own scratch space.</td></tr>
 </table></div>
 
 <h2 id="picture">One lesson in a picture: shared data means correlated noise (#8)</h2>
@@ -146,6 +150,25 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 <li><b>Long detection windows blanked the bright pulse</b> (<code>detectRFI</code>). 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
 <li><b>Radar sidelobes survive per-sample excision</b> (the locked radar). A locked radar left a 150 µs bias at −54 dB. → the frequency guard, ±7 channels.</li>
 <li><b>Rotating-radar sidelobe pulses are missed one by one.</b> → the periodic mask (<code>periodicRFI</code>), which blanks the predicted pulses.</li>
+<li><b>A χ² threshold of 2 is blind on 34,000 bins</b> (16 Oct). On the channel path it is ~130σ away, so error bars a few percent
+too small pass silently. → <code>pChi2</code>, reported alongside the drop rule (<a href="toa.html#pchi2">TOA</a>).</li>
+<li><b>The band-edge channels hold almost no pulse</b> (19 Oct). <code>pChi2</code> was not uniform on the channel path at −5 dB: the
+fit assumes equal gain, but the simulated band-edge taper leaves channels 1 and 128 with 2 % of the pulse. The excess grows as SNR², and
+is gone at −15 dB. → kept as a known simulator artifact (roadmap item 3), parked with the per-channel calibration.</li>
+<li><b>Coarse bins cost more at low SNR</b> (20 Oct). With B0329+54's five components at NBin 1024, the error bars were 18 % too
+small at SNR 7, although the bins were inside the 1/5 rule. And the half-maximum width missed the narrow components. → NBin 2048, and
+the warning at 1/10 of the spectral template width (<a href="toa.html#template">TOA</a>).</li>
+<li><b>Catalogue widths understate real profiles</b> (20–21 Oct). B0329+54's five components put the same flux over twice the
+area: a 3 dB lower peak and ~3× the data per TOA. J0437's wings cost ~5×. → multi-component templates and profiles
+(<a href="scenario.html#simulated">scenario</a>).</li>
+<li><b>Seven lags are not enough for narrow carriers</b> (21 Oct). A 200 kHz carrier's power correlation has a sidelobe at lags 7–20.
+→ <code>rfiProfile</code> <code>'Lmax'</code>; the RFI profiles use 30 lags.</li>
+<li><b>White-noise thresholds false-flag continuous narrow carriers</b> (21 Oct). About 1400 false windows per second in each
+carrier channel made the blanking data-dependent: phase bins with blanking came out 4–9 % noisier than modelled. → per-channel
+thresholds from each channel's own correlation (<a href="excision.html#chanthr">excision</a>).</li>
+<li><b>A narrow core on a broad component gives rare outliers</b> (20–21 Oct). About 0.3–0.5 % of B0329+54's TOAs at SNR ~7 land one
+core width off, and χ² cannot flag them. → handled in block D's navigation filter (innovation gating, a robust likelihood), not by
+longer groups.</li>
 </ul>
 
 <h2 id="statistics">Statistical lessons</h2>
@@ -154,6 +177,10 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 5–10 % hole in the noise model; they came from the same 10 noise realizations. A long independent H0 run settled it (T0 std 1.008).</li>
 <li><b>One seed can mislead.</b> The +3.7 µs centroid offset was a 1.8σ fluctuation of seed 43, repeated by every run that used the same noise.</li>
 <li><b>Quote the uncertainty of a check.</b> With 8 TOAs a ratio of 0.84 is consistent with 1 (±25 %); with 90 TOAs ±0.075.</li>
+<li><b>Common random numbers tie the points of a sweep together.</b> In the channel path's weak-regime sweep, rms/pred was
+1.07–1.08 at every point. That is one shared fluctuation of the same 10 noise seeds, not an effect of SNR.</li>
+<li><b>A surprising number from one run can be scatter.</b> J0437's pull width of 0.88 in one scenario run looked like error bars too
+large; a second run gave 0.94, and adaptive and fixed groups on the same data both gave ~1.1.</li>
 </ul>
 
 </main>

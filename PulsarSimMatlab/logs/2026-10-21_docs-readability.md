@@ -70,8 +70,10 @@ with the detail instead of the problem.
 ## Open items
 
 - `tests/runAllTests.m` help text says testRFIChain takes ~1 h; the full run is ~2.5 h (code comment, not edited).
-- history.html stops at 12–13 Oct (sessions and decision log); 14–21 Oct are only in the logs and the roadmap timeline.
-- lessons.html "Findings that changed the design" has nothing after block B (e.g. the lag cut-off, detectRFI false flags on
-  narrow carriers, bin resolution at low SNR).
+- Done after Jasper's OK ("yes, add the history and lessons updates"): history.html now has the sessions 14–16, 19, 20 and
+  21 Oct, 21 decision rows (14–21 Oct, attributions checked against the logs: NBin 2048 was a proposal, the 1/10 warning
+  Jasper's), and 10 more rows in the log table (2026-10-13_review-week.md was also missing); the calendar figure
+  (`gen_timeline.py`) now runs to 21 Oct with the review week, processIQ and block C. lessons.html: bug #12 (testRFIChain
+  runs collided in one temp folder), seven findings 16–21 Oct, two statistical lessons.
 - After each code change, weave the change into the page in this style rather than appending a dated paragraph
   (memory updated).

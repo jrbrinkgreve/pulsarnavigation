@@ -16,10 +16,10 @@ reason it was taken. The dated logs in <code>logs/</code> have the full detail.<
 <div class="callout note"><span class="ttl">In short</span>
 <p>The full-band chain was built and validated first (block 1, to 6 Oct). The reference scenario then showed that the target is
 ~54 dB below the noise and full of interference. So a channelized front end (A) and RFI excision (B) came next, before the fast
-simulator. The review week (12–16 Oct) went through every stage again, to understand and refine it. Every design decision up to then is
-listed below, with its reason.</p>
-<p>This page covers the sessions up to 13 Oct. The later ones (the processing as one function on 19 Oct, and the fast simulator from
-20 Oct) are on the <a href="roadmap.html">roadmap</a>'s timeline and in the session logs in <code>logs/</code>.</p></div>
+simulator.</p>
+<p>The review week (12–16 Oct) went through every stage again, to understand and refine it. Then the processing became one function,
+cut at the IQ file (19 Oct), and block C, the fast simulator, started (20 Oct). It made the first TOA budgets for the real scenario: a
+ship near the Netherlands timing B0329+54, and J0437 from further south. Every design decision is listed below, with its reason.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#timeline">Session by session</a></li>
@@ -29,71 +29,100 @@ listed below, with its reason.</p>
 
 <h2 id="timeline">1. Session by session</h2>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 312" role="img" aria-label="Project timeline: block 1, A, B and the review week as bars over the calendar from 29 September to 13 October 2026, with the session days">
+<svg class="wide" viewBox="0 0 860 416" role="img" aria-label="Project timeline: block 1, A, B, the review week, processIQ and block C as bars over the calendar from 29 September to 21 October 2026, with the session days">
   <defs><marker id="ar-tl" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
-  <rect class="box sky" x="40.0" y="34" width="421.3" height="20" rx="4"/>
+  <rect class="box sky" x="40.0" y="34" width="274.8" height="20" rx="4"/>
   <text class="lbl" x="48.0" y="48">Block 1 · full-band chain</text>
   <text class="sub" x="48.0" y="70">noise-free chain, −5 dB reference, Monte Carlo, SNR sweep, detection; closed 6 Oct</text>
-  <rect class="box proc" x="408.7" y="86" width="158.0" height="20" rx="4"/>
-  <text class="lbl" x="574.7" y="100">A · channelized front end</text>
+  <rect class="box proc" x="280.4" y="86" width="103.0" height="20" rx="4"/>
+  <text class="lbl" x="391.5" y="100">A · channelized front end</text>
   <text class="sub" x="830.0" y="122" text-anchor="end">filterbank, exact noise, data weights, optimal fit; complete 8 Oct</text>
-  <rect class="box rx" x="514.0" y="138" width="105.3" height="20" rx="4"/>
-  <text class="lbl" x="627.3" y="152">B · RFI excision</text>
+  <rect class="box rx" x="349.1" y="138" width="68.7" height="20" rx="4"/>
+  <text class="lbl" x="425.8" y="152">B · RFI excision</text>
   <text class="sub" x="830.0" y="174" text-anchor="end">blank before dedispersion, realistic scenario; closed for now 9 Oct</text>
-  <rect class="box val" x="724.7" y="190" width="105.3" height="20" rx="4"/>
-  <text class="lbl" x="716.7" y="204" text-anchor="end">review week</text>
-  <text class="sub" x="830.0" y="226" text-anchor="end">each stage explained; code review, frozen test data, docs</text>
-  <path class="axis" d="M40 248 H830"/>
-  <path class="axis" d="M40.0 248 v4"/>
-  <path class="axis" d="M92.7 248 v4"/>
-  <path class="axis" d="M145.3 248 v4"/>
-  <path class="axis" d="M198.0 248 v4"/>
-  <path class="axis" d="M250.7 248 v4"/>
-  <path class="axis" d="M303.3 248 v4"/>
-  <path class="axis" d="M356.0 248 v4"/>
-  <path class="axis" d="M408.7 248 v4"/>
-  <path class="axis" d="M461.3 248 v4"/>
-  <path class="axis" d="M514.0 248 v4"/>
-  <path class="axis" d="M566.7 248 v4"/>
-  <path class="axis" d="M619.3 248 v4"/>
-  <path class="axis" d="M672.0 248 v4"/>
-  <path class="axis" d="M724.7 248 v4"/>
-  <path class="axis" d="M777.3 248 v4"/>
-  <path class="axis" d="M830.0 248 v4"/>
-  <circle cx="66.3" cy="240" r="4" class="dot"/>
-  <text class="sub" x="66.3" y="266" text-anchor="middle">29</text>
-  <circle cx="119.0" cy="240" r="4" class="dot"/>
-  <text class="sub" x="119.0" y="266" text-anchor="middle">30</text>
-  <circle cx="171.7" cy="240" r="4" class="dot"/>
-  <text class="sub" x="171.7" y="266" text-anchor="middle">1</text>
-  <circle cx="224.3" cy="240" r="4" class="dot"/>
-  <text class="sub" x="224.3" y="266" text-anchor="middle">2</text>
-  <text class="sub" x="277.0" y="266" text-anchor="middle">3</text>
-  <text class="sub" x="329.7" y="266" text-anchor="middle">4</text>
-  <circle cx="382.3" cy="240" r="4" class="dot"/>
-  <text class="sub" x="382.3" y="266" text-anchor="middle">5</text>
-  <circle cx="435.0" cy="240" r="4" class="dot"/>
-  <text class="sub" x="435.0" y="266" text-anchor="middle">6</text>
-  <circle cx="487.7" cy="240" r="4" class="dot"/>
-  <text class="sub" x="487.7" y="266" text-anchor="middle">7</text>
-  <circle cx="540.3" cy="240" r="4" class="dot"/>
-  <text class="sub" x="540.3" y="266" text-anchor="middle">8</text>
-  <circle cx="593.0" cy="240" r="4" class="dot"/>
-  <text class="sub" x="593.0" y="266" text-anchor="middle">9</text>
-  <text class="sub" x="645.7" y="266" text-anchor="middle">10</text>
-  <text class="sub" x="698.3" y="266" text-anchor="middle">11</text>
-  <circle cx="751.0" cy="240" r="4" class="dot"/>
-  <text class="sub" x="751.0" y="266" text-anchor="middle">12</text>
-  <circle cx="803.7" cy="240" r="4" class="dot"/>
-  <text class="sub" x="803.7" y="266" text-anchor="middle">13</text>
-  <text class="sub" x="92.7" y="282" text-anchor="middle">September</text>
-  <text class="sub" x="487.7" y="282" text-anchor="middle">October 2026</text>
-  <path class="thin" d="M145.3 270 V286"/>
-  <text class="sub" x="40" y="302">dots: days with a session (a dated log in logs/)</text>
-  <text class="ttl" x="40" y="20">From the first chain to the review week</text>
+  <rect class="box val" x="486.5" y="190" width="171.7" height="20" rx="4"/>
+  <text class="lbl" x="494.5" y="204">review week</text>
+  <text class="sub" x="494.5" y="226">each stage explained; code review, frozen test data, χ² report, docs</text>
+  <rect class="box proc" x="727.0" y="242" width="34.3" height="20" rx="4"/>
+  <text class="lbl" x="719.0" y="256" text-anchor="end">processIQ</text>
+  <text class="sub" x="761.3" y="278" text-anchor="end">the processing as one function, IQ in, fold out</text>
+  <rect class="box sky" x="761.3" y="294" width="68.7" height="20" rx="4"/>
+  <text class="lbl" x="753.3" y="308" text-anchor="end">C · fast simulator</text>
+  <text class="sub" x="830.0" y="330" text-anchor="end">simulateFold, RFI profiles, scintillation, scenario runs</text>
+  <path class="axis" d="M40 352 H830"/>
+  <path class="axis" d="M40.0 352 v4"/>
+  <path class="axis" d="M74.3 352 v4"/>
+  <path class="axis" d="M108.7 352 v4"/>
+  <path class="axis" d="M143.0 352 v4"/>
+  <path class="axis" d="M177.4 352 v4"/>
+  <path class="axis" d="M211.7 352 v4"/>
+  <path class="axis" d="M246.1 352 v4"/>
+  <path class="axis" d="M280.4 352 v4"/>
+  <path class="axis" d="M314.8 352 v4"/>
+  <path class="axis" d="M349.1 352 v4"/>
+  <path class="axis" d="M383.5 352 v4"/>
+  <path class="axis" d="M417.8 352 v4"/>
+  <path class="axis" d="M452.2 352 v4"/>
+  <path class="axis" d="M486.5 352 v4"/>
+  <path class="axis" d="M520.9 352 v4"/>
+  <path class="axis" d="M555.2 352 v4"/>
+  <path class="axis" d="M589.6 352 v4"/>
+  <path class="axis" d="M623.9 352 v4"/>
+  <path class="axis" d="M658.3 352 v4"/>
+  <path class="axis" d="M692.6 352 v4"/>
+  <path class="axis" d="M727.0 352 v4"/>
+  <path class="axis" d="M761.3 352 v4"/>
+  <path class="axis" d="M795.7 352 v4"/>
+  <path class="axis" d="M830.0 352 v4"/>
+  <circle cx="57.2" cy="344" r="4" class="dot"/>
+  <text class="sub" x="57.2" y="370" text-anchor="middle">29</text>
+  <circle cx="91.5" cy="344" r="4" class="dot"/>
+  <text class="sub" x="91.5" y="370" text-anchor="middle">30</text>
+  <circle cx="125.9" cy="344" r="4" class="dot"/>
+  <text class="sub" x="125.9" y="370" text-anchor="middle">1</text>
+  <circle cx="160.2" cy="344" r="4" class="dot"/>
+  <text class="sub" x="160.2" y="370" text-anchor="middle">2</text>
+  <text class="sub" x="194.6" y="370" text-anchor="middle">3</text>
+  <text class="sub" x="228.9" y="370" text-anchor="middle">4</text>
+  <circle cx="263.3" cy="344" r="4" class="dot"/>
+  <text class="sub" x="263.3" y="370" text-anchor="middle">5</text>
+  <circle cx="297.6" cy="344" r="4" class="dot"/>
+  <text class="sub" x="297.6" y="370" text-anchor="middle">6</text>
+  <circle cx="332.0" cy="344" r="4" class="dot"/>
+  <text class="sub" x="332.0" y="370" text-anchor="middle">7</text>
+  <circle cx="366.3" cy="344" r="4" class="dot"/>
+  <text class="sub" x="366.3" y="370" text-anchor="middle">8</text>
+  <circle cx="400.7" cy="344" r="4" class="dot"/>
+  <text class="sub" x="400.7" y="370" text-anchor="middle">9</text>
+  <text class="sub" x="435.0" y="370" text-anchor="middle">10</text>
+  <text class="sub" x="469.3" y="370" text-anchor="middle">11</text>
+  <circle cx="503.7" cy="344" r="4" class="dot"/>
+  <text class="sub" x="503.7" y="370" text-anchor="middle">12</text>
+  <circle cx="538.0" cy="344" r="4" class="dot"/>
+  <text class="sub" x="538.0" y="370" text-anchor="middle">13</text>
+  <circle cx="572.4" cy="344" r="4" class="dot"/>
+  <text class="sub" x="572.4" y="370" text-anchor="middle">14</text>
+  <circle cx="606.7" cy="344" r="4" class="dot"/>
+  <text class="sub" x="606.7" y="370" text-anchor="middle">15</text>
+  <circle cx="641.1" cy="344" r="4" class="dot"/>
+  <text class="sub" x="641.1" y="370" text-anchor="middle">16</text>
+  <text class="sub" x="675.4" y="370" text-anchor="middle">17</text>
+  <text class="sub" x="709.8" y="370" text-anchor="middle">18</text>
+  <circle cx="744.1" cy="344" r="4" class="dot"/>
+  <text class="sub" x="744.1" y="370" text-anchor="middle">19</text>
+  <circle cx="778.5" cy="344" r="4" class="dot"/>
+  <text class="sub" x="778.5" y="370" text-anchor="middle">20</text>
+  <circle cx="812.8" cy="344" r="4" class="dot"/>
+  <text class="sub" x="812.8" y="370" text-anchor="middle">21</text>
+  <text class="sub" x="74.3" y="386" text-anchor="middle">September</text>
+  <text class="sub" x="469.3" y="386" text-anchor="middle">October 2026</text>
+  <path class="thin" d="M108.7 374 V390"/>
+  <text class="sub" x="40" y="406">dots: days with a session (a dated log in logs/)</text>
+  <text class="ttl" x="40" y="20">From the first chain to the fast simulator</text>
 </svg>
-<figcaption>The project so far on one calendar. Block 1 took a week, most of it validation against the truth. Blocks A and B followed from
-6 to 9 October. The review week (from 12 Oct) adds no new stages: each stage is explained, reviewed and refined.</figcaption>
+<figcaption>The project so far on one calendar. Block 1 took a week, most of it validation against the truth. Blocks A and B followed,
+from 6 to 9 October. The review week (12–16 Oct) added no new stages: each stage was explained, reviewed and refined. Then the
+processing became one function (19 Oct), and block C, the fast simulator, started on 20 Oct.</figcaption>
 </figure>
 
 <h3>29–30 September — the noise-free pipeline</h3>
@@ -182,6 +211,69 @@ validated by reruns; stage 1 (the generator) reviewed.</li>
 <em>why</em> each algorithm is built as it is, with computed figures.</li>
 </ul>
 
+<h3>14–16 October — the review week, continued</h3>
+<ul>
+<li><b>Stages 4–11 and the drivers</b> walked through, one at a time: the IQ stage, the channelizer, RFI detection, the periodic mask,
+blanking, per-channel dedispersion, detection, the data weights, the fold, the TOA fit and detection, and <code>main.m</code> with the run
+scripts. Refinements were noted, not implemented (notes §10 item 11, the <a href="roadmap.html">roadmap</a>); small text errors were
+fixed.</li>
+<li><b>14 Oct, small fixes</b> (Jasper: "fix the small things autonomously"): <code>estimateTOA</code> keeps its convergence flag
+(<code>toa.converged</code>), and <code>main.m</code> warns when excision meets a bright pulsar (<code>main:brightExcision</code>).
+Validated by Jasper's <code>runAllTests</code> on 15 Oct.</li>
+<li><b>14 Oct, docs:</b> every remaining page in the 13 Oct format, with computed figures (Jasper: "continue with all the other pages in
+that format").</li>
+<li><b>16 Oct, the χ² threshold:</b> on the channel path a threshold of 2 is about 130σ away, so noise-model errors pass silently.
+Jasper chose to keep 2 as the drop rule and add a report, <code>pChi2</code> (<a href="toa.html#pchi2">TOA</a>). Validated by
+Jasper's runs.</li>
+<li><b>16 Oct, one processing function:</b> the first proposal, one function from the sky to the TOAs, was rejected by Jasper. Real IQ
+data enter between the simulation and the processing, and the operational processing will run on an FPGA or GPU. The revised proposal
+cuts the code at the IQ file.</li>
+<li><b>16 Oct, docs:</b> all equations in LaTeX, each with a list that defines its symbols (Jasper: "equations look cluttered").</li>
+</ul>
+
+<h3>19 October — the processing as one function</h3>
+<ul>
+<li>Jasper's choice: "start at IQ for the boundary, and include both front ends".</li>
+<li><code>processIQ</code> (IQ file in, fold out) and <code>foldToTOA</code> (fold in, TOAs and detection out). <code>main.m</code> on them gives
+identical outputs (validated; Jasper: "this one time consider it validated by me").</li>
+<li>The run scripts moved onto them; the full band and the RFI cases are bit-identical.</li>
+<li><b>A3b:</b> 50 seeds on the default channel path give a ratio of 0.956 ± 0.034. The error bars are honest end to end over seeds, for
+the first time. A <code>pChi2</code> excess at −5 dB was traced to the two band-edge channels (roadmap item 3); it is gone at −15 dB.
+<code>runH0</code> on the channel path: false alarms at the design rate.</li>
+<li>Item 3 and the per-channel noise calibration stay parked (Jasper).</li>
+</ul>
+
+<h3>20 October — block C, the fast simulator</h3>
+<ul>
+<li>Jasper: "run the sweep in the background and start C". The weak-regime sweep on the channel path confirms the design rule of
+SNR ≥ 6–7 per TOA.</li>
+<li><code>simulateFold</code> draws folded profiles from their statistics: one channel first (C1), validated against the voltage chain
+(C2), then channels (C4a), RFI from a measured profile (C4b; Jasper: option a), observing passes (C3a), scintillation (C3b) and
+adaptive sub-ints (C3c). Then dual polarization, groups over gaps, multi-component profiles and per-channel noise calibration
+(un-parked by Jasper "for the χ² stuff").</li>
+<li><b>The scenario changed:</b> the array goes on a ship, and the location is the Netherlands. J0437 and Vela never rise there, so the
+runs use B0329+54 from 52° N, and J0437 from 30° S (Jasper's choice). The default DM became 25, near B0329+54's 26.8, with runs of
+0.2 s.</li>
+<li>A parallel workflow with role agents was tried and stopped within the hour: Jasper prefers to follow the development in one
+session.</li>
+<li>Checks of the RFI model: <code>testRFIModel</code> on synthetic data, and <code>testRFIChain</code> on the voltage chain. B0329+54's
+five components needed finer bins: NBin 2048, and the resolution warning tightened to 1/10 of the template width (Jasper).</li>
+<li>First scenario runs, with TOA budgets per day (<a href="scenario.html#simulated">scenario</a>). Jasper's runs of
+<code>testSimulateFold</code> 1–15 and <code>testRFIModel</code> 1–5 passed.</li>
+</ul>
+
+<h3>21 October — profiles, thresholds, validation</h3>
+<ul>
+<li><b>Overnight runs</b> (Claude's): the scenario's RFI variants (realistic RFI costs about 20–25 % of the TOAs; the calibration
+brings χ² to 1); J0437's measured profile (about 5× more data per TOA than a single Gaussian); and <code>testRFIChain</code>'s
+narrow-carrier failures diagnosed (the lag cut-off, and <code>detectRFI</code>'s false flags).</li>
+<li><b>Jasper's decisions:</b> J0437's eight-component profile in <code>runScenario</code>; more lags in <code>rfiProfile</code> and
+per-channel <code>detectRFI</code> thresholds, both built and tested the same day; the rare low-SNR outliers to be handled in block D's
+navigation filter; the 100-day runs in the background; the docs keep their DM-5 worked examples.</li>
+<li>Jasper's MATLAB was down, so Claude ran the validation on a frozen copy of the code.</li>
+<li>These docs rewritten for readability (Jasper: the text was "compact and comprehensive, but very hard to comprehend").</li>
+</ul>
+
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
 agreed.</p>
@@ -237,6 +329,27 @@ agreed.</p>
 <tr><td>13 Oct</td><td>Minor and simple changes implemented, each validated right after (Jasper)</td><td>Jasper's instruction: "implement the minor changes, validate each step", later also small logic changes.</td></tr>
 <tr><td>13 Oct</td><td><code>main.m</code> checks reused processing and fold files</td><td>Stale files went unnoticed: the check found channel-path products left from the 99 kHz <code>f_out</code> study.</td></tr>
 <tr><td>13 Oct</td><td>Unit tests get frozen settings and data (<code>data/test/</code>)</td><td>A <code>main.m</code> run with other settings rewrote the tests' input and could break the bit-for-bit regressions or silently change the data.</td></tr>
+<tr><td>14 Oct</td><td><code>estimateTOA</code> keeps its convergence flag; <code>main.m</code> warns on bright excision</td><td>The flag was computed but dropped. <code>detectRFI</code> blanks a pulse brighter than −5 dB itself.</td></tr>
+<tr><td>16 Oct</td><td>χ² threshold: keep 2 as the drop rule, report <code>pChi2</code> (Jasper: option C)</td><td>On the channel path 2 is ~130σ, so noise-model errors pass silently. A sensitive drop rule would drop every narrow-carrier TOA, whose error bars are only 3.4 % too small.</td></tr>
+<tr><td>16 Oct</td><td>Equations in LaTeX, each with its symbols defined (Jasper)</td><td>Equations looked cluttered, and symbols had to be guessed.</td></tr>
+<tr><td>16 Oct</td><td>No single function from the sky to the TOAs (Jasper)</td><td>Real IQ data enter between the simulation and the processing; the operational processing will run on an FPGA or GPU.</td></tr>
+<tr><td>19 Oct</td><td><code>processIQ</code>: the boundary at IQ, both front ends (Jasper)</td><td>A recording goes in unchanged; the FPGA/GPU port can be checked against it; the full band stays the validated reference.</td></tr>
+<tr><td>19 Oct</td><td>Item 3 (edge channels) and the per-channel calibration stay parked (Jasper)</td><td>To be taken up together, as one block; the χ² excess they cause vanishes at weak signal.</td></tr>
+<tr><td>20 Oct</td><td>Start block C; the weak-regime sweep in the background (Jasper)</td><td>Hours per TOA cannot be simulated at voltage level.</td></tr>
+<tr><td>20 Oct</td><td>One channel first; ρ in the simulator's convention (Jasper)</td><td>Simple and exactly checkable; the conversion for the scenario comes later.</td></tr>
+<tr><td>20 Oct</td><td>Order C4a → C4b → C3 (Jasper)</td><td>Realistic RFI in the simulator needs per-channel folds first.</td></tr>
+<tr><td>20 Oct</td><td>RFI in the simulator from a measured profile (Jasper: option a)</td><td>A short voltage run measures exactly what the real excision leaves; a formula per RFI type would be one more approximation to validate.</td></tr>
+<tr><td>20 Oct</td><td>The ship and the Netherlands: B0329+54 from 52° N, J0437 from 30° S (Jasper)</td><td>The array goes on a ship; J0437 and Vela never rise at 52° N, B0329+54 never sets.</td></tr>
+<tr><td>20 Oct</td><td>Default DM 25 (Jasper), runs of 0.2 s</td><td>Near B0329+54's 26.8. The 31.5 ms sweep leaves less fully supported data, so runs are longer.</td></tr>
+<tr><td>20 Oct</td><td>Back to one visible session, no parallel role agents (Jasper)</td><td>Jasper wants to follow the development as it happens.</td></tr>
+<tr><td>20 Oct</td><td>Per-channel noise calibration un-parked, as a switch, off by default (Jasper)</td><td>RFI channels raise χ² and shrink the error bars; the observer can measure each channel's noise on its own data.</td></tr>
+<tr><td>20 Oct</td><td>NBin 2048 for B0329+54, instead of a higher target SNR</td><td>Most of the low-SNR error-bar excess with its five components was bin resolution; at 2048 its narrowest component is 11 bins wide.</td></tr>
+<tr><td>20 Oct</td><td>Resolution warning at 1/10 of the template width, not 1/5 (Jasper)</td><td>At low SNR coarse bins cost more than the old rule assumed. (The same day the width became the spectral width, because the half-maximum width missed narrow components.)</td></tr>
+<tr><td>21 Oct</td><td>J0437's eight-component profile in <code>runScenario</code> (Jasper)</td><td>Its wings mean about 5× more data per TOA than the single Gaussian.</td></tr>
+<tr><td>21 Oct</td><td>Per-channel <code>detectRFI</code> thresholds; more lags in <code>rfiProfile</code> (Jasper)</td><td>The two causes of <code>testRFIChain</code>'s narrow-carrier failures.</td></tr>
+<tr><td>21 Oct</td><td>Low-SNR outliers handled in block D's navigation filter, not by longer groups (Jasper)</td><td>Adaptive SNR-7 groups give more TOAs; the rare one-core-width outliers can be caught by innovation gating and a robust likelihood.</td></tr>
+<tr><td>21 Oct</td><td>The docs keep their DM-5 worked examples (Jasper)</td><td>Visual clarity: at DM 25 a sweep spans three periods.</td></tr>
+<tr><td>21 Oct</td><td>Docs rewritten for readability (Jasper)</td><td>The pages were "compact and comprehensive, but very hard to comprehend".</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -267,6 +380,15 @@ agreed.</p>
 <tr><td><a href="../logs/2026-10-13_full-review.md"><code>2026-10-13_full-review.md</code></a></td><td>full read-through: things that look weird</td></tr>
 <tr><td><a href="../logs/2026-10-13_deep-analysis.md"><code>2026-10-13_deep-analysis.md</code></a></td><td>deeper analysis: error-bar gaps, binary orbit, position prior, visibility</td></tr>
 <tr><td><a href="../logs/2026-10-13_docs-rationale.md"><code>2026-10-13_docs-rationale.md</code></a></td><td>these docs: design reasoning, readable pages, figures</td></tr>
+<tr><td><a href="../logs/2026-10-13_review-week.md"><code>2026-10-13_review-week.md</code></a></td><td>review week, stages 2–4</td></tr>
+<tr><td><a href="../logs/2026-10-14_review-week.md"><code>2026-10-14_review-week.md</code></a></td><td>review week, stages 2 again, 5 and 6a</td></tr>
+<tr><td><a href="../logs/2026-10-14_small-fixes.md"><code>2026-10-14_small-fixes.md</code></a></td><td>small fixes: <code>toa.converged</code>, the bright-excision warning</td></tr>
+<tr><td><a href="../logs/2026-10-14_docs-remaining-pages.md"><code>2026-10-14_docs-remaining-pages.md</code></a></td><td>these docs: the remaining pages in the new format</td></tr>
+<tr><td><a href="../logs/2026-10-15_review-week.md"><code>2026-10-15_review-week.md</code></a></td><td>review week, stage 6 (periodic mask, blanking)</td></tr>
+<tr><td><a href="../logs/2026-10-16_review-week.md"><code>2026-10-16_review-week.md</code></a></td><td>review week, stages 7–11 and the drivers; the χ² decision; the <code>processIQ</code> proposal; LaTeX in the docs</td></tr>
+<tr><td><a href="../logs/2026-10-19_processIQ.md"><code>2026-10-19_processIQ.md</code></a></td><td><code>processIQ</code> and <code>foldToTOA</code>; A3b; the run scripts on them</td></tr>
+<tr><td><a href="../logs/2026-10-20_blockC.md"><code>2026-10-20_blockC.md</code></a></td><td>block C: <code>simulateFold</code>, the RFI model, the scenario runs (20–21 Oct)</td></tr>
+<tr><td><a href="../logs/2026-10-21_docs-readability.md"><code>2026-10-21_docs-readability.md</code></a></td><td>these docs: the readability rewrite</td></tr>
 <tr><td><a href="../logs/current_project_notes.md"><code>current_project_notes.md</code></a></td><td>the complete reference, kept up to date with the code</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
