@@ -279,7 +279,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span></td></tr>
-<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~20 s</td><td><span class="badge validated">passes (Jasper's run, 20 Oct)</span></td></tr>
+<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~30 s</td><td><span class="badge validated">tests 1–5 pass (Jasper's run, 20 Oct)</span> <span class="badge written">test 6 (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">realistic passes; narrow Inmarsat 2 FAILs at 1 turn, diagnosed (Claude's runs, 20–21 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
@@ -462,7 +462,10 @@ detect what a profile misses. Passes (Claude's run, 20 Oct, 21 s; Jasper's run, 
 calibration on the observation itself: <code>rfiProfile</code> with the pulse left out (15 % of the bins) recovers the exact coefficients
 (max |z| 1.79); the fold with <code>'ChannelNoise'</code> has noise / own model 0.99–1.02 in every channel (clean model: carrier 0.49, narrowband
 1.14) and TOAs with χ²<sub>red</sub> 1.010 ± 0.007 (clean model 0.875), pull std 1.06; the model coefficients as calibration give the old fold
-bit for bit (Claude's run; Jasper's run, 20 Oct: all passed). The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
+bit for bit (Claude's run; Jasper's run, 20 Oct: all passed). (6, 21 Oct) More lags (<code>rfiProfile</code> <code>'Lmax'</code>): the negative
+control's channel measured with 300 lags recovers the closed-form sum rule (14.04 vs 14.13; 2.95 with 2 lags), and the fold comparison that
+test 4 fails now agrees: noise/model 5.468 real, 5.492 simulated (z −0.2; 1.658 with 2 lags). Claude's run, 21 Oct: all passed. The test now
+uses its own temporary folder per run. The same comparison on the voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (C4b, slow, 20 Oct)</h2>
 <p>The same comparison as <code>testRFIModel</code>, on the voltage chain's real RFI and excision. Per case (realistic scenario and

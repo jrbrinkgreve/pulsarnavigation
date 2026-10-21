@@ -51,15 +51,19 @@ generator).
      (4 sigma; test 2 with the clean model: carrier 0.49, narrowband 1.14), TOAs red. chi^2 1 and
      pull std 1 (4 sigma); the model coefficients as ChannelNoise give the uncalibrated fold bit
      for bit, and without DataWeights 'ChannelNoise' equals 'NoiseCoeffs' (1e-12).
+  6. More lags (rfiProfile 'Lmax', 21 Oct): the negative control's channel measured with 300 lags
+     (0.98^300 ~ 0.2 %; the closed form X(L) = (R(L) + 0.98^L)^2 / 4, sum rule V + 2 sum X =
+     14.13, against 2.95 measured with lags 1-2 only): measured sum within 10 % of the closed form, and
+     the fold comparison of test 4 now agrees (real and simulated noise/model within 4 sigma).
 Errors at the end if any check fails. (20 Oct 2026, block C4b.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir)); %#ok<NASGU>
-tmp = fullfile(tempdir, 'testRFIModel');
-if ~isfolder(tmp), mkdir(tmp); end
-cleanTmp = onCleanup(@() delete(fullfile(tmp, '*'))); %#ok<NASGU>
+tmp = tempname(tempdir);                         % own folder per run (21 Oct): two runs at once
+mkdir(tmp);                                      %   (e.g. Jasper's and Claude's) cannot collide
+cleanTmp = onCleanup(@() rmdir(tmp, 's')); %#ok<NASGU>
 fails = {};
 
 f0 = 100; T = 1/f0; dt = 1e-6; Bn = 1/dt; NB = 256; fwhm = 0.05; dphi = 0.123;
@@ -223,6 +227,24 @@ fprintf(['5. per-channel noise calibration: rfiProfile on the pulsar stretch wit
     mat2str(round(s5.ratio.', 3)), mat2str(round(sr.ratio.', 3)), q5.chi2, q5.schi2, qr.chi2, q5.pullStd, ...
     okId, okNoW, passStr(pass));
 if ~pass, fails{end+1} = 'noise calibration'; end
+
+% ---------------------------------------------------------------------------------
+% 6. More lags (rfiProfile 'Lmax'): the negative control's channel with 300 lags
+% ---------------------------------------------------------------------------------
+L6 = 300;
+prof6 = rfiProfile(detC, [], 'RefLevel', 1, 'Lmax', L6, 'Verbose', false);
+Ra6 = [R, zeros(1, L6 - 2)] + sp.beta.^(0:L6);       % R_a(L) = R_n(L) + beta^L, power 2
+sumT6 = 1 + 2*sum(Ra6(2:end).^2) / Ra6(1)^2;         % closed form of V + 2 sum X
+sum6  = prof6.noiseCoeffs(1) + 2*sum(prof6.noiseCoeffs(2:end));
+[~, f6s] = simulateFold(f0, -Inf, 800, 'NChan', 1, 'RFI', prof6, 'NBin', NB, ...
+    'SubintPeriods', per, 'Seed', 6, 'Verbose', false);
+c6 = foldStats(f6s, NaN, Bn, dt);
+z6 = (cr.ratio - c6.ratio) / sqrt(cr.sRatio^2 + c6.sRatio^2);
+pass = abs(sum6 / sumT6 - 1) < 0.10 && abs(z6) < 4;
+fprintf(['6. more lags (''Lmax'' %d) on the negative control: sum rule %.2f (closed form %.2f, 2 lags %.2f); ' ...
+         'noise/model real %.3f, simulated %.3f (z %+.1f; test 4 with 2 lags: %.3f): %s\n'], L6, sum6, sumT6, ...
+    profC.noiseCoeffs(1) + 2*sum(profC.noiseCoeffs(2:end)), cr.ratio, c6.ratio, z6, cs.ratio, passStr(pass));
+if ~pass, fails{end+1} = 'more lags'; end
 
 if isempty(fails)
     fprintf('testRFIModel: all passed\n');

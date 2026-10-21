@@ -36,6 +36,13 @@ Name-value options:
   'RefLevel'   receiver-noise power per channel (default [] = median of the channel means)
   'MinValid'   W at or above which a time bin counts as fully valid (default 1 - 1e-6)
   'ChunkBins'  time bins read per chunk (default 2^18)
+  'Lmax'       lags measured (default [] = those of the clean model, info_det.noise.X: 7 on
+               the channel path). More for RFI correlated longer (21 Oct 2026): a 200 kHz
+               carrier's power correlation has a sidelobe at lags 7-20 holding 5-7 % of its
+               long-run noise, which matters in phase bins much longer than 7 time bins (the
+               scenario's); runRFIProfile measures 30. The model coefficients beyond the clean
+               model's lags are taken as 0 (lag 7: 3e-4 of V). simulateFold takes any number;
+               foldProfile's 'ChannelNoise' needs the fold's own (the default).
   'Ephem'      struct with f0, F1, TRef (and optionally Phi0) of the pulsar (20 Oct 2026), with
   'OnPulse'    [turns] half-width around the predicted pulse (phase 0) whose time bins are left
                out of level, variance and lags (default 0: none). For a measurement on the
@@ -56,6 +63,7 @@ arguments
     opts.Label      {mustBeTextScalar} = ''
     opts.RefLevel   double = []
     opts.MinValid   (1,1) double {mustBeInRange(opts.MinValid, 0, 1)} = 1 - 1e-6
+    opts.Lmax       double {mustBeScalarOrEmpty, mustBeNonnegative, mustBeInteger} = []
     opts.ChunkBins  (1,1) double {mustBeInteger, mustBePositive} = 2^18
     opts.Ephem      = []
     opts.OnPulse    (1,1) double {mustBeNonnegative} = 0
@@ -66,6 +74,11 @@ tStart = tic;
 nChan = info_det.nChan;
 Xm    = info_det.noise.X(:).';
 Lmax  = numel(Xm);
+if ~isempty(opts.Lmax)                              % more (or fewer) lags than the clean model
+    Xm   = [Xm, zeros(1, opts.Lmax - Lmax)];        % its correlations beyond its lags: ~0
+    Xm   = Xm(1:opts.Lmax);
+    Lmax = opts.Lmax;
+end
 Bn    = info_det.noise.Bnoise;
 dt    = info_det.binDt;
 haveW = ~isempty(info_w);

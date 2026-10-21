@@ -4,7 +4,8 @@ RUNRFIPROFILE - per-channel RFI statistics for the fast simulator (block C4b)
 Runs the voltage chain without pulsar (zero sky + receiver noise + RFI, main's noise seed)
 through processIQ on the channel path with excision, then measures with rfiProfile what the
 RFI leaves in each channel's detected power: level, variance and lag covariances of the time
-bins, valid fraction. simulateFold('RFI', prof) reproduces these in folds of any length.
+bins (to lag 30 since 21 Oct 2026: narrow carriers correlate beyond the clean model's 7), valid
+fraction. simulateFold('RFI', prof) reproduces these in folds of any length.
 
 Cases:
   'realistic'      rfiRealistic of pipelineParams (16 sources, B5e)
@@ -81,7 +82,7 @@ for Lc = lengths
         out = processIQ(info_IQ, rx, ephem, procP, pFiles, 'Verbose', false);
         delete(info_IQ.file);
         label = sprintf('%s, %g s, zero sky, excision (runRFIProfile)', caseNames{ci}, Lc);
-        prof = rfiProfile(out.info_det, out.info_w, 'Label', label);
+        prof = rfiProfile(out.info_det, out.info_w, 'Label', label, 'Lmax', 30);
         prof.sources = src; prof.noiseSeed = noiseSeed;
         save(fOut, 'prof');
         fprintf('runRFIProfile: %s -> %s (%.0f s)\n', label, fOut, toc(tCase));
