@@ -276,7 +276,9 @@ about 1 %.</li>
 <li><b>Block D started:</b> its design agreed, and D1 (where the receiver is, the delays to the barycentre) and D2 (the predicted phase,
 the fold that follows it) built and tested (<a href="motion.html">block D</a>). The clock was added to the plan after it had been
 left out. Two parts of D3 followed: the true arrival of each pulse against the observer's prediction, checked end to end through the
-fold, and the receiver's clock with white, flicker and random-walk frequency noise.</li>
+fold, and the receiver's clock with white, flicker and random-walk frequency noise. D3 then put the observer's clock estimate into the
+predictor and the moving receiver's truth into the scenario runs. D4, the navigation fit, was designed around clock synchronisation with
+extra pulsars; D4a is next.</li>
 <li>The pipeline overview now shows the fast simulator and the motion prediction around the voltage chain.</li>
 <li>These docs rewritten for readability (Jasper: the text was "compact and comprehensive, but very hard to comprehend").</li>
 </ul>
@@ -359,6 +361,10 @@ agreed.</p>
 <tr><td>21 Oct</td><td>Block D: a phase predictor fed by a trajectory (Jasper)</td><td>The end goal is sensor fusion on a ship or a probe: a Kalman-like motion predictor plugs in through the trajectory, and the fold stays simple.</td></tr>
 <tr><td>21 Oct</td><td>Block D's first result: B0329+54's 2-D equatorial site offset (Jasper)</td><td>One pulsar sees the two equatorial components through the Earth's rotation; the polar one merges with the clock.</td></tr>
 <tr><td>21 Oct</td><td>The clock into block D (Jasper)</td><td>Clock offset, rate and wander shift every TOA directly; they had been left out of the plans.</td></tr>
+<tr><td>21 Oct</td><td>The observer folds with its own clock estimate (Jasper: option a)</td><td>A commercial SDR's ±2 ppm would smear the fold like an uncorrected Doppler shift: 240 µs in a 120 s sub-int.</td></tr>
+<tr><td>21 Oct</td><td>D4: clock synchronisation with extra pulsars (Jasper)</td><td>The clock is common to all pulsars, a position error is not: differences between pulsars cancel the clock, and with the position known the pulsars discipline the clock.</td></tr>
+<tr><td>21 Oct</td><td>Several digital beams at once (Jasper)</td><td>The array mixes the signals digitally, so extra pulsars cost no time on B0329+54.</td></tr>
+<tr><td>21 Oct</td><td>Per-pulsar offsets: a switch between a calibrated start and self-calibration (Jasper)</td><td>A start from a known position and time makes the polar component and the absolute clock reachable; self-calibration keeps the option of starting anywhere.</td></tr>
 <tr><td>21 Oct</td><td>The clock model with flicker noise, drawn by FFT; the paper's crystal as the only preset (Jasper)</td><td>Flicker is 42 % of a crystal's time-error variance after 200 s. The planned receiver is a commercial SDR, whose noise is not published and is best measured on the device.</td></tr>
 <tr><td>21 Oct</td><td>The docs keep their DM-5 worked examples (Jasper)</td><td>Visual clarity: at DM 25 a sweep spans three periods.</td></tr>
 <tr><td>21 Oct</td><td>Docs rewritten for readability (Jasper)</td><td>The pages were "compact and comprehensive, but very hard to comprehend".</td></tr>

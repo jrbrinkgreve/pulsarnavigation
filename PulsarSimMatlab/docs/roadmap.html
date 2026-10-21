@@ -210,8 +210,9 @@ groups over gaps, multi-component profiles, the calibrated observer) and <code>t
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td>started 21 Oct.
 <span class="badge written">done in Claude's runs</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>) and D2 (<code>makePredictor</code>,
 <code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against the prediction) and D3b (<code>makeClock</code>: the receiver's
-clock). Next: D3c (the simulator's truth with a moving receiver and a clock) and D4 (the navigation fit; first B0329+54's 2-D equatorial
-offset). See <a href="motion.html">block D</a>.</td></tr>
+clock), D3c (the observer's clock estimate, and the simulator's truth with a moving receiver and a clock in <code>runScenario</code>).
+D4 designed: the navigation fit with clock synchronisation by extra pulsars in simultaneous beams. Next: D4a (<code>navFit</code>, first
+B0329+54's 2-D equatorial offset). See <a href="motion.html">block D</a>.</td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 
@@ -337,8 +338,10 @@ probe);</li>
 <tr><td>D2</td><td><code>makePredictor</code> (the predicted phase) and <code>foldProfile</code> <code>'Predictor'</code></td><td><span class="badge written">done 21 Oct (Claude's runs)</span></td></tr>
 <tr><td>D3</td><td>The simulator's truth: a true and a predicted trajectory, and a clock process. D3a <code>trueResiduals</code> (the residual
 and the pulse's phase in the observer's fold); D3b <code>makeClock</code>; D3c the simulator's per-sub-int phase offset in
-<code>runScenario</code></td><td><span class="badge written">D3a, D3b done 21 Oct (Claude's runs)</span> <span class="badge todo">D3c next</span></td></tr>
-<tr><td>D4</td><td>The navigation fit: a robust batch fit first, then a Kalman filter</td><td><span class="badge todo">todo</span></td></tr>
+<code>runScenario</code></td><td><span class="badge written">done 21 Oct (Claude's runs)</span></td></tr>
+<tr><td>D4</td><td>The navigation fit, with the clock synchronised by extra pulsars: D4a <code>navFit</code> (robust batch fit, fixed site,
+perfect clock); D4b the clock as correlated noise; D4c several pulsars in simultaneous beams with one clock, and a switch between a
+calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge written">designed 21 Oct</span> <span class="badge todo">D4a next</span></td></tr>
 <tr><td>D5</td><td>J0437's binary orbit, DE440, real ship and probe trajectories</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 <p>Details: <a href="motion.html">motion and phase (block D)</a>.</p>
