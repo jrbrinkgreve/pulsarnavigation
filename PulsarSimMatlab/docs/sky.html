@@ -275,16 +275,18 @@ so the code uses the nearest pulse alone. Test 4 of <code>testGeneratePulsarSign
 <ul>
 <li>σ = FWHM / (2√(2 ln 2)).</li>
 <li>Nearest pulse: <var>k</var><sub>0</sub> = round(<var>t</var>/<var>T</var> − ½).</li>
-<li>Neighbours on each side: <code>nNeighbors</code> = ⌊11.75σ/<var>T</var> + ½⌋, every Gaussian that reaches 10⁻³⁰ of the peak. At
-5 % duty that is 0. (13 Oct 2026; bit-identical to the earlier max(1, ⌈6σ/<var>T</var> + ½⌉).)</li>
+<li>Neighbours on each side: <code>nNeighbors</code> = ⌊11.75σ/<var>T</var> + ½⌋. This includes every Gaussian that reaches
+10⁻³⁰ of the peak. At 5 % duty it is 0.</li>
 <li>The sum is divided by its exact peak value (<code>peakNorm</code>), so overlapping pulses keep their true shape.</li>
-<li>Above 20 % duty the function warns (<code>generatePulsarSignal:overlap</code>): real pulsars stay below ~20 % (lowered from 50 %
-on 13 Oct 2026).</li>
+<li>Above 20 % duty the function warns (<code>generatePulsarSignal:overlap</code>), because real pulsars stay below about 20 %.</li>
 <li><var>N</var> = round(<var>L</var>·<var>f</var><sub>in</sub>) + 1 samples, including <var>t</var> = <var>L</var>. That is why file lengths
 end in …001.</li>
 <li>Times are computed in double precision; only the written samples are single.</li>
 </ul>
 </details>
+<details><summary>History</summary>
+<p>13 Oct 2026: the neighbour rule became ⌊11.75σ/<var>T</var> + ½⌋, bit-identical to the earlier
+max(1, ⌈6σ/<var>T</var> + ½⌉). The overlap warning was lowered the same day, from 50 % to 20 % duty.</p></details>
 
 <h3 id="gen-why">Design choices</h3>
 <p>Why the generator is built this way: what was chosen, what the alternative was, and why.</p>
@@ -364,13 +366,14 @@ section 7</a>).</p></div>
 <div class="callout why"><span class="ttl">The width refers to the power profile (<code>'power'</code> mode, default)</span>
 <p>The processing measures power, so the width that matters is the width of the <em>power</em> profile. In <code>'power'</code> mode
 the amplitude follows √<var>G</var> and the power follows <var>G</var>, so the power profile has exactly the stated FWHM. The older
-<code>'amplitude'</code> mode makes the power profile √2 narrower, which the template would have to correct for. (Removing
-<code>'amplitude'</code> is noted as R2 on the <a href="roadmap.html">roadmap</a>.)</p></div>
+<code>'amplitude'</code> mode makes the power profile √2 narrower, which the template would have to correct for. Removing
+<code>'amplitude'</code> mode is noted on the roadmap (<a href="roadmap.html">item R2</a>).</p></div>
 
 <div class="callout why"><span class="ttl">First pulse at <var>T</var>/2</span>
 <p>The observer's phase model starts at <code>ephem.TRef</code> = <var>T</var>/2 with phase 0. Every true pulse peak then sits at a
-whole number of turns. The fold cuts turns halfway between pulses, so no pulse is split, and the expected TOA offset is zero.
-(It also means the true offset is always 0 today; a hidden true offset is noted as R3 on the roadmap.)</p></div>
+whole number of turns. The fold cuts turns halfway between pulses, so no pulse is split, and the expected TOA offset is zero.</p>
+<p>It also means that the true offset is always 0 in the voltage simulation. A hidden, nonzero true offset is noted on the
+roadmap (<a href="roadmap.html">item R3</a>).</p></div>
 
 <div class="callout why"><span class="ttl">Every sample from its absolute time, with its own random stream</span>
 <p>Each sample's time is computed in double precision from its index, never by adding up steps. The random numbers come from a private
@@ -399,10 +402,16 @@ highest (DM 25). It does this exactly, by filtering the voltage with a long chir
 blocks.</p>
 
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
-<p>The numbers in this section (figures, the kernel and grid sizes, the measured run times) were worked out at DM 5, the default until
-20 Oct 2026. At today's DM 25 everything that follows the sweep is five times longer: sweep 31.51 ms (6.302 ms), bulk delay
-τ(1.6 GHz) = 40.52 ms (8.103 ms), kernel 126 million taps at 4 GHz (25.2 million), design grid 2²⁸ points, 11.8 GB (2²⁶, 3 GB).
-The method is the same.</p></div>
+<p>The figures, kernel sizes and run times in this section are worked out at DM 5. At DM 5 the sweeps stay apart, so the figures are
+easier to read. The default DM is 25. Everything that follows the sweep is then five times longer; the method is the same.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>DM 5 (this section)</th><th>DM 25 (default)</th></tr>
+<tr><td>Sweep across the band</td><td>6.302 ms</td><td>31.51 ms</td></tr>
+<tr><td>Bulk delay τ(1.6 GHz)</td><td>8.103 ms</td><td>40.52 ms</td></tr>
+<tr><td>Kernel length at 4 GHz</td><td>25.2 million taps</td><td>126 million taps</td></tr>
+<tr><td>Design grid</td><td>2²⁶ points, 3 GB</td><td>2²⁸ points, 11.8 GB</td></tr>
+</table></div>
+<p>(DM 5 was the default until 20 Oct 2026.)</p></div>
 
 <h3 id="disp-phys">The physics</h3>
 <p>Between the pulsar and us lies ionized gas. Radio waves travel through it slightly slower than light, and lower frequencies are
@@ -776,8 +785,8 @@ page</a>).</p></div>
 <p>With <var>f</var><sub>ref</sub> = 1.6 GHz, lower frequencies arrive later, as in a real observation. The 8.103 ms that the whole band
 shares would only shift everything. It is stored in <code>info.bulkDelayRef</code>, so TOAs can later be converted to infinite
 frequency.</p>
-<p>One catch, noted 13 Oct as D2 on the <a href="roadmap.html">roadmap</a>: the same <code>refFreq</code> also sets the frequency the
-observer dedisperses to. <code>info.pulseCenters</code> is the truth only because the two are equal.</p></div>
+<p>One catch: the same <code>refFreq</code> also sets the frequency that the observer dedisperses to. <code>info.pulseCenters</code>
+is the truth only because the two are equal. This is noted on the roadmap (<a href="roadmap.html">item D2</a>).</p></div>
 
 <div class="callout why"><span class="ttl">The output is as long as the input; the late tail is dropped</span>
 <p>In the last 6.3 ms of the file, the low frequencies of the last pulses would arrive after the file ends. That part is dropped,
@@ -796,7 +805,7 @@ complete sweep (<code>fullySupported</code>), and the fold uses only those.</p><
 <li>Round trip forward → IQ → inverse: ~2·10⁻⁶.</li>
 <li><code>plotDispersionCheck</code>: the raw and dispersed dynamic spectra follow the expected sweep; the band-integrated power is as
 expected.</li>
-<li>No MATLAB unit test yet; one is noted as D1 on the <a href="roadmap.html">roadmap</a>.</li>
+<li>There is no MATLAB unit test yet; one is noted on the roadmap (<a href="roadmap.html">item D1</a>).</li>
 </ul>
 
 <h3>History: why the current form</h3>
@@ -808,9 +817,11 @@ time. See <a href="lessons.html">bugs and lessons</a> #1–4.</p>
 
 <h3 id="disp-limits">Limits</h3>
 <div class="callout warn"><span class="ttl">Memory at high DM</span>
-<p>The kernel grows with the sweep, so with DM. At DM 30 this stage needs about 24 GB; from DM ~54 up to DM ~106 (so at DM 60 and DM 100)
-about 47 GB: more than the 24 GB machine (the steps are powers of two; <a href="channels.html#why">figure</a>). The processing side is solved by the channelized front end. The generator side is still open: a memory-efficient FFT,
-dispersion at complex baseband, or per-channel generation. See <a href="roadmap.html#dm">roadmap</a>.</p></div>
+<p>The kernel grows with the sweep, and so with DM. At DM 30 this stage needs about 24 GB. From DM ~54 up to DM ~106, which
+includes DM 60 and DM 100, it needs about 47 GB: more than the 24 GB machine. (The memory rises in steps, because the FFT sizes are
+powers of two; see the <a href="channels.html#why">figure</a>.)</p>
+<p>On the processing side, the channelized front end solves this. On the generator side it is still open. Options are a
+memory-efficient FFT, dispersion at complex baseband, or generating per channel. See the <a href="roadmap.html#dm">roadmap</a>.</p></div>
 
 </main>
 <script src="nav.js"></script>
