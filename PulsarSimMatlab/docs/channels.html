@@ -10,10 +10,11 @@
 <main>
 
 <h1>Stages 5b–6b · Channelized front end</h1>
-<p class="lede">The default processing path since 8 October 2026 (block A). It splits the band into 128 channels of 3.125 MHz,
-dedisperses each channel coherently to one common reference, and detects each channel with an exact model of its noise.</p>
-<p class="meta">Selected with <code>frontEnd = 'channels'</code>. RFI excision (<code>excision = true</code>, default) sits between
-<code>channelizeIQ</code> and <code>dedisperseChannels</code>; see <a href="excision.html">RFI excision</a>.</p>
+<p class="lede">The default processing path. It splits the band into 128 channels of 3.125 MHz, dedisperses each channel coherently
+to one common reference, and detects each channel with an exact model of its noise.</p>
+<p class="meta">Selected with <code>frontEnd = 'channels'</code> · RFI excision (<code>excision = true</code>, default) sits between
+<code>channelizeIQ</code> and <code>dedisperseChannels</code>; see <a href="excision.html">RFI excision</a> · block A, the default since
+8 Oct 2026</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#why">Why a channelized front end</a></li>
@@ -25,17 +26,17 @@ dedisperses each channel coherently to one common reference, and detects each ch
 </ol></div>
 
 <h2 id="why">Why a channelized front end</h2>
-<p>The <a href="fullband.html">full-band path</a> worked and was validated first. On 6 Oct it was decided (Jasper) to put a channelized
-path in front of everything else. Four reasons:</p>
+<p>The <a href="fullband.html">full-band path</a> worked and was validated first. Then a channelized path was put in front of
+everything else (Jasper's decision, 6 Oct 2026), for four reasons:</p>
 
 <div class="callout why"><span class="ttl">1 · RFI excision needs it</span>
-<p>Real data contains RFI. At −54 dB one radar pulse outweighs ~80,000 pulsar pulses, so it must be blanked on the voltages, before
-dedispersion spreads it out. In a 3.125 MHz channel a 2 µs radar pulse is ~8 samples in ~2 channels: easy to find and cheap to remove.
-In the full band there is no place where it is that compact and that separate from good data.</p></div>
+<p>Real data contains RFI. At −54 dB one radar pulse outweighs about 80,000 pulsar pulses. So it must be blanked on the voltages,
+before dedispersion spreads it out. In a 3.125 MHz channel, a 2 µs radar pulse is about 8 samples in about 2 channels: easy to find,
+and cheap to remove. In the full band there is no place where it is that compact and that separate from good data.</p></div>
 
 <div class="callout why"><span class="ttl">2 · Memory at high DM</span>
-<p>One full-band dedispersion filter grows with the sweep: about 15 GB at DM 100. A channel's filter only spans the sweep at the
-channel's 4.17 MHz rate: ~10⁵ samples instead of ~10⁸, and the channels are done one after another.</p></div>
+<p>A full-band dedispersion filter grows with the sweep: it needs about 15 GB at DM 100. A channel's filter spans the sweep only at
+the channel's 4.17 MHz rate: about 10⁵ samples instead of 10⁸. And the channels are done one after another.</p></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Memory of the dispersion filter against DM: simulator, full-band dedispersion and one channel">
   <path class="axis" d="M90 290 H610"/>
@@ -242,17 +243,22 @@ never into the shaded useful band. Per-channel dedispersion later cuts each chan
 
 <h3>Design choices</h3>
 <div class="callout why"><span class="ttl">Oversample by 4/3, not a critically sampled filterbank</span>
-<p>With <var>D</var> = <var>K</var> (critical sampling), each channel's transition region would alias into its own useful band, mixing the
-neighbours' signals in. Oversampling by 4/3 costs 33 % more samples but keeps every channel's useful band clean, so channels can later
-be treated as independent (6 Oct).</p></div>
+<p>With <var>D</var> = <var>K</var> (critical sampling), each channel's transition region would alias into its own useful band, and
+mix the neighbours' signals in. Oversampling by 4/3 costs 33 % more samples, but keeps every channel's useful band clean. So the
+channels can later be treated as independent.</p></div>
 <div class="callout why"><span class="ttl">Each channel is an ordinary IQ file</span>
 <p>Same time grid, same frequency convention, filter delay removed. So the already validated stages downstream (dedispersion, detection)
 run on a channel unchanged, and one test with tones pins down frequency mapping, LO phase, timing and gain at once.</p></div>
 <div class="callout why"><span class="ttl">128 channels of 3.125 MHz</span>
-<p>A trade-off. Narrower channels blur a short RFI pulse in time (a channel of width <var>B</var> cannot show anything shorter than ~1/<var>B</var>),
-and leave fewer independent samples per detected bin (the correlated-noise problem <a href="#powcov">below</a>). Wider channels make
-a carrier or a GNSS signal cost more of the band once its channel is down-weighted, and lengthen each channel's filter. At 3.125 MHz
-a 2 µs radar pulse is ~8 samples in ~2 channels, a carrier costs 1/128 of the band, and 800 MHz / 3.125 MHz = 256 FFT slots.</p></div>
+<p>The channel width is a trade-off.</p>
+<ul>
+<li><b>Narrower channels</b> blur a short RFI pulse in time: a channel of width <var>B</var> cannot show anything shorter than about
+1/<var>B</var>. They also leave fewer independent samples per detected bin (the correlated-noise problem <a href="#powcov">below</a>).</li>
+<li><b>Wider channels</b> make a carrier or a GNSS signal cost more of the band, once its channel is down-weighted. They also lengthen
+each channel's filter.</li>
+</ul>
+<p>At 3.125 MHz, a 2 µs radar pulse is about 8 samples in about 2 channels, and a carrier costs 1/128 of the band. And
+800 MHz / 3.125 MHz gives a whole number of FFT slots: 256.</p></div>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
@@ -263,11 +269,13 @@ a 2 µs radar pulse is ~8 samples in ~2 channels, a carrier costs 1/128 of the b
 
 <h3>Tests (<code>tests/testChannelizeIQ.m</code>)</h3>
 <ul>
-<li><b>Tones</b> at, beside and far from channel centres: every sample equals the exact prediction to ≤ 2.7·10⁻⁷ (single precision).
-One test pins down frequency mapping, LO phase, timing and gain at once. Passband |<var>H</var>| = 1 ± 1.2·10⁻⁴, stopband −80.2 dB.</li>
-<li><b>White noise:</b> channel power / Σ<var>h</var>² = 1.0007; passband level 1.0004 of expected, flat within ±3 %.</li>
-<li><b>Real data</b> (seed 43, −5 dB): Σ channel band powers / IQ band power = 1.00007 (Parseval: no gaps, no double counting).
-0.1 s → 128 × 416,667 samples in 4.1 s (427 MB).</li>
+<li><b>Tones</b> at, beside and far from channel centres. Every sample equals the exact prediction to ≤ 2.7·10⁻⁷, the single-precision
+limit. This one test pins down frequency mapping, LO phase, timing and gain at once. The passband is flat to |<var>H</var>| = 1 ± 1.2·10⁻⁴,
+and the stopband is at −80.2 dB.</li>
+<li><b>White noise.</b> The channel power divided by Σ<var>h</var>² is 1.0007. The passband level is 1.0004 of the expected value, and
+flat within ±3 %.</li>
+<li><b>Real data</b> (seed 43, −5 dB). The channel band powers add up to the IQ band power, to 1.00007. So there are no gaps and no
+double counting (Parseval). 0.1 s of data becomes 128 × 416,667 samples in 4.1 s (427 MB).</li>
 </ul>
 
 <h2 id="dedisp">5b · <code>dedisperseChannels</code> <span class="badge validated">validated</span></h2>
@@ -289,8 +297,9 @@ delay to the reference, so <b>all channels come out aligned</b>.</li>
 <li><b>taper</b> (<code>EdgeFrac</code> 0.02 of the channel: 62.5 kHz) inside each channel. Neighbours do not overlap, so their noise is
 independent. ∫<var>W</var>² = 390.0 MHz in total, the same as the full-band path.</li>
 </ul>
-<p>Memory per channel: the filter spans that channel's sweep to the reference at 4.17 MHz (the bottom channel at DM 100: ~5·10⁵ samples,
-~120 MB). At DM 5: FFT sizes 2¹⁴…2¹⁸, largest leakage 6·10⁻⁸, all 128 channels in 1.7 s.</p>
+<p>Memory per channel: the filter spans that channel's sweep to the reference, at 4.17 MHz. For the bottom channel at DM 100 that is
+about 5·10⁵ samples, or about 120 MB. At DM 5 the FFT sizes are 2¹⁴…2¹⁸, the largest leakage is 6·10⁻⁸, and all 128 channels take
+1.7 s.</p>
 
 <h3>Design choices</h3>
 <div class="callout why"><span class="ttl">Reuse <code>applyInverseDispersion</code></span>
@@ -299,13 +308,16 @@ independent. ∫<var>W</var>² = 390.0 MHz in total, the same as the full-band p
 <div class="callout why"><span class="ttl">Align the channels with the chirp itself, not a separate shift</span>
 <p><b>Alternative:</b> dedisperse each channel to its own centre, then shift it by its delay to 1.6 GHz (a whole number of samples plus a
 fractional delay: an extra FFT pass per channel).</p>
-<p><b>Why not:</b> the inverse chirp is exact for any reference (its phase is the dispersion term, a pure delay and a constant). With the
-common reference, the delay is part of the same filter, at no extra cost and with no interpolation (6 Oct).</p></div>
+<p><b>Why not:</b> the inverse chirp is exact for any reference: its phase is the dispersion term, a pure delay and a constant. With
+the common reference, the delay is part of the same filter. That costs nothing extra, and needs no interpolation.</p></div>
 <div class="callout why"><span class="ttl">A taper inside each channel</span>
 <p><b>Alternative:</b> overlapping, power-complementary tapers, so that the summed band stays flat at the channel boundaries.</p>
 <p><b>Why not:</b> overlapping neighbours would share noise, and every later step would have to carry that correlation. With the taper
-inside each channel the channels are exactly independent. The price is a small notch at each of the 127 boundaries, which in total
-costs the same 2.5 % of band power as the full band's two edges (6 Oct).</p></div>
+inside each channel, the channels are exactly independent. The price is a small notch at each of the 127 boundaries. In total these
+cost the same 2.5 % of band power as the full band's two edges.</p></div>
+<details><summary>History</summary>
+<p>The channelized front end and these three design choices (4/3 oversampling, alignment by the chirp, a taper inside each channel):
+6 Oct 2026, block A.</p></details>
 
 <h3>Outputs</h3>
 <p>Info: chanFiles, chanFreqs, chanWidth, fs, N, t0, DM, refFreq, edgeWidth, per-channel nPast / nFuture / Nfft / leakage, fullySupported
@@ -315,14 +327,14 @@ bulkDelayRef.</p>
 <h3>Tests (<code>tests/testDedisperseChannels.m</code>)</h3>
 <ol>
 <li><b>Regression:</b> the full-band <code>applyInverseDispersion</code> with defaults is bit-identical to <code>test_IQ_dedispersed.dat</code>.</li>
-<li><b>Commutation</b> (the precise test): channelize(full-band dedispersed) against dedisperseChannels(channelize(IQ)). Both are linear
-filters, so the order must not matter. Correlation ≥ 0.999993, phase ≤ 1.2·10⁻⁵ rad, power 1 ± 3·10⁻⁵ (channels 4–125). This proves
-the per-channel chirps, inter-channel delays and phases are exact.</li>
-<li><b>End to end:</b> TOAs channel path against full-band path on the same data (seed 43, −5 dB): 8 TOAs, mean +0.19 µs, rms 0.51 µs
-(0.18σ). The paths keep slightly different parts of the same noise (correlation 0.979), so differences scatter by
-σ·√(2(1−ρ)) = 0.205σ; χ² 5.98 for 8, consistent.</li>
-<li><b>Time-bin noise</b> of the summed channel power: variance / radiometer 0.884 (predicted 0.888 ± 0.005), lag-1 correlation 0.054
-(0.052 ± 0.004). This revealed the narrow-channel effect below.</li>
+<li><b>Commutation</b>, the precise test. It compares channelize(full-band dedispersed) with dedisperseChannels(channelize(IQ)). Both
+are linear filters, so the order must not matter. In channels 4–125 the correlation is ≥ 0.999993, the phase difference ≤ 1.2·10⁻⁵ rad,
+and the power ratio 1 ± 3·10⁻⁵. This proves that the per-channel chirps, the delays between channels and the phases are exact.</li>
+<li><b>End to end.</b> The TOAs of the channel path and of the full-band path on the same data (seed 43, −5 dB) agree: over 8 TOAs the
+mean difference is +0.19 µs and the rms 0.51 µs (0.18σ). The two paths keep slightly different parts of the same noise
+(correlation 0.979), so their differences should scatter by σ·√(2(1−ρ)) = 0.205σ. χ² is 5.98 for 8 TOAs: consistent.</li>
+<li><b>Time-bin noise</b> of the summed channel power. The variance is 0.884 of the radiometer value (predicted 0.888 ± 0.005), and the
+lag-1 correlation 0.054 (predicted 0.052 ± 0.004). This test revealed the narrow-channel effect below.</li>
 </ol>
 
 <h2 id="powcov"><code>powerCovariance</code>: exact noise of detected time bins <span class="badge validated">validated</span></h2>
@@ -330,10 +342,11 @@ the per-channel chirps, inter-channel delays and phases are exact.</li>
 <p class="meta"><a href="api.html#powercovariance">Full interface and help text of <code>powerCovariance</code> →</a></p>
 
 <h3>The problem it solves</h3>
-<p>The radiometer equation, var = <var>m</var>²/(<var>B</var>·Δ<var>t</var>) with <em>independent</em> time bins, assumes <var>B</var>·Δ<var>t</var> ≫ 1. In
-the full band <var>B</var>·Δ<var>t</var> ≈ 400. In a 3.125 MHz channel with 0.96 µs bins it is only ~3: the detected power stays correlated for
-~1/<var>B</var><sub>ch</sub> ≈ 0.3 µs, a good part of a bin. So each bin has less variance than the formula says (0.888 of it), and
-neighbouring bins are correlated (+0.046 at lag 1).</p>
+<p>The radiometer equation, var = <var>m</var>²/(<var>B</var>·Δ<var>t</var>) with <em>independent</em> time bins, assumes
+<var>B</var>·Δ<var>t</var> ≫ 1. In the full band <var>B</var>·Δ<var>t</var> ≈ 400. But in a 3.125 MHz channel with 0.96 µs bins it is
+only about 3. The detected power stays correlated for about 1/<var>B</var><sub>ch</sub> ≈ 0.3 µs, which is a good part of a bin.</p>
+<p>Two things follow. Each bin has less variance than the formula says: 0.888 of it. And neighbouring bins are correlated: +0.046 at
+lag 1.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Noise of detected bins in a narrow channel: the power correlation against lag, and the variance and covariances of one bin">
   <path class="axis" d="M80 246 H410"/>
@@ -468,9 +481,14 @@ channel edges.</li>
 <tr><td>Full band, <var>n</var> = 800</td><td class="num">0.9986</td><td>7·10⁻⁴</td><td class="num">1</td></tr>
 </table></div>
 <div class="callout why"><span class="ttl">Why carry this exactly instead of ignoring it</span>
-<p>Within one phase bin the two effects nearly cancel (variance 0.987 of the simple model), so it looks negligible. But error bars and
-false-alarm thresholds must be exact at weak signal, phase bins can be shorter for other pulsars, and the same machinery is needed
-anyway for blanking, where the effect is large (±45 %). So <code>V</code> and <code>X(L)</code> travel with the data through the fold
+<p>Within one phase bin the two effects nearly cancel: the variance is 0.987 of the simple model. So the effect looks negligible.
+There are three reasons to carry it anyway:</p>
+<ul>
+<li>error bars and false-alarm thresholds must be exact at weak signal;</li>
+<li>phase bins can be shorter for other pulsars;</li>
+<li>the same machinery is needed anyway for blanking, where the effect is large (±45 %).</li>
+</ul>
+<p>So <code>V</code> and <code>X(L)</code> travel with the data through the fold
 (<a href="fold.html#noisecoeffs"><code>NoiseCoeffs</code></a>).</p></div>
 
 <h2 id="detect">6b · <code>detectChannels</code> <span class="badge validated">validated</span></h2>
@@ -494,29 +512,37 @@ the 1 µs of the full-band path.</p></div>
 
 <h3>Tests (<code>tests/testDetectChannels.m</code>)</h3>
 <ol>
-<li><code>powerCovariance</code> against the statistics of the actual dedispersion impulse response of channel 1: identical (max
-|Δ<var>X</var>| 6·10⁻¹⁰).</li>
-<li>Rows of the interleaved file bit-identical to <code>detectPower</code> per channel.</li>
-<li><code>foldProfile</code> on the 128-channel file: channel sum = fold of the summed power (1.2·10⁻⁸).</li>
-<li>Measured on seed-43 data (68,803 off-pulse bins × 128 channels): <var>V</var> 0.8866 (predicted 0.8877 ± 0.0006), <var>X</var>₁₋₃
-0.0455 / 0.0053 / 0.0018 (0.0458 / 0.0051 / 0.0020 ± 0.0004); variance of 5-bin sums 0.9685 × 5·rad (predicted 0.9692 ± 0.0014; the
-independent-bin model says 1).</li>
+<li><code>powerCovariance</code> agrees with the statistics of the actual dedispersion impulse response of channel 1: the largest
+difference |Δ<var>X</var>| is 6·10⁻¹⁰.</li>
+<li>The rows of the interleaved file are bit-identical to <code>detectPower</code> per channel.</li>
+<li><code>foldProfile</code> on the 128-channel file: the sum over channels equals the fold of the summed power, to 1.2·10⁻⁸.</li>
+<li>The noise model matches real data. Measured on seed-43 data (68,803 off-pulse bins × 128 channels):
+<div class="table-wrap"><table>
+<tr><th></th><th>Measured</th><th>Predicted</th></tr>
+<tr><td><var>V</var></td><td class="num">0.8866</td><td class="num">0.8877 ± 0.0006</td></tr>
+<tr><td><var>X</var>(1)</td><td class="num">0.0455</td><td class="num">0.0458 ± 0.0004</td></tr>
+<tr><td><var>X</var>(2)</td><td class="num">0.0053</td><td class="num">0.0051 ± 0.0004</td></tr>
+<tr><td><var>X</var>(3)</td><td class="num">0.0018</td><td class="num">0.0020 ± 0.0004</td></tr>
+<tr><td>Variance of 5-bin sums, × 5·rad</td><td class="num">0.9685</td><td class="num">0.9692 ± 0.0014 (the independent-bin model says 1)</td></tr>
+</table></div></li>
 </ol>
 
-<h2 id="result">Result: channel path against the full band (A4, 8 Oct)</h2>
+<h2 id="result">Result: channel path against the full band</h2>
 <div class="table-wrap"><table>
 <tr><th>Seed 43, −5 dB</th><th class="num">TOAs</th><th class="num">median error bar</th><th class="num">SNR</th><th>total offset</th></tr>
 <tr><td>full band</td><td class="num">9</td><td class="num">2.880 µs</td><td class="num">93.4</td><td>−0.21 ± 0.96 µs</td></tr>
 <tr><td>channels, optimal weighting</td><td class="num">8</td><td class="num">2.943 µs</td><td class="num">92.3</td><td>+0.12 ± 0.98 µs</td></tr>
 </table></div>
 <ul>
-<li>Channel path: reduced χ² 1.008, all detected, noise ratio 0.990. Per sub-int differences between the paths: 0.26σ rms.</li>
-<li><b>One TOA fewer:</b> the per-channel dedispersion guard (20/62.5 kHz = 320 µs) leaves out the first 0.32 ms of the file, and the file
-starts exactly on a turn boundary, so turn 0 is incomplete. Both paths lose the last turn to the sweep (6.3 ms at the DM 5 of this run) (timeline on the
-<a href="fullband.html#dedisp-how">full-band page</a>).</li>
-<li><b>Error bars 2.2 % larger:</b> the simulator tapers only the pulsar at the band edges, not the receiver noise (see
-<a href="limits.html">limitations</a>); with a realistic receiver the difference would be 0.37 %.</li>
+<li>Channel path: reduced χ² 1.008, all sub-ints detected, noise ratio 0.990. Per sub-int, the two paths differ by 0.26σ rms.</li>
+<li><b>One TOA fewer.</b> The per-channel dedispersion guard (20/62.5 kHz = 320 µs) leaves out the first 0.32 ms of the file. The file
+starts exactly on a turn boundary, so turn 0 is then incomplete. Both paths lose the last turn to the sweep, which is 6.3 ms at the DM 5
+of this run (timeline on the <a href="fullband.html#dedisp-how">full-band page</a>).</li>
+<li><b>Error bars 2.2 % larger.</b> The simulator tapers only the pulsar at the band edges, not the receiver noise (see
+<a href="limits.html">limitations</a>). With a realistic receiver the difference would be 0.37 %.</li>
 </ul>
+<details><summary>History</summary>
+<p>This comparison is step A4, 8 Oct 2026, which made the channel path the default.</p></details>
 
 </main>
 <script src="nav.js"></script>
