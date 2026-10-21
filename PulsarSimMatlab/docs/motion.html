@@ -388,6 +388,13 @@ therefore fold with its own estimate of the clock rate, as it does with the Dopp
 (<a href="#predictor">section 4</a>). What is left for the simulator is the clock error the observer has not estimated.</p>
 <p>A first check over two days reproduces the 100 km daily sine to 1.6·10⁻⁸ s. It also shows how much a free-running crystal wanders:
 about 76 µs in a day, and 13 ms in a month. The clock must therefore be part of the navigation fit.</p>
+<p>The first 30-day run of B0329+54 with the true site 100 km east and a perfect clock gives the navigation fit its first data:</p>
+<div class="table-wrap"><table>
+<tr><th>Flux</th><th>Good TOAs</th><th>σ per TOA</th><th>Std of the pulls</th><th>Expected precision per equatorial component</th></tr>
+<tr><td>Nominal</td><td class="num">302 (10 per day)</td><td class="num">738 µs</td><td class="num">1.03</td><td class="num">±31 km: 100 km is a 3σ detection</td></tr>
+<tr><td>Worst case</td><td class="num">59 (2 per day)</td><td class="num">744 µs</td><td class="num">1.13</td><td class="num">±71 km: about 150 days are needed for 3σ</td></tr>
+</table></div>
+<p>The motion costs no TOAs: the same run without it gave 299 good TOAs at nominal flux.</p>
 <h3>D4 · the navigation fit</h3>
 <p>The first goal is a site 100 km from where the observer thinks it is, found from B0329+54 alone. A site offset changes each TOA by
 the offset projected onto the pulsar direction. That direction turns once per sidereal day in the Earth-fixed frame. The two equatorial
