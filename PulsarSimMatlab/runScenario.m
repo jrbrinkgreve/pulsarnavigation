@@ -10,10 +10,24 @@ the observer forms TOAs with adaptiveSubints (merge short sub-ints until SNR ~7)
 Assumptions (notes §11, simulator.html):
   - passes: elevation >= 20 deg, one per sidereal day (B0329+54 from 52 N: 19.6 h, never below
     16.6 deg; J0437 from 30 S: 12.3 h); constant gain over a pass (steered array); site fixed;
-  - no motion (block D): TOA budgets, not navigation yet; the true pulse sits 0.1 FWHM from the
-    predicted phase (a small ephemeris/position error) - adaptiveSubints closes groups on T0 at
-    the predicted phase, which assumes the prediction is well inside the pulse (an error of a
-    sizeable fraction of the FWHM would make the groups longer than needed, not the TOAs wrong);
+  - without motion (motion.on false, the default): TOA budgets, not navigation; the true pulse
+    sits 0.1 FWHM from the predicted phase (a small ephemeris/position error) - adaptiveSubints
+    closes groups on T0 at the predicted phase, which assumes the prediction is well inside the
+    pulse (an error of a sizeable fraction of the FWHM would make the groups longer than needed,
+    not the TOAs wrong);
+  - with motion (motion.on true, block D3c): the truth of a receiver that is not where the
+    observer thinks. The observer folds with the assumed site (52 N 5 E for B0329+54) and its
+    clock estimate; the true site is offset by motion.offsetENU (default 100 km east), the true
+    clock is perfect or an SDR's ('sdr': the paper's crystal noise, makeClock, and a rate drawn
+    within +-2 ppm; the observer knows the rate to clockRateErr = 1e-9 and the offset to
+    clockOffsetErr = 1 ms, a calibration in port). Each sub-int's pulse sits at trueResiduals'
+    phase offset at its reference time. The scenario's t = 0 is set so that its first transit
+    (t = tSid/2) is a real transit at the site after motion.epoch (2026-03-01 00:00 TT). Each TOA
+    records its absolute time, the measured residual (TOA - tRef) and the true residual with its
+    geometric and clock parts: the input of the navigation fit (D4). The measured residual is in
+    the simulator's frame (f0, not the Doppler-shifted frequency): 1e-4 relative, 19 ns on the
+    193 us of a 100 km offset. A warning if the true offset drifts by more than 5 % of the FWHM
+    within a sub-int (one offset per sub-int would then be too coarse);
   - rho in the simulator's convention (peak of the Gaussian pulse / receiver noise per
     polarization, rho = S_peak/SEFD), 'NPol' 2; the observer passes Bnoise x 2;
   - pulse and template: B0329+54's five Gaussian components at 1410 MHz (since 20 Oct; a single
@@ -34,11 +48,13 @@ are carried into the next chunk (also over the gap to the next day: 'AcrossGaps'
 exact because fold sums add. Each closed group gives one TOA. What is still open after the
 last day is counted as leftover.
 
-Outputs per case (printed table; data/scenario/scenario_<pulsar>_<flux>_<variant>_<n>d.mat):
+Outputs per case (printed table; data/scenario/scenario_<pulsar>_<flux>_<variant>_<n>d.mat, with
+motion ..._<n>d_motion_<clock>.mat):
 good TOAs per day, hours of data per TOA (median, 10-90 %), calendar span per TOA, median
 sigma (us and c*sigma in km), rms of (TOA - truth)/sigma and the fraction beyond 5, mean
 reduced chi^2 and pChi2 < 0.05, leftover fraction, figure of merit sigma*sqrt(hours) [us
-sqrt(h)]. (20 Oct 2026, block C; design agreed with Jasper the same day.)
+sqrt(h)]. (20 Oct 2026, block C; design agreed with Jasper the same day. Motion: 21 Oct 2026,
+block D3c, choices agreed with Jasper: perfect clock first, rate known to 1e-9, 1 March.)
 %}
 
 pulsars  = ["B0329", "J0437"];
@@ -47,6 +63,13 @@ variants = "clean";                  % "clean", "rfi", "rfiCal", "rfiCalScint", 
                                      % (the fixed variant needs the rfiCalScint result first)
 nDays    = 30;                       % simulated days
 overwrite = false;                   % false: skip cases whose result file exists
+% the truth of a moving receiver (block D3c; on = false: the TOA budgets, unchanged)
+motion = struct('on', false, ...
+    'epoch', 9555.5 * 86400, ...     % 2026-03-01 00:00 TT [s since J2000]; the first transit after it
+    'offsetENU', [100e3 0 0], ...    % true site minus assumed site, east-north-up [m]
+    'clock', "perfect", ...          % "perfect" | "sdr" (crystal noise + a rate within +-2 ppm)
+    'clockOffsetErr', 1e-3, ...      % "sdr": the observer's estimate is off by this offset [s]
+    'clockRateErr', 1e-9);           %   ... and this rate [s/s]
 
 scriptDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(scriptDir, 'functions'));
@@ -73,11 +96,11 @@ cJ = [0.045599 -0.205164 0.029901; 0.043891 -0.113820 0.028824; 0.103938 -0.0381
       0.215798 -0.000947 0.053271; 0.462737 -0.000766 0.010044; 0.262274  0.007027 0.027132;
       0.310520  0.009091 0.008531; 0.028718  0.147582 0.073914];   % [amplitude, centre, FWHM] (turns)
 sefd = struct('nominal', 3.2e5, 'worst', 7.4e5);
-psr.B0329 = struct('name', 'B0329+54', 'f0', 1/0.714519699726, 'dec', 54.5787, 'lat', 52.0, ...
+psr.B0329 = struct('name', 'B0329+54', 'f0', 1/0.714519699726, 'ra', 53.2474, 'dec', 54.5787, 'lat', 52.0, 'lon', 5.0, ...
     'fwhm', 0.0092, 'comps', cB, 'S1400', 0.203, 'nBin', 2048, ...   % narrowest component 11 bins
     'scint', struct('bandwidth', 7e6, 'timescale', 780, 'band', [fLow fHigh]), ...   % (1024: 5.6 bins,
     'subintTime', 120, 'chunkHours', 2);                       % error bars 18 % small at SNR 7)
-psr.J0437 = struct('name', 'J0437-4715', 'f0', 173.6879458, 'dec', -47.2525, 'lat', -30.0, ...
+psr.J0437 = struct('name', 'J0437-4715', 'f0', 173.6879458, 'ra', 69.3162, 'dec', -47.2525, 'lat', -30.0, 'lon', 5.0, ...
     'fwhm', 0.0245, 'comps', cJ, 'S1400', 0.150, 'nBin', 1024, ...   % fwhm: W50 (truth offset)
     'scint', struct('bandwidth', 740e6, 'timescale', 2290, 'band', [fLow fHigh]), ...
     'subintTime', 300, 'chunkHours', 24);
@@ -100,9 +123,16 @@ for ip = 1:numel(pulsars)
     TRef = 0.5 / ps.f0;
     tmpl = gaussianTemplate(ps.nBin, profileOf(ps));
     dPhi = 0.1 * ps.fwhm;              % true pulse phase against the ephemeris [turns]
+    tag = ""; truthOf = []; M = [];
+    if motion.on                       % the truth of a moving receiver: phase offset at scenario time s
+        M = motionTruth(motion, ps, tSid, nDays, ip);
+        truthOf = @(s) trueResiduals(M.t0 + s, M.psr, M.trajTrue, M.trajAssumed, M.clockArgs{:});
+        dPhi = @(s) offsetAt(truthOf, s);
+        tag = "_motion_" + motion.clock;
+    end
     for fl = fluxes
         for va = variants
-            fOut = fullfile(outDir, sprintf('scenario_%s_%s_%s_%dd.mat', pulsars(ip), fl, va, nDays));
+            fOut = fullfile(outDir, sprintf('scenario_%s_%s_%s_%dd%s.mat', pulsars(ip), fl, va, nDays, tag));
             if ~overwrite && isfile(fOut)
                 fprintf('runScenario: %s exists, skipped\n', fOut);
                 R = load(fOut).R; summary = [summary, R.summary]; %#ok<AGROW>
@@ -139,8 +169,9 @@ for ip = 1:numel(pulsars)
                     error('runScenario:variant', 'Unknown variant %s.', va);
             end
             G = struct('day', {}, 'nMerged', {}, 'hours', {}, 'spanHours', {}, 'T0', {}, ...
-                'valid', {}, 'good', {}, 'err', {}, 'sigma', {}, 'snr', {}, 'chi2', {}, 'pChi2', {});
-            carry = []; nSubTotal = 0;
+                'valid', {}, 'good', {}, 'err', {}, 'sigma', {}, 'snr', {}, 'chi2', {}, 'pChi2', {}, ...
+                'tAbs', {}, 'resid', {}, 'trueResid', {}, 'trueGeo', {}, 'trueClock', {});
+            carry = []; nSubTotal = 0; maxDrift = 0;
             for d = 1:nDays
                 % sub-int grid of the day's pass: complete turns inside it, nPer per sub-int
                 k1 = ceil(ps.f0 * (passes(d, 1) - TRef) + 0.5);
@@ -151,9 +182,12 @@ for ip = 1:numel(pulsars)
                     kA = k1 + c0 * nPer;                                 % first turn of the chunk
                     kB = k1 + min(c0 + mChunk, nSubDay) * nPer - 1;     % last turn
                     win = TRef + ([kA - 0.5 - 1e-6, kB + 0.5 + 1e-6]) / ps.f0;
-                    [iC, fC] = simulateFold(ps.f0, ps.rho.(fl), [], 'Passes', win, simArgs{:}, ...
+                    [iC, fC, tC] = simulateFold(ps.f0, ps.rho.(fl), [], 'Passes', win, simArgs{:}, ...
                         'Seed', 1e5 * ip + 1000 * d + c0);
                     nSubTotal = nSubTotal + iC.nSub;
+                    if iC.nSub > 1                                       % drift of the true offset per sub-int
+                        maxDrift = max(maxDrift, max(abs(diff(tC.phaseOffset))));
+                    end
                     if ~isempty(carry)
                         [fC, iC] = catFolds(carry.fold, carry.info, fC, iC);
                     end
@@ -170,14 +204,24 @@ for ip = 1:numel(pulsars)
                     if nClosed == 0, continue, end
                     [fT, iT] = subFold(fM, iM, 1:nClosed);
                     toa = foldToTOA(fT, iT, profileOf(ps), BnC * nPol, 'Weighting', 'optimal', 'Verbose', false);
-                    truth = fT.subint.tRef + dPhi / ps.f0;
+                    if motion.on                                         % the truth at each TOA's reference time
+                        rT = truthOf(fT.subint.tRef.');
+                        truth = fT.subint.tRef + rT.phaseOffset.' / ps.f0;
+                    else
+                        rT = struct('residual', NaN(1, nClosed), 'geometric', NaN(1, nClosed), ...
+                            'clock', NaN(1, nClosed), 'clockEstimate', NaN(1, nClosed));
+                        truth = fT.subint.tRef + dPhi / ps.f0;
+                    end
                     for g = 1:nClosed
                         G(end+1) = struct('day', d, 'nMerged', sel.nMerged(g), ...
                             'hours', sel.nMerged(g) * tSub / 3600, ...
                             'spanHours', (fT.subint.turnLast(g) - fT.subint.turnFirst(g) + 1) / ps.f0 / 3600, ...
                             'T0', sel.T0(g), 'valid', toa.valid(g), 'good', toa.good(g), ...
                             'err', toa.toa(g) - truth(g), 'sigma', toa.toaErr(g), 'snr', toa.snr(g), ...
-                            'chi2', toa.redChi2(g), 'pChi2', toa.pChi2(g)); %#ok<SAGROW>
+                            'chi2', toa.redChi2(g), 'pChi2', toa.pChi2(g), ...
+                            'tAbs', tAbsOf(M, fT.subint.tRef(g)), 'resid', toa.toa(g) - fT.subint.tRef(g), ...
+                            'trueResid', rT.residual(g), 'trueGeo', rT.geometric(g), ...
+                            'trueClock', rT.clock(g) - rT.clockEstimate(g)); %#ok<SAGROW>
                     end
                 end
             end
@@ -187,10 +231,25 @@ for ip = 1:numel(pulsars)
             summary = [summary, S]; %#ok<AGROW>
             R = struct('groups', G, 'summary', S, 'pulsar', ps, 'flux', fl, 'variant', va, ...
                 'nDays', nDays, 'passes', passes, 'nPer', nPer, 'nPol', nPol, 'dPhi', dPhi, ...
+                'motion', motion, 'motionTruth', motionRecord(M), ...
+                'maxDriftPerSubint', maxDrift, ...
                 'made', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')));
+            if isa(dPhi, 'function_handle'), R.dPhi = func2str(dPhi); end
             save(fOut, 'R');
             fprintf('runScenario: %s %s %s, %d days: %d good TOAs, %.1f min\n', ps.name, fl, va, ...
                 nDays, S.nGood, toc(tCase) / 60);
+            if motion.on
+                gd = [G.good];
+                fprintf(['runScenario:   motion (%s clock): true residual %.1f ... %.1f us (geometric %.1f ... %.1f, ' ...
+                         'clock %.1f ... %.1f); largest drift per sub-int %.2e turns (%.1f %% of the FWHM)\n'], ...
+                    motion.clock, 1e6 * min([G(gd).trueResid]), 1e6 * max([G(gd).trueResid]), ...
+                    1e6 * min([G(gd).trueGeo]), 1e6 * max([G(gd).trueGeo]), 1e6 * min([G(gd).trueClock]), ...
+                    1e6 * max([G(gd).trueClock]), maxDrift, 100 * maxDrift / ps.fwhm);
+                if maxDrift > 0.05 * ps.fwhm
+                    warning('runScenario:drift', ['The true offset drifts by %.1f %% of the FWHM within a sub-int: ' ...
+                        'one offset per sub-int is too coarse.'], 100 * maxDrift / ps.fwhm);
+                end
+            end
         end
     end
 end
@@ -266,6 +325,54 @@ S = struct('pulsar', ps.name, 'flux', fl, 'variant', va, 'nTOA', nTOA, 'nGood', 
     'zMean', mean(zg), 'zStd', std(zg), 'zOut', mean(abs(zg) > 5), ...
     'chi2Mean', mean([G(good).chi2]), 'pLow', mean([G(good).pChi2] < 0.05), ...
     'leftover', nLeft / max(nSubTotal, 1), 'merit', median(sg) * 1e6 * sqrt(median(hg)));
+end
+
+function M = motionTruth(motion, ps, tSid, nDays, ip)
+%MOTIONTRUTH  The truth of a moving receiver for one pulsar: the scenario's absolute t = 0, the true
+% and assumed sites, and the true clock with the observer's estimate (trueResiduals arguments).
+% t0: the first transit at the site after motion.epoch + tSid/2, minus tSid/2, so that passTimes'
+% transits ((d - 1/2) tSid) are real ones; hour angle = Earth rotation angle (as delayModel) + lon - RA.
+ts = motion.epoch + tSid / 2;
+H = 2*pi * (0.7790572732640 + 1.00273781191135448 * (ts - 69.184) / 86400) + deg2rad(ps.lon - ps.ra);
+M.t0 = ts + mod(-H, 2*pi) / (2*pi) * tSid - tSid / 2;
+M.psr = struct('f0', ps.f0, 'F1', 0, 'TRef', M.t0, 'raDeg', ps.ra, 'decDeg', ps.dec);
+M.trajAssumed = makeTrajectory('fixed', 'Lat', ps.lat, 'Lon', ps.lon);
+M.trajTrue = makeTrajectory('fixed', 'Lat', ps.lat, 'Lon', ps.lon, 'OffsetENU', motion.offsetENU);
+switch motion.clock
+    case "perfect"
+        M.clockArgs = {};
+        M.clockRate = 0;
+    case "sdr"                                      % crystal noise and a rate within +-2 ppm
+        rs = RandStream('mt19937ar', 'Seed', 500 + ip);
+        M.clockRate = 2e-6 * (2 * rand(rs) - 1);
+        clk = makeClock([M.t0, M.t0 + (nDays + 1) * tSid], 'Preset', "crystal", 'Rate', M.clockRate, 'Seed', 600 + ip);
+        r0 = M.clockRate + motion.clockRateErr; b0 = motion.clockOffsetErr; t0 = M.t0;
+        M.clockArgs = {'Clock', clk, 'ClockEstimate', @(c) b0 + r0 * (c - t0)};
+    otherwise
+        error('runScenario:clock', 'motion.clock must be "perfect" or "sdr".');
+end
+fprintf(['runScenario: motion for %s: t = 0 at %.1f s after J2000 (first transit %.1f h after the epoch), ' ...
+         'true site %s m ENU from the assumed one, %s clock (rate %.2e)\n'], ps.name, M.t0, ...
+    (M.t0 + tSid / 2 - motion.epoch) / 3600, mat2str(motion.offsetENU), motion.clock, M.clockRate);
+end
+
+function t = tAbsOf(M, s)
+%TABSOF  Absolute time (s since J2000, TT) of scenario time s; NaN without motion.
+if isempty(M), t = NaN; else, t = M.t0 + s; end
+end
+
+function v = offsetAt(truthOf, s)
+%OFFSETAT  The true phase offset [turns] at scenario times s (for simulateFold's 'PhaseOffset').
+r = truthOf(s);
+v = r.phaseOffset;
+end
+
+function S = motionRecord(M)
+%MOTIONRECORD  What R keeps of the motion truth: t0, the pulsar, the sites, the clock rate.
+S = struct();
+if isempty(M), return, end
+S = struct('t0', M.t0, 'psr', M.psr, 'trajTrue', M.trajTrue, 'trajAssumed', M.trajAssumed, ...
+    'clockRate', M.clockRate);
 end
 
 function prof = profileOf(ps)
