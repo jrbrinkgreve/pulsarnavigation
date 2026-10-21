@@ -90,6 +90,22 @@ amplitude 7.607 ms, maximum at transit; 100 km east = (R dr.n)/c to 1.5e-13 s, a
 Einstein site change 31 ns; ships (still = fixed bit for bit; moving: rate = v.n/c to 3e-7); probe closed forms;
 Einstein 3.3145 ms peak-to-peak, site term 1.86 us; Shapiro B0329+54 -17.12 ... +5.80 us.
 
+## 4e. Block D page: makePredictor — the predicted pulse phase (21 Oct, D2a)
+
+phi(t_SSB) = Phi0 + f0 (t_SSB - TRef) + F1 (t_SSB - TRef)^2/2 with t_SSB = t + delta(t) (delayModel); precomputed per
+observation as Chebyshev segments (default 1 h, degree 12; like TEMPO's polycos), so the fold only evaluates
+polynomials (decision 2, the trajectory interface feeds it). Precision: local time (s after the span start) and
+phase since N0 = the integer turn at the start; phi_rel = frac0 + f0 du + F1 du (du + 2 u0)/2 from small
+differences only (absolute times ~8e8 s would cost 1e-7 s). Adaptive: each segment checked between its nodes
+against the direct computation and split until the timing error < Tol (1 ns; a ship's turn on a linear track is
+a kink: split down to ~7 s around it). Outputs phase (turns since N0) and freq (= f0 (1 + d delta/dt), the
+observed spin frequency with Doppler) as handles, fRange, maxErr. testMakePredictor (7 checks, Claude's run 21
+Oct: all passed): 2 days at 52 N with a 100 Hz pulsar: 48 segments, phase to 1.9e-10 s, frequency to 1.2e-11
+relative (Doppler -8.3e-5 in March), steps at boundaries 1.9e-8 turns (< 2 Tol f0), F1 = -1e-10 Hz/s (174
+turns) to 2e-10 s, an off-centre ship turn split to 15 segments (6.3e-10 s next to it), a moving probe to
+2e-10 s. Three test-side corrections on the way (step criterion 2 Tol f0; F1 truth from differences, not
+absolute times; the turn off a segment boundary).
+
 ## 5. roadmap.html (block D / open items) and limits.html: clock jitter (Jasper, 21 Oct: "we completely forgot about clock jitter")
 
 Listed long ago under "Block 2 – robustness" but never planned. Three effects, all for block D:
