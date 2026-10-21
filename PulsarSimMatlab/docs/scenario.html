@@ -278,6 +278,54 @@ changed):</p>
 <p>Against the single Gaussian: 5.3× the data per TOA and 2.5× the σ·√h, as the white-noise estimate predicted (5.1×, 2.53×); per day
 J0437 constrains the range to ~5 km (nominal) and ~11 km (worst case) instead of 2–4 km. In the worst case one TOA spans a week of passes.</p></div>
 
+<h2 id="rfivariants">With realistic RFI: the scenario variants (30 days, 21 Oct)</h2>
+<div class="callout note"><span class="ttl">In short</span>
+<p>The realistic L-band RFI (LTE, GNSS, Inmarsat, radars, impulses; the measured 1 s profile after excision) costs ~20–25 % of the TOAs
+per day and ~10–15 % in σ·√h. Without the per-channel noise calibration the error bars are only ~3 % small, but χ² is 1.07 and the
+pChi2 test flags 89–100 % of the TOAs; with it χ² is 1.00 and ~5 % are flagged. That makes the calibration the setting for real data.</p></div>
+<p>Variants (<code>runScenario</code>): <b>RFI</b> = the realistic profile, the observer with the clean flat-channel model; <b>+ calibration</b> = the
+observer folds with the measured per-channel noise (<code>'ObserverNoise', 'measured'</code>, as <code>processIQ</code>'s <code>noiseCal</code>);
+<b>+ scintillation</b> = also interstellar scintillation (B0329+54: scintles ~7 MHz, 780 s; J0437: ~740 MHz, 2290 s); <b>fixed groups</b> =
+the same with groups of the median adaptive length instead of adaptive ones. B0329+54 at NBin 2048 with five components; J0437 still the
+single Gaussian (with its real profile all its times are ~5× longer, above; the relative costs carry over). Claude's run, 20–21 Oct (6.6 h).
+rms/pred: std of (TOA − truth)/σ; in brackets without the rare |z| &gt; 4 outliers.</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Variant</th><th>TOAs per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
+<tr><td>B0329+54, nominal</td><td>clean</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs</td><td>1.05</td><td>1.00</td><td>6 %</td><td>1021</td></tr>
+<tr><td></td><td>RFI</td><td>7.90</td><td>2.37 (1.65–3.33)</td><td>734 µs</td><td>1.12 (1.04)</td><td>1.07</td><td><b>100 %</b></td><td>1130</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>7.87</td><td>2.35 (1.72–3.43)</td><td>736 µs</td><td>1.08 (1.00)</td><td>1.00</td><td>7 %</td><td>1129</td></tr>
+<tr><td></td><td>+ scintillation</td><td>7.97</td><td>2.40 (1.50–3.40)</td><td>735 µs</td><td>1.22 (1.02)</td><td>1.00</td><td>3 %</td><td>1139</td></tr>
+<tr><td></td><td>fixed groups</td><td>8.10</td><td>2.40</td><td>745 µs</td><td>1.63 (1.05)</td><td>1.00</td><td>3 %</td><td>1154</td></tr>
+<tr><td>B0329+54, worst case</td><td>clean</td><td>1.97</td><td>10.0 (6.5–12.9)</td><td>743 µs</td><td>1.36 (1.10)</td><td>1.00</td><td>7 %</td><td>2354</td></tr>
+<tr><td></td><td>RFI</td><td>1.53</td><td>12.4 (8.4–16.8)</td><td>741 µs</td><td>1.11</td><td>1.07</td><td><b>100 %</b></td><td>2608</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>1.53</td><td>12.6 (7.6–17.0)</td><td>741 µs</td><td>1.24 (1.06)</td><td>1.00</td><td>4 %</td><td>2627</td></tr>
+<tr><td></td><td>+ scintillation</td><td>1.53</td><td>12.7 (8.3–17.2)</td><td>743 µs</td><td>1.04</td><td>1.00</td><td>7 %</td><td>2649</td></tr>
+<tr><td></td><td>fixed groups</td><td>1.53</td><td>12.7</td><td>738 µs</td><td>1.32 (1.06)</td><td>1.00</td><td>2 %</td><td>2636</td></tr>
+<tr><td>J0437, nominal (single Gaussian)</td><td>clean</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs</td><td>0.88</td><td>1.00</td><td>4 %</td><td>21</td></tr>
+<tr><td></td><td>RFI</td><td>3.00</td><td>4.17 (2.82–5.25)</td><td>11.5 µs</td><td>0.97</td><td>1.07</td><td><b>89 %</b></td><td>23.4</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>2.97</td><td>4.00 (2.82–5.25)</td><td>11.4 µs</td><td>1.02</td><td>1.00</td><td>6 %</td><td>22.8</td></tr>
+<tr><td></td><td>+ scintillation</td><td>3.43</td><td>2.33 (0.25–7.87)</td><td>11.3 µs</td><td>0.90</td><td>1.00</td><td>6 %</td><td><b>17.3</b></td></tr>
+<tr><td></td><td>fixed groups</td><td>2.73</td><td>2.33</td><td>12.3 µs</td><td>0.94</td><td>1.00</td><td>5 %</td><td>18.8</td></tr>
+<tr><td>J0437, worst case (single Gaussian)</td><td>clean</td><td>0.73</td><td>16.5 (11.6–21.4)</td><td>11.5 µs</td><td>0.89</td><td>1.00</td><td>13 %</td><td>47</td></tr>
+<tr><td></td><td>RFI</td><td>0.57</td><td>21.1 (15.8–27.3)</td><td>11.6 µs</td><td>0.83</td><td>1.07</td><td><b>100 %</b></td><td>53.1</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>21.3 (14.8–26.3)</td><td>11.5 µs</td><td>1.01</td><td>1.00</td><td>0 %</td><td>53.0</td></tr>
+<tr><td></td><td>+ scintillation</td><td>0.53</td><td>24.5 (7.2–35.2)</td><td>11.4 µs</td><td>0.85</td><td>1.00</td><td>0 %</td><td>56.6</td></tr>
+<tr><td></td><td>fixed groups</td><td>0.50</td><td>24.5</td><td>11.8 µs</td><td>0.99</td><td>1.00</td><td>0 %</td><td>58.6</td></tr>
+</table></div>
+<ul>
+<li><b>RFI:</b> ~21 % fewer TOAs for B0329+54, ~20–24 % for J0437 — the SNR loss of the measured profile (×0.895, <code>expSimRFI</code>) squared.</li>
+<li><b>Calibration:</b> χ² 1.07 → 1.00 and the pChi2 flags from 89–100 % to ~5 %, at no cost in TOAs (as on the voltage chain:
+χ² 1.24 → 0.99). Without it a TOA-quality test on real data would reject almost everything.</li>
+<li><b>Scintillation:</b> B0329+54's scintles (~7 MHz) average over the 128 channels: no effect. J0437's (~740 MHz) make the whole band
+fade and brighten over ~40 min; adaptive groups ride the bright spells (data per TOA 0.25–7.9 h) and σ·√h improves from 22.8 to 17.3 in
+the nominal case (information grows as the flux squared, and ⟨S²⟩ &gt; ⟨S⟩²). Fixed groups keep part of it (18.8) but some of their TOAs
+fall to SNR ~5. The worst case (16–17 TOAs) is inconclusive.</li>
+<li><b>Outliers (B0329+54):</b> with adaptive groups (SNR ≥ 7) 6 of ~1200 TOAs are 5–9σ off, at SNR 7.3–7.9, by one core width
+(0.005–0.009 turns; the threshold effect above, all but one positive). Fixed groups reach SNR ~5.5 and add a jump to the template's
+side peak: z −19.3, −0.0259 turns (the autocorrelation's side peak at ±0.0247). For navigation: adaptive groups, a robust fit, or a
+higher target SNR for multi-component pulsars.</li>
+</ul>
+
 </main>
 <script src="nav.js"></script>
 </body>

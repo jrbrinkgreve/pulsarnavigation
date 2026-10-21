@@ -11,15 +11,17 @@
 
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 20 October 2026, evening. Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 21 October 2026, early morning. Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>Done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the review
 week (12–16 Oct) and the processing as one function, <code>processIQ</code> (19 Oct). Now (block C, since 20 Oct): the fast simulator
 <code>simulateFold</code> is built and validated — channels, RFI profiles, passes, scintillation, adaptive sub-ints, dual polarization,
 multi-component profiles, per-channel noise calibration — and the first scenario runs give TOA budgets for B0329+54 (the Netherlands)
-and J0437 (30° S). Next: the RFI variants of the scenario (the chain check of the noise calibration passed: χ² 1.24 → 0.99), then Earth's motion and the phase
-prediction (D), then several pulsars and the navigation solution (E).</p></div>
+and J0437 (30° S). Overnight 20–21 Oct: the RFI variants (realistic RFI costs ~20–25 % of the TOAs; the noise calibration makes
+χ² 1, also on the voltage chain: 1.24 → 0.99), J0437 with its measured profile (~5× more data per TOA than the single Gaussian), and the
+narrow-carrier test failures diagnosed (lag cut-off; detectRFI false flags). Next: Jasper's validation runs and decisions (J0437 profile,
+detectRFI thresholds, 100-day runs), then Earth's motion and the phase prediction (D), then several pulsars and the navigation solution (E).</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -74,10 +76,10 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="lbl" x="342.2" y="68">review week</text>
   <rect class="box val" x="515.7" y="36" width="24.8" height="18" rx="4"/>
   <text class="lbl" x="515.7" y="32">processIQ</text>
-  <rect class="box rx" x="540.4" y="72" width="24.8" height="18" rx="4"/>
+  <rect class="box rx" x="540.4" y="72" width="49.6" height="18" rx="4"/>
   <text class="lbl" x="540.4" y="68">C · fast simulator</text>
-  <path class="dash" d="M565.2 76 V112"/><text class="sub" x="569.2" y="108">today</text>
-  <path class="line" d="M565.2 81 h18" marker-end="url(#ar-rd)"/>
+  <path class="dash" d="M590.0 76 V112"/><text class="sub" x="594.0" y="108">today</text>
+  <path class="line" d="M590.0 81 h18" marker-end="url(#ar-rd)"/>
   <rect class="box" x="640" y="36" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
   <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (next)</text>
   <rect class="box" x="640" y="72" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
@@ -107,14 +109,16 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="sub" x="233" y="229">testRFIModel (synthetic)</text>
   <rect class="box proc" x="225" y="242" width="205" height="22" rx="5"/>
   <text class="sub" x="233" y="257">expSimRFI: cost of RFI</text>
-  <rect class="box rx" x="225" y="270" width="205" height="22" rx="5"/>
+  <rect class="box proc" x="225" y="270" width="205" height="22" rx="5"/>
   <text class="sub" x="233" y="285">testRFIChain (voltage chain)</text>
-  <rect class="box val" x="225" y="298" width="205" height="22" rx="5"/>
-  <text class="sub" x="233" y="313">noise calibration: simulator</text>
-  <rect class="box" x="225" y="326" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="233" y="341">noise calibration: chain check</text>
-  <rect class="box rx" x="225" y="354" width="205" height="22" rx="5"/>
-  <text class="sub" x="233" y="369">channel 61 non-Gaussianity</text>
+  <rect class="box proc" x="225" y="298" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="313">narrow carriers: diagnosed</text>
+  <rect class="box val" x="225" y="326" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="341">noise calibration: simulator</text>
+  <rect class="box proc" x="225" y="354" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="369">noise calibration: chain check</text>
+  <rect class="box proc" x="225" y="382" width="205" height="22" rx="5"/>
+  <text class="sub" x="233" y="397">channel 61: blanked bins</text>
   <text class="lbl" x="440" y="178" font-weight="600">scenario (runScenario)</text>
   <rect class="box proc" x="440" y="186" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="201">default DM 25, L 0.2 s</text>
@@ -122,19 +126,25 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="sub" x="448" y="229">clean, 30 days</text>
   <rect class="box proc" x="440" y="242" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="257">B0329+54 five components</text>
-  <rect class="box" x="440" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box proc" x="440" y="270" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="285">RFI variants, calibrated</text>
-  <rect class="box" x="440" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="448" y="313">100-day final runs</text>
+  <rect class="box proc" x="440" y="298" width="205" height="22" rx="5"/>
+  <text class="sub" x="448" y="313">J0437 measured profile</text>
+  <rect class="box" x="440" y="326" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="448" y="341">adopt J0437 profile</text>
+  <rect class="box" x="440" y="354" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="448" y="369">100-day final runs</text>
   <text class="lbl" x="655" y="178" font-weight="600">open questions</text>
-  <rect class="box rx" x="655" y="186" width="205" height="22" rx="5"/>
-  <text class="sub" x="663" y="201">error bars at SNR ~7 (components)</text>
+  <rect class="box proc" x="655" y="186" width="205" height="22" rx="5"/>
+  <text class="sub" x="663" y="201">error bars at SNR ~7: explained</text>
   <rect class="box proc" x="655" y="214" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="229">J0437 narrow pulls: noise</text>
   <rect class="box" x="655" y="242" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="663" y="257">J0437 wings in the profile</text>
+  <text class="sub" x="663" y="257">detectRFI thresholds per channel</text>
   <rect class="box" x="655" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="663" y="285">detectRFI thresholds per channel</text>
+  <text class="sub" x="663" y="285">rfiProfile: lags beyond 7</text>
+  <rect class="box" x="655" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="663" y="313">low-SNR outliers: robust fit?</text>
   <text class="ttl" x="10" y="436">3 · after C</text>
   <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase</text>
   <rect class="box" x="10" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -167,10 +177,11 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <rect class="box" x="640" y="611" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
   <text class="sub" x="670" y="622">next / open</text>
 </svg>
-<figcaption>The roadmap on 20 October. (1) The blocks on the calendar; C, the fast simulator, started on
+<figcaption>The roadmap on 21 October. (1) The blocks on the calendar; C, the fast simulator, started on
 20 Oct and comes before D because a TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. (2) Block C's
-steps: the simulator itself is complete and validated; open are the voltage-chain checks of the RFI model and the noise calibration, the
-RFI variants of the scenario and two findings about error bars at low SNR. (3) Blocks D and E: motion and the phase prediction, then
+steps: the simulator itself is complete and validated; the voltage-chain checks, the RFI variants and J0437's measured profile are done on
+Claude's runs (awaiting Jasper's); open are per-channel detectRFI thresholds, more lags in the RFI profiles, adopting J0437's profile and
+the 100-day runs. (3) Blocks D and E: motion and the phase prediction, then
 several pulsars and the navigation solution. Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
