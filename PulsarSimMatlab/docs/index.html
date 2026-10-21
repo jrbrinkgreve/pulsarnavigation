@@ -12,8 +12,8 @@
 <section class="hero">
 <div class="eyebrow">PulsarSimMatlab · documentation</div>
 <h1>Navigating by pulsars</h1>
-<p class="lede">A MATLAB pipeline that simulates a pulsar's radio signal through interstellar space and a small
-radio receiver, then turns the raw receiver voltages back into pulse arrival times (TOAs) with honest error bars.
+<p class="lede">A MATLAB pipeline that simulates a pulsar's radio signal on its way through interstellar space and
+into a small radio receiver. It then turns the raw receiver voltages back into pulse arrival times (TOAs), with honest error bars.
 Every processing step is checked against the simulation's ground truth.</p>
 <div class="btns">
   <a class="btn primary" href="physics.html">Start with the physics →</a>
@@ -60,11 +60,12 @@ Every processing step is checked against the simulation's ground truth.</p>
   <text x="150" y="254" font-size="12" class="muted">dashed: predicted arrival · solid: measured · offset Δt × c = distance along the line of sight</text>
 </svg>
 </figure>
-<p><b>The idea.</b> A pulsar sweeps a radio beam past us once per turn, with a period stable to better than a microsecond
-over years. Knowing where you are, you can predict when each pulse arrives. Turned around: a pulse that arrives early means
-you are closer to the pulsar along that direction, by the speed of light times the difference. Arrival times from four or more
-pulsars in different directions give a 3-D position plus a clock offset, like GNSS with natural beacons. This project builds
-the part that turns raw antenna voltages into those arrival times.</p>
+<p><b>The idea.</b> A pulsar sweeps a radio beam past us once per turn. Its period is stable to better than a microsecond
+over years. So if you know where you are, you can predict when each pulse arrives.</p>
+<p>Turn this around. A pulse that arrives early means you are closer to the pulsar along its direction: by the speed of light
+times the time difference. Arrival times from four or more pulsars in different directions give a 3-D position plus a clock
+offset. It works like GNSS, with natural beacons.</p>
+<p>This project builds the part that turns raw antenna voltages into those arrival times.</p>
 </section>
 
 <div class="stats">
@@ -90,19 +91,21 @@ the part that turns raw antenna voltages into those arrival times.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 13 October 2026</h2>
+<h2>Status · 21 October 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
   <div class="done"><b>B ✓ (for now)</b>RFI excision: essentials done; two items parked with designs</div>
-  <div class="later"><b>C</b>fast simulator for hours of data (since 20 Oct: <a href="simulator.html">simulator</a> built and validated; <a href="scenario.html#simulated">scenario runs</a> under way)</div>
+  <div class="later"><b>C (now)</b>fast simulator for hours of data: built and validated; <a href="scenario.html#simulated">scenario runs</a> under way</div>
   <div class="later"><b>D</b>Earth's motion, barycentric phase, clock</div>
   <div class="later"><b>E</b>several pulsars, navigation, array</div>
 </div>
-<p><b>Now (week of 12 Oct): review week.</b> Understanding and refining the pipeline stage by stage before C. Code review of 13 Oct done
-and validated: small fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, a generator unit test, frozen test data. The
-stage and background pages now start with a short summary and explain why each algorithm is built the way it is, with figures computed from
-the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
+<p><b>Now: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
+handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
+of data take seconds. It is built and validated in Jasper's runs. The first scenario runs give TOA budgets for B0329+54, seen from the
+Netherlands, and for J0437, seen from 30° S.</p>
+<p><b>Next:</b> Jasper's validation runs and the 100-day scenario runs. After that: Earth's motion and the phase prediction (D),
+then several pulsars and the navigation solution (E). Details and reasons: <a href="roadmap.html">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -110,14 +113,16 @@ the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
 <tr><th>Block</th><th>What</th><th>Status</th></tr>
 <tr><td>Block 1</td><td>Full-band chain, receiver noise, TOA error bars, detector, χ² flag, SNR sweeps</td><td><span class="badge validated">closed 6 Oct</span></td></tr>
 <tr><td>A</td><td>Channelized front end: filterbank, per-channel dedispersion, exact narrow-channel noise, data weights, optimal channel weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete 8 Oct</span></td></tr>
+<tr><td>A3b</td><td>Monte Carlo of the channel path with blanking: 50 seeds, actual / stated TOA error 0.956 ± 0.034</td><td><span class="badge validated">19 Oct</span></td></tr>
 <tr><td>B1–B4</td><td>RFI excision: <code>blankChannels</code>, <code>detectRFI</code>, excision in <code>main.m</code> (default on), <code>runRFITest</code></td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B5a–c</td><td>Realistic radar edges (0.1 µs rise time), radar locked to the pulsar + frequency guard ±7 channels, rotating radar antenna</td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B6</td><td>Periodic mask: find radars from their detections and blank every predicted pulse (<code>periodicRFI</code>). Bug found 9 Oct: false emitters when detections are dense (~30 % blanked) → <b>off by default since 9 Oct</b>; fix designed</td><td><span class="badge validated">8 Oct</span></td></tr>
 <tr><td>B5d</td><td>Noise-like RFI (LTE): the <code>'noise'</code> source type; undetectable, down-weighted</td><td><span class="badge validated">9 Oct</span></td></tr>
 <tr><td>B5e</td><td>Realistic L-band scenario (<code>rfiList = 'realistic'</code>): lopsided channels cost 0.39 % in the TOA error bars, 3.4 % with narrow Inmarsat-like carriers</td><td><span class="badge validated">validated 12 Oct (rerun)</span></td></tr>
 <tr><td>B parked</td><td>Periodic-mask fix; per-channel noise level measured on the data (designs in the block-B handover)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
-<tr><td>Review</td><td>Review week: <code>blankingWeights</code> long-bin fix (12 Oct); code review of the whole codebase (13 Oct, 33 items): fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, generator unit test, frozen test data in <code>data/test/</code></td><td><span class="badge validated">13 Oct</span></td></tr>
-<tr><td>C</td><td>Fast simulator of folded profiles (hours of data)</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>Review</td><td>Review week: <code>blankingWeights</code> long-bin fix (12 Oct); code review of the whole codebase (13 Oct, 33 items): fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, generator unit test, frozen test data in <code>data/test/</code>; every stage explained in these docs (14–16 Oct)</td><td><span class="badge validated">12–16 Oct</span></td></tr>
+<tr><td><code>processIQ</code></td><td>The whole processing as one function (IQ in, fold out), and <code>foldToTOA</code> (TOAs, detection, good TOAs); <code>main.m</code> and the run scripts use them</td><td><span class="badge validated">19 Oct</span></td></tr>
+<tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. Then the first scenario runs (TOA budgets, Claude's runs); next the 100-day runs</td><td><span class="badge written">in progress since 20 Oct</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
@@ -142,6 +147,7 @@ the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
   <a class="card" href="toa.html"><b>TOA estimation</b><span>Template fit, honest σ, optimal channel weights.</span></a>
   <a class="card" href="detection.html"><b>Detection</b><span>Is the pulsar there? Which TOAs are good?</span></a>
   <a class="card" href="fullband.html"><b>Full-band front end</b><span>The validated reference path.</span></a>
+  <a class="card" href="simulator.html"><b>Fast simulator</b><span>Folded profiles drawn from their statistics: hours of data in seconds.</span></a>
 </div>
 <div class="group-title">Verify and plan</div>
 <div class="cards">
@@ -162,21 +168,21 @@ the code's own formulas (<a href="roadmap.html">roadmap</a>).</p>
 
 <h2>Quick start</h2>
 <ol>
-  <li>Open MATLAB in the <code>PulsarSimMatlab</code> folder (paths in <code>pipelineParams.m</code> are relative).</li>
-  <li>Edit parameters in <code>pipelineParams.m</code>; see <a href="parameters.html">parameters</a>.</li>
-  <li>In <code>main.m</code>, choose the stages to run (<code>runStage.*</code>) and the check plots (<code>plots.*</code>). The sky stage is slow and
-  independent of the noise; set it to <code>false</code> once its files exist.</li>
+  <li>Open MATLAB in the <code>PulsarSimMatlab</code> folder. The paths in <code>pipelineParams.m</code> are relative to it.</li>
+  <li>Set the parameters in <code>pipelineParams.m</code> (see <a href="parameters.html">parameters</a>).</li>
+  <li>In <code>main.m</code>, choose the stages to run (<code>runStage.*</code>) and the check plots (<code>plots.*</code>). The sky stage is slow,
+  and it does not depend on the noise. Set it to <code>false</code> once its files exist.</li>
   <li>Run <code>main</code>. It prints a disk estimate, each stage's progress, the TOAs, the detection result and the validation against the truth.</li>
 </ol>
-<p>Disk use is large: about 61 GB per second of simulated data at 800 MHz; the default <var>L</var> = 0.2 s needs roughly a fifth of that.
-See <a href="scripts.html">run scripts</a>.</p>
+<p>Disk use is large. With the default settings (channel path with excision) a run writes about 72 GB per second of simulated data;
+the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefore needs about 14 GB. See <a href="scripts.html">run scripts</a>.</p>
 
 <h2>Folder layout</h2>
 <div class="table-wrap"><table>
 <tr><th>Path</th><th>Contents</th></tr>
 <tr><td><code>main.m</code></td><td>the pipeline driver for one realization</td></tr>
 <tr><td><code>pipelineParams.m</code></td><td>every parameter, shared by all scripts</td></tr>
-<tr><td><code>run*.m</code></td><td>experiments: Monte Carlo, SNR sweep, noise-only run, RFI test, locked radar</td></tr>
+<tr><td><code>run*.m</code></td><td>experiments: Monte Carlo, SNR sweep, noise-only run, RFI test, locked radar, RFI profiles, scenario runs</td></tr>
 <tr><td><code>functions/</code></td><td>the stages, helpers and check plots (one function per file)</td></tr>
 <tr><td><code>tests/</code></td><td>unit tests and reference makers</td></tr>
 <tr><td><code>logs/</code></td><td>dated session notes and the full reference <code>current_project_notes.md</code></td></tr>
