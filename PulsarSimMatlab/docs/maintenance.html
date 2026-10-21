@@ -40,8 +40,31 @@ shrinking the text.</li>
 <code>.callout.note</code> or an <code>&lt;h3&gt;</code>), then the physics, then how it works in plain numbered steps with exact formulas
 folded into <code>&lt;details&gt;</code>, then "Design choices": one <code>.callout.why</code> per choice with the alternative and why it was
 not taken. Reasons that are not recorded in the notes or logs are reconstructions: list them for Jasper, and add them to notes §12 only
-after he confirms.</li>
+after he confirms. How to write the text itself: see <a href="#style">writing style</a>.</li>
 </ul>
+
+<h2 id="style">Writing style</h2>
+<p>The pages had become compact but hard to read: each sentence carried several facts, project shorthand and dates. These rules keep
+the text easy to follow. The excision page is the reference example.</p>
+<ol>
+<li><b>One fact per sentence.</b> Use parentheses only for units, symbols or a name in the code. Anything else gets its own
+sentence, or is cut.</li>
+<li><b>Each section follows the same order:</b> the problem, what goes wrong without a fix, what the code does, and what that buys,
+with one number.</li>
+<li><b>No dates, stage codes (B5b, A3a, …) or "decided by" in the explanation.</b> The page says how things work now. History goes
+into a collapsed <code>&lt;details&gt;&lt;summary&gt;History&lt;/summary&gt;</code> at the end of the section, and into the development
+history and the logs. Stage codes stay in status tables and History boxes. Status badges just say <span class="badge validated">validated</span>.</li>
+<li><b>Define a term before using it</b>, or link to the glossary. This includes test names and fields such as <code>weightX</code>,
+<var>V</var> and <var>X</var>(<var>L</var>).</li>
+<li><b>Every number gets a sentence that says what it means:</b> good or bad, and compared to what. At most two numbers per sentence.
+Instead of a slash list ("1.02 / 1.04 / 1.08 at 10⁻³ / 10⁻⁴ / 10⁻⁶"), use a small table.</li>
+<li><b>Full sentences with a subject</b> ("<code>blankChannels</code> writes …", not "Writes …").</li>
+<li><b>Say each thing once.</b> "In short" summarizes, "How it works" explains, and the exact rules and formulas go in
+<code>&lt;details&gt;</code>.</li>
+<li><b>Test results:</b> one sentence with the conclusion. The numbers go in a table or in <code>&lt;details&gt;</code>.</li>
+</ol>
+<p>Record pages (tests, scripts, results, validation, limits, roadmap, history) are dated by nature: there rules 1, 4, 5 and 6 apply.
+When a page is rewritten, no number or name may disappear by accident: compare the page text before and after.</p>
 
 <h2>Relation to the notes</h2>
 <p><code>logs/current_project_notes.md</code> is the complete reference (every number, every option); the session logs record what changed and why.
@@ -157,6 +180,9 @@ normalized autocorrelation (as in <code>powerCovariance</code>). Then (Jasper: "
 equations: sky, receiver, full band, channels, excision, fold, TOA, detection, validation, scenario (32 display equations, with
 "where" list), and <code>formulas.html</code> (all 43 rows in LaTeX, each with a symbols line). Fix: KaTeX's hidden MathML widened the
 page on phones (<code>.eq</code>, <code>.table-wrap</code> now <code>position: relative</code>).</td></tr>
+<tr><td>21 Oct 2026</td><td><code>305af83</code></td><td>Readability rewrite (Jasper: the text was "compact and comprehensive, but very hard to
+comprehend"). New <a href="#style">writing style</a> section. Restore point before the rewrite: git tag <code>docs-before-readability</code>.
+Excision page rewritten first as the example (Jasper: "much better"); the other pages follow one by one.</td></tr>
 </table></div>
 
 </main>
