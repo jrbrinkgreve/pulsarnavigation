@@ -68,6 +68,9 @@ In the realistic case a FAIL can be a finding about where the second-moment mode
 pass everything. Checks 4-8 revised 20 Oct after the first full run (Jasper's OK): realistic
 case, 1 turn: kurtosis/tails flagged the partly covered channels and the carrier channel, and
 the blanking pooled z was -6.5 from correlated channels.
+Since 21 Oct 2026 the half-A profile has 30 lags (as runRFIProfile: narrow carriers correlate
+beyond 7) and the chain's detectRFI takes per-channel thresholds (no false flags on continuous
+narrowband RFI) - the two causes of the narrow-Inmarsat FAILs of 20 Oct.
 Errors at the end if any check fails. (20 Oct 2026, block C4b.)
 %}
 
@@ -89,6 +92,7 @@ mkdir(tmp);                                      %   Jasper's and Claude's) cann
 cleanTmp = onCleanup(@() rmdir(tmp, 's')); %#ok<NASGU>
 
 Lc = opts.Length; NB = 1024; pers = [1 10]; nSim = 60; nBlk = 8; nRot = 100; zThr = 5;
+nLag = 30;                                       % profile lags, as runRFIProfile (21 Oct 2026)
 pTail = 0.5 * erfc(zThr / sqrt(2));              % one-sided level of zThr
 pF = struct('chanIQ', fullfile(tmp, "p_chan"), 'chanBlank', fullfile(tmp, "p_chan_blanked"), ...
     'chanDedisp', fullfile(tmp, "p_dedisp_chan"), 'chanPower', fullfile(tmp, "p_dedisp_chan_power.dat"), ...
@@ -144,12 +148,12 @@ for ci = 1:numel(cases)
     detA = det; detA.fullySupportedBins = [k(1), mid];
     detB = det; detB.fullySupportedBins = [mid + 1, k(2)];
     fprintf('  half A: ');
-    prof = rfiProfile(detA, iw, 'Label', sprintf('%s, half A (testRFIChain)', cs));
+    prof = rfiProfile(detA, iw, 'Label', sprintf('%s, half A (testRFIChain)', cs), 'Lmax', nLag);
     e = round(linspace(k(1), mid + 1, nBlk + 1));
     bLev = zeros(nChan, nBlk); bSum = zeros(nChan, nBlk);
     for b = 1:nBlk
         d = detA; d.fullySupportedBins = [e(b), e(b+1) - 1];
-        pb = rfiProfile(d, iw, 'RefLevel', prof.refLevel, 'Verbose', false);
+        pb = rfiProfile(d, iw, 'RefLevel', prof.refLevel, 'Lmax', nLag, 'Verbose', false);
         bLev(:, b) = pb.level.';
         bSum(:, b) = pb.noiseCoeffs(:, 1) + 2*sum(pb.noiseCoeffs(:, 2:end), 2);
     end
