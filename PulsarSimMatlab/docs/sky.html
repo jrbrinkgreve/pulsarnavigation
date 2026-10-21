@@ -729,7 +729,7 @@ result.</p>
   <text class="sub" x="100" y="250">block n = 243.2 M samples · carry M − 1 = 25.2 M · n + M − 1 = 2²⁸ exactly · each input sample is read once</text>
 </svg>
 <figcaption>How <code>applyDispersionStream</code> streams the file. Each block of <var>n</var> samples is convolved with the kernel <var>h</var>
-(<var>M</var> = 25.2 M taps) by one FFT. The result is <var>n</var> + <var>M</var> − 1 samples long: the block's own span plus a tail (orange) that
+(<var>M</var> = 25.2 M taps) by one FFT. The result is <var>n</var> + <var>M</var> − 1 samples long: the block's own span plus a tail (purple) that
 belongs to the next block's span, where it is added. Because a block is never shorter than the carry, a tail never reaches past the next
 block.</figcaption>
 </figure>

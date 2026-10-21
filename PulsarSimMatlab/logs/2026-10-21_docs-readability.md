@@ -81,3 +81,16 @@ with the detail instead of the problem.
   runs collided in one temp folder), seven findings 16–21 Oct, two statistical lessons.
 - After each code change, weave the change into the page in this style rather than appending a dated paragraph
   (memory updated).
+
+## Receiver colour (later, 21 Oct)
+
+- Jasper asked why `addNoiseAndRFI` and `applyIQmodulation` are yellow on the pipeline map. The colour marks the simulated
+  receiver. It came from the warning tokens (`--warn`, `--bg-warn`), so it read as a warning and looked yellow in dark mode.
+- Done after Jasper's OK ("yes, give the receiver its own colour"): `style.css` has new tokens `--rx` and `--bg-rx` (purple,
+  light and dark), and `svg .box.rx` uses them. Captions that said "orange" for these boxes now say "purple": pipeline.html
+  (map, fast-simulator/motion figure, sizes chart) and sky.html (the convolution tail).
+- `.box.rx` is also borrowed as a plain accent colour elsewhere, and those boxes turn purple too: the roadmap status
+  "running / under investigation", the history timeline (block B), tests.html (`data/`) and lessons.html (one time bin).
+  Their captions don't name the colour. Boxes with `.box.warn` (e.g. checkConsistency in the run-control figure) stay
+  orange, so "orange boxes" there is still correct.
+- Checked in the browser, dark and light.

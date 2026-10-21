@@ -18,6 +18,8 @@
   --ok: #2e7d4f;
   --todo: #9a3b3b;
   --written: #8a6d1d;
+  --rx: #7b4f9d;
+  --bg-rx: #f3eef8;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --side-w: 270px;
@@ -42,6 +44,8 @@
     --ok: #6cc28e;
     --todo: #e08a8a;
     --written: #d8bd62;
+    --rx: #c19ee0;
+    --bg-rx: #2a2233;
   }
 }
 :root[data-theme="dark"] {
@@ -62,6 +66,8 @@
   --ok: #6cc28e;
   --todo: #e08a8a;
   --written: #d8bd62;
+  --rx: #c19ee0;
+  --bg-rx: #2a2233;
 }
 
 * { box-sizing: border-box; }
@@ -279,7 +285,7 @@ svg text { font-family: var(--sans); fill: var(--fg); }
 svg .muted { fill: var(--fg-muted); }
 svg .box { fill: var(--bg-side); stroke: var(--border); stroke-width: 1.2; }
 svg .box.sky { fill: var(--bg-note); stroke: var(--note); }
-svg .box.rx { fill: var(--bg-warn); stroke: var(--warn); }
+svg .box.rx { fill: var(--bg-rx); stroke: var(--rx); }
 svg .box.proc { fill: var(--bg-why); stroke: var(--why); }
 svg .box.val { fill: var(--accent-soft); stroke: var(--accent); }
 svg .line { stroke: var(--fg-muted); stroke-width: 1.4; fill: none; }

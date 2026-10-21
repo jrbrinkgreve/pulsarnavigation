@@ -130,7 +130,7 @@ follows that phase.</p></div>
   <path class="line" marker-end="url(#ar)" d="M430 575 V592"/>
   <text class="sub" x="440" y="590">good = fitted ∧ detected ∧ χ² ok</text>
 </svg>
-<figcaption>Blue: simulated sky. Orange: simulated receiver. Green: processing (observer-only). Bottom box:
+<figcaption>Blue: simulated sky. Purple: simulated receiver. Green: processing (observer-only). Bottom box:
 validation against ground truth. The full-band path is the validated reference; the channel path is the default.</figcaption>
 </figure>
 <p>Read it from top to bottom:</p>
@@ -211,7 +211,7 @@ the chain.</p>
   <path class="dash" marker-end="url(#ar-ac)" d="M535 474 H858 V62 H842"/>
   <text class="sub" x="696" y="466" text-anchor="middle">later: a Kalman filter supplies the trajectory</text>
 </svg>
-<figcaption>Left: the fast simulator. Right: the motion prediction. Blue: simulated truth. Orange: measured on the voltage chain.
+<figcaption>Left: the fast simulator. Right: the motion prediction. Blue: simulated truth. Purple: measured on the voltage chain.
 Green: processing (observer-only). Dashed: still to be built. Both paths end in the same TOA fit as <code>main.m</code>.</figcaption>
 </figure>
 
@@ -519,7 +519,7 @@ full-band files alone are about 61 GB; the default <var>L</var> = 0.2 s needs a 
   <text class="sub" x="745.7" y="38">24 GB memory</text>
   <text class="sub" x="10" y="378">Total per second of signal: full band 60.8 GB · channels 63.5 GB · channels + excision 72.5 GB</text>
 </svg>
-<figcaption>How much each stage writes per second of simulated signal, computed from the parameters (log scale; blue: sky, orange:
+<figcaption>How much each stage writes per second of simulated signal, computed from the parameters (log scale; blue: sky, purple:
 receiver, green: processing). At <var>L</var> = 1 s each RF file is 16 GB and a run writes 61–73 GB, far more than the 24 GB of
 memory, which is why every stage streams in blocks. Detection is where the data shrink: on the full band 800 complex samples become one power value (1600× fewer bytes); on the
 channel path each 0.96 µs bin keeps all 128 channels, so it shrinks 8×. With excision the weight file adds 9 numbers per bin and channel.</figcaption>
