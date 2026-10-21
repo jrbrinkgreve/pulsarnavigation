@@ -96,7 +96,7 @@ fprintf('main: L = %.3g s -> about %.1f GB of data files in "%s"\n', L, diskGB, 
 % Sky: pulsar signal and interstellar dispersion
 if runStage.sky
     info_gen = generatePulsarSignal(fileRaw, T, f_in, A, L, dutycycle, ...
-        'Seed', seed, 'EnvelopeMode', genEnvMode, 'Verbose', true);
+        'Seed', seed, 'EnvelopeMode', genEnvMode, 'Components', profileComponents, 'Verbose', true);
     info_disp = applyDispersionStream(info_gen.file, fileDispersed, DM, ...
         info_gen.actualFsOut, fLow, fHigh, 'RefFreq', refFreq);
 else
@@ -196,7 +196,7 @@ function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, A, 
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
 % Sky files: checkSkyFiles (also used by the run scripts); then the receiver files.
 d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
-    DM, fLow, fHigh, refFreq);
+    DM, fLow, fHigh, refFreq, profileComponents);
 if ~(isequal(info_rx.snrDB, snrDB) || (isinf(snrDB) && info_rx.noiseStd == 0))
     d{end+1} = 'snrDB';
 end

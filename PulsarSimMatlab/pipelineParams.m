@@ -18,6 +18,9 @@ T          = 10e-3;     % [s]  pulsar period
 A          = 1;         % [V]  pulsar noise std at pulse peak (sets the signal scale)
 dutycycle  = 5;         % [%]  pulse FWHM as percent of T
 genEnvMode = 'power';   % 'power': power profile has FWHM = dutycycle% of T
+profileComponents = [];   % [amplitude, centre, FWHM] rows (turns; 21 Oct 2026): a multi-component
+                          % POWER profile for the generator and the observer's template (genEnvMode
+                          % 'power'; dutycycle then unused); [] = one Gaussian of dutycycle
 DM         = 25;        % [pc cm^-3] dispersion measure (25 since 20 Oct 2026, near B0329+54's 26.8; was 5)
 
 % --- Simulation
@@ -147,6 +150,9 @@ ephem.TRef = 0.5 * T;
 ephem.DM   = DM;
 ephem.profileFWHM = dutycycle/100;   % [turns] power-profile FWHM, for the template
                                      % (genEnvMode 'amplitude' would need /sqrt(2))
+if ~isempty(profileComponents)       % the catalogue profile as components: foldToTOA,
+    ephem.profileFWHM = profileComponents;   % gaussianTemplate and processIQ take either
+end
 
 % --- Files
 dataDir       = "data";

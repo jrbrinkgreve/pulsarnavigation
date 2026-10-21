@@ -41,6 +41,14 @@ FWHM 0.02/0.05/0.015): residual/sigma mean +0.004 (+- 0.073), std 1.025; centroi
 0.490967 (+- 2.6e-5); width 1.21120e-3 vs 1.21139e-3 (+- 1.3e-6); bit-for-bit single case; amplitude
 mode refused. Tests 1-6 unchanged. Own temp folder per run. Claude's run 21 Oct: all passed (4.5 s).
 
+## 4. parameters.html (pulsar rows) and pipeline/sky pages: profileComponents (21 Oct)
+
+New parameter profileComponents ([] default = one Gaussian of dutycycle): [amplitude, centre, FWHM] rows
+(turns) of a multi-component power profile, for the generator (main, runSNRSweep) and the observer's
+template (ephem.profileFWHM then holds the component matrix; foldToTOA, gaussianTemplate and processIQ take
+either). checkSkyFiles compares it too (sky files made before count as []), so reused sky files with
+another profile are flagged.
+
 ## Still to come (results of the runs of 21–22 Oct; added here as they land)
 
 - Validation run (Claude's run of the frozen 171a716): tests.html / results.html status.

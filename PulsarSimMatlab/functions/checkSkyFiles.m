@@ -1,4 +1,4 @@
-function d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, DM, fLow, fHigh, refFreq)
+function d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, DM, fLow, fHigh, refFreq, comps)
 %CHECKSKYFILES  Parameters in which reused sky files differ from the current settings.
 %{
 The sky stage (generatePulsarSignal + applyDispersionStream) is the slow part, so main.m and
@@ -8,7 +8,9 @@ match). The caller decides what to do: main.m warns (main:stale), the run script
 main's sky files stop.
 
   d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
-                    DM, fLow, fHigh, refFreq)
+                    DM, fLow, fHigh, refFreq, comps)
+comps (optional, 21 Oct 2026): pipelineParams' profileComponents ([] = one Gaussian); a sky
+file made before the option counts as [].
 
 Compared: the generator's T, f_in, L, A, dutycycle, envelope mode and seed; the dispersion's
 DM, band and reference frequency, and that the dispersed file was made from this generator
@@ -19,6 +21,9 @@ the pulses on disk; a different seed is another pulsar realization.
 (13 Oct 2026; before, main.m checked only T, f_in, L, DM and band of the sky files.)
 %}
 
+if nargin < 14, comps = []; end
+cGen = [];
+if isfield(info_gen, 'components'), cGen = info_gen.components; end
 d = {};
 if abs(info_gen.T - T) > 1e-12,                     d{end+1} = 'T';          end
 if abs(info_gen.fs - f_in) > 1e-3,                  d{end+1} = 'f_in';       end
@@ -27,6 +32,9 @@ if abs(info_gen.A - A) > 1e-12 * max(1, abs(A)),    d{end+1} = 'A';          end
 if abs(info_gen.dutycycle - dutycycle) > 1e-12,     d{end+1} = 'dutycycle';  end
 if ~strcmpi(info_gen.envelopeMode, genEnvMode),     d{end+1} = 'genEnvMode'; end
 if info_gen.seed ~= seed,                           d{end+1} = 'seed';       end
+if ~isequal(size(cGen), size(comps)) || any(abs(cGen(:) - comps(:)) > 1e-12)
+    d{end+1} = 'profileComponents';
+end
 if abs(info_disp.DM - DM) > 1e-12,                  d{end+1} = 'DM';         end
 if abs(info_disp.fLow - fLow) > 1e-3 || abs(info_disp.fHigh - fHigh) > 1e-3
     d{end+1} = 'band';

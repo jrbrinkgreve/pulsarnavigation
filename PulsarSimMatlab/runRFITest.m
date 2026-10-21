@@ -103,7 +103,7 @@ rFiles = struct('chanIQ', fullfile(rfiDir, "rfi_chan"), 'chanBlank', fullfile(rf
 info_gen  = loadInfo(fileRaw);
 info_disp = loadInfo(fileDispersed);
 d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
-    DM, fLow, fHigh, refFreq);
+    DM, fLow, fHigh, refFreq, profileComponents);
 if ~isempty(d)
     error('runRFITest:stale', ['Sky files do not match pipelineParams (%s). ' ...
         'Run main.m with runStage.sky = true first.'], strjoin(d, ', '));

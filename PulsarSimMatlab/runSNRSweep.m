@@ -118,7 +118,7 @@ for j = 1:nReal
     % Sky (synthetic): new pulsar realization, dispersion
     tSky = tic;
     info_gen = generatePulsarSignal(swRaw, T, f_in, A, L, dutycycle, ...
-        'Seed', pulsarSeed, 'EnvelopeMode', genEnvMode, 'Verbose', false);
+        'Seed', pulsarSeed, 'EnvelopeMode', genEnvMode, 'Components', profileComponents, 'Verbose', false);
     info_disp = applyDispersionStream(info_gen.file, swDisp, DM, ...
         info_gen.actualFsOut, fLow, fHigh, 'RefFreq', refFreq, 'Verbose', false);
     genC{j} = info_gen;
