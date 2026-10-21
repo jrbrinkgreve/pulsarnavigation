@@ -24,11 +24,11 @@ cCols = [  # block C in detail: (column title, [(item, status)])
                    ('noise calibration: chain check', 'C'), ('channel 61: blanked bins', 'C')]),
     ('scenario (runScenario)', [('default DM 25, L 0.2 s', 'C'), ('clean, 30 days', 'C'),
                                 ('B0329+54 five components', 'C'), ('RFI variants, calibrated', 'C'),
-                                ('J0437 measured profile', 'C'), ('adopt J0437 profile', 'N'),
+                                ('J0437 measured profile', 'C'), ('adopt J0437 profile', 'C'),
                                 ('100-day final runs', 'N')]),
     ('open questions', [('error bars at SNR ~7: explained', 'C'), ('J0437 narrow pulls: noise', 'C'),
-                        ('detectRFI thresholds per channel', 'N'), ('rfiProfile: lags beyond 7', 'N'),
-                        ('low-SNR outliers: robust fit?', 'N')]),
+                        ('detectRFI thresholds per channel', 'C'), ('rfiProfile: lags beyond 7', 'C'),
+                        ('low-SNR outliers: robust fit (D)', 'N')]),
 ]
 after = [  # what follows C
     ('D · motion and phase', ['Earth rotation and orbit (Doppler)', 'station on a ship: moving position',

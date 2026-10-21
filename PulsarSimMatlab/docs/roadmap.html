@@ -130,7 +130,7 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="sub" x="448" y="285">RFI variants, calibrated</text>
   <rect class="box proc" x="440" y="298" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="313">J0437 measured profile</text>
-  <rect class="box" x="440" y="326" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box proc" x="440" y="326" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="341">adopt J0437 profile</text>
   <rect class="box" x="440" y="354" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="448" y="369">100-day final runs</text>
@@ -139,12 +139,12 @@ the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simula
   <text class="sub" x="663" y="201">error bars at SNR ~7: explained</text>
   <rect class="box proc" x="655" y="214" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="229">J0437 narrow pulls: noise</text>
-  <rect class="box" x="655" y="242" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box proc" x="655" y="242" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="257">detectRFI thresholds per channel</text>
-  <rect class="box" x="655" y="270" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box proc" x="655" y="270" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="285">rfiProfile: lags beyond 7</text>
   <rect class="box" x="655" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="663" y="313">low-SNR outliers: robust fit?</text>
+  <text class="sub" x="663" y="313">low-SNR outliers: robust fit (D)</text>
   <text class="ttl" x="10" y="436">3 · after C</text>
   <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase</text>
   <rect class="box" x="10" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -227,7 +227,7 @@ through the fitted period and phase.</li>
 <code>proc.noiseCal</code> measures each channel's noise on the observation (<code>rfiProfile</code> off-pulse) and folds with it
 (<code>foldProfile</code> <code>'ChannelNoise'</code>); simulator counterpart <code>simulateFold</code> <code>'ObserverNoise', 'measured'</code>.
 Synthetic checks pass (χ² 0.875 → 1.010). Voltage-chain check done: <code>runRFITest</code> cases 14–15 with a third pass, excision + calibration (DM 25, 0.2 s, 15 TOAs, Claude's run 20 Oct): realistic χ² 1.07 → <b>1.00</b> (σ 3.319 → 3.324 µs), narrow Inmarsat χ² 1.24 → <b>0.99</b> (σ 3.379 → 3.419 µs) — the error bars
-become honest at a ~1 % larger σ. Next: the detectRFI thresholds per channel (the dense false flags).</li>
+become honest at a ~1 % larger σ. detectRFI thresholds per channel: done 21 Oct (false flags on narrow carriers at the design rate).</li>
 <li><b>B5e</b> <span class="badge validated">done 9 Oct, validated 12 Oct</span> (decision "measure first"): the realistic L-band scenario as a second list in
 <code>pipelineParams</code> (<a href="receiver.html#realistic">receiver</a>, <a href="results.html#b5e">results</a>). Frequencies verified online on 8 Oct: GPS L2 1227.6, GLONASS G2
 ~1246, BeiDou B3 1268.52, Galileo E6 1278.75, ATC / long-range radar 1215–1400 (pulses ~1 µs, PRF ~1 kHz, 5–6 rpm), LTE band 32 1452–1496 (EU),

@@ -273,7 +273,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a; long time bins (test 4, 12 Oct)</td><td>~110 s</td><td><span class="badge validated">passes, 7 Oct; test 4: 12 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
-<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~33 s</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span></td></tr>
+<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~2.5 min</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span> <span class="badge written">test 4 (Claude's run, 21 Oct)</span></td></tr>
 <tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
@@ -381,7 +381,12 @@ byte-identical copies; <code>dedisperseChannels</code> on the result changes onl
 <h2 id="drfi"><code>testDetectRFI</code></h2>
 <p>Own 0.05 s noise-only and noise + RFI channel files through the real receiver chain with the same noise seed (difference = RFI alone).
 (1) False flags on noise at the design rates; (2) the −5 dB pulsar's on/off-pulse flags as predicted per window size; (3) radar, impulses,
-carrier and GNSS scored against the RFI-only signal; (3d) the frequency guard: mask = own detections + strong events copied to ±7 channels.</p>
+carrier and GNSS scored against the RFI-only signal; (3d) the frequency guard: mask = own detections + strong events copied to ±7 channels.
+(4, 21 Oct) Per-channel thresholds: three 200 kHz noise carriers and a +20 dB radar on one of them — at PFA 10⁻³ the radar-free carrier channels
+flag 0.96–1.15 × the expected windows with their own thresholds (white: 1.8–63 ×; at the default PFA 1 and 0 instead of 432 and 386), all 19
+radar pulses on the carrier still blanked, channels away from the RFI the old mask bit for bit, no own thresholds on pure noise. Tests 1–3
+unchanged (3d's unguarded fraction 0.6487 → 0.6484 %: the constant-envelope channels flag slightly less). Claude's run, 21 Oct: all passed. Own
+temporary folder per run.</p>
 
 <h2 id="edges"><code>testRadarEdges</code></h2>
 <p>(1) <code>RiseTime</code> 0 = the pre-B5a output bit for bit. (2) Defaults (0.1 µs for <code>'pulsed'</code>), invalid values refused. (3) Radar alone =

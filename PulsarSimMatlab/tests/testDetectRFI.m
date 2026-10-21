@@ -51,6 +51,21 @@ no RFI) for test 2.
      energy left over all channels with and without the frequency guard
      (each channel's steady RFI level, mainly the far-reaching GNSS
      sidelobes, subtracted first).
+  4. Continuous narrowband RFI, per-channel thresholds (21 Oct 2026): three
+     200 kHz noise-like carriers (channels 60, 70, 80; INR -21 dB as the
+     narrow-Inmarsat case: about the channel's noise power) and a +20 dB
+     radar on top of the channel-70 carrier:
+     (a) at PFA 1e-3 (two passes) the flagged windows in the two radar-free
+         carrier channels match nWindows * PFA per scale (4 sigma) with their
+         own thresholds; the white thresholds flag > 3x as many over all
+         window lengths (at n = 1 a sample's power is exponential whatever
+         the correlation, so there only the pass-2 baseline differs; shown:
+         the counts at the default PFA, and the thresholds);
+     (b) every radar pulse's samples in channel 70 are still blanked;
+     (c) channels away from the RFI (outside 55-85) keep the white thresholds
+         and give the same mask bit for bit as 'ChannelThresholds' false, and
+         no channel of the noise-only data (test 1c) takes its own.
+Uses its own temporary folder per run (21 Oct 2026).
 Errors at the end if any check fails.
 %}
 
@@ -58,9 +73,9 @@ root = fullfile(fileparts(mfilename('fullpath')), '..');
 addpath(fullfile(root, 'functions'));
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
 run(fullfile(fileparts(mfilename('fullpath')), 'testParams.m'));   % frozen test settings, data/test/ (not pipelineParams)
-tmp = fullfile(tempdir, 'testDetectRFI');
-if ~isfolder(tmp), mkdir(tmp); end
-cleanTmp = onCleanup(@() cleanFolder(tmp));
+tmp = tempname(tempdir);                         % own folder per run (21 Oct): two runs at once
+mkdir(tmp);                                      %   (e.g. Jasper's and Claude's) cannot collide
+cleanTmp = onCleanup(@() rmdir(tmp, 's'));
 fails = {};
 
 % ---------------------------------------------------------------------------------
@@ -78,6 +93,13 @@ rfiT = [ ...
 rx = struct('f_in', f_in, 'fs', fs, 'fLO', fLO, 'band', [fLow fHigh], 'order', filterOrder);
 chan0 = makeChannels(zeroFile, fullfile(tmp, 'n'), struct([]), rx);
 [chan1, info_rx1] = makeChannels(zeroFile, fullfile(tmp, 'r'), rfiT, rx);
+c4  = [60 70 80];                                   % test 4: narrow carriers, radar on the middle one
+fc4 = fLow + (c4 - 0.5) * chanWidth + [-1.1 0.4 1.2] * 1e6;
+rfi4 = arrayfun(@(f) rfiSource('noise', 'Freq', f, 'Bandwidth', 200e3, 'INRdB', -21, ...
+    'Label', 'narrow carrier'), fc4, 'UniformOutput', false);
+rfi4 = [rfi4{:}, rfiSource('pulsed', 'Freq', fc4(2), 'PulseWidth', 2e-6, 'PRF', 373, ...
+    'ChirpBW', 1e6, 'INRdB', 20, 'Label', 'radar on a carrier')];
+[chan4, info_rx4] = makeChannels(zeroFile, fullfile(tmp, 'c'), rfi4, rx);
 delete(zeroFile);
 nCh = chan0.nChan; Nc = chan0.N; fsC = chan0.fs; sup = chan0.fullySupported;
 fprintf('data: noise-only and noise + RFI channel files, %d x %d samples (%.0f s)\n', ...
@@ -304,6 +326,46 @@ fprintf(['3d. frequency guard +-%d channels: mask = own + strong events copied (
 if ~pass, fails{end+1} = 'frequency guard'; end
 
 % ---------------------------------------------------------------------------------
+% 4. Continuous narrowband RFI: per-channel thresholds (21 Oct 2026)
+% ---------------------------------------------------------------------------------
+c4q = c4([1 3]);                                     % carrier channels without the radar
+[m4o, d4o] = detectRFI(chan4, 'ChannelThresholds', false, 'Verbose', false);
+[m4n, d4n] = detectRFI(chan4, 'Verbose', false);
+[~, d4p] = detectRFI(chan4, 'PFA', 1e-3, 'Verbose', false);
+[~, d4q] = detectRFI(chan4, 'PFA', 1e-3, 'ChannelThresholds', false, 'Verbose', false);
+% (a) false flags on the radar-free carriers: own thresholds vs white ones
+[okP, rP, sP] = countCheck(d4p.nFlaggedWindows(c4q, :), numel(c4q) * d4p.nWindows * d4p.pFA);
+rQ  = sum(d4q.nFlaggedWindows(c4q, :), 1) ./ (numel(c4q) * d4q.nWindows * d4q.pFA);
+rQt = sum(d4q.nFlaggedWindows(c4q, :), 'all') / (numel(c4q) * sum(d4q.nWindows) * d4q.pFA);
+okA = okP && all(d4p.ownThreshold(c4q)) && rQt > 3;
+fprintf(['4a. narrow carriers (channels %s), PFA %.0e: flagged / expected windows per scale %s (+- %s) ' ...
+         'with own thresholds, %s with white ones (all lengths %.1f); default PFA, flagged windows per carrier channel ' ...
+         '%s (white: %s); thresholds n = %d: own %s, white %.2f: %s\n'], mat2str(c4q), d4p.pFA, ...
+    mat2str(round(rP, 2)), mat2str(round(sP, 2)), mat2str(round(rQ, 1)), rQt, ...
+    mat2str(sum(d4n.nFlaggedWindows(c4, :), 2).'), mat2str(sum(d4o.nFlaggedWindows(c4, :), 2).'), ...
+    d4n.scales(end), mat2str(round(d4n.thresholdUsed(c4, end).', 2)), d4o.threshold(end), passStr(okA));
+if ~okA, fails{end+1} = 'narrow carriers: false flags'; end
+% (b) the radar on the channel-70 carrier is still blanked, pulse by pulse
+radar4 = info_rx4.rfi(end).params;
+sOf4 = @(t) round((t - chan4.t0) * fsC) + 1;
+tR4 = radar4.startTime + (0 : floor(Nc / fsC * radar4.prf)).' / radar4.prf;
+tR4 = tR4(sOf4(tR4 + radar4.pulseWidth) <= Nc);
+cv70 = coveredOf(m4n, c4(2), Nc);
+hit4 = arrayfun(@(t) all(cv70(max(1, sOf4(t)) : sOf4(t + radar4.pulseWidth))), tR4);
+okB = all(hit4) && d4n.ownThreshold(c4(2));
+fprintf('4b. radar (+20 dB) on the channel-%d carrier: %d of %d pulses blanked with own thresholds: %s\n', ...
+    c4(2), nnz(hit4), numel(hit4), passStr(okB));
+if ~okB, fails{end+1} = 'narrow carriers: radar'; end
+% (c) channels away from the RFI: as before, bit for bit; noise only: no own thresholds
+white = setdiff(1:nCh, 55:85);
+rowsW = @(m) m(ismember(m(:, 1), white), :);
+okC = ~any(d4n.ownThreshold(white)) && isequal(rowsW(m4n), rowsW(m4o)) && ~any(dD.ownThreshold);
+fprintf(['4c. channels outside 55-85: own thresholds in %d, mask = ''ChannelThresholds'' false bit for ' ...
+         'bit %d; noise-only data (1c): own thresholds in %d channels: %s\n'], nnz(d4n.ownThreshold(white)), ...
+    isequal(rowsW(m4n), rowsW(m4o)), nnz(dD.ownThreshold), passStr(okC));
+if ~okC, fails{end+1} = 'narrow carriers: white channels'; end
+
+% ---------------------------------------------------------------------------------
 if isempty(fails)
     fprintf('testDetectRFI: ALL PASSED\n');
 else
@@ -382,11 +444,4 @@ end
 
 function s = passStr(p)
 if p, s = 'PASS'; else, s = 'FAIL'; end
-end
-
-function cleanFolder(d)
-f = dir(fullfile(d, '*'));
-for i = 1:numel(f)
-    if ~f(i).isdir, delete(fullfile(d, f(i).name)); end
-end
 end

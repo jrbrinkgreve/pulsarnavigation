@@ -263,6 +263,28 @@ correlated (ρ(1) = 0.05, from the oversampled channelizer). Exactly:</p>
 1.02 / 1.04 / 1.08–1.10 × the intended false flags at 10⁻³ / 10⁻⁴ / 10⁻⁶: visible in the first test run. The exact form moves
 the thresholds by less than 0.5 % but makes the false-flag rate what it says.</p></div>
 
+<h3 id="chanthr">Per-channel thresholds (21 Oct)</h3>
+<p>The thresholds above assume a channel holds white receiver noise. Continuous noise-like RFI narrower than the channel (a 200 kHz carrier
+in a 3.125 MHz channel, the edge of an LTE block) is still complex Gaussian, so its power is still exponential per sample, but it is
+correlated over ~20 samples. A window's mean then fluctuates far more, and the white thresholds flag the carrier's own power peaks: on the
+voltage chain ~1400 false windows per carrier channel per second instead of ~2. Those flags cut the peaks; the valid samples next to a cut
+keep the peak's correlated shoulders, so phase bins with blanking come out 4–9 % noisier than modelled (<a href="tests.html#rfichain">testRFIChain</a>,
+narrow Inmarsat). From pass 2 on (<code>'ChannelThresholds'</code>, default true) each channel's own complex autocorrelation
+\(r_c(d) = \langle x(m)\,x^*(m+d)\rangle / \langle |x|^2\rangle\), d = 0…15, is measured, and its thresholds come from the eigenvalues of the
+Hermitian toeplitz(\(r_c\)) exactly as above: the continuous RFI counts as part of that channel's noise, and only impulsive or pulsed RFI
+stands out.</p>
+<ul>
+<li><b>Which samples:</b> all supported ones except the previous pass's <em>strong</em> intervals (peak ≥ 30 × baseline: pulsed RFI). Gaussian
+noise of any spectrum reaches 30× with probability e⁻³⁰ per sample, so the carrier's own peaks stay in and the estimate is unbiased. Such a
+channel takes its baseline from the same samples (leaving its weaker flags out would bias the baseline low: ~2× the false flags).</li>
+<li><b>Clean channels unchanged:</b> a channel keeps the white thresholds unless its own move one by more than 1 % (estimation noise: ~10⁻⁴),
+so clean data and the regressions are bit for bit as before; <code>'ChannelThresholds', false</code> is the old detector everywhere.</li>
+<li><b>Tested</b> (<code>testDetectRFI</code> 4): three 200 kHz carriers (about their channel's noise power) and a +20 dB radar on one of them.
+At PFA 10⁻³ the radar-free carrier channels flag 0.96–1.15 × the expected windows with their own thresholds, 1.8–63 × (10× over all lengths)
+with the white ones; at the default PFA 1 and 0 windows instead of 432 and 386. Their 16-sample threshold is 6.46 × baseline instead of 2.69.
+All 19 radar pulses on the carrier are still blanked; channels away from the RFI give the old mask bit for bit.</li>
+</ul>
+
 <h3>Baseline</h3>
 <p><var>m</var> per channel and 16 ms block (<code>BaselineTime</code>) = median(<var>p</var>)/ln 2 over fully supported samples: exact for
 exponential power (a Gaussian voltage's power), and RFI in a fraction <var>f</var> of the samples raises it by only ~1.4<var>f</var>.
@@ -342,8 +364,9 @@ samples a few channels further costs ~0.004 % of the data per guard channel for 
 
 <h3>Options and outputs</h3>
 <dl class="facts">
-<dt>Options</dt><dd><code>Scales</code> ([1 2 4 8 16]), <code>PFA</code> (1e-6), <code>Guard</code> ([] = prototype half-length), <code>BaselineTime</code> (16 ms), <code>Passes</code> (2), <code>FreqGuard</code> (7), <code>FreqGuardMin</code> (100), <code>KeepWindows</code>, <code>MaxMemoryGB</code> (4), <code>Verbose</code></dd>
-<dt>Info</dt><dd>thresholds, baselines, <code>ownFlaggedSamples</code>, <code>nStrong</code>, <code>flaggedSamples</code> (final mask including the guard), …</dd>
+<dt>Options</dt><dd><code>Scales</code> ([1 2 4 8 16]), <code>PFA</code> (1e-6), <code>Guard</code> ([] = prototype half-length), <code>BaselineTime</code> (16 ms), <code>Passes</code> (2), <code>FreqGuard</code> (7), <code>FreqGuardMin</code> (100), <code>ChannelThresholds</code> (true, 21 Oct), <code>KeepWindows</code>, <code>MaxMemoryGB</code> (4), <code>Verbose</code></dd>
+<dt>Info</dt><dd>thresholds, baselines, <code>ownFlaggedSamples</code>, <code>nStrong</code>, <code>flaggedSamples</code> (final mask including the guard),
+<code>ownThreshold</code>, <code>thresholdUsed</code>, <code>chanRho</code> (per channel), …</dd>
 </dl>
 <p>~3 s for 0.1 s of 128 channels.</p>
 
@@ -357,6 +380,8 @@ samples a few channels further costs ~0.004 % of the data per guard channel for 
 <li><b>RFI:</b> radar: all 19 pulses blanked in channels 32–33; impulses (1000/s) 98.65 % removed; carrier and GNSS channels no flags of
 their own. With the frequency guard (3d): mask = own detections + every strong event copied to ±7 channels; radar energy left
 over all channels zero within ~10⁻⁶ (10⁻⁴ without the guard).</li>
+<li><b>Narrow carriers (21 Oct):</b> per-channel thresholds — false flags on the carriers at the design rate, the radar on a carrier still
+blanked, clean channels bit for bit (above).</li>
 </ol>
 
 <h2 id="blank">3 · <code>blankChannels</code> <span class="badge validated">validated (B1)</span></h2>

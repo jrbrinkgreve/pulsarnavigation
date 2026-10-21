@@ -129,7 +129,7 @@ neighbour-bin correlation of short phase bins, and the noise of the scenario's l
 21 Oct <code>rfiProfile</code> <code>'Lmax'</code> measures more lags and <code>runRFIProfile</code> uses 30, <code>testRFIModel</code> 6), (c) folded profiles are
 Gaussian, and (d) blanking is not locked to the pulse phase and does not depend on the data — false flags on strong
 continuous RFI violate this: detectRFI cuts the power peaks of narrow carriers, and the phase bins with blanking come out 4–9 % noisier than
-modelled (narrow Inmarsat, 21 Oct; the observer's noise calibration absorbs it, the root fix is per-channel detectRFI thresholds). Three checks:</p>
+modelled (narrow Inmarsat, 21 Oct; the observer's noise calibration absorbs it; since 21 Oct per-channel detectRFI thresholds remove those false flags). Three checks:</p>
 <ol>
 <li><a href="tests.html#rfimodel"><code>testRFIModel</code></a> (synthetic, closed-form truth): <code>rfiProfile</code> recovers level, noise
 coefficients and valid fraction of a carrier, noise-like narrowband RFI and blanked impulses; folds of that data by
