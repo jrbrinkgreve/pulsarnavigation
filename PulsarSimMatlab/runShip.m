@@ -48,8 +48,10 @@ Output data/scenario/ship_<nDays>d_<flux>.mat (R: settings, TOAs with their trut
 observer errors, the final smoothed fit) and a printed daily table: TOAs per pulsar, the DR error
 |true - DR| and the observer's error |true - its track| at the end of each day [km], and the
 clock it had not estimated [us]. Then the final smoother over all TOAs against the truth, and its
-twin: the same smoother on ideal TOAs (the truth at the TOAs' tags plus Gaussian noise of their
-stated sigma; evaluation only), so that the TOA chain's errors and the filter's own show apart.
+twin: the same smoother on ideal TOAs (the truth averaged over each TOA's sub-ints plus Gaussian
+noise of their stated sigma; evaluation only), so that the TOA chain's errors and the filter's own
+show apart. The filter takes each TOA's sub-int times (navFilter toa.tSub): its rows are averaged
+over them, as the TOA is.
 Other runs: set shipOpts before running the script, with any of the fields nDays, flux, seed and
 start ("self" | "calibrated"), e.g. shipOpts = struct('seed', 3, 'start', "calibrated"); runShip.
 The seed draws the current, the clock rate, the port's clock errors, the clock's noise and every
@@ -123,7 +125,7 @@ fprintf('runShip: %d days (%s flux, seed %d, start %s) from %s at %.1f kn, headi
 corr = struct('tL', epoch, 'd', [0; 0], 'v', [0; 0]);  % its track correction (none on day 1)
 ehat = ehat0; trajA = trajDR;
 G = struct('k', {}, 'day', {}, 'good', {}, 'tAbs', {}, 'resid', {}, 'sigma', {}, 'snr', {}, 'rRef', {}, ...
-    'trueEN', {}, 'trueClock', {});
+    'trueEN', {}, 'trueClock', {}, 'tSub', {});
 carry = cell(1, nP); daily = zeros(nDays, 6);
 for day = 1:nDays
     t0d = epoch + (day - 1) * 86400; t1d = t0d + 86400;
@@ -178,7 +180,7 @@ for day = 1:nDays
                 for g = 1:nClosed
                     G(end+1) = struct('k', k, 'day', day, 'good', toa.good(g), 'tAbs', tA(g), 'resid', resid(g), ...
                         'sigma', toa.toaErr(g), 'snr', toa.snr(g), 'rRef', rRef(g), 'trueEN', en(:, g), ...
-                        'trueClock', cT(g)); %#ok<SAGROW>
+                        'trueClock', cT(g), 'tSub', tN(sel.group(:).' == g)); %#ok<SAGROW>
                 end
             end
         end
@@ -188,7 +190,7 @@ for day = 1:nDays
     tEnd = t1d; enTrue = offT(tEnd);
     obsErr = norm(enTrue - (corr.d + (tEnd - corr.tL) * corr.v));
     if nnz(g) >= 10
-        tq = struct('t', [G(g).tAbs], 'r', [G(g).rRef], 'sigma', [G(g).sigma], 'k', [G(g).k]);
+        tq = struct('t', [G(g).tAbs], 'r', [G(g).rRef], 'sigma', [G(g).sigma], 'k', [G(g).k]); tq.tSub = {G(g).tSub};
         ws = warning('off', 'navFilter:converge');
         f = navFilter(tq, pDir, trajDR, fArgs{:});
         warning(ws);
@@ -208,7 +210,7 @@ end
 
 % ---- the final smoother over all TOAs against the truth ---------------------------------------------
 g = [G.good];
-tq = struct('t', [G(g).tAbs], 'r', [G(g).rRef], 'sigma', [G(g).sigma], 'k', [G(g).k]);
+tq = struct('t', [G(g).tAbs], 'r', [G(g).rRef], 'sigma', [G(g).sigma], 'k', [G(g).k]); tq.tSub = {G(g).tSub};
 fS = navFilter(tq, pDir, trajDR, fArgs{:});
 enT = offT(fS.t);
 errS = fS.enu(1:2, :) - enT;
@@ -218,11 +220,10 @@ fprintf(['runShip: final smoother, %d TOAs: track error rms east %.1f km, north 
          'size, not a distribution); at the end %.1f km (DR %.1f km)\n'], numel(fS.t), 1e-3 * rms(errS(1, :)), ...
     1e-3 * rms(errS(2, :)), 1e-3 * rms(vecnorm(enT)), 1e-3 * median(fS.enuErr(1, :)), 1e-3 * median(fS.enuErr(2, :)), ...
     rms(pull(1, :)), rms(pull(2, :)), 1e-3 * norm(errS(:, end)), 1e-3 * norm(enT(:, end)));
-% the twin: the same smoother on ideal TOAs at the same tags (evaluation only)
-kq = [G(g).k]; tI = [G(g).tAbs]; rI = zeros(size(tI));
-for k = 1:nP
-    s = kq == k;
-    rI(s) = trueResiduals(tI(s), pTime(k), trajT, trajDR, 'Clock', clk, 'ClockEstimate', ehat0).residual;
+% the twin: the same smoother on ideal TOAs, averaged over the same sub-ints (evaluation only)
+kq = [G(g).k]; tI = {G(g).tSub}; rI = zeros(size(kq));
+for i = 1:numel(rI)                                  % the truth averaged over each TOA's sub-ints, as the data
+    rI(i) = mean(trueResiduals(tI{i}, pTime(kq(i)), trajT, trajDR, 'Clock', clk, 'ClockEstimate', ehat0).residual);
 end
 rsTwin = RandStream('mt19937ar', 'Seed', 1000 + route.seed);
 fI = navFilter(setfield(tq, 'r', rI + tq.sigma .* randn(rsTwin, size(rI))), pDir, trajDR, fArgs{:}); %#ok<SFLD>

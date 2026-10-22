@@ -32,7 +32,16 @@ and makeClock, independent of the filter's own model.
      std 1 (+- 0.2) and mean 0 (+- 4 / sqrt(40)); with the prior taken as exact ([0 0]) the rms of
      the north or clock pulls exceeds 2 (the option is needed). 'ClockPrior' without 'Clock' is
      refused ('navFilter:clock'). Its own random stream: checks 2 and 3 keep their numbers.
-Errors at the end if any check fails. (22 Oct 2026, block D4d; check 6 for D4c-1.)
+  7. TOAs as time-averages ('tSub'): ships as in check 2 (own random stream), B0329+54 two TOAs a
+     day of 10 h each (one random start per half-day slot, so the first TOA starts near the port,
+     where the position prior holds) and B0950+08 one every two days of 5 h + 5 h a sidereal day
+     apart, each the average of the exact residual (position and the crystal clock with its
+     unknown rate within +-2 ppm) over 300 s sub-ints, plus noise; 40 realizations. With the rows
+     averaged over the sub-ints: the pulls at the four times of check 2 have std 1 (+- 0.2) and
+     mean 0 (+- 4 / sqrt(40)). Shown: the point model at the circular-mean tag (as the run
+     scripts tag their TOAs) - with the clock's rate a split TOA's tag is up to 86 ms of clock
+     away from its data, and the point model fails.
+Errors at the end if any check fails. (22 Oct 2026, block D4d; check 6 for D4c-1, 7 for D4d.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -162,6 +171,39 @@ ok6 = all(abs(sC - 1) < 0.2) && all(abs(mC) < 4 / sqrt(nR)) && max(rX(2:3)) > 2 
 fprintf(['6. calibrated start, the port clock off by 1 ms and 1e-9: pulls east %+.2f / %.3f, north %+.2f / %.3f, clock %+.2f / %.3f ' ...
          '(mean / std); the prior taken as exact: rms east %.1f, north %.1f, clock %.1f: %s\n'], [mC, sC].', rX, passStr(ok6));
 if ~ok6, fails{end+1} = 'ClockPrior'; end
+
+% 7. TOAs as time-averages
+rs7 = RandStream('mt19937ar', 'Seed', 54); tSid = 86164.0905; w = 2*pi / tSid;
+[pA, pP] = deal([]);
+ws = warning('off', 'trueResiduals:wrap');
+for m = 1:nR
+    [trajT, offT] = shipTruth(trajDR, tg, rs7);
+    clk = makeClock([t1, t1 + L + 2 * 86400], 'Preset', "crystal", 'Rate', 2e-6 * (2 * rand(rs7) - 1), 'Seed', 200 + m);
+    st = [t1 + ((0:27) + rand(rs7, 1, 28)) * (L - 10 * 3600) / 28, t1 + (L - tSid - 5 * 3600) * rand(rs7, 1, 7)];
+    kk = [ones(1, 28), 2 * ones(1, 7)];
+    [tSub, tTag, rAvg] = deal(cell(1, 35), zeros(1, 35), zeros(1, 35));
+    p = {b0329, b0950};
+    for i = 1:35
+        if kk(i) == 1, ts = st(i) + (0:119) * 300; else, ts = [st(i) + (0:59) * 300, st(i) + tSid + (0:59) * 300]; end
+        tSub{i} = ts; tm = mean(ts); tTag(i) = tm + angle(mean(exp(1i * w * (ts - tm)))) / w;
+        rAvg(i) = mean(trueResiduals(ts, psrT(p{kk(i)}), trajT, trajDR, 'Clock', clk).residual);
+    end
+    toa = struct('t', tTag, 'r', rAvg + sig * randn(rs7, 1, 35), 'sigma', sig * ones(1, 35), 'k', kk);
+    toaA = toa; toaA.tSub = tSub;
+    fA = navFilter(toaA, [b0329, b0950], trajDR, 'Clock', hCr, 'PositionPrior', 1e3);
+    fP = navFilter(toa, [b0329, b0950], trajDR, 'Clock', hCr, 'PositionPrior', 1e3);
+    truthENU = offT(fA.t);
+    at = arrayfun(@(dd) find(fA.t >= t1 + dd * 86400, 1), [2 5.5 9]); at(end+1) = numel(fA.t);
+    pA = [pA, (fA.enu(1:2, at) - truthENU(1:2, at)) ./ fA.enuErr(1:2, at)]; %#ok<AGROW>
+    pP = [pP, (fP.enu(1:2, at) - truthENU(1:2, at)) ./ fP.enuErr(1:2, at)]; %#ok<AGROW>
+end
+warning(ws);
+ok7 = all(abs(std(pA, 0, 2) - 1) < 0.2) && all(abs(mean(pA, 2)) < 4 / sqrt(nR));
+okP = all(isfinite(pP), 1);
+fprintf(['7. TOAs as time-averages (10 h, or 5 + 5 h a day apart), %d ships: averaged rows pulls east %+.2f / %.3f, north %+.2f / %.3f ' ...
+         '(mean / std); the point model at the tag: %d of %d pulls finite, their std east %.1f, north %.1f: %s\n'], nR, mean(pA(1, :)), ...
+    std(pA(1, :)), mean(pA(2, :)), std(pA(2, :)), nnz(okP), numel(okP), std(pP(1, okP)), std(pP(2, okP)), passStr(ok7));
+if ~ok7, fails{end+1} = 'time-averages'; end
 
 if isempty(fails)
     fprintf('testNavFilter: ALL PASSED\n');

@@ -9,6 +9,13 @@ pulsar's direction. This fits dx to the residuals of many TOAs.
   fit = navFit(toa, psrs, site, 'Start', "calibrated")
   fit = navFit(struct('t', t, 'sigma', s), psrs, site, 'Predict', true)   % precision only
 
+A TOA merges sub-ints, often over hours, sometimes over two passes a day apart: its residual is
+then the average over its sub-ints, not the value at one time. With toa.tSub (a cell, per TOA the
+times of its sub-ints) each row is that average: a_i = mean_j a(tau_ij) (the sub-ints weigh
+equally: equal length, constant flux), and the clock rate's column the mean time. Without it, a
+TOA of the daily sine spread over 9 h of hour angle is damped to sinc(omega 4.5 h) = 0.79, one
+across the daily gap to ~0.8 (found 22 Oct 2026, block D4d).
+
 The model. A TOA of pulsar k at time t_i has the residual (observed - predicted)
   r_i = a_i . dx + c_k + noise,   a_i = -R_z(theta(t_i))' n_k / c,
 with theta the Earth rotation angle (as delayModel), n_k the unit vector to the pulsar and c_k a
@@ -50,7 +57,8 @@ weighted least squares.
 
 Inputs:
   toa    struct of [1 x N] vectors: t (time of the TOA, s since J2000, TT), r (residual, s;
-         not needed with 'Predict'), sigma (s), k (pulsar index into psrs; default all 1).
+         not needed with 'Predict'), sigma (s), k (pulsar index into psrs; default all 1); optional
+         tSub (a cell, per TOA the times of its sub-ints: the row averaged over them, above).
   psrs   struct array: raDeg, decDeg per pulsar.
   site   makeTrajectory('fixed', ...) struct: the ASSUMED site (ecef, enu, params.Lon).
 
@@ -111,8 +119,19 @@ for j = 1:numel(psrs)
     n(:, j) = [cosd(psrs(j).decDeg) * cosd(psrs(j).raDeg); cosd(psrs(j).decDeg) * sind(psrs(j).raDeg); sind(psrs(j).decDeg)];
 end
 nk = n(:, kp);                                         % [3 x N] direction of each TOA's pulsar
-ax =  cos(th) .* nk(1, :).' + sin(th) .* nk(2, :).';   % R_z(theta)' n: x and y components
-ay = -sin(th) .* nk(1, :).' + cos(th) .* nk(2, :).';
+[cT, sT] = deal(cos(th), sin(th));                     % per TOA: the rotation, or its mean over the sub-ints
+tm = t;                                                 % per TOA: its time, or its sub-ints' mean time
+if isfield(toa, 'tSub') && ~isempty(toa.tSub)
+    if numel(toa.tSub) ~= N, error('navFit:toa', 'toa.tSub must have one entry (sub-int times) per TOA.'); end
+    for i = 1:N
+        ts = toa.tSub{i};
+        if isempty(ts), continue, end
+        ths = 2*pi * mod(0.7790572732640 + 1.00273781191135448 * (ts(:) - 69.184) / 86400, 1);
+        cT(i) = mean(cos(ths)); sT(i) = mean(sin(ths)); tm(i) = mean(ts);
+    end
+end
+ax =  cT .* nk(1, :).' + sT .* nk(2, :).';             % R_z(theta)' n: x and y components (averaged)
+ay = -sT .* nk(1, :).' + cT .* nk(2, :).';
 A = -[ax, ay, nk(3, :).'] / c;                          % [N x 3]: d r / d (dX dY dZ)
 used = unique(kp).';
 if opts.Start == "self"
@@ -136,7 +155,7 @@ if ~isempty(opts.Clock)                                 % the clock's wander as 
     q = [h(1) / 2, 2 * pi^2 * h(3)];
     K = clockCov(tau, tau.', q);
     if opts.Start == "self"                             % the clock rate at t0 is free
-        A = [A, tau]; names{end+1} = 'rate';
+        A = [A, tm - t0]; names{end+1} = 'rate';
     end
 end
 sc = 1 ./ sqrt(sum(A.^2, 1));                           % column scales: metres and seconds differ by 1e9

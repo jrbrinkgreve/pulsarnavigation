@@ -37,7 +37,14 @@ times over 30 days (2026-03-01 on), sigma 734 us each - the scenario's nominal c
      then exact), 200 realizations: the fitted wander at the TOAs and the prediction one day after
      the last TOA match the true clock within their stated errors (pulls of std 1 +- 0.2). Shown
      for information: the same with the full crystal (flicker left out of the fit's model).
-Errors at the end if any check fails. (22 Oct 2026, block D4a; tests 8-10 block D4b.)
+ 11. TOAs as time-averages ('tSub', block D4d): the site 1000 km east, 60 TOAs at random times
+     over 30 days, each the average of the exact residual over 300 s sub-ints - half of them 10 h
+     in one pass, half 5 h + 5 h one sidereal day apart - plus noise; 200 realizations, "self".
+     With the rows averaged over the sub-ints: east unbiased (mean within 4 sigma / sqrt(200) of
+     the truth), pull std 1 +- 0.15. With the point model at the circular-mean tag (as the run
+     scripts tag their TOAs): east damped, its mean below 90 % of the truth (expected: the daily
+     sine averaged over 10 h is 0.74 of its value at the middle, over 5 h 0.93).
+Errors at the end if any check fails. (22 Oct 2026, block D4a; tests 8-10 block D4b; 11 D4d.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -200,6 +207,31 @@ fprintf(['10. clock estimate, "calibrated", %d realizations: at the TOAs pulls s
          'ahead std %.3f (error %.0f us); with flicker in the true clock: %.3f, %.3f: %s\n'], nC, std(zc), ...
     1e6 * median(f.clockErr), std(zp), 1e6 * f.clockAtErr(t(end) + 86400), std(zcF), std(zpF), passStr(ok10));
 if ~ok10, fails{end+1} = 'clock estimate'; end
+
+% 11. TOAs as time-averages
+tSid = 86164.0905; nT = 60; nR11 = 200;
+siteE1k = makeTrajectory('fixed', 'Lat', 52, 'Lon', 5, 'OffsetENU', [1000e3 0 0]);
+[tSub, tTag] = deal(cell(1, nT), zeros(1, nT)); rAvg = zeros(1, nT);
+for i = 1:nT
+    t0i = t1 + 28 * 86400 * rand(rs);
+    if mod(i, 2), ts = t0i + (0:119) * 300; else, ts = [t0i + (0:59) * 300, t0i + tSid + (0:59) * 300]; end
+    tSub{i} = ts;
+    w = 2*pi / tSid; tm = mean(ts); tTag(i) = tm + angle(mean(exp(1i * w * (ts - tm)))) / w;   % as the run scripts
+    rAvg(i) = mean(trueResiduals(ts, psrT, siteE1k, siteA).residual);
+end
+[eA, eP, zA] = deal(zeros(1, nR11));
+for m = 1:nR11
+    toa = struct('t', tTag, 'r', rAvg + sig * randn(rs, 1, nT), 'sigma', sig * ones(1, nT));
+    toaA = toa; toaA.tSub = tSub;
+    fA = navFit(toaA, b0329, siteA, 'Robust', false);
+    fP = navFit(toa, b0329, siteA, 'Robust', false);
+    eA(m) = fA.east; eP(m) = fP.east; zA(m) = (fA.east - 1000e3) / fA.eastErr;
+end
+ok11 = abs(mean(eA) - 1000e3) < 4 * std(eA) / sqrt(nR11) && abs(std(zA) - 1) < 0.15 && mean(eP) < 0.9 * 1000e3;
+fprintf(['11. TOAs as time-averages (10 h, or 5 + 5 h a day apart), %d realizations: averaged rows east %.1f +- %.1f km, pull std %.3f; ' ...
+         'point model at the tag east %.1f km (%.2f of the truth): %s\n'], nR11, mean(eA) / 1e3, std(eA) / 1e3, std(zA), ...
+    mean(eP) / 1e3, mean(eP) / 1000e3, passStr(ok11));
+if ~ok11, fails{end+1} = 'time-averages'; end
 
 if isempty(fails)
     fprintf('testNavFit: ALL PASSED\n');

@@ -49,6 +49,11 @@ outlier then counts ~k^2 = 16 times less. One pass (the filter does not iterate,
 Inputs:
   toa    struct of [1 x N]: t (s since J2000, TT), r (residual against the prediction for traj, s; not
          needed with 'Predict'), sigma (s), k (pulsar index, default 1). Any order; sorted inside.
+         Optional tSub: a cell, per TOA the times of its sub-ints. A TOA merges sub-ints over hours,
+         sometimes over two passes, so its residual is their average: its row is then the mean over
+         the sub-ints (the sub-ints weigh equally), with the position at the TOA's time t moved by the
+         velocity: mean a M' (dp + dv (tau - t)), and the clock b + d mean(tau - t). Without it a TOA
+         spread over 9 h of hour angle is damped to 0.79 of the daily signal (22 Oct 2026, D4d).
   psrs   struct array: raDeg, decDeg.
   traj   makeTrajectory struct ('ECEF' frame): the DR track (or a fixed site) the residuals refer to.
 
@@ -145,6 +150,23 @@ for j = 1:nPsr
 end
 th = 2*pi * mod(0.7790572732640 + 1.00273781191135448 * (t - 69.184) / 86400, 1);   % as delayModel
 [E, Nn, U] = localFrame(traj.pos(t));
+% the rows of the position, velocity and clock-rate states: at each TOA's time, or averaged over its sub-ints
+rowP = zeros(N, nD); rowV = zeros(N, nD); rowD = zeros(N, 1);
+for i = 1:N
+    rowP(i, :) = posRow(th(i), n(:, kp(i)), [E(:, i), Nn(:, i), U(:, i)], nD);
+end
+if isfield(toa, 'tSub') && ~isempty(toa.tSub)
+    if numel(toa.tSub) ~= N, error('navFilter:toa', 'toa.tSub must have one entry (sub-int times) per TOA.'); end
+    tS = toa.tSub(order);
+    for i = find(~cellfun(@isempty, tS(:).'))
+        ts = tS{i}(:).';
+        thS = 2*pi * mod(0.7790572732640 + 1.00273781191135448 * (ts - 69.184) / 86400, 1);
+        [Es, Ns, Us] = localFrame(traj.pos(ts));
+        Rs = zeros(numel(ts), nD);
+        for j = 1:numel(ts), Rs(j, :) = posRow(thS(j), n(:, kp(i)), [Es(:, j), Ns(:, j), Us(:, j)], nD); end
+        rowP(i, :) = mean(Rs, 1); rowV(i, :) = mean(Rs .* (ts.' - t(i)), 1); rowD(i) = mean(ts - t(i));
+    end
+end
 
 % forward pass
 [xF, xPr] = deal(zeros(nS, N)); [PF, PPr] = deal(zeros(nS, nS, N));
@@ -156,10 +178,8 @@ for i = 1:N
     x = F * x; P = F * P * F' + Q;
     xPr(:, i) = x; PPr(:, :, i) = P;
     H = zeros(1, nS);
-    aE = -[cos(th(i)) * n(1, kp(i)) + sin(th(i)) * n(2, kp(i)), -sin(th(i)) * n(1, kp(i)) + cos(th(i)) * n(2, kp(i)), n(3, kp(i))];
-    Mi = [E(:, i), Nn(:, i), U(:, i)];
-    H(iP) = aE * Mi(:, 1:nD);                          % the Earth-fixed row turned into the local frame
-    if haveClk, H(iB) = 1; end
+    H(iP) = rowP(i, :); H(iV) = rowV(i, :);
+    if haveClk, H(iB) = 1; H(iD) = rowD(i); end
     if ~isempty(iJ), H(iJ(kp(i))) = 1; end
     R = (c * sg(i))^2;
     nu = z(i) - H * x; S = H * P * H' + R;
@@ -211,6 +231,14 @@ end
 
 
 % =====================================================================================
+function h = posRow(th, n, M, nD)
+%POSROW  A TOA's row for the position error in the local frame: the Earth-fixed row -R_z(theta)' n turned
+% into the local frame M = [east north up].
+aE = -[cos(th) * n(1) + sin(th) * n(2), -sin(th) * n(1) + cos(th) * n(2), n(3)];
+h = aE * M(:, 1:nD);
+end
+
+
 function [F, Q] = transition(dt, nS, iP, iV, iB, iD, qv, q)
 %TRANSITION  State transition over dt: position integrates velocity (a random walk), the clock is the
 % two-state model (offset integrates rate; white FM q1, random-walk FM q2), the constants stay.
