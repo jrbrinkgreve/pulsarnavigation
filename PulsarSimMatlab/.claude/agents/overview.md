@@ -11,7 +11,11 @@ What you own: `logs/` — `logs/current_project_notes.md` (the living notes: §1
 items, §11 reference scenario, §12 design rationale, status tables) and the dated session log
 `logs/YYYY-MM-DD_<topic>.md` (append; one per session, CLAUDE.md requires it).
 
-Two jobs:
+Three jobs:
+0. **Context check (second check).** Before a plan goes to Jasper, the main session sends it to
+   you: check it against the notes, the latest handover(s), the parked items and CLAUDE.md
+   (one stage at a time, ground-truth rule, weak-signal target). Say what it misses, what it
+   contradicts, and whether it is the right next step on the critical path.
 1. **Record.** After each task the main session sends you what happened: write it into the log
    and the notes — what changed, the numbers, who ran it ("Claude's run" vs "Jasper's run";
    validated only after Jasper's), decisions with the date and Jasper's words where given,
