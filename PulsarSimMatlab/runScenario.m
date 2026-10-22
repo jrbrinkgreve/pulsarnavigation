@@ -24,7 +24,12 @@ Assumptions (notes §11, simulator.html):
     phase offset at its reference time. The scenario's t = 0 is set so that its first transit
     (t = tSid/2) is a real transit at the site after motion.epoch (2026-03-01 00:00 TT). Each TOA
     records its absolute time, the measured residual (TOA - tRef) and the true residual with its
-    geometric and clock parts: the input of the navigation fit (D4). The measured residual is in
+    geometric and clock parts, and its sub-ints' times (tSub, for navFit's averaged rows): the input
+    of the navigation fit (D4). A TOA merges sub-ints, possibly
+    across the daily gap, so it is a time-average: its true parts and the clock estimate the
+    observer used are the averages over its sub-ints, and its time is the one nearest its mean time
+    whose sidereal phase is the circular mean of its sub-ints' (sideTag; until 22 Oct 2026 the
+    middle turn, which for a TOA across the gap lies between its data). The measured residual is in
     the simulator's frame (f0, not the Doppler-shifted frequency): 1e-4 relative, 19 ns on the
     193 us of a 100 km offset. A warning if the true offset drifts by more than 5 % of the FWHM
     within a sub-int (one offset per sub-int would then be too coarse);
@@ -177,7 +182,7 @@ for ip = 1:numel(pulsars)
             end
             G = struct('day', {}, 'nMerged', {}, 'hours', {}, 'spanHours', {}, 'T0', {}, ...
                 'valid', {}, 'good', {}, 'err', {}, 'sigma', {}, 'snr', {}, 'chi2', {}, 'pChi2', {}, ...
-                'tAbs', {}, 'resid', {}, 'trueResid', {}, 'trueGeo', {}, 'trueClock', {}, 'clockUsed', {});
+                'tAbs', {}, 'resid', {}, 'trueResid', {}, 'trueGeo', {}, 'trueClock', {}, 'clockUsed', {}, 'tSub', {});
             carry = []; nSubTotal = 0; maxDrift = 0;
             ehat = [];                                          % the observer's clock estimate
             if motion.on, ehat = M.ehat0; end                   % (day 1: the calibration in port)
@@ -202,8 +207,14 @@ for ip = 1:numel(pulsars)
                     if iC.nSub > 1                                       % drift of the true offset per sub-int
                         maxDrift = max(maxDrift, max(abs(diff(tC.phaseOffset))));
                     end
+                    if motion.on                                         % each sub-int's truth and the clock used
+                        sS = fC.subint.tRef.'; rS = truthOf(sS);
+                        sub = struct('s', sS, 'ph', rS.phaseOffset, 'res', rS.residual, 'geo', rS.geometric, ...
+                            'clk', rS.clock - rS.clockEstimate, 'used', clockUsedAt(M, ehat, sS));
+                    end
                     if ~isempty(carry)
                         [fC, iC] = catFolds(carry.fold, carry.info, fC, iC);
+                        if motion.on, sub = catSub(carry.sub, sub); end
                     end
                     [fM, iM, sel] = adaptiveSubints(fC, iC, tmpl, BnC * nPol, adArgs{:}, 'MaxSubints', maxS);
                     nG = numel(sel.nMerged);
@@ -212,18 +223,25 @@ for ip = 1:numel(pulsars)
                     if ~closed(end)
                         carry = struct();
                         [carry.fold, carry.info] = subFold(fC, iC, find(sel.group == nG));
+                        if motion.on, carry.sub = pickSub(sub, sel.group(:).' == nG); end
                     else
                         carry = [];
                     end
                     if nClosed == 0, continue, end
                     [fT, iT] = subFold(fM, iM, 1:nClosed);
                     toa = foldToTOA(fT, iT, profileOf(ps), BnC * nPol, 'Weighting', 'optimal', 'Verbose', false);
-                    if motion.on                                         % the truth at each TOA's reference time
-                        rT = truthOf(fT.subint.tRef.');
-                        truth = fT.subint.tRef + rT.phaseOffset.' / ps.f0;
+                    if motion.on                                         % each TOA: its sub-ints' averages, and its tag
+                        A = struct('s', [], 'ph', [], 'res', [], 'geo', [], 'clk', [], 'used', [], 'sub', {cell(1, nClosed)});
+                        for g = 1:nClosed
+                            m = sel.group(:).' == g;
+                            A.sub{g} = M.t0 + sub.s(m);                  % its sub-ints' absolute times (navFit 'tSub')
+                            for fn = ["ph" "res" "geo" "clk" "used"], A.(fn)(g) = mean(sub.(fn)(m)); end
+                            A.s(g) = sideTag(sub.s(m), tSid);
+                        end
+                        truth = fT.subint.tRef + A.ph.' / ps.f0;
                     else
-                        rT = struct('residual', NaN(1, nClosed), 'geometric', NaN(1, nClosed), ...
-                            'clock', NaN(1, nClosed), 'clockEstimate', NaN(1, nClosed));
+                        A = struct('s', NaN(1, nClosed), 'res', NaN(1, nClosed), 'geo', NaN(1, nClosed), ...
+                            'clk', NaN(1, nClosed), 'used', zeros(1, nClosed), 'sub', {cell(1, nClosed)});
                         truth = fT.subint.tRef + dPhi / ps.f0;
                     end
                     for g = 1:nClosed
@@ -233,10 +251,9 @@ for ip = 1:numel(pulsars)
                             'T0', sel.T0(g), 'valid', toa.valid(g), 'good', toa.good(g), ...
                             'err', toa.toa(g) - truth(g), 'sigma', toa.toaErr(g), 'snr', toa.snr(g), ...
                             'chi2', toa.redChi2(g), 'pChi2', toa.pChi2(g), ...
-                            'tAbs', tAbsOf(M, fT.subint.tRef(g)), 'resid', toa.toa(g) - fT.subint.tRef(g), ...
-                            'trueResid', rT.residual(g), 'trueGeo', rT.geometric(g), ...
-                            'trueClock', rT.clock(g) - rT.clockEstimate(g), ...
-                            'clockUsed', clockUsedAt(M, ehat, fT.subint.tRef(g))); %#ok<SAGROW>
+                            'tAbs', tAbsOf(M, A.s(g)), 'resid', toa.toa(g) - fT.subint.tRef(g), ...
+                            'trueResid', A.res(g), 'trueGeo', A.geo(g), 'trueClock', A.clk(g), ...
+                            'clockUsed', A.used(g), 'tSub', A.sub{g}); %#ok<SAGROW>
                     end
                 end
                 if motion.on && motion.clock == "sdr" && motion.track == "daily"
@@ -375,6 +392,27 @@ fprintf(['runScenario: motion for %s: t = 0 at %.1f s after J2000 (first transit
     (M.t0 + tSid / 2 - motion.epoch) / 3600, mat2str(motion.offsetENU), motion.clock, M.clockRate);
 end
 
+function S = catSub(A, B)
+%CATSUB  Per-sub-int values of two folds joined (the carried group first, as catFolds).
+S = A;
+for fn = string(fieldnames(A)).', S.(fn) = [A.(fn), B.(fn)]; end
+end
+
+function S = pickSub(S, m)
+%PICKSUB  The per-sub-int values of the sub-ints m (logical) only.
+for fn = string(fieldnames(S)).', S.(fn) = S.(fn)(m); end
+end
+
+function tg = sideTag(t, tSid)
+%SIDETAG  A TOA's time tag (as runShip's): the time nearest the mean of its sub-ints' times t whose
+% sidereal phase is the circular mean of theirs - the hour angle its data represent. A TOA from sub-ints
+% around the daily gap or from two passes is a time-average; the middle turn (mergeSubints' tRef) can lie
+% at the opposite hour angle (found 22 Oct 2026, block D4d).
+w = 2*pi / tSid; tm = mean(t);
+tg = tm + angle(mean(exp(1i * w * (t - tm)))) / w;
+tg = min(max(tg, min(t)), max(t));                   % within its data (a partial pass can put that phase just outside)
+end
+
 function t = tAbsOf(M, s)
 %TABSOF  Absolute time (s since J2000, TT) of scenario time s; NaN without motion.
 if isempty(M), t = NaN; else, t = M.t0 + s; end
@@ -387,7 +425,7 @@ end
 
 function v = clockUsedAt(M, ehat, s)
 %CLOCKUSEDAT  The observer's clock estimate at scenario time s (0 without a clock).
-if isempty(M) || isempty(M.clk), v = 0; else, v = ehat(M.t0 + s); end
+if isempty(M) || isempty(M.clk), v = zeros(size(s)); else, v = ehat(M.t0 + s); end
 end
 
 function ehat = trackClock(G, M, ehat)
@@ -397,6 +435,7 @@ function ehat = trackClock(G, M, ehat)
 g = [G.good];
 if nnz(g) < 20, return, end                         % ~2 days: a rate fitted from one day extrapolates poorly
 toa = struct('t', [G(g).tAbs], 'r', [G(g).resid] + [G(g).clockUsed], 'sigma', [G(g).sigma]);
+toa.tSub = {G(g).tSub};                             % each TOA averaged over its sub-ints
 ws = warning('off', 'navFit:converge');
 f = navFit(toa, struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg), M.trajAssumed, 'Clock', M.clockH, ...
     'ClockStart', M.t0);

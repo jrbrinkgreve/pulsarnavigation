@@ -31,6 +31,7 @@ for fl = ["nominal", "worst"]
     G = R.groups([R.groups.good]);
     M = R.motionTruth;
     toa = struct('t', [G.tAbs], 'r', [G.resid], 'sigma', [G.sigma]);
+    if isfield(G, 'tSub'), toa.tSub = {G.tSub}; end      % rows averaged over each TOA's sub-ints (runs since 22 Oct)
     psr = struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg);
     siteA = M.trajAssumed; siteT = M.trajTrue;
     dx = siteT.ecef - siteA.ecef;
@@ -61,6 +62,7 @@ for tg = ["sdr", "sdr_notrack"]
     R = load(fIn).R; G = R.groups([R.groups.good]); M = R.motionTruth;
     psr = struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg);
     toa = struct('t', [G.tAbs], 'r', [G.resid] + [G.clockUsed], 'sigma', [G.sigma]);
+    if isfield(G, 'tSub'), toa.tSub = {G.tSub}; end
     f = navFit(toa, psr, M.trajAssumed, 'Clock', hCr, 'ClockStart', M.t0);
     fprintf('\nexpNavFit: B0329+54, nominal flux, 30 days, SDR clock (rate %.2e), %s: %d good TOAs (perfect clock 302)\n', ...
         M.clockRate, strrep(tg, '_', ' '), numel(G));
