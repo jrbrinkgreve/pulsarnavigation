@@ -11,7 +11,7 @@ blocks = [  # (label, first day, last day, lane, status)
     ('B · excision', dt.date(2026, 10, 8), dt.date(2026, 10, 9), 0, 'V'),
     ('review week', dt.date(2026, 10, 12), dt.date(2026, 10, 16), 1, 'V'),
     ('processIQ', dt.date(2026, 10, 19), dt.date(2026, 10, 19), 0, 'V'),
-    ('C · fast simulator', dt.date(2026, 10, 20), dt.date(2026, 10, 21), 1, 'C'),
+    ('C · fast simulator', dt.date(2026, 10, 20), dt.date(2026, 10, 22), 1, 'V'),     # closed 22 Oct
     ('D · motion', dt.date(2026, 10, 21), dt.date(2026, 10, 22), 0, 'R', 'right'),   # label beside the bar
 ]
 cCols = [  # block C in detail: (column title, [(item, status)])
@@ -115,7 +115,7 @@ svg = f'''<figure class="scroll">
   </defs>
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>The roadmap on {TODAY.day} {TODAY.strftime("%B")}. (1) The blocks on the calendar. C, the fast simulator, ran on 20–21 Oct; it came before D because a
+<figcaption>The roadmap on {TODAY.day} {TODAY.strftime("%B")}. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
 TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion and phase, started on 21 Oct. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are

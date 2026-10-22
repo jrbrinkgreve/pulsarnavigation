@@ -291,6 +291,10 @@ core but 1.9 % beyond 3σ, for the navigation fit's outlier model).</li>
 <li><b>Jasper's run</b> of all 22 unit tests and of <code>testRFIChain</code>: all pass, with the same numbers. Block D's functions, the
 per-channel <code>detectRFI</code> thresholds and the extra RFI-profile lags are therefore validated.</li>
 <li>The receiver chain became concrete: antenna, mixer and a commercial SDR with 18 coherent channels of 400 MHz.</li>
+<li><b>Block C closed</b> (Jasper): the simulator and its RFI model validated, the budgets done; a few refinements parked.</li>
+<li><b>Block D, the navigation fit:</b> <code>navFit</code> finds the 100 km site offset (4.9σ in 100 days), the SDR clock is tracked day
+by day without losing TOAs, a planning study shows what extra pulsars add, and <code>navFilter</code> tracks a ship's dead-reckoning
+error (D4a–D4d-1).</li>
 </ul>
 
 <h2 id="decisions">2. Decision log</h2>
@@ -374,6 +378,8 @@ agreed.</p>
 <tr><td>21 Oct</td><td>The observer folds with its own clock estimate (Jasper: option a)</td><td>A commercial SDR's ±2 ppm would smear the fold like an uncorrected Doppler shift: 240 µs in a 120 s sub-int.</td></tr>
 <tr><td>21 Oct</td><td>D4: clock synchronisation with extra pulsars (Jasper)</td><td>The clock is common to all pulsars, a position error is not: differences between pulsars cancel the clock, and with the position known the pulsars discipline the clock.</td></tr>
 <tr><td>21 Oct</td><td>Several digital beams at once (Jasper)</td><td>The array mixes the signals digitally, so extra pulsars cost no time on B0329+54.</td></tr>
+<tr><td>22 Oct</td><td>Block C closed, with the time structure of rotating radars, refractive scintillation, bright-pulse excision, RFI locked to the period and channel merging parked (Jasper)</td><td>The simulator and its RFI model are validated and the budgets done; none of the parked items is on the critical path.</td></tr>
+<tr><td>22 Oct</td><td>D4: a closed clock loop in the scenario (option a), a planning study first for D4c, then the ship (D4d) with a separate script <code>runShip</code>; dead reckoning still unknown, the route general (Jasper)</td><td>The ship is the end goal and where clock synchronisation matters most; the multi-pulsar timeline is built once, in its final form.</td></tr>
 <tr><td>21 Oct</td><td>Per-pulsar offsets: a switch between a calibrated start and self-calibration (Jasper)</td><td>A start from a known position and time makes the polar component and the absolute clock reachable; self-calibration keeps the option of starting anywhere.</td></tr>
 <tr><td>21 Oct</td><td>The clock model with flicker noise, drawn by FFT; the paper's crystal as the only preset (Jasper)</td><td>Flicker is 42 % of a crystal's time-error variance after 200 s. The planned receiver is a commercial SDR, whose noise is not published and is best measured on the device.</td></tr>
 <tr><td>21 Oct</td><td>The docs keep their DM-5 worked examples (Jasper)</td><td>Visual clarity: at DM 25 a sweep spans three periods.</td></tr>
