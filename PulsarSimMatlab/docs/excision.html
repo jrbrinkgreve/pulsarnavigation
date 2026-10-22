@@ -16,7 +16,7 @@ After dedispersion, it tells the fold exactly how much valid data, and how much 
 <code>detectRFI</code>) in <code>pipelineParams.m</code> · order in <code>main.m</code>: <code>channelizeIQ</code> → <code>detectRFI</code> →
 (<code>periodicRFI</code>, if <code>periodicMask</code>) → <code>blankChannels</code> →
 <code>dedisperseChannels</code> → <code>detectChannels</code> → <code>blankingWeights</code> → <code>foldProfile('DataWeights', …)</code> ·
-block B, default on since 8 Oct 2026</p>
+block B</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#why">Why blank, and why here</a></li>
@@ -318,7 +318,7 @@ bit as before. <code>'ChannelThresholds', false</code> turns the feature off and
 </table></div>
 <p>All 19 radar pulses on the carrier are still blanked. Channels away from the RFI give the old mask bit for bit.</p>
 <p><b>History.</b> Added 21 Oct 2026 as the option <code>'ChannelThresholds'</code> (default true). Tested in Claude's run that
-day; not yet in Jasper's own validation run.</p></details>
+day, and validated in Jasper's run of 22 Oct (<code>testDetectRFI</code> 4, and <code>testRFIChain</code> on the new code).</p></details>
 
 <h3>Baseline</h3>
 <p>The baseline <var>m</var> is the channel's mean noise power, found separately for each 16 ms block (<code>BaselineTime</code>).
@@ -682,13 +682,18 @@ divided by the predicted one: 1 means the error bars are honest. With only 8 TOA
 realization alone gives 0.84.</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>Excision</th><th>Blanked</th><th>Good TOAs</th><th>SNR</th><th>Ratio</th><th>Red. χ²</th><th>Offset [µs]</th></tr>
-<tr><td>noise only</td><td>off / on</td><td>– / 0.0125 %</td><td>8/8, 8/8</td><td>92.3 / 91.9</td><td>0.84 / 0.83</td><td>1.01</td><td>+0.12 / +0.06 ± 0.98</td></tr>
-<tr><td>GNSS L1</td><td>off / on</td><td>– / 0.012 %</td><td>8/8, 8/8</td><td>91.4 / 91.0</td><td>0.75 / 0.73</td><td>1.02</td><td>+0.01 / −0.04</td></tr>
-<tr><td>GNSS L2</td><td>off / on</td><td>– / 0.012 %</td><td>8/8, 8/8</td><td>91.1 / 90.8</td><td>0.89 / 0.87</td><td>1.01</td><td>+0.28 / +0.24</td></tr>
+<tr><td rowspan="2">noise only</td><td>off</td><td>–</td><td>8/8</td><td>92.3</td><td>0.84</td><td rowspan="2">1.01</td><td>+0.12 ± 0.98</td></tr>
+<tr><td>on</td><td>0.0125 %</td><td>8/8</td><td>91.9</td><td>0.83</td><td>+0.06 ± 0.98</td></tr>
+<tr><td rowspan="2">GNSS L1</td><td>off</td><td>–</td><td>8/8</td><td>91.4</td><td>0.75</td><td rowspan="2">1.02</td><td>+0.01</td></tr>
+<tr><td>on</td><td>0.012 %</td><td>8/8</td><td>91.0</td><td>0.73</td><td>−0.04</td></tr>
+<tr><td rowspan="2">GNSS L2</td><td>off</td><td>–</td><td>8/8</td><td>91.1</td><td>0.89</td><td rowspan="2">1.01</td><td>+0.28</td></tr>
+<tr><td>on</td><td>0.012 %</td><td>8/8</td><td>90.8</td><td>0.87</td><td>+0.24</td></tr>
 <tr><td>radar</td><td>off</td><td>–</td><td><b>4/8</b></td><td>90.1</td><td><b>4.99</b></td><td><b>33.7</b></td><td>−1.07 ± 0.99</td></tr>
 <tr><td>radar</td><td>on</td><td>0.055 %</td><td>8/8</td><td>91.8</td><td>0.82</td><td>1.01</td><td>+0.03 ± 0.98</td></tr>
-<tr><td>carrier 1351.3 MHz</td><td>off / on</td><td>– / 0.0125 %</td><td>8/8, 8/8</td><td>91.9 / 91.5</td><td>0.80 / 0.78</td><td>1.00</td><td>+0.19 / +0.14</td></tr>
-<tr><td>impulses 50/s</td><td>off / on</td><td>– / 0.048 %</td><td>8/8, 8/8</td><td>92.1 / 91.8</td><td>0.88 / 0.82</td><td>1.01</td><td>+0.09 / +0.10</td></tr>
+<tr><td rowspan="2">carrier 1351.3 MHz</td><td>off</td><td>–</td><td>8/8</td><td>91.9</td><td>0.80</td><td rowspan="2">1.00</td><td>+0.19</td></tr>
+<tr><td>on</td><td>0.0125 %</td><td>8/8</td><td>91.5</td><td>0.78</td><td>+0.14</td></tr>
+<tr><td rowspan="2">impulses 50/s</td><td>off</td><td>–</td><td>8/8</td><td>92.1</td><td>0.88</td><td rowspan="2">1.01</td><td>+0.09</td></tr>
+<tr><td>on</td><td>0.048 %</td><td>8/8</td><td>91.8</td><td>0.82</td><td>+0.10</td></tr>
 <tr><td>all five</td><td>off</td><td>–</td><td><b>4/8</b></td><td>87.0</td><td><b>5.06</b></td><td><b>33.7</b></td><td>−1.20 ± 1.03</td></tr>
 <tr><td>all five</td><td>on</td><td>0.098 %</td><td>8/8</td><td>89.4</td><td>0.78</td><td>1.01</td><td>+0.28 ± 1.01</td></tr>
 </table></div>
@@ -821,8 +826,9 @@ below the threshold.</li>
 <li><b>The frequency guard</b> widens the clean notch around the radar. Every 2 extra channels cut the bias about 3–4×. With guard 7
 the bias stays below 1 µs down to −51 dB, and is 2 µs at −54 dB (exact lock, worst placement). 7 is the default.</li>
 <li><b>With instant edges the guard does not help.</b> The radar's spectrum then falls off only as 1/<var>f</var>², and the leftover
-comes from channels far away. Two remedies remain: the periodic mask (section 8), and Doppler decorrelation once Earth's motion is
-included (block D of the <a href="roadmap.html">roadmap</a>), because an exact lock cannot last over long folds.</li>
+comes from channels far away. Two remedies remain: the periodic mask (section 8), and Doppler decorrelation: the observer folds with
+the predicted, Doppler-shifted phase (<a href="prediction.html">stage 7a</a>), so a radar locked to the pulse period on the ground cannot
+stay locked in the fold over long folds. How much that decorrelation removes has not been quantified.</li>
 </ul>
 <details><summary>History</summary>
 <p>Locked-radar runs: step B5b, 8 Oct 2026. The guard of 7 channels is Jasper's choice from this sweep.</p></details>
@@ -836,9 +842,12 @@ every radar pulse is kept, so that each pulse can be scored.</p>
 <tr><th>Case</th><th>Excision</th><th>Blanked</th><th>Good</th><th>Ratio</th><th>Red. χ²</th><th>Pulses blanked</th><th>Energy missed</th></tr>
 <tr><td>beam passage (centre of file, −30 dB floor)</td><td>off</td><td>–</td><td>4/8</td><td>5.44</td><td>8.78</td><td>–</td><td>–</td></tr>
 <tr><td>beam passage</td><td>on</td><td>0.077 %</td><td>8/8</td><td>0.81</td><td>1.01</td><td>100 %</td><td>0</td></tr>
-<tr><td>sidelobes only, −25 dB (+13 dB per channel)</td><td>off / on</td><td>– / 0.020 %</td><td>8/8</td><td>0.85 / 0.82</td><td>1.01</td><td>100 %</td><td>0</td></tr>
-<tr><td>sidelobes only, −30 dB (+8 dB)</td><td>off / on</td><td>– / 0.019 %</td><td>8/8</td><td>0.84 / 0.82</td><td>1.01</td><td>100 %</td><td>0</td></tr>
-<tr><td>sidelobes only, −35 dB (+3 dB)</td><td>off / on</td><td>– / 0.015 %</td><td>8/8</td><td>0.84 / 0.82</td><td>1.01</td><td><b>39.5 %</b></td><td><b>61 %</b></td></tr>
+<tr><td rowspan="2">sidelobes only, −25 dB (+13 dB per channel)</td><td>off</td><td>–</td><td rowspan="2">8/8</td><td>0.85</td><td rowspan="2">1.01</td><td rowspan="2">100 %</td><td rowspan="2">0</td></tr>
+<tr><td>on</td><td>0.020 %</td><td>0.82</td></tr>
+<tr><td rowspan="2">sidelobes only, −30 dB (+8 dB)</td><td>off</td><td>–</td><td rowspan="2">8/8</td><td>0.84</td><td rowspan="2">1.01</td><td rowspan="2">100 %</td><td rowspan="2">0</td></tr>
+<tr><td>on</td><td>0.019 %</td><td>0.82</td></tr>
+<tr><td rowspan="2">sidelobes only, −35 dB (+3 dB)</td><td>off</td><td>–</td><td rowspan="2">8/8</td><td>0.84</td><td rowspan="2">1.01</td><td rowspan="2"><b>39.5 %</b></td><td rowspan="2"><b>61 %</b></td></tr>
+<tr><td>on</td><td>0.015 %</td><td>0.82</td></tr>
 </table></div>
 <div class="callout why"><span class="ttl">What this shows, and why it leads to a periodic mask</span>
 <p>At −5 dB the sidelobe radar is harmless, with or without excision. The problem is weak sidelobes. At −35 dB, a 2 µs pulse is
@@ -1078,8 +1087,10 @@ lopsided noise spectrum. Two things went wrong there. <code>detectRFI</code> ove
 detected-power noise exceeded the fold's model: reduced χ² 1.04 at LTE 0 dB. In the realistic scenario, this made the TOA error bars
 0.39 % too small, and 3.4 % too small with narrow Inmarsat-like carriers (<a href="results.html#b5e">results</a>).<br>
 These numbers were measured before the per-channel thresholds (<a href="#chanthr">section 2</a>) existed. Those are aimed at exactly
-this over-flagging, but the realistic scenario has not been rerun with them yet. A per-channel noise level measured on the data is
-planned.</li>
+this over-flagging. With them, <code>testRFIChain</code>'s realistic and narrow-carrier cases pass on the voltage chain; only
+<code>runRFITest</code>'s cases 14–15 have not been rerun. The per-channel noise level measured on the data exists as a switch,
+off by default (<code>processIQ</code>'s <code>noiseCal</code>): with it χ² goes from 1.24 to 0.99 for the narrow carriers
+(<a href="simulator.html#rfi">fast simulator</a>).</li>
 <li><b>Periodic mask with dense detections.</b> Lopsided channels produce hundreds of false flags each. <code>periodicRFI</code> then
 accepts false emitters (around 14.1 kHz) and blanks about 30 % of the data. That is why the periodic mask is off by default. A fix
 is designed, but not implemented (<a href="limits.html">limitations</a>,

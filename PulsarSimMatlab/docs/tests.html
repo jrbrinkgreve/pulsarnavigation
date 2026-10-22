@@ -18,16 +18,16 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all twenty-five in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
-can never change what they check. A twenty-fifth, the slow <code>testRFIChain</code>, runs only when named.</p></div>
-<p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision) and C (fast simulator) were built in
-numbered steps (A1–A4, B1–B6, C1–C4); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2" and similar mean "the code before that
-step".</p>
+<p><code>tests/runAllTests.m</code> runs all 25 listed tests in one session (6–9 min), on their own frozen data. So a <code>main.m</code>
+run can never change what they check. A twenty-sixth, the slow <code>testRFIChain</code>, runs only when named.</p></div>
+<p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision), C (fast simulator) and D (motion, clock
+and navigation) were built in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2"
+and similar mean "the code before that step".</p>
 
 <h2 id="run">How to run</h2>
 <pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
 run('tests/testChannelizeIQ.m')     % one test
-run('tests/runAllTests.m')          % all 16 unit tests, in order, summary at the end (6–9 min)
+run('tests/runAllTests.m')          % all 25 unit tests, in order, summary at the end (6–9 min)
 runAllTests("testRFIChain")         % the slow one, only when named (~2.5 h)</code></pre>
 <p>Run them from the <code>PulsarSimMatlab</code> folder. Every test is a function with its own workspace. It prints PASS/FAIL lines and
 its numbers, and tests can be run one after another in one MATLAB session.</p>
@@ -139,7 +139,7 @@ time is fine (it does not touch <code>data/test/</code>).</li>
 
 <h2>The tests</h2>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 396" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
+<svg class="wide" viewBox="0 0 860 638" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   <text class="ttl" x="420" y="30" text-anchor="middle">regression</text>
   <text class="ttl" x="510" y="30" text-anchor="middle">algebra</text>
   <text class="ttl" x="600" y="30" text-anchor="middle">physics</text>
@@ -153,30 +153,30 @@ time is fine (it does not touch <code>data/test/</code>).</li>
   <circle cx="420" cy="63" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="63" r="5.5" class="dot"/>
   <circle cx="600" cy="63" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="57" width="4.3" height="12" rx="2"/>
-  <text class="sub" x="679.3" y="67">4 s</text>
+  <rect class="box proc" x="670" y="57" width="4.7" height="12" rx="2"/>
+  <text class="sub" x="679.7" y="67">5 s</text>
   <text class="mono" x="14" y="89">testChannelizeIQ</text>
   <text class="sub" x="210" y="89">channelizeIQ</text>
   <circle cx="420" cy="85" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="85" r="5.5" class="dot"/>
   <circle cx="600" cy="85" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="79" width="10.8" height="12" rx="2"/>
-  <text class="sub" x="685.8" y="89">10 s</text>
+  <rect class="box proc" x="670" y="79" width="9.3" height="12" rx="2"/>
+  <text class="sub" x="684.3" y="89">10 s</text>
   <rect class="fillfg" x="10" y="96" width="800" height="22" opacity="0.25"/>
   <text class="mono" x="14" y="111">testDedisperseChannels</text>
   <text class="sub" x="210" y="111">dedisperseChannels</text>
   <circle cx="420" cy="107" r="5.5" class="dot"/>
   <circle cx="510" cy="107" r="5.5" class="dot"/>
   <circle cx="600" cy="107" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="101" width="16.2" height="12" rx="2"/>
-  <text class="sub" x="691.2" y="111">15 s</text>
+  <rect class="box proc" x="670" y="101" width="14.0" height="12" rx="2"/>
+  <text class="sub" x="689.0" y="111">15 s</text>
   <text class="mono" x="14" y="133">expBlankingVariance</text>
   <text class="sub" x="210" y="133">experiment 3a</text>
   <circle cx="420" cy="129" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="129" r="5.5" class="dot"/>
   <circle cx="600" cy="129" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="123" width="16.2" height="12" rx="2"/>
-  <text class="sub" x="691.2" y="133">15 s</text>
+  <rect class="box proc" x="670" y="123" width="14.0" height="12" rx="2"/>
+  <text class="sub" x="689.0" y="133">15 s</text>
   <rect class="fillfg" x="10" y="140" width="800" height="22" opacity="0.25"/>
   <text class="mono" x="14" y="155">testDetectChannels</text>
   <text class="sub" x="210" y="155">detectChannels, powerCovariance</text>
@@ -190,79 +190,161 @@ time is fine (it does not touch <code>data/test/</code>).</li>
   <circle cx="420" cy="173" r="5.5" class="dot"/>
   <circle cx="510" cy="173" r="5.5" class="dot"/>
   <circle cx="600" cy="173" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="167" width="7.5" height="12" rx="2"/>
-  <text class="sub" x="682.5" y="177">7 s</text>
+  <rect class="box proc" x="670" y="167" width="6.5" height="12" rx="2"/>
+  <text class="sub" x="681.5" y="177">7 s</text>
   <rect class="fillfg" x="10" y="184" width="800" height="22" opacity="0.25"/>
   <text class="mono" x="14" y="199">testChannelTOA</text>
   <text class="sub" x="210" y="199">estimateTOA, detectPulsar</text>
   <circle cx="420" cy="195" r="5.5" class="dot"/>
   <circle cx="510" cy="195" r="5.5" class="dot"/>
   <circle cx="600" cy="195" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="189" width="5.4" height="12" rx="2"/>
-  <text class="sub" x="680.4" y="199">5 s</text>
-  <text class="mono" x="14" y="221">testBlankingWeights</text>
-  <text class="sub" x="210" y="221">blankingWeights</text>
-  <circle cx="420" cy="217" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="189" width="14.0" height="12" rx="2"/>
+  <text class="sub" x="689.0" y="199">15 s</text>
+  <text class="mono" x="14" y="221">testOptimalTOA</text>
+  <text class="sub" x="210" y="221">optimal weighting</text>
+  <circle cx="420" cy="217" r="5.5" class="dot"/>
   <circle cx="510" cy="217" r="5.5" class="dot"/>
   <circle cx="600" cy="217" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="211" width="118.5" height="12" rx="2"/>
-  <text class="sub" x="793.5" y="221">110 s</text>
+  <rect class="box proc" x="670" y="211" width="121.3" height="12" rx="2"/>
+  <text class="sub" x="796.3" y="221">130 s</text>
   <rect class="fillfg" x="10" y="228" width="800" height="22" opacity="0.25"/>
-  <text class="mono" x="14" y="243">testOptimalTOA</text>
-  <text class="sub" x="210" y="243">optimal weighting</text>
-  <circle cx="420" cy="239" r="5.5" class="dot"/>
+  <text class="mono" x="14" y="243">testBlankingWeights</text>
+  <text class="sub" x="210" y="243">blankingWeights</text>
+  <circle cx="420" cy="239" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="239" r="5.5" class="dot"/>
   <circle cx="600" cy="239" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="233" width="140.0" height="12" rx="2"/>
-  <text class="sub" x="815.0" y="243">130 s</text>
+  <rect class="box proc" x="670" y="233" width="102.7" height="12" rx="2"/>
+  <text class="sub" x="777.7" y="243">110 s</text>
   <text class="mono" x="14" y="265">testBlankChannels</text>
   <text class="sub" x="210" y="265">blankChannels</text>
   <circle cx="420" cy="261" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="261" r="5.5" class="dot"/>
   <circle cx="600" cy="261" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <rect class="box proc" x="670" y="255" width="10.8" height="12" rx="2"/>
-  <text class="sub" x="685.8" y="265">10 s</text>
+  <rect class="box proc" x="670" y="255" width="9.3" height="12" rx="2"/>
+  <text class="sub" x="684.3" y="265">10 s</text>
   <rect class="fillfg" x="10" y="272" width="800" height="22" opacity="0.25"/>
   <text class="mono" x="14" y="287">testDetectRFI</text>
   <text class="sub" x="210" y="287">detectRFI</text>
   <circle cx="420" cy="283" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="283" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="600" cy="283" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="277" width="35.5" height="12" rx="2"/>
-  <text class="sub" x="710.5" y="287">33 s</text>
-  <text class="mono" x="14" y="309">testRadarEdges</text>
-  <text class="sub" x="210" y="309">rfiSource rise time</text>
-  <circle cx="420" cy="305" r="5.5" class="dot"/>
-  <circle cx="510" cy="305" r="5.5" class="dot"/>
-  <circle cx="600" cy="305" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <rect class="box proc" x="670" y="299" width="5.4" height="12" rx="2"/>
-  <text class="sub" x="680.4" y="309">5 s</text>
+  <rect class="box proc" x="670" y="277" width="140.0" height="12" rx="2"/>
+  <text class="sub" x="815.0" y="287">150 s</text>
+  <text class="mono" x="14" y="309">testPeriodicRFI</text>
+  <text class="sub" x="210" y="309">periodicRFI</text>
+  <circle cx="420" cy="305" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="305" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="600" cy="305" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="299" width="32.7" height="12" rx="2"/>
+  <text class="sub" x="707.7" y="309">35 s</text>
   <rect class="fillfg" x="10" y="316" width="800" height="22" opacity="0.25"/>
-  <text class="mono" x="14" y="331">testRfiGating</text>
-  <text class="sub" x="210" y="331">rfiSource rotation</text>
+  <text class="mono" x="14" y="331">testRadarEdges</text>
+  <text class="sub" x="210" y="331">rfiSource rise time</text>
   <circle cx="420" cy="327" r="5.5" class="dot"/>
   <circle cx="510" cy="327" r="5.5" class="dot"/>
   <circle cx="600" cy="327" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <rect class="box proc" x="670" y="321" width="10.8" height="12" rx="2"/>
-  <text class="sub" x="685.8" y="331">10 s</text>
-  <text class="mono" x="14" y="353">testPeriodicRFI</text>
-  <text class="sub" x="210" y="353">periodicRFI</text>
-  <circle cx="420" cy="349" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <circle cx="510" cy="349" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <circle cx="600" cy="349" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="343" width="37.7" height="12" rx="2"/>
-  <text class="sub" x="712.7" y="353">35 s</text>
+  <rect class="box proc" x="670" y="321" width="4.7" height="12" rx="2"/>
+  <text class="sub" x="679.7" y="331">5 s</text>
+  <text class="mono" x="14" y="353">testRfiGating</text>
+  <text class="sub" x="210" y="353">rfiSource rotation</text>
+  <circle cx="420" cy="349" r="5.5" class="dot"/>
+  <circle cx="510" cy="349" r="5.5" class="dot"/>
+  <circle cx="600" cy="349" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="343" width="9.3" height="12" rx="2"/>
+  <text class="sub" x="684.3" y="353">10 s</text>
   <rect class="fillfg" x="10" y="360" width="800" height="22" opacity="0.25"/>
   <text class="mono" x="14" y="375">testRfiNoise</text>
   <text class="sub" x="210" y="375">rfiSource 'noise'</text>
   <circle cx="420" cy="371" r="5.5" class="dot"/>
   <circle cx="510" cy="371" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="600" cy="371" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="365" width="5.4" height="12" rx="2"/>
-  <text class="sub" x="680.4" y="375">5 s</text>
+  <rect class="box proc" x="670" y="365" width="4.7" height="12" rx="2"/>
+  <text class="sub" x="679.7" y="375">5 s</text>
+  <text class="mono" x="14" y="397">testSimulateFold</text>
+  <text class="sub" x="210" y="397">simulateFold (fast simulator)</text>
+  <circle cx="420" cy="393" r="5.5" class="dot"/>
+  <circle cx="510" cy="393" r="5.5" class="dot"/>
+  <circle cx="600" cy="393" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="387" width="56.0" height="12" rx="2"/>
+  <text class="sub" x="731.0" y="397">60 s</text>
+  <rect class="fillfg" x="10" y="404" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="419">testRFIModel</text>
+  <text class="sub" x="210" y="419">rfiProfile, simulateFold RFI</text>
+  <circle cx="420" cy="415" r="5.5" class="dot"/>
+  <circle cx="510" cy="415" r="5.5" class="dot"/>
+  <circle cx="600" cy="415" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="409" width="28.0" height="12" rx="2"/>
+  <text class="sub" x="703.0" y="419">30 s</text>
+  <text class="mono" x="14" y="441">testMakeTrajectory</text>
+  <text class="sub" x="210" y="441">makeTrajectory</text>
+  <circle cx="420" cy="437" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="437" r="5.5" class="dot"/>
+  <circle cx="600" cy="437" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="431" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="441">1 s</text>
+  <rect class="fillfg" x="10" y="448" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="463">testDelayModel</text>
+  <text class="sub" x="210" y="463">delayModel (incl. DE440)</text>
+  <circle cx="420" cy="459" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="459" r="5.5" class="dot"/>
+  <circle cx="600" cy="459" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="453" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="463">2 s</text>
+  <text class="mono" x="14" y="485">testMakePredictor</text>
+  <text class="sub" x="210" y="485">makePredictor</text>
+  <circle cx="420" cy="481" r="5.5" class="dot"/>
+  <circle cx="510" cy="481" r="5.5" class="dot"/>
+  <circle cx="600" cy="481" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="475" width="4.7" height="12" rx="2"/>
+  <text class="sub" x="679.7" y="485">5 s</text>
+  <rect class="fillfg" x="10" y="492" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="507">testFoldPredictor</text>
+  <text class="sub" x="210" y="507">foldProfile 'Predictor'</text>
+  <circle cx="420" cy="503" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="503" r="5.5" class="dot"/>
+  <circle cx="600" cy="503" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="497" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="507">2 s</text>
+  <text class="mono" x="14" y="529">testTrueResiduals</text>
+  <text class="sub" x="210" y="529">trueResiduals</text>
+  <circle cx="420" cy="525" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="525" r="5.5" class="dot"/>
+  <circle cx="600" cy="525" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="519" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="529">2 s</text>
+  <rect class="fillfg" x="10" y="536" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="551">testMakeClock</text>
+  <text class="sub" x="210" y="551">makeClock</text>
+  <circle cx="420" cy="547" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="547" r="5.5" class="dot"/>
+  <circle cx="600" cy="547" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="541" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="551">2 s</text>
+  <text class="mono" x="14" y="573">testNavFit</text>
+  <text class="sub" x="210" y="573">navFit</text>
+  <circle cx="420" cy="569" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="569" r="5.5" class="dot"/>
+  <circle cx="600" cy="569" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="563" width="112.0" height="12" rx="2"/>
+  <text class="sub" x="787.0" y="573">120 s</text>
+  <rect class="fillfg" x="10" y="580" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="595">testNavFilter</text>
+  <text class="sub" x="210" y="595">navFilter</text>
+  <circle cx="420" cy="591" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="591" r="5.5" class="dot"/>
+  <circle cx="600" cy="591" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="585" width="9.3" height="12" rx="2"/>
+  <text class="sub" x="684.3" y="595">10 s</text>
+  <text class="mono" x="14" y="617">testLoadEphemeris</text>
+  <text class="sub" x="210" y="617">loadEphemeris (DE440)</text>
+  <circle cx="420" cy="613" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="613" r="5.5" class="dot"/>
+  <circle cx="600" cy="613" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="607" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="617">2 s</text>
 </svg>
-<figcaption>The fourteen unit tests of 13 Oct and experiment 3a, with the kinds of check each one contains (filled dot) and its
-approximate run time on that date. The fast-simulator tests of 20 Oct are in the table below, not in the figure. Regression checks exist where a function gained an option after it was validated; algebra checks
+<figcaption>The 25 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (fourth row; not run by <code>runAllTests</code>), with the kinds of check each one
+contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>
 </figure>
@@ -303,6 +385,8 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#compchain"><code>expComponentsChain</code></a></td><td>experiment: a multi-component pulse on the voltage chain vs <code>simulateFold</code></td><td>~30 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#expnavfit"><code>expNavFit</code></a></td><td>experiment D4a, D4b: B0329+54's site offset from the 30-day motion runs</td><td>~1 s (+ ~10 s per SDR file)</td><td><span class="badge written">Claude's runs, 22 Oct</span></td></tr>
+<tr><td><a href="#expnavplan"><code>expNavPlan</code></a></td><td>experiment D4c-0: which extra pulsars help (<code>navFit</code> <code>'Predict'</code>)</td><td>~10 s</td><td><span class="badge written">Claude's run, 22 Oct</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
@@ -807,7 +891,7 @@ band-edge taper (0.023, 0.417 and 0.960 in the outer channels); observer gain 1.
 <tr><td>chain (channel Monte Carlo)</td><td class="num">2.950 µs</td><td class="num">–</td><td class="num">1.0063</td><td class="num">20.5 %</td></tr>
 <tr><td><code>simulateFold</code></td><td class="num">2.943 µs</td><td class="num">92.3</td><td class="num">1.0069</td><td class="num">20.5 %</td></tr>
 </table></div>
-<p>With all gains set to 1, the χ² excess and the <code>pChi2</code> skew vanish: the band-edge taper (roadmap item 3) is their whole
+<p>With all gains set to 1, the χ² excess and the <code>pChi2</code> skew vanish: the band-edge taper (roadmap <a href="roadmap.html#item3">item 3</a>) is their whole
 cause. At −15 dB the simulator gives χ² 0.9991 and a mean <code>pChi2</code> of 0.533; the chain 0.9987 and 0.537. The experiment needs
 <code>main</code>'s full-band files, its channel power info, and the two sweep files.</p>
 <p><b>At the new defaults</b> (DM 25, 0.2 s; in the validation run of 21 Oct, Claude's run) the agreement is the same. On the full band at
@@ -854,6 +938,29 @@ little memory; the comparison does not depend on DM. It runs at −5 dB on the c
 </table></div>
 <p>So multi-component profiles are now checked end to end: in the generator, through the chain, and in the simulator. Claude's run,
 21 Oct (28 min).</p>
+
+<h2 id="expnavfit"><code>expNavFit</code> (experiment, 22 Oct)</h2>
+<p>B0329+54 alone finds a site 100 km east of the assumed one, with honest error bars.</p>
+<p>The experiment loads <code>runScenario</code>'s 30-day motion runs (52° N, nominal and worst-case flux, a perfect clock) and fits the
+good TOAs with <code>navFit</code>, with each TOA's row averaged over its sub-ints. It first fits the noise-free true residuals, which give
+the offset itself, and compares the fit's error with the one <code>'Predict'</code> computes from the schedule alone. With the SDR clock
+files it also reports the clock the observer had not estimated, per week, and the final fit with the clock model.</p>
+<div class="table-wrap"><table>
+<tr><th>Run, 30 days</th><th class="num">east (truth 100 km)</th><th class="num">stated error from <code>'Predict'</code></th></tr>
+<tr><td>nominal flux</td><td class="num">36.5 ± 29.6 km</td><td class="num">29.4 km</td></tr>
+<tr><td>worst-case flux</td><td class="num">82.2 ± 110.3 km</td><td class="num">109.1 km</td></tr>
+<tr><td>nominal, SDR clock tracked daily</td><td class="num">35.1 ± 29.7 km</td><td class="num">–</td></tr>
+</table></div>
+<p>The true residuals give 99.994 km. The nominal estimate is 2.1σ low: the same noise draw gives the same shortfall at 1000 km, and the
+later days of a 100-day run land on the truth (<a href="navigation.html#navfit">navigation</a>). Claude's runs, 22 Oct.</p>
+
+<h2 id="expnavplan"><code>expNavPlan</code> (experiment, 22 Oct)</h2>
+<p>Extra pulsars from 52° N add little to the equatorial position, but they separate the polar component from the clock's wander.</p>
+<p>The study needs no simulation. It builds TOA schedules from each pulsar's real passes above 20° at 52° N, 5° E, and asks
+<code>navFit</code>'s <code>'Predict'</code> mode for the errors they would give: east, radial, and polar with a calibrated start, with a
+perfect clock and with the crystal clock. B0329+54's TOA rate comes from the scenario runs; the others' from the scenario page's table.
+For B0329+54 alone it predicts what the real fits gave: ±29.6 km east and ±16.3 km polar in 30 days. The results are on the
+<a href="navigation.html#plan">navigation page</a>. Claude's run, 22 Oct (~10 s).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
 <p>A higher post-detection rate <code>f_out</code> does not help: the information is set by bandwidth × time.</p>

@@ -255,7 +255,11 @@ with the time of day and the season.</td></tr>
 10° elevation.</td></tr>
 <tr><td>The pulsar's own position</td><td>Its right ascension, declination, proper motion and parallax.</td><td>A 1 mas error gives up to
 2.4 µs over a year.</td></tr>
-<tr><td>Binary orbits</td><td>J0437 orbits a companion.</td><td>±3.4 s per 5.74 days. Planned for the end of block D.</td></tr>
+<tr><td>Binary orbits</td><td>J0437 orbits a companion.</td><td>±3.4 s per 5.74 days. Parked at the close of block D: J0437 never rises
+at 52° N, so it matters only for a southern route or a probe (<a href="navigation.html#next">navigation</a>).</td></tr>
+<tr><td>Dispersion at the Doppler-shifted frequency</td><td>The dispersion delay holds at the barycentric frequency, which the Earth's
+orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term.</td><td>An annual ±7.1 µs for B0329+54, ±0.3 µs for J0437
+(<a href="limits.html#propagation">limitations</a>).</td></tr>
 <tr><td>A probe's own clock</td><td>Proper time instead of TDB (section 5).</td><td>A rate of up to about 10⁻⁸ in the outer solar system,
 mostly absorbed by the clock estimate.</td></tr>
 </table></div>

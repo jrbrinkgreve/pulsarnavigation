@@ -42,7 +42,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Measured SNR and error-bar honesty against detected bin width: flat for fine bins, worse for bins coarser than a fifth of the pulse">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The <var>f</var><sub>out</sub> sweep of 9 Oct (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
+<figcaption>The <var>f</var><sub>out</sub> sweep (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
 <var>f</var><sub>out</sub>; <code>logs/2026-10-09_fout-study.md</code>). a: once a bin is finer than about a fifth of the pulse (W/5 = 100 µs),
 finer bins add no sensitivity: every bin averages <em>all</em> its samples, so the noise in a sum of bins does not change. b: coarse
 bins also smear the pulse, which the template does not know about, so the error bars become too small. The second dashed line is the

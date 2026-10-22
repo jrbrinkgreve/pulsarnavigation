@@ -171,11 +171,11 @@ channel after a filterbank (middle), with RFI excision in between (right).</li>
 <p>The fast simulator (1–7) replaces the first seven stages for runs of hours to days: it draws the folds directly.</p>
 
 <h2 id="around">Long runs and a moving receiver: the fast simulator, stages 7a and 10</h2>
-<p>The chain above has two limits. It writes about 61 GB per second of signal, so it cannot make the days of data that navigation
-needs. Its fold also assumes a receiver at rest. The fast simulator and the phase prediction (stage 7a) remove these limits. Both end
+<p>The chain above has two limits. It writes about 72 GB per second of signal on the default path (61 GB on the full band), so it
+cannot make the days of data that navigation needs. Its fold also assumes a receiver at rest. The fast simulator and the phase prediction (stage 7a) remove these limits. Both end
 in the same TOA fit as the chain, and navigation (stage 10) follows.</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 870 515" role="img" aria-label="Long runs and a moving receiver: the fast simulator draws folds from a measured RFI profile and merges sub-ints; the phase prediction turns a trajectory into delays, a phase predictor and a fold; the simulator's truth places the pulses for the true trajectory and clock; both end in foldToTOA, and navigation follows; dashed: the feedback of navigation's trajectory, still to be built">
+<svg class="wide" viewBox="0 0 870 515" role="img" aria-label="Long runs and a moving receiver: the fast simulator draws folds from a measured RFI profile and merges sub-ints; the phase prediction turns a trajectory into delays, a phase predictor and a fold; the simulator's truth places the pulses for the true trajectory and clock; both end in foldToTOA, and navigation follows; dashed: the feedback of navigation's trajectory, done in runShip">
   <defs>
     <marker id="ar-ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path class="ah" d="M0 0 L10 5 L0 10 z"/>
@@ -229,16 +229,17 @@ in the same TOA fit as the chain, and navigation (stage 10) follows.</p>
   <path class="line" marker-end="url(#ar-ac)" d="M180 330 V388 H283"/>
   <path class="line" marker-end="url(#ar-ac)" d="M690 330 V388 H587"/>
 
-  <!-- navigation, and the loop back (to be built) -->
+  <!-- navigation, and the loop back (runShip) -->
   <a href="navigation.html"><rect class="box proc" x="335" y="446" width="200" height="56" rx="7"/>
     <text class="fn" x="435" y="469" text-anchor="middle">navFit · navFilter</text>
     <text class="sub" x="435" y="487" text-anchor="middle">10 · TOAs → position and clock</text></a>
   <path class="line" marker-end="url(#ar-ac)" d="M435 416 V444"/>
   <path class="dash" marker-end="url(#ar-ac)" d="M535 474 H858 V62 H842"/>
-  <text class="sub" x="696" y="466" text-anchor="middle">later: navigation's estimate supplies the trajectory</text>
+  <text class="sub" x="696" y="466" text-anchor="middle">navigation's estimate supplies the trajectory (runShip)</text>
 </svg>
 <figcaption>Left: the fast simulator. Right: the phase prediction. Middle: the simulator's truth for a moving receiver. Blue:
-simulated truth. Purple: measured on the voltage chain. Green: processing (observer-only). Dashed: still to be built. Both paths end in
+simulated truth. Purple: measured on the voltage chain. Green: processing (observer-only). Dashed: the feedback of the ship scenario, where navigation's estimate becomes the next day's
+assumed trajectory. Both paths end in
 the same TOA fit as <code>main.m</code>, and navigation follows.</figcaption>
 </figure>
 
@@ -273,8 +274,8 @@ page</a> explains each step.</p>
 with the clock from <a href="clock.html"><code>makeClock</code></a>). The observer keeps folding with the assumed trajectory,
 which is its own knowledge and not the truth. The difference between the two is the navigation signal. Navigation turns the TOAs into
 the receiver's position and clock offset (<a href="navigation.html">stage 10</a>). <code>navFit</code> does it for a fixed site, and
-<code>navFilter</code>, a Kalman filter, for a moving ship. Later the filter will feed its estimated trajectory back into
-<code>makeTrajectory</code>. That is the dashed loop on the right.</p>
+<code>navFilter</code>, a Kalman filter, for a moving ship. In the ship scenario the filter feeds its estimated track back into
+<code>makeTrajectory</code> every evening (<a href="scripts.html#ship"><code>runShip</code></a>). That is the dashed loop on the right.</p>
 <details><summary>History</summary>
 <p>The fast simulator was built in block C, on 20 and 21 Oct 2026. Block D started on 21 Oct 2026 with the trajectory, the delay model
 and the predictor. This section was added to the overview the same day. The simulator's truth followed on 21 Oct and navigation on
@@ -302,16 +303,19 @@ shortcut for stages 1–7.</p></details>
 <tr><th colspan="5">Both</th></tr>
 <tr><td>7a</td><td><a href="prediction.html#trajectory"><code>makeTrajectory</code></a></td><td>(in memory: <code>traj</code>)</td><td>position and velocity of the receiver</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7a</td><td><a href="prediction.html#delay"><code>delayModel</code></a></td><td>(in memory)</td><td>delay to the barycentre, per term</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7a</td><td><a href="prediction.html#ephemeris"><code>loadEphemeris</code></a></td><td>(in memory: <code>eph</code>; reads <code>data/ephem/de440s.bsp</code>)</td><td>JPL's DE440 for <code>delayModel</code>'s <code>'Ephemeris'</code>, and TDB − TT</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7a</td><td><a href="prediction.html#predictor"><code>makePredictor</code></a></td><td>(in memory: <code>pred</code>)</td><td>phase and frequency as Chebyshev segments</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7</td><td><a href="fold.html"><code>foldProfile</code></a></td><td><code>test_fold.mat</code> / <code>test_fold_chan.mat</code></td><td>profiles + weights</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7</td><td><a href="fold.html#predictor"><code>foldProfile</code> <code>'Predictor'</code></a></td><td>as stage 7</td><td>profiles folded at the predicted phase</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>5–7</td><td><a href="#processiq"><code>processIQ</code></a></td><td>all the files of the front end and the fold</td><td>wraps either front end, excision, detection and the fold: IQ in, fold out</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>8–9</td><td><a href="detection.html#good"><code>foldToTOA</code></a></td><td>(in memory: <code>toa</code>, <code>detection</code>)</td><td>runs <code>estimateTOA</code> and <code>detectPulsar</code>, and sets <code>toa.good</code></td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>8</td><td><a href="toa.html"><code>estimateTOA</code></a></td><td>(in memory: <code>toa</code>)</td><td>TOA, σ, SNR, χ² per sub-int</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="detection.html"><code>detectPulsar</code></a></td><td>(in memory: <code>detection</code>)</td><td>T0, Tmax, detected flags</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>9</td><td><a href="validation.html#validate"><code>validateTOA</code></a></td><td>(figure, <code>val</code>)</td><td>errors vs truth</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>10</td><td><a href="navigation.html#navfit"><code>navFit</code></a></td><td>(in memory: <code>fit</code>)</td><td>a fixed site's offset (east, radial, polar) and the clock, with error bars</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>10</td><td><a href="navigation.html#navfilter"><code>navFilter</code></a></td><td>(in memory: <code>fit</code>)</td><td>a moving receiver's position and velocity errors and the clock, over time</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Fast simulator, in place of stages 1–7</th></tr>
-<tr><td>–</td><td><a href="simulator.html#rfi"><code>rfiProfile</code></a></td><td><code>data/rfi/profile/rfiProfile_*.mat</code>, through <code>runRFIProfile</code></td><td>per channel: level, V, X(L), blanked fraction</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="simulator.html#rfi"><code>rfiProfile</code></a></td><td><code>data/rfi/profile/rfiProfile_*.mat</code> (and <code>profile_21oct/</code>), through <code>runRFIProfile</code></td><td>per channel: level, V, X(L), blanked fraction</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>1–7</td><td><a href="simulator.html#how"><code>simulateFold</code></a></td><td>(in memory: <code>fold</code>, <code>info</code>, <code>truth</code>)</td><td>profiles + weights, like <code>foldProfile</code>'s</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#adaptive"><code>adaptiveSubints</code></a>, <code>mergeSubints</code></td><td>(in memory)</td><td>merged sub-ints, SNR ≈ 7 each</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#truth"><code>trueResiduals</code></a></td><td>(in memory: <code>res</code>)</td><td>each pulse's true lateness against the prediction, and its phase in the fold</td><td><span class="badge validated">validated</span></td></tr>
@@ -342,7 +346,7 @@ each blank over its filter length, so every detected bin is "partly real"; <code
 the fold stays unbiased.</p></div>
 <div class="callout why"><span class="ttl">A simulator that draws folds, next to the chain</span>
 <p><b>Alternative:</b> a faster voltage simulator.</p>
-<p><b>Why not:</b> even a perfect one writes about 61 GB per second, so hours are out of reach. Everything after the fold depends on
+<p><b>Why not:</b> even a perfect one writes about 72 GB per second on the default path, so hours are out of reach. Everything after the fold depends on
 the voltages only through the fold's statistics. Drawing the fold therefore loses nothing the observer could see. The chain stays as
 the reference that the simulator is checked against (<a href="simulator.html#why">simulator page</a>).</p></div>
 <div class="callout why"><span class="ttl">Motion enters the fold as a predicted phase</span>
@@ -369,8 +373,20 @@ path only.</p>
 worth it: refolding alone saved about 2 s of 45 s. The TOAs keep their own switch and function. All intermediate files stay on disk, for
 checks before folding.</p>
 <p><code>main.m</code> runs the voltage chain only. The fast simulator runs from its own scripts, such as <code>runScenario</code>, which
-draws a whole observing campaign. The <a href="scripts.html#scenario">run scripts page</a> describes them. The motion functions have no
-run script yet; the tests call them.</p>
+draws a whole observing campaign, and <code>runShip</code>, which closes the navigation loop on a ship. With motion they also run the
+phase prediction, the truth of a moving receiver and navigation. The <a href="scripts.html#scenario">run scripts page</a> describes them.</p>
+<h3 id="processiq"><code>processIQ</code>: IQ in, fold out</h3>
+<div class="sig">out = processIQ(info_IQ, rx, ephem, proc, files, 'Reuse', false)</div>
+<p class="meta"><a href="api.html#processiq">Full interface and help text of <code>processIQ</code> →</a></p>
+<dl class="facts">
+<dt>Inputs</dt><dd><code>info_IQ</code> (the IQ file's info: receiver settings only), <code>rx</code> (the band), <code>ephem</code>,
+<code>proc</code> (front end, reference frequency, f_out, nBin, sub-int length, channel width, weighting, excision and its options,
+the periodic mask, <code>noiseCal</code>), <code>files</code> (the output file names); <code>pipelineParams</code> builds the last three</dd>
+<dt>Options</dt><dd><code>Reuse</code> (false: run every step; true: reuse the saved files and fold, after checking that they belong to
+this IQ file and these settings), <code>Verbose</code> (true)</dd>
+<dt>Output</dt><dd><code>fold</code>, <code>info_fold</code>; <code>Bnoise</code> and <code>weighting</code> for <code>foldToTOA</code>; the
+intermediate infos of every stage, and with excision the RFI mask. Every intermediate file stays on disk.</dd>
+</dl>
 <div class="callout why"><span class="ttl">Design choice: simulate, process, evaluate</span>
 <p>The code has three roles:</p>
 <ul>
@@ -391,7 +407,8 @@ settings. So:</p>
 <li>the fast simulator feeds <code>foldToTOA</code> directly;</li>
 <li>the multi-seed Monte Carlo is simply simulate(seed) → <code>processIQ</code> → evaluate.</li>
 </ul>
-<p>(Jasper's decision, 19 Oct 2026; the single-function idea was from 16 Oct. See the <a href="roadmap.html#processiq">roadmap</a>.)</p></div>
+<details><summary>History</summary><p>Jasper's decision, 19 Oct 2026; the single-function idea was from 16 Oct. See the
+<a href="roadmap.html#processiq">roadmap</a>.</p></details></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">
   <defs>
@@ -493,7 +510,8 @@ only needs the later stages. A mismatch gives a warning rather than an error, so
 <p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
 The channel path adds the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the blanked copies
 and the weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first. At <var>L</var> = 1 s and 800 MHz the
-full-band files alone are about 61 GB; the default <var>L</var> = 0.2 s needs a fifth of that.</p>
+full-band files alone are about 61 GB, and the default channel path with excision writes about 72 GB. The default <var>L</var> = 0.2 s
+needs a fifth of that: about 14.5 GB.</p>
 <p>The fast simulator writes no voltage files. Its folds stay in memory.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 390" role="img" aria-label="Bytes written per second of simulated signal by each stage, on a log scale, against the 24 GB memory">

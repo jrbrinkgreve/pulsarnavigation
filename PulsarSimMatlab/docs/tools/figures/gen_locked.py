@@ -43,9 +43,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="TOA bias from a radar locked to the pulsar against SNR, for each frequency-guard width">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>A radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst pulse phase; <code>runLockedRadar.m</code>,
-8 Oct): the TOA bias left after excision, from the table in <a href="#locked">section 6</a>. A fixed leftover in the fold grows as 1/ρ when the pulsar
-gets weaker, so the lines rise roughly ten-fold per 10 dB. Each two extra guard channels cut it 3–4×; guard 7 (the default) keeps it below
-1 µs down to −51 dB, and the periodic mask (B6) to −58 dB. With instant radar edges (dashed) the guard does not help.</figcaption>
+<figcaption>A radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst pulse phase;
+<code>runLockedRadar.m</code>): the TOA bias left after excision, from the table above. A fixed leftover in the fold grows as 1/ρ when
+the pulsar gets weaker, so the lines rise about ten-fold per 10 dB. Every two extra guard channels cut the bias 3–4×. Guard 7, the
+default, keeps it below 1 µs down to −51 dB, and the periodic mask (section 8) down to −58 dB. With instant radar edges (dashed), the
+guard does not help.</figcaption>
 </figure>'''
 open('locked.svg', 'w').write(svg)

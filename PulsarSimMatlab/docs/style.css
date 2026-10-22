@@ -168,7 +168,7 @@ a { color: var(--accent); }
 hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 
 code, .mono { font-family: var(--mono); font-size: 0.88em; }
-code { background: var(--bg-code); padding: 1px 5px; border-radius: 4px; }
+code { background: var(--bg-code); padding: 1px 5px; border-radius: 4px; overflow-wrap: break-word; }  /* long file paths wrap on phones */
 pre {
   background: var(--bg-code);
   padding: 12px 14px;
@@ -270,6 +270,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .facts { display: grid; grid-template-columns: max-content 1fr; gap: 2px 14px; font-size: 0.9rem; margin-bottom: 1em; }
 .facts dt { color: var(--fg-muted); }
 .facts dd { margin: 0; }
+@media (max-width: 600px) {   /* on a phone the term goes above its definition, so a long term cannot widen the page */
+  .facts { grid-template-columns: 1fr; }
+  .facts dd { margin-bottom: 6px; }
+}
 
 /* cards on the home page */
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin-bottom: 1.4em; }

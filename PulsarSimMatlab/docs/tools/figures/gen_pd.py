@@ -33,7 +33,7 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption>Detection probability against the SNR of a sub-int at a false-alarm probability of 10⁻³, from <var>P</var><sub>D</sub> =
-Φ(SNR − η) (for the unknown phase this is an approximation), and the fraction of good TOAs measured in the threshold sweep of 6 Oct
+Φ(SNR − η) (for the unknown phase this is an approximation), and the fraction of good TOAs measured in the threshold sweep
 (<a href="results.html#threshold">results</a>). The good TOAs lie close to the unknown-phase curve, because a good TOA must pass the
 unknown-phase test (and the χ² flag).</figcaption>
 </figure>'''

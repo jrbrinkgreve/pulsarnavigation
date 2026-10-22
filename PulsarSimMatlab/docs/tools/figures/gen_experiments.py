@@ -2,14 +2,19 @@
 # runMonteCarlo: main's sky, noise seeds seed+(1:10); runSNRSweep: 10 pulsar+noise realizations (seed+100(j-1), +1),
 # 8 snrDB values with common random numbers, plus a zero-sky H0 pass; runH0: zero sky, 100 noise seeds seed+10000+i;
 # runRFITest: main's sky and noise seed, 15 RFI cases, channel path without and with excision; runLockedRadar: main's sky and
-# noise seed, locked-radar cases, excision variants, weak SNR from the leftover in baseline units.
+# noise seed, locked-radar cases, excision variants, weak SNR from the leftover in baseline units. Since 19 Oct 2026 runMonteCarlo,
+# runSNRSweep and runH0 run the front end that frontEnd chooses (default channels). Added 22 Oct 2026: runRFIProfile (zero sky,
+# 3 RFI cases), runScenario and runShip (the fast simulator; scripts.html).
 cols = ['pulsar signal', 'receiver noise', 'signal strength', 'interference', 'front end']
 rows = [('main.m', [('seed 42', 0), ('seed 43', 0), ('−5 dB', 0), ('off (rfiOn)', 0), ('frontEnd', 0)]),
-        ('runMonteCarlo', [("main's", 0), ('10 seeds', 1), ('−5 dB', 0), ('none', 0), ('full band', 0)]),
-        ('runSNRSweep', [('10 realizations', 1), ('new with each', 1), ('8 values, −25…+20 dB', 1), ('none', 0), ('full band', 0)]),
-        ('runH0', [('none (zero sky)', 1), ('100 seeds', 1), ('no pulsar', 0), ('none', 0), ('full band', 0)]),
+        ('runMonteCarlo', [("main's", 0), ('10 seeds', 1), ('−5 dB', 0), ('none', 0), ('frontEnd', 0)]),
+        ('runSNRSweep', [('10 realizations', 1), ('new with each', 1), ('8 values, −25…+20 dB', 1), ('none', 0), ('frontEnd', 0)]),
+        ('runH0', [('none (zero sky)', 1), ('100 seeds', 1), ('no pulsar', 0), ('none', 0), ('frontEnd', 0)]),
         ('runRFITest', [("main's", 0), ("main's seed", 0), ('−5 dB', 0), ('15 cases', 1), ('channels, ± excision', 1)]),
-        ('runLockedRadar', [("main's", 0), ("main's seed", 0), ('−5 dB, then −5…−60 dB*', 1), ('locked radar cases', 1), ('channels, excision options', 1)])]
+        ('runLockedRadar', [("main's", 0), ("main's seed", 0), ('−5, then −5…−60 dB*', 1), ('locked radar cases', 1), ('excision options', 1)]),
+        ('runRFIProfile', [('none (zero sky)', 1), ("main's seed", 0), ('no pulsar', 0), ('3 cases, 0.1 s and 1 s', 1), ('channels, excision', 0)]),
+        ('runScenario', [('B0329+54, J0437', 1), ('drawn per fold', 0), ('nominal, worst', 1), ('clean, RFI variants', 1), ('fast simulator', 1)]),
+        ('runShip', [('B0329+54, B0950+08', 1), ('drawn per fold', 0), ('nominal', 0), ('none', 0), ('fast simulator', 1)])]
 x0, w0, cw, y0, rh = 10, 140, 140, 40, 34
 o = []
 for j, c in enumerate(cols):
@@ -33,6 +38,7 @@ svg = f'''<figure class="scroll">
 <figcaption>Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
-interference alone.</figcaption>
+interference alone. <code>runScenario</code> and <code>runShip</code> draw folds with the fast simulator instead of voltages, for real
+pulsars over days.</figcaption>
 </figure>'''
 open('experiments.svg', 'w').write(svg)

@@ -288,9 +288,9 @@ number for this pulsar.</figcaption>
 <p>It assumes a flat band. The real band tapers pass fewer independent samples (an effective <var>B</var> of 388.4 MHz), so the
 exact optimum is slightly worse:</p>
 <div class="table-wrap"><table>
-<tr><th>snrDB</th><th>SNR per pulse: printed / exact</th><th>best TOA error per pulse: printed / exact</th></tr>
-<tr><td>−20</td><td class="num">3.85 / 3.79</td><td class="num">77.8 / 79.0 µs</td></tr>
-<tr><td>−5</td><td class="num">97.9 / 96.5</td><td class="num">2.85 / 2.892 µs</td></tr>
+<tr><th>snrDB</th><th class="num">SNR per pulse, printed</th><th class="num">exact</th><th class="num">best TOA error per pulse, printed</th><th class="num">exact</th></tr>
+<tr><td>−20</td><td class="num">3.85</td><td class="num">3.79</td><td class="num">77.8 µs</td><td class="num">79.0 µs</td></tr>
+<tr><td>−5</td><td class="num">97.9</td><td class="num">96.5</td><td class="num">2.85 µs</td><td class="num">2.892 µs</td></tr>
 </table></div>
 <p>The exact numbers come from <a href="validation.html#epm"><code>expectedPowerModel</code></a>, and <code>main.m</code> prints them.
 The quick version stays because it needs nothing but the parameters. So you can choose <code>snrDB</code> before anything runs.</p></div>
@@ -664,7 +664,8 @@ phases come from the absolute sample index. So a change of block size, for examp
 <div class="callout why"><span class="ttl">Two RFI lists; the illustrative one is the default</span>
 <p>The illustrative list has a few sources of different kinds at round levels. That makes it good for testing each kind on its own.
 The realistic list estimates what the reference hardware would actually see. The illustrative list stayed the default, so that
-<code>main.m</code> and all tests stayed unchanged (Jasper's decision, 9 Oct 2026).</p></div>
+<code>main.m</code> and all tests stayed unchanged.</p>
+<details><summary>History</summary><p>Jasper's decision, 9 Oct 2026.</p></details></div>
 
 <h3>Options and outputs</h3>
 <dl class="facts">
@@ -684,7 +685,10 @@ are checked by <code>tests/testRadarEdges.m</code>, and rotation and the <code>'
 <div class="callout warn"><span class="ttl">Known simplifications</span>
 <ul>
 <li>Receiver noise does not pass the dispersion-stage taper <var>W</var>(<var>f</var>); real noise passes the same analog band-pass as the
-sky signal. Effect &lt; 1 % in SNR; fixable by making the dispersion band slightly wider than the analysis band.</li>
+sky signal. On the full band this costs +0.4 % in σ<sub>TOA</sub>. On the default channel path it costs +2.5 %, because the optimal fit
+weights the edge channels as if they held the full pulse (<a href="limits.html#signal">limitations</a>,
+<a href="roadmap.html#item3">roadmap item 3</a>). It is fixable by making the dispersion band slightly wider than the analysis band, by
+shaping the noise with the same taper, or by taking the channel gains from the observer's bandpass.</li>
 <li>No ADC: no quantization and no clipping, so a very strong source cannot saturate the receiver (see <a href="limits.html">limitations</a>).</li>
 </ul></div>
 
@@ -895,7 +899,8 @@ interval. A sign error in the mapping (I and Q swapped, or a conjugated stream) 
 checks all pass. Worse, if both this stage and dedispersion had the sign flipped, the simulation would be self-consistent, and only real
 hardware would expose it.</p>
 <p>With <var>f</var><sub>LO</sub> = 1.3 GHz the band sits at −100…+300 MHz and its mirror at −300…+100 MHz. A mirrored mapping would put
-half the band outside the dedispersion filter and fail visibly. (Jasper's choice, 1 Oct 2026.)</p></div>
+half the band outside the dedispersion filter and fail visibly.</p>
+<details><summary>History</summary><p>Jasper's choice, 1 Oct 2026.</p></details></div>
 
 <div class="callout why"><span class="ttl">800 MHz output (keep every 5th sample)</span>
 <p>The off-centre band reaches +300 MHz, which must lie in the flat part of the low-pass, below the output Nyquist frequency

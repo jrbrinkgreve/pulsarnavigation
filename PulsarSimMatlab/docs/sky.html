@@ -315,7 +315,7 @@ rule</a>). Real data starts as a voltage at the antenna. A power-only simulator 
 dedispersion and RFI blanking: exactly the stages that need testing. Starting at real RF also tests the I/Q stage itself. The
 off-centre LO check on the <a href="receiver.html#lo">receiver page</a> only works because of that.</p>
 <p><b>Price:</b> this is the slowest stage, and its memory limits the DM (see <a href="#disp-limits">limits</a>). For long
-observations, block C of the <a href="roadmap.html">roadmap</a> plans a fast simulator that draws folded profiles directly.</p></div>
+observations, the <a href="simulator.html">fast simulator</a> draws folded profiles directly instead.</p></div>
 
 <div class="callout why"><span class="ttl">Sampling at 4 GHz</span>
 <p>A real (not complex) signal sampled at <var>f</var><sub>in</sub> can only hold frequencies up to <var>f</var><sub>in</sub>/2. The band
@@ -374,9 +374,10 @@ that <code>applyDispersionStream</code> reports.</figcaption>
 The pulse only shows up after squaring, so the choice of detector gets tested. And the pulsar adds its own noise (self-noise),
 which matters at high SNR.</p></div>
 
-<div class="callout why"><span class="ttl">One Gaussian component</span>
+<div class="callout why"><span class="ttl">One Gaussian component by default</span>
 <p>The template in the TOA fit is then known exactly, so any TOA error comes from the pipeline, not from a template that does not
-match. Real pulsars have more complex profiles. They only need a different template (<a href="toa.html#template">TOA page,
+match. Real pulsars have more complex profiles. <code>'Components'</code> gives the generator such a profile
+(<a href="#gen-comp">above</a>), and the TOA fit can take the same components as its template (<a href="toa.html#template">TOA page,
 section 7</a>).</p></div>
 
 <div class="callout why"><span class="ttl">The width refers to the power profile (<code>'power'</code> mode, default)</span>

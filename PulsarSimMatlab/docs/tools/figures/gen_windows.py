@@ -43,9 +43,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="detectRFI thresholds against window length, compared with the pulsar's peak power at -5 and -20 dB">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Why the windows stop at 16 samples. The detection threshold of <code>detectRFI</code> at a false-flag probability of 10⁻⁶ against the window length. Blue: the exact
-values the code uses (1–16 samples). Orange: longer windows, from a Gamma distribution with the exact variance (it agrees with the exact
-form to 0.5 % where both exist). The dashed lines are the pulsar's own peak power: at −5 dB it reaches the 256-sample threshold, at
-−20 dB it is far below all of them.</figcaption>
+<figcaption>Why the windows stop at 16 samples. The plot shows the detection threshold of <code>detectRFI</code> against the
+window length, at a false-flag probability of 10⁻⁶. Blue: the exact values the code uses (1–16 samples). Orange: longer windows, from
+a Gamma distribution with the exact variance; where both exist, it agrees with the exact form to 0.5 %. The dashed lines are the
+pulsar's own peak power. At −5 dB it reaches the 256-sample threshold. At −20 dB it is far below all of them.</figcaption>
 </figure>'''
 open('windows.svg', 'w').write(svg)

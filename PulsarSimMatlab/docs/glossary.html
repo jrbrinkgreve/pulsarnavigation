@@ -23,8 +23,9 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt>barycentre (SSB)</dt><dd>The centre of mass of the solar system: the origin of the frame in which a pulsar's timing model holds. SSB stands for solar-system barycentre.</dd>
 <dt>baseline</dt><dd>The off-pulse level of a profile (noise power plus any steady RFI). Fitted, never taken from the truth.</dd>
 <dt>blanking</dt><dd>Setting voltage samples to zero (weight 0) where RFI was detected.</dd>
-<dt>block 1, A–E</dt><dd>The project's work packages: block 1 the full-band chain; A the channelized front end; B RFI excision; C a fast simulator; D motion and phase prediction; E navigation (<a href="roadmap.html">roadmap</a>).</dd>
+<dt>block 1, A–F</dt><dd>The project's work packages: block 1 the full-band chain; A the channelized front end; B RFI excision; C the fast simulator; D motion, phase prediction, the clock and navigation (all four closed); E the full navigation system in simulation (next); F the real implementation on antenna data (<a href="roadmap.html">roadmap</a>).</dd>
 <dt>bulkDelayRef</dt><dd>τ(<var>f</var><sub>ref</sub>): the dispersion delay of the reference frequency relative to infinite frequency. Recorded, not applied.</dd>
+<dt>calibrated start, self-calibrated start</dt><dd>The navigation fit's switch <code>'Start'</code>. Calibrated: the observer started from a known position and time (in port), so each pulsar's constant offset is known and the full 3-D position and the clock are reachable. Self-calibrated: the offsets are fitted too, so the polar component of a fixed site stays unobservable (<a href="navigation.html#navfit">navigation</a>).</dd>
 <dt>channel</dt><dd>One of 128 sub-bands of 3.125 MHz made by <code>channelizeIQ</code>; an ordinary IQ stream at 4.17 MHz.</dd>
 <dt>clock error ε, clock estimate ε̂</dt><dd>ε is the receiver's clock reading minus true time; it shifts every TOA. ε̂ is the observer's own estimate of it, which its predictor uses. Only ε − ε̂ moves the pulse (<a href="localisation.html#time">localisation</a>).</dd>
 <dt>coherent dedispersion</dt><dd>Removing dispersion by applying the inverse chirp filter to the complex voltages: exact at every frequency.</dd>
@@ -32,6 +33,8 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt>complex envelope / IQ</dt><dd>The complex baseband signal <var>z</var>(<var>t</var>) with <var>x</var>(<var>t</var>) = Re{<var>z</var>·e<sup><var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>}; I and Q are its real and imaginary parts.</dd>
 <dt>Cramér–Rao bound</dt><dd>The smallest variance any unbiased estimator can reach; here the best possible TOA error.</dd>
 <dt>data weights (<var>W</var>, <var>V</var>, <var>X</var>(<var>L</var>))</dt><dd>Per detected bin and channel: valid fraction, variance and lag covariances relative to the radiometer value. From <code>blankingWeights</code>, used by <code>foldProfile 'DataWeights'</code>.</dd>
+<dt>DE440</dt><dd>JPL's planetary ephemeris: the positions of the Sun, the Earth and the Moon relative to the barycentre, accurate to centimetres for the Earth. <code>loadEphemeris</code> reads it, and <code>delayModel</code> uses it with <code>'Ephemeris'</code> (<a href="prediction.html#ephemeris">phase prediction</a>).</dd>
+<dt>dead reckoning (DR)</dt><dd>A ship's track from its speed log and compass alone. An unknown current pushes the ship off it: 0.3 m/s is 26 km a day. <code>navFilter</code> estimates the difference from the TOAs.</dd>
 <dt>dispersion measure (DM)</dt><dd>Column density of free electrons to the pulsar, in pc cm⁻³; sets the 1/<var>f</var>² delay.</dd>
 <dt>Doppler factor</dt><dd>dΔ/d<var>t</var>: the fractional change of the pulse rate caused by the receiver's motion along the line of sight. Up to 10⁻⁴ from the Earth's orbit, 10⁻⁶ from its rotation.</dd>
 <dt>dutycycle</dt><dd>Pulse FWHM as a percentage of the period (5 % here).</dd>
@@ -42,7 +45,7 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt>ephemeris (<code>ephem</code>)</dt><dd>The observer's timing model: <code>f0</code>, <code>F1</code>, <code>TRef</code>, <code>DM</code>, <code>profileFWHM</code>.</dd>
 <dt>excision</dt><dd>Finding and blanking RFI (block B).</dd>
 <dt>exclusion rule</dt><dd>With equal channel weights: a channel is used in a sub-int only if it has data in every phase bin where any channel has data.</dd>
-<dt>fast simulator (<code>simulateFold</code>)</dt><dd>Draws folded profiles directly from their statistics instead of simulating voltages: hours of data in seconds (<a href="simulator.html">block C</a>).</dd>
+<dt>fast simulator (<code>simulateFold</code>)</dt><dd>Draws folded profiles directly from their statistics instead of simulating voltages: hours of data in seconds (<a href="simulator.html">stages 1–7</a>, built in block C).</dd>
 <dt>FFTFIT</dt><dd>Taylor's (1992) template-matching TOA method: cross-correlation in the Fourier domain, continuous shifts.</dd>
 <dt>fold, folding</dt><dd>Averaging detected power at equal rotational phase over many turns.</dd>
 <dt>frequency guard</dt><dd><code>detectRFI</code> blanks strong events (≥ 100× baseline) also in ±7 neighbouring channels, to remove sidelobes below the per-channel threshold.</dd>
@@ -51,8 +54,10 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt>H0 / H1</dt><dd>The hypotheses "noise only" and "noise + pulse" in the detection test.</dd>
 <dt>half-turn limit</dt><dd>A TOA is unambiguous only while the pulse is less than half a turn from its prediction: ±107,000 km of position error for B0329+54, ±863 km for J0437.</dd>
 <dt>ICRS, J2000</dt><dd>The sky-fixed reference frame of the pulsar directions and the delays: equatorial axes of the year 2000.</dd>
+<dt>ideal twin</dt><dd>The same navigation smoother run on ideal TOAs: the truth averaged over the same sub-ints plus Gaussian noise of the stated σ. If the real filter's errors match the twin's, the TOA chain adds nothing (<a href="validation.html#longruns">validation</a>).</dd>
 <dt>INR</dt><dd>Interference-to-noise ratio: RFI power while on, relative to all receiver-noise power in the band.</dd>
 <dt>Isserlis' theorem</dt><dd>Fourth moments of Gaussian variables as sums of products of second moments; gives the covariance of power samples, the root of the noise model.</dd>
+<dt>Kalman filter, smoother</dt><dd>A filter that carries a state (here the position and velocity errors, the clock and the per-pulsar offsets) with its covariance through time, and updates it at each TOA. The smoother then runs back through the TOAs, so every moment gets the estimate from all of them (Rauch–Tung–Striebel). <code>navFilter</code> is one.</dd>
 <dt>leftover (<var>L</var>)</dt><dd>In the locked-radar study: folded radar power after excision, in units of the noise baseline.</dd>
 <dt>line of position</dt><dd>Where one TOA puts the station: a plane perpendicular to the pulsar's direction (a line in a 2-D picture). Several cross at the position (<a href="physics.html#timing">physics</a>).</dd>
 <dt>linear assignment</dt><dd>Splitting each time bin between the two nearest phase bins in proportion to distance; unbiased, but correlates neighbours.</dd>
@@ -61,7 +66,9 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt><code>NoiseCoeffs</code></dt><dd>Fold option: [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)] of correlated time bins (narrow channels, no blanking).</dd>
 <dt>noise ratio</dt><dd>Measured off-pulse variance / modelled variance; 1 if the noise model is right.</dd>
 <dt>Neyman–Pearson (NP)</dt><dd>The most powerful test at a fixed false-alarm rate; for a known shape in Gaussian noise, a matched filter.</dd>
+<dt>OCXO, TCXO</dt><dd>Oven-controlled and temperature-compensated crystal oscillators. A TCXO drifts about 3.6 µs per hour, an OCXO 4–36 ns (<a href="clock.html">clock</a>). A commercial SDR has a TCXO specified to ±2 ppm.</dd>
 <dt>optimal weighting</dt><dd>Fit or detection over all channels with inverse-variance weights and one common amplitude (<a href="toa.html#optimal">TOA</a>).</dd>
+<dt>outlier mixture</dt><dd>The navigation fit's error model: (1 − ε)·N(0, σ²) + ε·N(0, (<var>k</var>σ)²), with ε = 2 % and <var>k</var> = 4. An outlier then counts about 16× less instead of pulling the fit (<a href="navigation.html#navfit">navigation</a>).</dd>
 <dt>oversampled filterbank</dt><dd>A channelizer whose channel rate exceeds the channel width (4/3 here), so aliasing stays out of the useful band.</dd>
 <dt><var>P</var><sub>FA</sub>, <var>P</var><sub>D</sub></dt><dd>False-alarm and detection probabilities.</dd>
 <dt>phase bin</dt><dd>One of <code>NBin</code> (2048) bins of rotational phase.</dd>
@@ -69,8 +76,10 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt>phase-locked RFI</dt><dd>RFI whose period is a multiple of the pulsar's, so it folds into the same phases every turn.</dd>
 <dt>polyphase filterbank</dt><dd>An efficient implementation of many mix–filter–decimate channels with one FFT.</dd>
 <dt>power-law clock noise (<var>h</var>₀, <var>h</var>₋₁, <var>h</var>₋₂)</dt><dd>The three coefficients of an oscillator's frequency-noise spectrum: white, flicker and random-walk frequency noise. They set its Allan deviation.</dd>
+<dt>precession and nutation</dt><dd>The slow turn of the Earth's axis (about 0.37° from 2000 to 2026) and its nodding (up to 17″). Without them a site at 52° N lands 13–16 km off in 2026; <code>delayModel</code> includes them with <code>'Ephemeris'</code>.</dd>
 <dt>predictor (polyco)</dt><dd>The pulse phase the receiver should see, computed once per observation as short Chebyshev polynomials from the timing model and the delays. The fold only evaluates it (<code>makePredictor</code>). Observatories call these polycos.</dd>
 <dt>PRF</dt><dd>Pulse repetition frequency of a radar (373 Hz for the illustrative one).</dd>
+<dt>pull</dt><dd>An error divided by its stated σ: (estimate − truth)/σ. Honest error bars give pulls with mean 0 and spread 1.</dd>
 <dt>Q-Q plot</dt><dd>Sorted normalized errors against Gaussian quantiles; the line y = x means honest error bars.</dd>
 <dt>radiometer equation</dt><dd>Relative noise of averaged power: 1/√(<var>B</var>Δ<var>t</var>).</dd>
 <dt>ratio (rms/pred)</dt><dd>rms of actual TOA errors / rms of stated errors; 1 = honest.</dd>
@@ -95,9 +104,10 @@ number grows with η, as ≈ 5.51·η·√(2π).</dd>
 <dt>TDB</dt><dd>Barycentric dynamical time: the time of pulsar timing models and solar-system ephemerides. The code's delays end in TDB.</dd>
 <dt>TECU</dt><dd>Total electron content unit, 10¹⁶ electrons per m²: the unit of the ionosphere's column density (~0.69 ns of delay per TECU at 1.4 GHz).</dd>
 <dt>template</dt><dd>The expected pulse shape (a periodic Gaussian here), peak 1 at phase 0.</dd>
+<dt>time-averaged TOA (<code>tSub</code>, <code>sideTag</code>)</dt><dd>A TOA merges sub-ints over hours, sometimes over two passes a day apart, so it measures the average over its data. Its sub-ints' times (<code>tSub</code>) let the navigation fit average its row the same way; its time tag is its data's mean hour angle (<code>sideTag</code>) (<a href="navigation.html#averaged">navigation</a>).</dd>
 <dt>timing residual</dt><dd>A TOA minus its predicted value. A position error δ<var>r</var> gives −δ<var>r</var>·<var>n̂</var>/<var>c</var>, and a clock error adds directly. 1 µs is 300 m (<a href="localisation.html#fix">localisation</a>).</dd>
 <dt>TOA</dt><dd>Time of arrival of template phase 0 at the reference frequency (1.6 GHz).</dd>
-<dt>trajectory (<code>makeTrajectory</code>)</dt><dd>Where the receiver is over time: a fixed site, a ship's track, a probe, or later a Kalman filter's estimate. The predictor's only input about the receiver.</dd>
+<dt>trajectory (<code>makeTrajectory</code>)</dt><dd>Where the receiver is over time: a fixed site, a ship's track, a probe, or a Kalman filter's estimate (as in <code>runShip</code>). The predictor's only input about the receiver.</dd>
 <dt>TT</dt><dd>Terrestrial time: an ideal clock on the geoid, TAI + 32.184 s. The code counts seconds since J2000.0 in TT.</dd>
 <dt>valid fraction (<var>W</var>)</dt><dd>The fraction of real (not blanked) data in a detected bin after dedispersion spread the blanks.</dd>
 <dt><var>W</var><sub>50</sub></dt><dd>Pulse width at half maximum (FWHM), as listed in pulsar catalogues.</dd>

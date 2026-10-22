@@ -541,6 +541,9 @@ predictor instead of from a constant spin rate. The predictor must be built with
 divided by the frequency. The reference time is where the predicted phase reaches the sub-integration's middle turn. For a partial last
 sub-integration that turn can fall just after the data. There the phase continues linearly with the last frequency.</p>
 <p>Without a predictor nothing changes: the old constant-rate fold is bit for bit the same.</p>
+<p>The tests fold synthetic power series with a known phase. The voltage generator has a fixed period, so the voltage chain has never
+folded with a predictor. The fast simulator draws its folds in the predictor's frame, and shifts each sub-int's pulse by what the
+predictor misses (<a href="simulator.html#motion">fast simulator</a>).</p>
 <h3>Tests (<code>tests/testFoldPredictor.m</code>)</h3>
 <p>Folding with a predictor removes the Doppler shift completely.</p>
 <div class="table-wrap"><table>
@@ -597,7 +600,8 @@ so long observations will likely use fewer bins or sub-bands.</p></div>
 bins. That run gave no TOAs at all.</p>
 <p>So <code>foldProfile</code> checks the time grid of the first complete sub-int before folding. If bins would stay empty, it warns
 (<code>foldProfile:coverage</code>) and names the fixes: NBin ≤ time bins per turn, binDt ≤ 1/(<var>f</var>·NBin), or more turns per
-sub-int. Main's settings, 0.96 µs time bins and 4.9 µs phase bins, are far inside the limit. (The check exists since 9 Oct 2026.)</p></div>
+sub-int. Main's settings, 0.96 µs time bins and 4.9 µs phase bins, are far inside the limit.</p>
+<details><summary>History</summary><p>The check exists since 9 Oct 2026, after the f_out sweep.</p></details></div>
 <div class="callout why"><span class="ttl">Sub-int length: SNR ≥ 6–7</span>
 <p>Why sub-ints exist at all is explained <a href="#why">above</a>. How long each should be follows from one fact: below an SNR of
 about 6 per sub-int, TOAs start to lock onto noise peaks (<a href="results.html#threshold">threshold sweep</a>). So the number of turns

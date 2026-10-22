@@ -14,10 +14,11 @@
 is. Each item says whether it matters for the weak-signal target (−54 dB, J0437 on a 0.61 m² array).</p>
 
 <div class="callout note"><span class="ttl">In short</span>
-<p>Over the 0.1–1 s it simulates, the pipeline is exact for what it models. What it leaves out matters on longer timescales. Four effects
-are larger than a J0437 TOA and must be handled before folding for hours: Earth's motion, the pulsar's binary orbit, the clock and the
-station position (block D). Others only matter for nanosecond navigation: the ionosphere, DM changes, scattering at high DM. The receiver
-model is ideal, and two excision items are parked with designs.</p></div>
+<p>The voltage chain simulates 0.1–1 s, and it is exact for what it models. The fast simulator covers days. Four effects are larger than
+a J0437 TOA and must be handled before folding for hours. Three of them are modelled since block D: Earth's motion, the receiver's clock
+and the station position. The fourth, the pulsar's binary orbit, is left out and parked: J0437 never rises at 52° N. Other effects only
+matter for nanosecond navigation: the ionosphere, DM changes, scattering at high DM. A few matter only for real data, such as the
+Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-mask fix is parked with a design.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#sizes">How big each effect is</a></li>
@@ -32,66 +33,77 @@ model is ideal, and two excision items are parked with designs.</p></div>
 
 <h2 id="sizes">How big each effect is</h2>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 334" role="img" aria-label="Size of each effect the simulation leaves out, as a timing error on a log scale, against the J0437 TOA precision and the nanosecond goal">
-  <rect class="fillwarn" x="347.3" y="36" width="192.8" height="244"/>
-  <rect class="fillfg" x="540.1" y="36" width="279.9" height="244" opacity="0.18"/>
+<svg class="wide" viewBox="0 0 860 400" role="img" aria-label="Size of each effect the simulation leaves out, as a timing error on a log scale, against the J0437 TOA precision and the nanosecond goal">
+  <rect class="fillwarn" x="347.3" y="36" width="192.8" height="310"/>
+  <rect class="fillfg" x="540.1" y="36" width="279.9" height="310" opacity="0.18"/>
   <path class="dash" d="M540.1 28 V36"/>
   <text class="sub" x="540.1" y="24" text-anchor="middle">J0437 TOA at SNR 7: 12 µs</text>
   <path class="dash" d="M347.3 28 V36"/>
   <text class="sub" x="347.3" y="24" text-anchor="middle">1 ns = 30 cm</text>
-  <text class="sub" x="10" y="54">Earth's orbital motion (uncorrected)</text>
+  <text class="sub" x="10" y="52">Earth's orbital motion (uncorrected)</text>
+  <text class="sub" x="10" y="65" opacity="0.7">modelled since block D</text>
   <path class="curve4" style="stroke-width:5" stroke-linecap="round" d="M583.6 50 H813.3"/>
   <text class="sub" x="573.6" y="54" text-anchor="end">after 1 s … after 20 h</text>
-  <text class="sub" x="10" y="84">J0437's binary orbit, within one fold</text>
-  <circle cx="795.3" cy="80" r="5" class="bad"/>
-  <text class="sub" x="785.3" y="84" text-anchor="end">~3 s in 20 h</text>
-  <text class="sub" x="10" y="114">clock rate off by 10⁻⁹, over 20 h</text>
-  <circle cx="576.9" cy="110" r="5" class="bad"/>
-  <text class="sub" x="586.9" y="114">72 µs</text>
-  <text class="sub" x="10" y="144">station position error 4–100 km</text>
-  <path class="curve4" style="stroke-width:5" stroke-linecap="round" d="M542.3 140 H608.4"/>
-  <text class="sub" x="618.4" y="144">13–330 µs</text>
-  <text class="sub" x="10" y="174">DM change of 0.001 pc cm⁻³</text>
-  <circle cx="504.3" cy="170" r="5" class="dot2"/>
-  <text class="sub" x="514.3" y="174">2.1 µs at 1.4 GHz</text>
-  <text class="sub" x="10" y="204">locked radar left after excision (main beam)</text>
-  <circle cx="470.8" cy="200" r="5" class="dot2"/>
-  <text class="sub" x="480.8" y="204">0.41 µs at −54 dB</text>
-  <text class="sub" x="10" y="234">ionosphere</text>
-  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M369.8 230 H434.5"/>
-  <text class="sub" x="444.5" y="234">3–70 ns</text>
-  <text class="sub" x="10" y="264">scattering</text>
-  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M328.5 260 H489.1"/>
-  <text class="sub" x="499.1" y="264">0.4 ns (DM 5) … µs (DM ~100)</text>
-  <path class="axis" d="M300 290 H820"/>
-  <path class="axis" d="M347.3 290 v5"/><text class="sub" x="347.3" y="308" text-anchor="middle">1 ns</text>
-  <path class="axis" d="M489.1 290 v5"/><text class="sub" x="489.1" y="308" text-anchor="middle">1 µs</text>
-  <path class="axis" d="M630.9 290 v5"/><text class="sub" x="630.9" y="308" text-anchor="middle">1 ms</text>
-  <path class="axis" d="M772.7 290 v5"/><text class="sub" x="772.7" y="308" text-anchor="middle">1 s</text>
-  <path class="axis" d="M300.0 290 v3"/>
-  <path class="axis" d="M347.3 290 v3"/>
-  <path class="axis" d="M394.5 290 v3"/>
-  <path class="axis" d="M441.8 290 v3"/>
-  <path class="axis" d="M489.1 290 v3"/>
-  <path class="axis" d="M536.4 290 v3"/>
-  <path class="axis" d="M583.6 290 v3"/>
-  <path class="axis" d="M630.9 290 v3"/>
-  <path class="axis" d="M678.2 290 v3"/>
-  <path class="axis" d="M725.5 290 v3"/>
-  <path class="axis" d="M772.7 290 v3"/>
-  <path class="axis" d="M820.0 290 v3"/>
-  <text class="sub" x="560.0" y="324" text-anchor="middle">timing error if left out</text>
-  <text class="sub" x="10" y="324">red: larger than a J0437 TOA · orange: between 1 ns and a TOA</text>
+  <text class="sub" x="10" y="86">J0437's binary orbit, within one fold</text>
+  <text class="sub" x="10" y="99" opacity="0.7">not modelled: parked</text>
+  <circle cx="795.3" cy="84" r="5" class="bad"/>
+  <text class="sub" x="785.3" y="88" text-anchor="end">~3 s in 20 h</text>
+  <text class="sub" x="10" y="120">clock rate off by 10⁻⁹, over 20 h</text>
+  <text class="sub" x="10" y="133" opacity="0.7">modelled since block D</text>
+  <circle cx="576.9" cy="118" r="5" class="bad"/>
+  <text class="sub" x="586.9" y="122">72 µs</text>
+  <text class="sub" x="10" y="154">station position error 4–100 km</text>
+  <text class="sub" x="10" y="167" opacity="0.7">the navigation signal (block D)</text>
+  <path class="curve4" style="stroke-width:5" stroke-linecap="round" d="M542.3 152 H608.4"/>
+  <text class="sub" x="618.4" y="156">13–330 µs</text>
+  <text class="sub" x="10" y="188">Doppler-shifted dispersion delay, annual</text>
+  <text class="sub" x="10" y="201" opacity="0.7">real data only: cancels in the simulator</text>
+  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M464.4 186 H529.3"/>
+  <text class="sub" x="539.3" y="190">0.3 µs (J0437) … 7.1 µs (B0329+54)</text>
+  <text class="sub" x="10" y="222">DM change of 0.001 pc cm⁻³</text>
+  <circle cx="504.3" cy="220" r="5" class="dot2"/>
+  <text class="sub" x="514.3" y="224">2.1 µs at 1.4 GHz</text>
+  <text class="sub" x="10" y="256">locked radar left after excision (main beam)</text>
+  <circle cx="470.8" cy="254" r="5" class="dot2"/>
+  <text class="sub" x="480.8" y="258">0.41 µs at −54 dB</text>
+  <text class="sub" x="10" y="290">ionosphere</text>
+  <text class="sub" x="10" y="303" opacity="0.7">open for real data</text>
+  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M369.8 288 H434.5"/>
+  <text class="sub" x="444.5" y="292">3–70 ns</text>
+  <text class="sub" x="10" y="324">scattering</text>
+  <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M328.5 322 H489.1"/>
+  <text class="sub" x="499.1" y="326">0.4 ns (DM 5) … µs (DM ~100)</text>
+  <path class="axis" d="M300 356 H820"/>
+  <path class="axis" d="M347.3 356 v5"/><text class="sub" x="347.3" y="374" text-anchor="middle">1 ns</text>
+  <path class="axis" d="M489.1 356 v5"/><text class="sub" x="489.1" y="374" text-anchor="middle">1 µs</text>
+  <path class="axis" d="M630.9 356 v5"/><text class="sub" x="630.9" y="374" text-anchor="middle">1 ms</text>
+  <path class="axis" d="M772.7 356 v5"/><text class="sub" x="772.7" y="374" text-anchor="middle">1 s</text>
+  <path class="axis" d="M300.0 356 v3"/>
+  <path class="axis" d="M347.3 356 v3"/>
+  <path class="axis" d="M394.5 356 v3"/>
+  <path class="axis" d="M441.8 356 v3"/>
+  <path class="axis" d="M489.1 356 v3"/>
+  <path class="axis" d="M536.4 356 v3"/>
+  <path class="axis" d="M583.6 356 v3"/>
+  <path class="axis" d="M630.9 356 v3"/>
+  <path class="axis" d="M678.2 356 v3"/>
+  <path class="axis" d="M725.5 356 v3"/>
+  <path class="axis" d="M772.7 356 v3"/>
+  <path class="axis" d="M820.0 356 v3"/>
+  <text class="sub" x="560.0" y="390" text-anchor="middle">timing error if left out</text>
+  <text class="sub" x="10" y="390">red: larger than a J0437 TOA · orange: between 1 ns and a TOA</text>
 </svg>
-<figcaption>How big each effect left out of the simulation is, as a timing error (log scale; numbers from the sections below). Right of the
-12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours: Earth's motion, the pulsar's binary
-orbit, the clock and the station position, all part of block D. Between 1 ns and 12 µs (orange) an effect does not change today's TOAs but
-matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a radar locked to the pulsar.</figcaption>
+<figcaption>How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
+12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours. Block D models three of them:
+Earth's motion, the clock and the station position. The pulsar's binary orbit is parked. Between 1 ns and 12 µs (orange) an effect does
+not change today's TOAs but matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a
+radar locked to the pulsar. The Doppler-shifted dispersion delay sits there too; it matters for real data only.</figcaption>
 </figure>
 
 <h2 id="processing">Processing assumptions not checked</h2>
 <ul>
-<li><b>DM correctness:</b> a wrong DM leaves a residual sweep. A DM check from sub-band TOAs is planned (block 2).</li>
+<li><b>DM correctness:</b> a wrong DM leaves a residual sweep. A DM check from sub-band TOAs is planned (<a href="roadmap.html">roadmap</a>,
+longer term).</li>
 <li><b>Reference-frequency convention</b> vs the TOA definition: a constant offset if the forward and inverse references differ.</li>
 <li><b>Receiver frequency mapping:</b> no spectral inversion assumed (<var>f</var><sub>RF</sub> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub>); the off-centre LO makes a mirror error visible in simulation, but real hardware must be checked.</li>
 <li><b>True sample rate:</b> trusted via the info chain.</li>
@@ -100,11 +112,11 @@ matters for nanosecond navigation: DM changes, the ionosphere, scattering at hig
 <h2 id="propagation">Propagation</h2>
 <div class="table-wrap"><table>
 <tr><th>Effect</th><th>Size</th><th>Matters for</th><th>Plan</th></tr>
-<tr><td><b>Ionosphere</b> (noted 8 Oct, Jasper)</td><td>dispersive delay 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz; TEC 5–100 TECU → ~3–70 ns, time-variable. Also Faraday rotation (with one linear polarization the received fraction changes), ionospheric scintillation (equatorial and high latitudes), refraction.</td><td>ns-level navigation (1 ns ≈ 30 cm); small against today's µs TOAs</td><td>size for target site and hardware; sub-band TOAs or GNSS TEC maps (IGS) could correct it; likely block D or later</td></tr>
-<tr><td><b>DM variations</b></td><td>δDM = 10⁻³ pc cm⁻³ → ≈ 2.1 µs at 1.4 GHz</td><td>long-term timing, more for Vela</td><td>sub-band TOAs → DM fit (block 2)</td></tr>
+<tr><td><b>Ionosphere</b> (noted 8 Oct, Jasper)</td><td>dispersive delay 40.3·TEC/(<var>c</var>·<var>f</var>²) ≈ 0.69 ns per TECU at 1.4 GHz; TEC 5–100 TECU → ~3–70 ns, time-variable. Also Faraday rotation (with one linear polarization the received fraction changes), ionospheric scintillation (equatorial and high latitudes), refraction.</td><td>ns-level navigation (1 ns ≈ 30 cm); small against today's µs TOAs</td><td>size for target site and hardware; sub-band TOAs or GNSS TEC maps (IGS) could correct it; an open item for real data (notes §10), not part of block D</td></tr>
+<tr><td><b>DM variations</b></td><td>δDM = 10⁻³ pc cm⁻³ → ≈ 2.1 µs at 1.4 GHz</td><td>long-term timing, more for Vela</td><td>sub-band TOAs → DM fit (roadmap, longer term)</td></tr>
 <tr><td><b>Doppler shift of the dispersion delay</b></td><td>The dispersion delay holds at the radio frequency in the frame of the interstellar medium, which is close to the barycentric frame. Earth's orbital motion shifts the observed frequency by up to 10⁻⁴. The delay then changes by twice that fraction: 2(<var>v</var><sub>r</sub>/<var>c</var>)·<var>K</var>·DM/<var>f</var>² (<var>v</var><sub>r</sub>: velocity toward the pulsar; <var>K</var> = 4.149 ms GHz² per pc cm⁻³). For B0329+54 the delay at the 1.6 GHz reference frequency is 43 ms. The change is then an annual sine of up to ±7 µs. For J0437 it is ±0.3 µs. The sweep across the band changes by the fraction itself, ±2.6 µs at DM 25. That smears the pulse negligibly.</td><td>real data only: the simulator's truth and prediction both leave the term out, so it cancels there; against real data a navigation fit would read the annual term as position or clock; small against B0329+54's ~0.5 ms TOAs</td><td>a DM term in <code>delayModel</code> at the barycentric frequency, as TEMPO2 does, before real data</td></tr>
 <tr><td><b>Scintillation</b> (low DM)</td><td>scintles 0.1–1 GHz wide at DM 5 → ~100 % band-averaged flux fading over minutes–hours</td><td>SNR budget (fading margin, missed TOAs), not timing</td><td>in the fast simulator since 20 Oct (<code>simulateFold</code> <code>'FluxScale'</code> or <code>'Scintillation'</code>; J0437: ~740 MHz × ~38 min, <a href="physics.html#scint">physics</a>); adaptive sub-int lengths (<code>adaptiveSubints</code>) ride the bright spells</td></tr>
-<tr><td><b>Scattering</b></td><td>τ<sub>d</sub> ≈ 0.4 ns at DM 5; µs at DM ≳ 100</td><td>timing noise at high DM</td><td>block 4</td></tr>
+<tr><td><b>Scattering</b></td><td>τ<sub>d</sub> ≈ 0.4 ns at DM 5; µs at DM ≳ 100</td><td>timing noise at high DM</td><td>roadmap, longer term</td></tr>
 <tr><td>Higher-order frequency terms</td><td>–</td><td>–</td><td>not planned</td></tr>
 </table></div>
 <div class="callout note"><span class="ttl">How scintillation would be modelled</span>
@@ -119,7 +131,9 @@ millisecond pulsars): per-pulse SNR ≪ 1, TOAs need minutes to hours of folding
 <li><b>Spectrum:</b> the generator is white; real pulsars have <var>S</var> ∝ <var>f</var><sup>α</sup>, α ≈ −1.6 (factor 1.6 across 1.2–1.6 GHz). Equal-weight loss ~1 %;
 with profile evolution and a DM error it biases wideband TOAs.</li>
 <li><b>Receiver:</b> ideal linear filters, infinite dynamic range. No amplifier compression, ADC quantization or clipping (2-bit costs ≈ 12 % SNR),
-intermodulation, bandpass ripple, gain drift. Single polarization (dual pol gives √2 in SNR; the hardware is dual pol).
+intermodulation, bandpass ripple, gain drift. The voltage chain has a single polarization (dual pol gives √2 in SNR; the hardware is
+dual pol). The fast simulator covers the second polarization statistically (<code>simulateFold</code> <code>'NPol'</code>), and the
+scenario runs use it. The second polarization is part of block E.
 Ideal I/Q (a digital downconverter): no I/Q imbalance (a mirror image, −25…−40 dB before correction), no DC offset or LO leakage, no LO phase noise.
 Our LO (1.3 GHz) lies inside the band, so a DC spike and imbalance ghosts (RFI at 1.35 GHz → ghost at 1.25 GHz) would land in it; real hardware needs a low-IF LO or imbalance calibration.</li>
 <li><b>Receiver noise does not pass the dispersion taper</b> in the simulation: only the pulsar is tapered at the band edges. On the
@@ -137,25 +151,49 @@ measured +2.19 %). With a realistic receiver, which applies the bandpass to puls
 <li><b>Clock errors: a model clock, not the real one.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, about 6× the J0437 TOA
 precision. The simulator's truth therefore has a clock process with offset, rate and noise (<a href="clock.html">the receiver's
 clock</a>). The observer folds with its own clock estimate, and the navigation state holds the clock's offset and rate
-(<a href="navigation.html">navigation</a>). The noise is that of the paper's crystal. The real SDR's oscillator is not characterised
+(<a href="navigation.html">navigation</a>). The noise is that of the paper's crystal. Tracked day by day, its prediction one day ahead is
+off by a few hundred µs: harmless for B0329+54, too much for J0437's 0.14 ms pulse. The real SDR's oscillator is not characterised
 yet; its noise is best measured on the device. The ADC's sampling jitter is left out: 1 ps adds only 10⁻⁴ of the input power as
 noise.</li>
-<li><b>Relative motion: an analytic Earth orbit.</b> Earth's orbital speed changes the pulse rate by up to 10⁻⁴: at 100 Hz, about
-100 µs of phase drift per second. The phase predictor follows that drift, and the fold uses it (<a href="prediction.html">phase
-prediction</a>). The fast simulator puts every pulse where a true trajectory puts it (<a href="simulator.html#truth">the simulator's
-truth</a>). Both use the same analytic Earth orbit, so its error cancels in the simulations. Real data need JPL's DE440 ephemeris.</li>
+<li><b>Relative motion: an analytic Earth orbit in the simulations, DE440 for real data.</b> Earth's orbital speed changes the pulse rate
+by up to 10⁻⁴: at 100 Hz, about 100 µs of phase drift per second. The phase predictor follows that drift, and the fold uses it
+(<a href="prediction.html">phase prediction</a>). The fast simulator puts every pulse where a true trajectory puts it
+(<a href="simulator.html#truth">the simulator's truth</a>). By default both use the same analytic Earth orbit. That orbit is up to
+3.2·10⁵ km off the barycentre, because it leaves out Uranus and Neptune. In a simulation the error cancels: a 100 km offset is measured
+the same to 2·10⁻¹² s. For real data <code>delayModel</code> takes JPL's DE440 (<code>'Ephemeris'</code>, <a href="prediction.html#ephemeris">phase
+prediction</a>), which matches JPL Horizons to 28–30 m for a site.</li>
 <li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day
 orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).
 That is about 2·10⁵× the fold's phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. So the phase
-predictor (D) needs a binary timing model; the circular-orbit model ELL1 suffices for J0437 at the µs level. End-to-end tests of D also
-need binary motion in the simulator.</li>
+predictor needs a binary timing model before J0437 is used; the circular-orbit model ELL1 suffices for J0437 at the µs level. The
+simulator's truth then needs the same orbit. Both were parked at the close of block D: J0437 never rises at 52° N, so it matters only for
+a southern route or a probe (<a href="navigation.html#next">navigation</a>).</li>
 <li><b>Position prior for folding.</b> A station position error δr gives a daily-varying delay error up to δr/c, which smears a long fold:
 J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km. A fix from scratch starts from the normal pulsars and refines with J0437.</li>
-<li><b>Navigation expectations</b> (rough, from the scenario numbers, without timing noise). From 30° S, a first fix with four pulsars
-(J0437, Vela, B0950+08, B1749−28) is good to about 300 km in 3-D. It is limited by the normal pulsars' TOAs of 0.3–0.7 ms. It needs 184 h on
-source in the worst case (34 h nominal): with visibility, about 2–3 weeks of calendar time. From 52° N, with no millisecond pulsar, a fix
-is about 1500 km, after weeks to months. See <a href="scenario.html">scenario</a>.</li>
-<li><b>Single pulsar.</b></li>
+<li><b>Navigation results so far</b> (simulated, without timing noise; <a href="results.html#blockD">validation record</a>). From 52° N,
+B0329+54 alone finds a fixed site to ±30 km per equatorial component in 30 days at nominal flux. In the worst case that is ±110 km. A ship
+with B0329+54, B0950+08 and a drifting SDR clock stays within 73 km rms of its track over 14 days, with a calibrated start. From 30° S
+there is only a rough estimate from the scenario numbers. A first fix with four pulsars (J0437, Vela, B0950+08, B1749−28) would be good to
+about 300 km in 3-D. It is limited by the normal pulsars' TOAs of 0.3–0.7 ms. It needs 184 h on source in the worst case (34 h nominal):
+with visibility, about 2–3 weeks of calendar time (<a href="scenario.html">scenario</a>).
+<details><summary>History</summary><p>Before block D this item gave rough expectations only. From 52° N, with no millisecond pulsar, it
+expected a fix of about 1500 km, after weeks to months. Block D's simulations (22 Oct 2026) replaced that estimate.</p></details></li>
+<li><b>Number of pulsars.</b> The voltage chain simulates one pulsar. <code>runShip</code> follows two (B0329+54 and B0950+08) in
+simultaneous beams with one clock, and <code>navFit</code> and <code>navFilter</code> take any number. Several pulsars at full scale are
+part of block E.</li>
+<li><b>Items for real data, parked at the close of block D</b> (the full list with what each needs: <a href="navigation.html#next">navigation</a>):
+<div class="table-wrap"><table>
+<tr><th>Item</th><th>Why it matters</th></tr>
+<tr><td>The Earth's real axis in the navigation fit's rows</td><td>The rows use the Earth rotation angle only. Against real data the axis
+has turned 0.37°: about 0.4 % of the offsets fitted, below ~6 km.</td></tr>
+<tr><td>The clock's wander inside a long TOA</td><td>A TOA from two passes spans a day, and the crystal wanders a few hundred µs in that
+time. <code>testNavFilter</code> test 7's north pulls are 1.19.</td></tr>
+<tr><td>UT1 − UTC and polar motion</td><td><code>'DeltaT'</code> is one number. Polar motion is about 10 m.</td></tr>
+<tr><td>A probe's own clock</td><td>A probe's time stamps are taken as TDB.</td></tr>
+<tr><td>A robust filter in one pass</td><td><code>navFilter</code> weighs outliers once; <code>navFit</code> iterates.</td></tr>
+<tr><td>Stored profiles shifted, not refolded</td><td>The fold is redone each day with the new predictor. Millisecond pulsars need the
+stored sub-integrations shifted by the phase change instead.</td></tr>
+</table></div></li>
 <li><b>Stable profile:</b> no pulse-to-pulse jitter, no profile evolution with frequency, no polarization, and no mode changes
 (B0329+54 is in an abnormal mode about 15 % of the time).<br>
 Since 20 Oct the fast simulator and the TOA code take multi-component profiles. For B0329+54 these are five Gaussians at 1410 MHz; a single
@@ -190,10 +228,14 @@ such cases: bins must be ≤ 1/10 of the spectral template width. That width is 
 times their error bar. χ² cannot flag them. The cause is the estimator's threshold effect: the narrow core sits on a broad component,
 and noise now and then moves the best match onto that shoulder (<a href="scenario.html">scenario</a>). At SNR 10 there were none in 600
 TOAs.</li>
-<li><b>How they will be handled (agreed 21 Oct).</b> The groups stay at SNR 7, for the larger number of TOAs. The navigation fit uses
-redundancy: it checks each TOA against the prediction from the others and from the ship's dead reckoning, and its error model has a
-small outlier part. For B0329+54 an outlier then stands 4.8–8.6σ from the prediction. Fixed groups are not used for multi-component
-pulsars. See <a href="navigation.html#signal">navigation</a>.</li>
+<li><b>Over 100 days the tail is larger.</b> 1.9 % of B0329+54's TOAs lie beyond 3σ, against 0.27 % for a Gaussian, while the core
+stays honest (<a href="scenario.html#hundred">scenario</a>).</li>
+<li><b>How they are handled.</b> The groups stay at SNR 7, for the larger number of TOAs (agreed 21 Oct). The navigation fit uses
+redundancy: its error model is a mixture of the stated Gaussian and a 4× wider one that takes 2 % of the TOAs
+(<code>navFit</code> and <code>navFilter</code>, <code>'OutlierFraction'</code> 0.02, <code>'OutlierScale'</code> 4). An outlier then
+counts about 16× less, instead of pulling the fit. <code>navFit</code> iterates the weights; <code>navFilter</code> weighs each TOA once,
+against the prediction from the TOAs before it. For B0329+54 an outlier stands 4.8–8.6σ from the prediction. Fixed groups are not used
+for multi-component pulsars. See <a href="navigation.html#navfit">navigation</a>.</li>
 </ul></li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>
@@ -227,8 +269,9 @@ Inmarsat-like carriers, χ² is 1.22 and the error bars are 3.4 % too small.</p>
 observation's own off-pulse noise per channel replaces the flat-channel model. Synthetic checks pass. On the voltage chain χ² goes from
 1.24 to 0.99 for the narrow carriers, and from 1.07 to 1.00 for the realistic scenario. Per-channel <code>detectRFI</code> thresholds
 from each channel's own correlation exist since 21 Oct, against the false flags
-(<a href="excision.html#chanthr">excision</a>); the realistic scenario has not been rerun with them yet. Flagging such edge channels
-whole remains an option.</p></div>
+(<a href="excision.html#chanthr">excision</a>). With them, <code>testRFIChain</code>'s realistic and narrow-carrier cases pass on the
+voltage chain (Jasper's run, 22 Oct). Only <code>runRFITest</code>'s cases 14–15 have not been rerun with the new thresholds. Flagging
+such edge channels whole remains an option.</p></div>
 <div class="callout warn"><span class="ttl">Periodic mask: false emitters when detections are dense (found 9 Oct, realistic scenario)</span>
 <p><b>The problem.</b> <code>periodicRFI</code> looks for a fixed rhythm in the detections. It assumes that the other detections are few
 and randomly timed. In the realistic scenario, the lopsided channels give hundreds of false flags each. In that dense cloud it accepted
@@ -252,7 +295,7 @@ trial periods from strong pulses only (block-B handover
 machine has 24 GB. The channelized front end solves the processing side; the generator side is open
 (<a href="roadmap.html#dm">roadmap</a>).</li>
 <li>Disk per second of simulated data: ~61 GB on the full band, ~63 GB on the channel path, ~72 GB with excision
-(blanked copies and the weight file). Hours of data need the fast simulator (block C).</li>
+(blanked copies and the weight file). Hours of data therefore use the <a href="simulator.html">fast simulator</a>.</li>
 <li><b>Excision on long files</b> (12 Oct). The front end streams, but three excision functions do not: <code>detectRFI</code> reads
 each channel whole, <code>periodicRFI</code> takes all events at once, and <code>blankingWeights</code> processes each blanked channel whole
 (its weight array is 4.8 GB at <var>L</var> = 1 s, above its 4 GB default). That is fine for 0.1 s simulations and for the fast

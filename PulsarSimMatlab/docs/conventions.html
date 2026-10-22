@@ -35,6 +35,10 @@ works on simulated data, out-of-memory errors, silent timing offsets, or results
 </ul>
 <p>The ground truth (<code>info_gen</code>, <code>info_disp</code>, <code>info_rx</code>: true pulse times, noise level, RFI parameters) is used
 only by the simulation stages and by the check and validation functions.</p>
+<p>For a moving receiver the same split holds. The observer predicts its pulses from the trajectory it <em>assumes</em> and from its own
+clock estimate (<code>makePredictor</code>, <a href="prediction.html">stage 7a</a>). The true trajectory and the true clock
+(<code>trueResiduals</code>, <code>makeClock</code>) belong to the truth: only the fast simulator uses them, to place the pulses, and keeps
+them in its separate <code>truth</code> struct (<a href="simulator.html#truth">fast simulator</a>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="The ground-truth rule: the processing sees only the data, the receiver settings and the ephemeris; only validation sees the truth">
   <defs>
@@ -112,8 +116,8 @@ taps) use FFT convolution with <b>overlap-add</b> (forward dispersion, IQ filter
 chosen automatically to minimise the total cost within a <code>MaxMemoryGB</code> limit.</p>
 <div class="callout why"><span class="ttl">Design choice: stream every stage through files</span>
 <p><b>Alternative:</b> hold whole signals in memory and pass arrays from one function to the next.</p>
-<p><b>Why not:</b> one second of simulated data at 4 GHz is 16 GB per real file, and a full run uses about 61 GB of files
-(<a href="pipeline.html#sizes">sizes per stage</a>). Nothing fits in the 24 GB of memory at once. Streaming also mirrors how real
+<p><b>Why not:</b> one second of simulated data at 4 GHz is 16 GB per real file. A one-second run writes about 61 GB of files on the
+full band, and about 72 GB on the default channel path with excision (<a href="pipeline.html#sizes">sizes per stage</a>). Nothing fits in the 24 GB of memory at once. Streaming also mirrors how real
 recorded data would be processed. Checking every <code>fwrite</code> count prevents the worst failure: a run that "succeeds" on a
 half-written file because the disk was full.</p></div>
 
@@ -301,6 +305,13 @@ also do not depend on the block size a stage happens to stream with. An unremove
 <tr><td>Pulsar signal</td><td><code>mt19937ar</code></td><td><code>seed</code> (42)</td></tr>
 <tr><td>Receiver noise</td><td><code>mt19937ar</code></td><td><code>noiseSeed</code> (seed + 1 = 43)</td></tr>
 <tr><td>RFI</td><td><code>mrg32k3a</code> substreams</td><td>per chip chunk / per burst</td></tr>
+<tr><td>Fast simulator (<code>simulateFold</code>)</td><td><code>mt19937ar</code></td><td><code>'Seed'</code> (default 1); its scintillation field
+has its own stream</td></tr>
+<tr><td>Receiver clock (<code>makeClock</code>)</td><td>own stream</td><td><code>'Seed'</code> (default 1)</td></tr>
+<tr><td><code>runScenario</code></td><td>per call of <code>simulateFold</code></td><td>from the pulsar, the day and the chunk; the SDR clock's rate from
+500 + pulsar index, its noise from 600 + pulsar index</td></tr>
+<tr><td><code>runShip</code></td><td>per call of <code>simulateFold</code></td><td>from the ship's seed, the pulsar, the day and the chunk; the current, the clock's
+rate and the port calibration's errors from the ship's seed; the clock's noise from 10 + seed; the twin's noise from 1000 + seed</td></tr>
 </table></div>
 <p>The same seed gives identical data, <b>independent of block sizes</b>.</p>
 <div class="callout why"><span class="ttl">Design choice: a private, seeded stream per random process</span>

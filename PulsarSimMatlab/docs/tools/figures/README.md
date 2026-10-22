@@ -16,15 +16,15 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_timeprec.py` | float32 vs double time resolution; a clock built by adding 1/fs drifts | conventions.html (5) |
 | `gen_datarate.py` | bytes written per second of signal by each stage, against the 24 GB memory | pipeline.html (sizes) |
 | `gen_freqplan.py` | the frequency plan: RF band, LO, baseband, IQ low-pass, 128 channels | parameters.html |
-| `gen_timescales.py` | every time scale of the pipeline on one log ruler | parameters.html |
+| `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA: the catalogue estimate and the simulated 82–95 h) | parameters.html |
 | `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html |
-| `gen_experiments.py` | what each run script varies and keeps fixed | scripts.html |
-| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times | tests.html |
-| `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record | results.html |
-| `gen_effects.py` | size of each effect left out of the simulation, as a timing error | limits.html |
+| `gen_experiments.py` | what each run script varies and keeps fixed (the voltage-chain scripts, runRFIProfile, and the fast-simulator scripts runScenario and runShip) | scripts.html |
+| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 25 tests of `runAllTests` and experiment 3a) | tests.html |
+| `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record, blocks 1 to D (logged numbers) | results.html |
+| `gen_effects.py` | size of each effect if left out, as a timing error, with what block D models and what is parked | limits.html |
 | `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html |
-| `gen_timeline.py` | the blocks on the calendar, 29 Sep – 13 Oct, with session days | history.html |
-| `gen_roadmap.py` | the roadmap: blocks on the calendar, block C's steps by status, what D and E hold | roadmap.html |
+| `gen_timeline.py` | the blocks on the calendar, 29 Sep – 22 Oct, with session days | history.html |
+| `gen_roadmap.py` | the roadmap: blocks on the calendar, block C's steps by status, what D, E and F hold | roadmap.html |
 | `gen_voltage.py` | the generated voltage: noise louder once per turn; power follows G (toy rate) | sky.html (stage 1) |
 | `gen_profile.py` | power profile G(t), neighbour sum at 20 % duty | sky.html (stage 1) |
 | `gen_rfspec.py` | RF spectrum: white to f_in/2, the band the dispersion stage keeps | sky.html (stage 1, design choices) |
@@ -67,8 +67,10 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_simvschain.py` | fast simulator vs voltage chain: median σ and P_D against ρ (C2) | simulator.html |
 | `gen_scint.py` | scintillation as simulateFold draws it: dynamic spectra (J0437, 50 MHz scintles), J0437's band-averaged flux | physics.html (10) |
 | `gen_scen.py` | time per TOA vs precision of the candidate pulsars | scenario.html |
+| `gen_clock.py` | the receiver clock's "crystal" preset: σ_y(τ) and its three noise parts from `makeClock`'s formula; the time error τ·σ_y(τ) against the TCXO and OCXO estimates and the pulse widths | clock.html |
 
 The flowcharts (pipeline run control, ground-truth rule, info chain, receiver blocks,
-overlap-save, overlap-add (sky.html), excision chain (excision.html), bin stamps, filterbank, good TOAs, test data, roadmap) are hand-written SVG
+overlap-save, overlap-add (sky.html), excision chain (excision.html), bin stamps, filterbank, good TOAs, test data, the chain of stage 7a
+(prediction.html), long runs and a moving receiver (pipeline.html), the two chains of localisation.html) are hand-written SVG
 in the pages themselves. They use the classes in `style.css` (`.box`, `.line`, `.curve`, ...),
 so they follow the light and dark themes.

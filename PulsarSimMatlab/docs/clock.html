@@ -15,7 +15,7 @@ commercial SDR's oscillator is specified to ±2 ppm. Left uncorrected, that is u
 <div class="sig">clk = makeClock([t1 t2], ...)</div>
 <p class="meta"><a href="api.html#makeclock">Full interface and help text of <code>makeClock</code> →</a> · the clock stamps the IQ
 samples of <a href="receiver.html#iq">stage 4</a> · the observer estimates it in the predictor (<a href="prediction.html#predictor">stage
-7a</a>) and in <a href="navigation.html">navigation</a> · block D, since 21 Oct 2026</p>
+7a</a>) and in <a href="navigation.html">navigation</a> · block D</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p><code>makeClock</code> draws one realization of the clock's error over time, for the simulator's truth. The observer never sees it. Its navigation filter
@@ -26,6 +26,7 @@ applies it, through <a href="simulator.html#truth"><code>trueResiduals</code></a
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#phys">What the clock does to the TOAs</a></li>
 <li><a href="#how">How it works</a></li>
+<li><a href="#runs">How the runs use the clock</a></li>
 <li><a href="#why">Design choices</a></li>
 <li><a href="#tests">Tests</a></li>
 </ol></div>
@@ -54,14 +55,101 @@ white frequency noise (<var>h</var>₀), flicker (<var>h</var>₋₁) and a rand
 <p>An oscillator's stability is usually given as its Allan deviation σ<sub><var>y</var></sub>(τ). It is the typical change of the
 average frequency from one interval of length τ to the next. White noise makes it fall with τ, flicker keeps it flat, and a random walk
 makes it grow.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="The crystal clock preset: its Allan deviation against averaging time with its white, flicker and random-walk parts, and the time error it builds up, against TCXO and OCXO estimates and the pulse widths">
+  <path class="grid" d="M90 215.0 H410"/>
+  <path class="grid" d="M90 160.0 H410"/>
+  <path class="grid" d="M90 105.0 H410"/>
+  <path class="axis" d="M90 270 H410"/>
+  <path class="axis" d="M90 50 V270"/>
+  <path class="axis" d="M90 270.0 h-5"/>
+  <text class="sub" x="82" y="274.0" text-anchor="end">10⁻¹²</text>
+  <path class="axis" d="M90 215.0 h-5"/>
+  <text class="sub" x="82" y="219.0" text-anchor="end">10⁻¹¹</text>
+  <path class="axis" d="M90 160.0 h-5"/>
+  <text class="sub" x="82" y="164.0" text-anchor="end">10⁻¹⁰</text>
+  <path class="axis" d="M90 105.0 h-5"/>
+  <text class="sub" x="82" y="109.0" text-anchor="end">10⁻⁹</text>
+  <path class="axis" d="M90 50.0 h-5"/>
+  <text class="sub" x="82" y="54.0" text-anchor="end">10⁻⁸</text>
+  <text class="sub" x="90" y="42" text-anchor="start">Allan deviation σ<tspan baseline-shift="sub" font-size="9">y</tspan>(τ)</text>
+  <path class="axis" d="M90.0 270 v5"/>
+  <text class="sub" x="90.0" y="288" text-anchor="middle">1 s</text>
+  <path class="axis" d="M185.8 270 v5"/>
+  <text class="sub" x="185.8" y="288" text-anchor="middle">1 min</text>
+  <path class="axis" d="M281.7 270 v5"/>
+  <text class="sub" x="281.7" y="288" text-anchor="middle">1 h</text>
+  <path class="axis" d="M356.1 270 v5"/>
+  <text class="sub" x="356.1" y="288" text-anchor="middle">1 d</text>
+  <path class="axis" d="M410.0 270 v5"/>
+  <text class="sub" x="410.0" y="288" text-anchor="middle">10 d</text>
+  <text class="sub" x="250.0" y="304" text-anchor="middle">averaging time τ</text>
+  <path class="dash" d="M90.0 188.8 L91.1 189.3 L92.1 189.9 L93.2 190.4 L94.3 190.9 L95.4 191.5 L96.4 192.0 L97.5 192.6 L98.6 193.1 L99.6 193.7 L100.7 194.2 L101.8 194.8 L102.8 195.3 L103.9 195.9 L105.0 196.4 L106.1 196.9 L107.1 197.5 L108.2 198.0 L109.3 198.6 L110.3 199.1 L111.4 199.7 L112.5 200.2 L113.5 200.8 L114.6 201.3 L115.7 201.9 L116.8 202.4 L117.8 203.0 L118.9 203.5 L120.0 204.0 L121.0 204.6 L122.1 205.1 L123.2 205.7 L124.2 206.2 L125.3 206.8 L126.4 207.3 L127.5 207.9 L128.5 208.4 L129.6 209.0 L130.7 209.5 L131.7 210.1 L132.8 210.6 L133.9 211.1 L134.9 211.7 L136.0 212.2 L137.1 212.8 L138.2 213.3 L139.2 213.9 L140.3 214.4 L141.4 215.0 L142.4 215.5 L143.5 216.1 L144.6 216.6 L145.7 217.2 L146.7 217.7 L147.8 218.2 L148.9 218.8 L149.9 219.3 L151.0 219.9 L152.1 220.4 L153.1 221.0 L154.2 221.5 L155.3 222.1 L156.4 222.6 L157.4 223.2 L158.5 223.7 L159.6 224.2 L160.6 224.8 L161.7 225.3 L162.8 225.9 L163.8 226.4 L164.9 227.0 L166.0 227.5 L167.1 228.1 L168.1 228.6 L169.2 229.2 L170.3 229.7 L171.3 230.3 L172.4 230.8 L173.5 231.3 L174.5 231.9 L175.6 232.4 L176.7 233.0 L177.8 233.5 L178.8 234.1 L179.9 234.6 L181.0 235.2 L182.0 235.7 L183.1 236.3 L184.2 236.8 L185.3 237.4 L186.3 237.9 L187.4 238.4 L188.5 239.0 L189.5 239.5 L190.6 240.1 L191.7 240.6 L192.7 241.2 L193.8 241.7 L194.9 242.3 L196.0 242.8 L197.0 243.4 L198.1 243.9 L199.2 244.5 L200.2 245.0 L201.3 245.5 L202.4 246.1 L203.4 246.6 L204.5 247.2 L205.6 247.7 L206.7 248.3 L207.7 248.8 L208.8 249.4 L209.9 249.9 L210.9 250.5 L212.0 251.0 L213.1 251.5 L214.1 252.1 L215.2 252.6 L216.3 253.2 L217.4 253.7 L218.4 254.3 L219.5 254.8 L220.6 255.4 L221.6 255.9 L222.7 256.5 L223.8 257.0 L224.8 257.6 L225.9 258.1 L227.0 258.6 L228.1 259.2 L229.1 259.7 L230.2 260.3 L231.3 260.8 L232.3 261.4 L233.4 261.9 L234.5 262.5 L235.6 263.0 L236.6 263.6 L237.7 264.1 L238.8 264.7 L239.8 265.2 L240.9 265.7 L242.0 266.3 L243.0 266.8 L244.1 267.4 L245.2 267.9 L246.3 268.5 L247.3 269.0 L248.4 269.6 L249.5 270.1 L250.5 270.7 L251.6 271.2 L252.7 271.8 L253.7 272.0 L254.8 272.0 L255.9 272.0 L257.0 272.0 L258.0 272.0 L259.1 272.0 L260.2 272.0 L261.2 272.0 L262.3 272.0 L263.4 272.0 L264.4 272.0 L265.5 272.0 L266.6 272.0 L267.7 272.0 L268.7 272.0 L269.8 272.0 L270.9 272.0 L271.9 272.0 L273.0 272.0 L274.1 272.0 L275.2 272.0 L276.2 272.0 L277.3 272.0 L278.4 272.0 L279.4 272.0 L280.5 272.0 L281.6 272.0 L282.6 272.0 L283.7 272.0 L284.8 272.0 L285.9 272.0 L286.9 272.0 L288.0 272.0 L289.1 272.0 L290.1 272.0 L291.2 272.0 L292.3 272.0 L293.3 272.0 L294.4 272.0 L295.5 272.0 L296.6 272.0 L297.6 272.0 L298.7 272.0 L299.8 272.0 L300.8 272.0 L301.9 272.0 L303.0 272.0 L304.0 272.0 L305.1 272.0 L306.2 272.0 L307.3 272.0 L308.3 272.0 L309.4 272.0 L310.5 272.0 L311.5 272.0 L312.6 272.0 L313.7 272.0 L314.7 272.0 L315.8 272.0 L316.9 272.0 L318.0 272.0 L319.0 272.0 L320.1 272.0 L321.2 272.0 L322.2 272.0 L323.3 272.0 L324.4 272.0 L325.5 272.0 L326.5 272.0 L327.6 272.0 L328.7 272.0 L329.7 272.0 L330.8 272.0 L331.9 272.0 L332.9 272.0 L334.0 272.0 L335.1 272.0 L336.2 272.0 L337.2 272.0 L338.3 272.0 L339.4 272.0 L340.4 272.0 L341.5 272.0 L342.6 272.0 L343.6 272.0 L344.7 272.0 L345.8 272.0 L346.9 272.0 L347.9 272.0 L349.0 272.0 L350.1 272.0 L351.1 272.0 L352.2 272.0 L353.3 272.0 L354.3 272.0 L355.4 272.0 L356.5 272.0 L357.6 272.0 L358.6 272.0 L359.7 272.0 L360.8 272.0 L361.8 272.0 L362.9 272.0 L364.0 272.0 L365.1 272.0 L366.1 272.0 L367.2 272.0 L368.3 272.0 L369.3 272.0 L370.4 272.0 L371.5 272.0 L372.5 272.0 L373.6 272.0 L374.7 272.0 L375.8 272.0 L376.8 272.0 L377.9 272.0 L379.0 272.0 L380.0 272.0 L381.1 272.0 L382.2 272.0 L383.2 272.0 L384.3 272.0 L385.4 272.0 L386.5 272.0 L387.5 272.0 L388.6 272.0 L389.7 272.0 L390.7 272.0 L391.8 272.0 L392.9 272.0 L393.9 272.0 L395.0 272.0 L396.1 272.0 L397.2 272.0 L398.2 272.0 L399.3 272.0 L400.4 272.0 L401.4 272.0 L402.5 272.0 L403.6 272.0 L404.6 272.0 L405.7 272.0 L406.8 272.0 L407.9 272.0 L408.9 272.0 L410.0 272.0"/>
+  <text class="sub" x="197.8" y="236.8" text-anchor="middle">white</text>
+  <path class="dash" d="M90.0 188.8 L91.1 188.8 L92.1 188.8 L93.2 188.8 L94.3 188.8 L95.4 188.8 L96.4 188.8 L97.5 188.8 L98.6 188.8 L99.6 188.8 L100.7 188.8 L101.8 188.8 L102.8 188.8 L103.9 188.8 L105.0 188.8 L106.1 188.8 L107.1 188.8 L108.2 188.8 L109.3 188.8 L110.3 188.8 L111.4 188.8 L112.5 188.8 L113.5 188.8 L114.6 188.8 L115.7 188.8 L116.8 188.8 L117.8 188.8 L118.9 188.8 L120.0 188.8 L121.0 188.8 L122.1 188.8 L123.2 188.8 L124.2 188.8 L125.3 188.8 L126.4 188.8 L127.5 188.8 L128.5 188.8 L129.6 188.8 L130.7 188.8 L131.7 188.8 L132.8 188.8 L133.9 188.8 L134.9 188.8 L136.0 188.8 L137.1 188.8 L138.2 188.8 L139.2 188.8 L140.3 188.8 L141.4 188.8 L142.4 188.8 L143.5 188.8 L144.6 188.8 L145.7 188.8 L146.7 188.8 L147.8 188.8 L148.9 188.8 L149.9 188.8 L151.0 188.8 L152.1 188.8 L153.1 188.8 L154.2 188.8 L155.3 188.8 L156.4 188.8 L157.4 188.8 L158.5 188.8 L159.6 188.8 L160.6 188.8 L161.7 188.8 L162.8 188.8 L163.8 188.8 L164.9 188.8 L166.0 188.8 L167.1 188.8 L168.1 188.8 L169.2 188.8 L170.3 188.8 L171.3 188.8 L172.4 188.8 L173.5 188.8 L174.5 188.8 L175.6 188.8 L176.7 188.8 L177.8 188.8 L178.8 188.8 L179.9 188.8 L181.0 188.8 L182.0 188.8 L183.1 188.8 L184.2 188.8 L185.3 188.8 L186.3 188.8 L187.4 188.8 L188.5 188.8 L189.5 188.8 L190.6 188.8 L191.7 188.8 L192.7 188.8 L193.8 188.8 L194.9 188.8 L196.0 188.8 L197.0 188.8 L198.1 188.8 L199.2 188.8 L200.2 188.8 L201.3 188.8 L202.4 188.8 L203.4 188.8 L204.5 188.8 L205.6 188.8 L206.7 188.8 L207.7 188.8 L208.8 188.8 L209.9 188.8 L210.9 188.8 L212.0 188.8 L213.1 188.8 L214.1 188.8 L215.2 188.8 L216.3 188.8 L217.4 188.8 L218.4 188.8 L219.5 188.8 L220.6 188.8 L221.6 188.8 L222.7 188.8 L223.8 188.8 L224.8 188.8 L225.9 188.8 L227.0 188.8 L228.1 188.8 L229.1 188.8 L230.2 188.8 L231.3 188.8 L232.3 188.8 L233.4 188.8 L234.5 188.8 L235.6 188.8 L236.6 188.8 L237.7 188.8 L238.8 188.8 L239.8 188.8 L240.9 188.8 L242.0 188.8 L243.0 188.8 L244.1 188.8 L245.2 188.8 L246.3 188.8 L247.3 188.8 L248.4 188.8 L249.5 188.8 L250.5 188.8 L251.6 188.8 L252.7 188.8 L253.7 188.8 L254.8 188.8 L255.9 188.8 L257.0 188.8 L258.0 188.8 L259.1 188.8 L260.2 188.8 L261.2 188.8 L262.3 188.8 L263.4 188.8 L264.4 188.8 L265.5 188.8 L266.6 188.8 L267.7 188.8 L268.7 188.8 L269.8 188.8 L270.9 188.8 L271.9 188.8 L273.0 188.8 L274.1 188.8 L275.2 188.8 L276.2 188.8 L277.3 188.8 L278.4 188.8 L279.4 188.8 L280.5 188.8 L281.6 188.8 L282.6 188.8 L283.7 188.8 L284.8 188.8 L285.9 188.8 L286.9 188.8 L288.0 188.8 L289.1 188.8 L290.1 188.8 L291.2 188.8 L292.3 188.8 L293.3 188.8 L294.4 188.8 L295.5 188.8 L296.6 188.8 L297.6 188.8 L298.7 188.8 L299.8 188.8 L300.8 188.8 L301.9 188.8 L303.0 188.8 L304.0 188.8 L305.1 188.8 L306.2 188.8 L307.3 188.8 L308.3 188.8 L309.4 188.8 L310.5 188.8 L311.5 188.8 L312.6 188.8 L313.7 188.8 L314.7 188.8 L315.8 188.8 L316.9 188.8 L318.0 188.8 L319.0 188.8 L320.1 188.8 L321.2 188.8 L322.2 188.8 L323.3 188.8 L324.4 188.8 L325.5 188.8 L326.5 188.8 L327.6 188.8 L328.7 188.8 L329.7 188.8 L330.8 188.8 L331.9 188.8 L332.9 188.8 L334.0 188.8 L335.1 188.8 L336.2 188.8 L337.2 188.8 L338.3 188.8 L339.4 188.8 L340.4 188.8 L341.5 188.8 L342.6 188.8 L343.6 188.8 L344.7 188.8 L345.8 188.8 L346.9 188.8 L347.9 188.8 L349.0 188.8 L350.1 188.8 L351.1 188.8 L352.2 188.8 L353.3 188.8 L354.3 188.8 L355.4 188.8 L356.5 188.8 L357.6 188.8 L358.6 188.8 L359.7 188.8 L360.8 188.8 L361.8 188.8 L362.9 188.8 L364.0 188.8 L365.1 188.8 L366.1 188.8 L367.2 188.8 L368.3 188.8 L369.3 188.8 L370.4 188.8 L371.5 188.8 L372.5 188.8 L373.6 188.8 L374.7 188.8 L375.8 188.8 L376.8 188.8 L377.9 188.8 L379.0 188.8 L380.0 188.8 L381.1 188.8 L382.2 188.8 L383.2 188.8 L384.3 188.8 L385.4 188.8 L386.5 188.8 L387.5 188.8 L388.6 188.8 L389.7 188.8 L390.7 188.8 L391.8 188.8 L392.9 188.8 L393.9 188.8 L395.0 188.8 L396.1 188.8 L397.2 188.8 L398.2 188.8 L399.3 188.8 L400.4 188.8 L401.4 188.8 L402.5 188.8 L403.6 188.8 L404.6 188.8 L405.7 188.8 L406.8 188.8 L407.9 188.8 L408.9 188.8 L410.0 188.8"/>
+  <text class="sub" x="273.3" y="202.8" text-anchor="middle">flicker</text>
+  <path class="dash" d="M90.0 243.7 L91.1 243.2 L92.1 242.6 L93.2 242.1 L94.3 241.6 L95.4 241.0 L96.4 240.5 L97.5 239.9 L98.6 239.4 L99.6 238.8 L100.7 238.3 L101.8 237.7 L102.8 237.2 L103.9 236.6 L105.0 236.1 L106.1 235.5 L107.1 235.0 L108.2 234.5 L109.3 233.9 L110.3 233.4 L111.4 232.8 L112.5 232.3 L113.5 231.7 L114.6 231.2 L115.7 230.6 L116.8 230.1 L117.8 229.5 L118.9 229.0 L120.0 228.5 L121.0 227.9 L122.1 227.4 L123.2 226.8 L124.2 226.3 L125.3 225.7 L126.4 225.2 L127.5 224.6 L128.5 224.1 L129.6 223.5 L130.7 223.0 L131.7 222.4 L132.8 221.9 L133.9 221.4 L134.9 220.8 L136.0 220.3 L137.1 219.7 L138.2 219.2 L139.2 218.6 L140.3 218.1 L141.4 217.5 L142.4 217.0 L143.5 216.4 L144.6 215.9 L145.7 215.3 L146.7 214.8 L147.8 214.3 L148.9 213.7 L149.9 213.2 L151.0 212.6 L152.1 212.1 L153.1 211.5 L154.2 211.0 L155.3 210.4 L156.4 209.9 L157.4 209.3 L158.5 208.8 L159.6 208.2 L160.6 207.7 L161.7 207.2 L162.8 206.6 L163.8 206.1 L164.9 205.5 L166.0 205.0 L167.1 204.4 L168.1 203.9 L169.2 203.3 L170.3 202.8 L171.3 202.2 L172.4 201.7 L173.5 201.2 L174.5 200.6 L175.6 200.1 L176.7 199.5 L177.8 199.0 L178.8 198.4 L179.9 197.9 L181.0 197.3 L182.0 196.8 L183.1 196.2 L184.2 195.7 L185.3 195.1 L186.3 194.6 L187.4 194.1 L188.5 193.5 L189.5 193.0 L190.6 192.4 L191.7 191.9 L192.7 191.3 L193.8 190.8 L194.9 190.2 L196.0 189.7 L197.0 189.1 L198.1 188.6 L199.2 188.0 L200.2 187.5 L201.3 187.0 L202.4 186.4 L203.4 185.9 L204.5 185.3 L205.6 184.8 L206.7 184.2 L207.7 183.7 L208.8 183.1 L209.9 182.6 L210.9 182.0 L212.0 181.5 L213.1 180.9 L214.1 180.4 L215.2 179.9 L216.3 179.3 L217.4 178.8 L218.4 178.2 L219.5 177.7 L220.6 177.1 L221.6 176.6 L222.7 176.0 L223.8 175.5 L224.8 174.9 L225.9 174.4 L227.0 173.9 L228.1 173.3 L229.1 172.8 L230.2 172.2 L231.3 171.7 L232.3 171.1 L233.4 170.6 L234.5 170.0 L235.6 169.5 L236.6 168.9 L237.7 168.4 L238.8 167.8 L239.8 167.3 L240.9 166.8 L242.0 166.2 L243.0 165.7 L244.1 165.1 L245.2 164.6 L246.3 164.0 L247.3 163.5 L248.4 162.9 L249.5 162.4 L250.5 161.8 L251.6 161.3 L252.7 160.7 L253.7 160.2 L254.8 159.7 L255.9 159.1 L257.0 158.6 L258.0 158.0 L259.1 157.5 L260.2 156.9 L261.2 156.4 L262.3 155.8 L263.4 155.3 L264.4 154.7 L265.5 154.2 L266.6 153.6 L267.7 153.1 L268.7 152.6 L269.8 152.0 L270.9 151.5 L271.9 150.9 L273.0 150.4 L274.1 149.8 L275.2 149.3 L276.2 148.7 L277.3 148.2 L278.4 147.6 L279.4 147.1 L280.5 146.6 L281.6 146.0 L282.6 145.5 L283.7 144.9 L284.8 144.4 L285.9 143.8 L286.9 143.3 L288.0 142.7 L289.1 142.2 L290.1 141.6 L291.2 141.1 L292.3 140.5 L293.3 140.0 L294.4 139.5 L295.5 138.9 L296.6 138.4 L297.6 137.8 L298.7 137.3 L299.8 136.7 L300.8 136.2 L301.9 135.6 L303.0 135.1 L304.0 134.5 L305.1 134.0 L306.2 133.4 L307.3 132.9 L308.3 132.4 L309.4 131.8 L310.5 131.3 L311.5 130.7 L312.6 130.2 L313.7 129.6 L314.7 129.1 L315.8 128.5 L316.9 128.0 L318.0 127.4 L319.0 126.9 L320.1 126.3 L321.2 125.8 L322.2 125.3 L323.3 124.7 L324.4 124.2 L325.5 123.6 L326.5 123.1 L327.6 122.5 L328.7 122.0 L329.7 121.4 L330.8 120.9 L331.9 120.3 L332.9 119.8 L334.0 119.3 L335.1 118.7 L336.2 118.2 L337.2 117.6 L338.3 117.1 L339.4 116.5 L340.4 116.0 L341.5 115.4 L342.6 114.9 L343.6 114.3 L344.7 113.8 L345.8 113.2 L346.9 112.7 L347.9 112.2 L349.0 111.6 L350.1 111.1 L351.1 110.5 L352.2 110.0 L353.3 109.4 L354.3 108.9 L355.4 108.3 L356.5 107.8 L357.6 107.2 L358.6 106.7 L359.7 106.1 L360.8 105.6 L361.8 105.1 L362.9 104.5 L364.0 104.0 L365.1 103.4 L366.1 102.9 L367.2 102.3 L368.3 101.8 L369.3 101.2 L370.4 100.7 L371.5 100.1 L372.5 99.6 L373.6 99.0 L374.7 98.5 L375.8 98.0 L376.8 97.4 L377.9 96.9 L379.0 96.3 L380.0 95.8 L381.1 95.2 L382.2 94.7 L383.2 94.1 L384.3 93.6 L385.4 93.0 L386.5 92.5 L387.5 92.0 L388.6 91.4 L389.7 90.9 L390.7 90.3 L391.8 89.8 L392.9 89.2 L393.9 88.7 L395.0 88.1 L396.1 87.6 L397.2 87.0 L398.2 86.5 L399.3 85.9 L400.4 85.4 L401.4 84.9 L402.5 84.3 L403.6 83.8 L404.6 83.2 L405.7 82.7 L406.8 82.1 L407.9 81.6 L408.9 81.0 L410.0 80.5"/>
+  <text class="sub" x="321.8" y="143.5" text-anchor="middle">random walk</text>
+  <path class="s1" d="M90.0 180.4 L91.1 180.7 L92.1 180.9 L93.2 181.2 L94.3 181.4 L95.4 181.7 L96.4 181.9 L97.5 182.1 L98.6 182.4 L99.6 182.6 L100.7 182.8 L101.8 183.0 L102.8 183.2 L103.9 183.4 L105.0 183.6 L106.1 183.7 L107.1 183.9 L108.2 184.1 L109.3 184.2 L110.3 184.4 L111.4 184.5 L112.5 184.7 L113.5 184.8 L114.6 184.9 L115.7 185.1 L116.8 185.2 L117.8 185.3 L118.9 185.4 L120.0 185.5 L121.0 185.6 L122.1 185.7 L123.2 185.8 L124.2 185.9 L125.3 185.9 L126.4 186.0 L127.5 186.1 L128.5 186.1 L129.6 186.2 L130.7 186.3 L131.7 186.3 L132.8 186.4 L133.9 186.4 L134.9 186.4 L136.0 186.5 L137.1 186.5 L138.2 186.5 L139.2 186.5 L140.3 186.6 L141.4 186.6 L142.4 186.6 L143.5 186.6 L144.6 186.6 L145.7 186.6 L146.7 186.6 L147.8 186.6 L148.9 186.5 L149.9 186.5 L151.0 186.5 L152.1 186.5 L153.1 186.4 L154.2 186.4 L155.3 186.3 L156.4 186.3 L157.4 186.2 L158.5 186.2 L159.6 186.1 L160.6 186.1 L161.7 186.0 L162.8 185.9 L163.8 185.8 L164.9 185.7 L166.0 185.7 L167.1 185.6 L168.1 185.5 L169.2 185.4 L170.3 185.3 L171.3 185.1 L172.4 185.0 L173.5 184.9 L174.5 184.8 L175.6 184.6 L176.7 184.5 L177.8 184.3 L178.8 184.2 L179.9 184.0 L181.0 183.8 L182.0 183.7 L183.1 183.5 L184.2 183.3 L185.3 183.1 L186.3 182.9 L187.4 182.7 L188.5 182.5 L189.5 182.3 L190.6 182.1 L191.7 181.8 L192.7 181.6 L193.8 181.4 L194.9 181.1 L196.0 180.9 L197.0 180.6 L198.1 180.3 L199.2 180.1 L200.2 179.8 L201.3 179.5 L202.4 179.2 L203.4 178.9 L204.5 178.6 L205.6 178.3 L206.7 178.0 L207.7 177.6 L208.8 177.3 L209.9 177.0 L210.9 176.6 L212.0 176.3 L213.1 175.9 L214.1 175.6 L215.2 175.2 L216.3 174.8 L217.4 174.5 L218.4 174.1 L219.5 173.7 L220.6 173.3 L221.6 172.9 L222.7 172.5 L223.8 172.1 L224.8 171.7 L225.9 171.3 L227.0 170.8 L228.1 170.4 L229.1 170.0 L230.2 169.5 L231.3 169.1 L232.3 168.7 L233.4 168.2 L234.5 167.8 L235.6 167.3 L236.6 166.9 L237.7 166.4 L238.8 165.9 L239.8 165.5 L240.9 165.0 L242.0 164.5 L243.0 164.0 L244.1 163.6 L245.2 163.1 L246.3 162.6 L247.3 162.1 L248.4 161.6 L249.5 161.1 L250.5 160.6 L251.6 160.2 L252.7 159.7 L253.7 159.2 L254.8 158.7 L255.9 158.2 L257.0 157.6 L258.0 157.1 L259.1 156.6 L260.2 156.1 L261.2 155.6 L262.3 155.1 L263.4 154.6 L264.4 154.1 L265.5 153.6 L266.6 153.0 L267.7 152.5 L268.7 152.0 L269.8 151.5 L270.9 151.0 L271.9 150.4 L273.0 149.9 L274.1 149.4 L275.2 148.9 L276.2 148.3 L277.3 147.8 L278.4 147.3 L279.4 146.7 L280.5 146.2 L281.6 145.7 L282.6 145.1 L283.7 144.6 L284.8 144.1 L285.9 143.5 L286.9 143.0 L288.0 142.5 L289.1 141.9 L290.1 141.4 L291.2 140.9 L292.3 140.3 L293.3 139.8 L294.4 139.3 L295.5 138.7 L296.6 138.2 L297.6 137.6 L298.7 137.1 L299.8 136.6 L300.8 136.0 L301.9 135.5 L303.0 135.0 L304.0 134.4 L305.1 133.9 L306.2 133.3 L307.3 132.8 L308.3 132.2 L309.4 131.7 L310.5 131.2 L311.5 130.6 L312.6 130.1 L313.7 129.5 L314.7 129.0 L315.8 128.5 L316.9 127.9 L318.0 127.4 L319.0 126.8 L320.1 126.3 L321.2 125.7 L322.2 125.2 L323.3 124.7 L324.4 124.1 L325.5 123.6 L326.5 123.0 L327.6 122.5 L328.7 121.9 L329.7 121.4 L330.8 120.8 L331.9 120.3 L332.9 119.8 L334.0 119.2 L335.1 118.7 L336.2 118.1 L337.2 117.6 L338.3 117.0 L339.4 116.5 L340.4 115.9 L341.5 115.4 L342.6 114.9 L343.6 114.3 L344.7 113.8 L345.8 113.2 L346.9 112.7 L347.9 112.1 L349.0 111.6 L350.1 111.0 L351.1 110.5 L352.2 110.0 L353.3 109.4 L354.3 108.9 L355.4 108.3 L356.5 107.8 L357.6 107.2 L358.6 106.7 L359.7 106.1 L360.8 105.6 L361.8 105.0 L362.9 104.5 L364.0 104.0 L365.1 103.4 L366.1 102.9 L367.2 102.3 L368.3 101.8 L369.3 101.2 L370.4 100.7 L371.5 100.1 L372.5 99.6 L373.6 99.0 L374.7 98.5 L375.8 98.0 L376.8 97.4 L377.9 96.9 L379.0 96.3 L380.0 95.8 L381.1 95.2 L382.2 94.7 L383.2 94.1 L384.3 93.6 L385.4 93.0 L386.5 92.5 L387.5 91.9 L388.6 91.4 L389.7 90.9 L390.7 90.3 L391.8 89.8 L392.9 89.2 L393.9 88.7 L395.0 88.1 L396.1 87.6 L397.2 87.0 L398.2 86.5 L399.3 85.9 L400.4 85.4 L401.4 84.9 L402.5 84.3 L403.6 83.8 L404.6 83.2 L405.7 82.7 L406.8 82.1 L407.9 81.6 L408.9 81.0 L410.0 80.5"><title>the crystal preset, all three parts</title></path>
+  <text class="sub" x="138.5" y="176.5" style="fill:var(--series-1)">crystal preset</text>
+  <text class="ttl" x="90" y="24">a · how stable the frequency is</text>
+  <path class="grid" d="M530 242.5 H820"/>
+  <path class="grid" d="M530 215.0 H820"/>
+  <path class="grid" d="M530 187.5 H820"/>
+  <path class="grid" d="M530 160.0 H820"/>
+  <path class="grid" d="M530 132.5 H820"/>
+  <path class="grid" d="M530 105.0 H820"/>
+  <path class="grid" d="M530 77.5 H820"/>
+  <path class="axis" d="M530 270 H820"/>
+  <path class="axis" d="M530 50 V270"/>
+  <path class="axis" d="M530 270.0 h-5"/>
+  <text class="sub" x="522" y="274.0" text-anchor="end">1 ns</text>
+  <path class="axis" d="M530 187.5 h-5"/>
+  <text class="sub" x="522" y="191.5" text-anchor="end">1 µs</text>
+  <path class="axis" d="M530 105.0 h-5"/>
+  <text class="sub" x="522" y="109.0" text-anchor="end">1 ms</text>
+  <text class="sub" x="530" y="42" text-anchor="start">time error τ·σ<tspan baseline-shift="sub" font-size="9">y</tspan>(τ)</text>
+  <path class="axis" d="M530.0 270 v5"/>
+  <text class="sub" x="530.0" y="288" text-anchor="middle">1 min</text>
+  <path class="axis" d="M654.0 270 v5"/>
+  <text class="sub" x="654.0" y="288" text-anchor="middle">1 h</text>
+  <path class="axis" d="M750.3 270 v5"/>
+  <text class="sub" x="750.3" y="288" text-anchor="middle">1 d</text>
+  <path class="axis" d="M820.0 270 v5"/>
+  <text class="sub" x="820.0" y="288" text-anchor="middle">10 d</text>
+  <text class="sub" x="675.0" y="304" text-anchor="middle">time since the clock was last known, τ</text>
+  <path class="dash" d="M530 82.5 H820"/>
+  <text class="sub" x="536" y="77.5">B0329+54 pulse, 6.6 ms</text>
+  <path class="dash" d="M530 128.4 H820"/>
+  <text class="sub" x="536" y="123.4">J0437 pulse, 0.14 ms</text>
+  <path class="s1" d="M530.0 260.1 L531.0 259.7 L531.9 259.2 L532.9 258.7 L533.9 258.3 L534.8 257.8 L535.8 257.4 L536.8 256.9 L537.8 256.4 L538.7 256.0 L539.7 255.5 L540.7 255.0 L541.6 254.6 L542.6 254.1 L543.6 253.6 L544.5 253.2 L545.5 252.7 L546.5 252.2 L547.5 251.7 L548.4 251.2 L549.4 250.8 L550.4 250.3 L551.3 249.8 L552.3 249.3 L553.3 248.8 L554.2 248.3 L555.2 247.8 L556.2 247.3 L557.2 246.8 L558.1 246.4 L559.1 245.9 L560.1 245.4 L561.0 244.9 L562.0 244.4 L563.0 243.8 L563.9 243.3 L564.9 242.8 L565.9 242.3 L566.9 241.8 L567.8 241.3 L568.8 240.8 L569.8 240.3 L570.7 239.8 L571.7 239.3 L572.7 238.7 L573.6 238.2 L574.6 237.7 L575.6 237.2 L576.6 236.7 L577.5 236.1 L578.5 235.6 L579.5 235.1 L580.4 234.6 L581.4 234.0 L582.4 233.5 L583.3 233.0 L584.3 232.4 L585.3 231.9 L586.3 231.4 L587.2 230.8 L588.2 230.3 L589.2 229.8 L590.1 229.2 L591.1 228.7 L592.1 228.1 L593.0 227.6 L594.0 227.1 L595.0 226.5 L596.0 226.0 L596.9 225.4 L597.9 224.9 L598.9 224.3 L599.8 223.8 L600.8 223.3 L601.8 222.7 L602.7 222.2 L603.7 221.6 L604.7 221.1 L605.7 220.5 L606.6 220.0 L607.6 219.4 L608.6 218.9 L609.5 218.3 L610.5 217.7 L611.5 217.2 L612.4 216.6 L613.4 216.1 L614.4 215.5 L615.4 215.0 L616.3 214.4 L617.3 213.9 L618.3 213.3 L619.2 212.7 L620.2 212.2 L621.2 211.6 L622.1 211.1 L623.1 210.5 L624.1 209.9 L625.1 209.4 L626.0 208.8 L627.0 208.3 L628.0 207.7 L628.9 207.1 L629.9 206.6 L630.9 206.0 L631.8 205.4 L632.8 204.9 L633.8 204.3 L634.7 203.8 L635.7 203.2 L636.7 202.6 L637.7 202.1 L638.6 201.5 L639.6 200.9 L640.6 200.4 L641.5 199.8 L642.5 199.2 L643.5 198.7 L644.4 198.1 L645.4 197.5 L646.4 197.0 L647.4 196.4 L648.3 195.8 L649.3 195.3 L650.3 194.7 L651.2 194.1 L652.2 193.6 L653.2 193.0 L654.1 192.4 L655.1 191.9 L656.1 191.3 L657.1 190.7 L658.0 190.2 L659.0 189.6 L660.0 189.0 L660.9 188.4 L661.9 187.9 L662.9 187.3 L663.8 186.7 L664.8 186.2 L665.8 185.6 L666.8 185.0 L667.7 184.5 L668.7 183.9 L669.7 183.3 L670.6 182.7 L671.6 182.2 L672.6 181.6 L673.5 181.0 L674.5 180.5 L675.5 179.9 L676.5 179.3 L677.4 178.7 L678.4 178.2 L679.4 177.6 L680.3 177.0 L681.3 176.5 L682.3 175.9 L683.2 175.3 L684.2 174.7 L685.2 174.2 L686.2 173.6 L687.1 173.0 L688.1 172.5 L689.1 171.9 L690.0 171.3 L691.0 170.7 L692.0 170.2 L692.9 169.6 L693.9 169.0 L694.9 168.5 L695.9 167.9 L696.8 167.3 L697.8 166.7 L698.8 166.2 L699.7 165.6 L700.7 165.0 L701.7 164.4 L702.6 163.9 L703.6 163.3 L704.6 162.7 L705.6 162.2 L706.5 161.6 L707.5 161.0 L708.5 160.4 L709.4 159.9 L710.4 159.3 L711.4 158.7 L712.3 158.1 L713.3 157.6 L714.3 157.0 L715.3 156.4 L716.2 155.9 L717.2 155.3 L718.2 154.7 L719.1 154.1 L720.1 153.6 L721.1 153.0 L722.0 152.4 L723.0 151.8 L724.0 151.3 L724.9 150.7 L725.9 150.1 L726.9 149.5 L727.9 149.0 L728.8 148.4 L729.8 147.8 L730.8 147.3 L731.7 146.7 L732.7 146.1 L733.7 145.5 L734.6 145.0 L735.6 144.4 L736.6 143.8 L737.6 143.2 L738.5 142.7 L739.5 142.1 L740.5 141.5 L741.4 140.9 L742.4 140.4 L743.4 139.8 L744.3 139.2 L745.3 138.7 L746.3 138.1 L747.3 137.5 L748.2 136.9 L749.2 136.4 L750.2 135.8 L751.1 135.2 L752.1 134.6 L753.1 134.1 L754.0 133.5 L755.0 132.9 L756.0 132.3 L757.0 131.8 L757.9 131.2 L758.9 130.6 L759.9 130.1 L760.8 129.5 L761.8 128.9 L762.8 128.3 L763.7 127.8 L764.7 127.2 L765.7 126.6 L766.7 126.0 L767.6 125.5 L768.6 124.9 L769.6 124.3 L770.5 123.7 L771.5 123.2 L772.5 122.6 L773.4 122.0 L774.4 121.4 L775.4 120.9 L776.4 120.3 L777.3 119.7 L778.3 119.2 L779.3 118.6 L780.2 118.0 L781.2 117.4 L782.2 116.9 L783.1 116.3 L784.1 115.7 L785.1 115.1 L786.1 114.6 L787.0 114.0 L788.0 113.4 L789.0 112.8 L789.9 112.3 L790.9 111.7 L791.9 111.1 L792.8 110.6 L793.8 110.0 L794.8 109.4 L795.8 108.8 L796.7 108.3 L797.7 107.7 L798.7 107.1 L799.6 106.5 L800.6 106.0 L801.6 105.4 L802.5 104.8 L803.5 104.2 L804.5 103.7 L805.5 103.1 L806.4 102.5 L807.4 101.9 L808.4 101.4 L809.3 100.8 L810.3 100.2 L811.3 99.7 L812.2 99.1 L813.2 98.5 L814.2 97.9 L815.2 97.4 L816.1 96.8 L817.1 96.2 L818.1 95.6 L819.0 95.1 L820.0 94.5"><title>the crystal preset</title></path>
+  <circle class="s1f" cx="654.0" cy="192.5" r="4.5"><title>crystal preset: 0.66 µs after 1 h</title></circle>
+  <text class="sub" x="662.0" y="206.5" style="fill:var(--series-1)">0.66 µs</text>
+  <circle class="s1f" cx="750.3" cy="135.7" r="4.5"><title>crystal preset: 76 µs after 1 day</title></circle>
+  <text class="sub" x="758.3" y="149.7" style="fill:var(--series-1)">76 µs</text>
+  <circle class="s2f" cx="654.0" cy="172.2" r="4.5"><title>TCXO estimate: 3.6 µs per hour</title></circle>
+  <text class="sub" x="646.0" y="166.2" text-anchor="end" style="fill:var(--series-2)">TCXO, 3.6 µs</text>
+  <path class="s3" style="stroke-width:5" stroke-linecap="round" d="M654.0 253.4 V227.2"><title>OCXO estimate: 4-36 ns per hour</title></path>
+  <text class="sub" x="662.0" y="244.3" style="fill:var(--series-3)">OCXO, 4–36 ns</text>
+  <text class="ttl" x="530" y="24">b · how far the clock wanders</text>
+</svg>
+<figcaption>The receiver clock's <code>"crystal"</code> preset, from <code>makeClock</code>'s own formula. a: its Allan deviation
+σ<sub><var>y</var></sub>(τ) and the three noises it is made of. Flicker is the largest from about 1 s to 100 s; beyond that the random walk
+takes over, so the clock gets less predictable the longer it runs free. b: the time error this builds up, τ·σ<sub><var>y</var></sub>(τ):
+0.66 µs after an hour and 76 µs after a day. It reaches J0437's 0.14 ms pulse after about a day and a half, and B0329+54's 6.6 ms
+only after about 20 days. For
+comparison, the estimates on this page for a TCXO (3.6 µs per hour) and an OCXO (4–36 ns per hour). Generated by
+<code>docs/tools/figures/gen_clock.py</code>.</figcaption>
+</figure>
 <div class="table-wrap"><table>
 <tr><th>Preset</th><th><var>h</var>₀</th><th><var>h</var>₋₁</th><th><var>h</var>₋₂</th><th>What it is</th></tr>
 <tr><td><code>"perfect"</code></td><td>0</td><td>0</td><td>0</td><td>No noise (the default).</td></tr>
 <tr><td><code>"crystal"</code></td><td>1.8·10⁻²¹</td><td>6.5·10⁻²²</td><td>1.37·10⁻²⁴</td><td>The worked example of Van Dierendonck,
 McGraw and Brown (1984): a crystal oscillator stable to 3 parts in 10¹¹.</td></tr>
 </table></div>
-<p>The noise of a commercial SDR's oscillator is not published. It is best measured on the device itself, against a better
-reference.</p>
+<p>The crystal preset's time error grows by τ·σ<sub><var>y</var></sub>(τ): about 0.66 µs in an hour and 76 µs in a day, by its own
+formula. That is steadier than the TCXO estimate in the table above, 3.6 µs per hour. The noise of a commercial SDR's oscillator is not
+published. It is best measured on the device itself, against a better reference.</p>
 <details><summary>The formulas, and how each part is drawn</summary>
 <p>σ<sub><var>y</var></sub>²(τ) = <var>h</var>₀/(2τ) + 2 ln2·<var>h</var>₋₁ + (2π)²/6·<var>h</var>₋₂·τ (the paper's eqs. 6–8).</p>
 <ul>
@@ -72,6 +160,31 @@ step, <var>q</var>₂ = 2π²<var>h</var>₋₂. This is exact, and it is the mo
 <var>h</var>₋₁/<var>f</var>, over twice the span, so that the FFT never joins the two ends. It is then integrated.</li>
 </ul>
 <p>Between grid nodes the left-out noise is a white-noise bridge of √(<var>h</var>₀Δ/8): 0.12 ns for the crystal at 60 s.</p></details>
+<h3>Options and outputs</h3>
+<dl class="facts">
+<dt>Options</dt><dd><code>Preset</code> (<code>"perfect"</code> / <code>"crystal"</code>), <code>H</code> ([<var>h</var>₀ <var>h</var>₋₁
+<var>h</var>₋₂], instead of the preset's), <code>Offset</code> (0 s, at the start), <code>Rate</code> (0), <code>Drift</code> (0 per
+second: ageing), <code>Step</code> (60 s), <code>Seed</code> (1; its own random stream, the global one is untouched)</dd>
+<dt>Output</dt><dd><code>offset</code> and <code>rate</code> (functions of time: the clock error ε in seconds, and dε/d<var>t</var>),
+<code>sigmaY</code> (the model's Allan deviation as a function of τ), <code>h</code>, <code>preset</code>, <code>deterministic</code>
+(offset, rate, drift), <code>seed</code>, <code>grid</code> (the noise at the nodes), <code>tSpan</code>, <code>step</code>. Times outside
+the grid are refused (<code>makeClock:range</code>).</dd>
+</dl>
+
+<h2 id="runs">How the runs use the clock</h2>
+<p>Both scenario scripts give the receiver an SDR clock: the crystal preset's noise, and a rate drawn uniformly within ±2 ppm.</p>
+<ul>
+<li><b><code>runScenario</code></b> with <code>motion.clock</code> <code>"sdr"</code>. The observer knows the clock from a port calibration
+to 1 ms in offset and 10⁻⁹ in rate. By default it then tracks the clock day by day: after each day it fits all its TOAs with
+<code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run (true rate
+−1.17·10⁻⁶) it keeps 300 of 302 TOAs, and the position is the same as with a perfect clock
+(<a href="navigation.html#navfit">navigation</a>).</li>
+<li><b><code>runShip</code></b>. Each seed draws its own clock. The observer's filter carries the clock's offset and rate. With a
+calibrated start the port calibration's errors, 1 ms and 10⁻⁹, are drawn and given to the filter as <code>'ClockPrior'</code>
+(<a href="navigation.html#ship">navigation</a>).</li>
+</ul>
+<p>The clock the observer has not estimated then stays at a few hundred µs per day. That is harmless for B0329+54's 6.6 ms pulse, but
+too much for J0437's 0.14 ms.</p>
 
 <h2 id="why">Design choices</h2>
 <div class="callout why"><span class="ttl">Flicker included, by FFT</span>

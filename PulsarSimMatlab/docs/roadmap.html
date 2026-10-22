@@ -11,7 +11,7 @@
 
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 21 October 2026 (afternoon). Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 22 October 2026 (evening): blocks A–D closed, E next, F later. Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p><b>Done:</b> the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
@@ -23,7 +23,7 @@ Its scenario runs give TOA budgets for B0329+54, seen from the Netherlands, and 
 <p><b>Block D closed</b> (22 Oct). It covers motion, phase prediction, the receiver's clock and navigation. All its unit tests pass in
 Jasper's runs. The scenario and ship runs are Claude's.</p>
 <ul>
-<li>A fixed site 100 km east is found by B0329+54 alone: ±29 km after 30 days, 4.9σ after 100 days.</li>
+<li>A fixed site 100 km east is found by B0329+54 alone: ±30 km after 30 days, 4.9σ after 100 days.</li>
 <li>The receiver's own crystal clock is tracked day by day without losing TOAs.</li>
 <li>A ship over 14 days keeps within 73 km rms of its track with a calibrated start, against 379 km by dead reckoning.</li>
 <li>JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</li>
@@ -31,7 +31,7 @@ Jasper's runs. The scenario and ship runs are Claude's.</p>
 <p>Pages: <a href="prediction.html">phase prediction</a>, <a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>. The
 parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
 <p><b>Next: block E</b>, the full navigation system in simulation: several pulsars at full scale, the navigation solution, the 3×3 array
-and the second polarization.</p>
+and the second polarization. Its first step is being decided.</p>
 <p><b>Then block F</b>, the real implementation: IQ recordings from the antenna, mixer and SDR through <code>processIQ</code>, and the
 processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
 
@@ -61,11 +61,17 @@ multi-component profiles, per-channel noise calibration; <code>testRFIModel</cod
 the Netherlands → B0329+54; first scenario runs (<a href="scenario.html#simulated">TOA budgets</a>).</td></tr>
 <tr><td>21 Oct</td><td>Per-channel <code>detectRFI</code> thresholds; RFI profiles with 30 lags; J0437's measured profile adopted in
 <code>runScenario</code>; the scenario's RFI variants; <code>testRFIChain</code>'s narrow-carrier failures diagnosed. Validation runs on a
-frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for readability.</td></tr>
+frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for readability. <b>Block D</b> started: D1–D3
+(<code>makeTrajectory</code>, <code>delayModel</code>, <code>makePredictor</code>, <code>foldProfile</code> <code>'Predictor'</code>,
+<code>trueResiduals</code>, <code>makeClock</code>, the scenario's truth with motion); D4 designed.</td></tr>
+<tr><td>22 Oct</td><td>Jasper's validation run (<code>runAllTests</code> 22 of 22, <code>testRFIChain</code>) → <b>block C closed</b>. D4:
+<code>navFit</code>, the clock as correlated noise, the planning study, <code>navFilter</code>, the ship scenario <code>runShip</code> and
+TOAs as time-averages. D5: <code>loadEphemeris</code> (JPL's DE440), TDB − TT, precession and nutation. The fixed-site reruns →
+<b>block D closed</b>. Block F added (Jasper). These docs: blocks C and D fitted into the stages; the clock on its own page.</td></tr>
 </table></div>
 
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 632" role="img" aria-label="Roadmap: the blocks on the calendar from 29 September, block C's steps with their status, and what blocks D and E hold">
+<svg class="wide" viewBox="0 0 860 688" role="img" aria-label="Roadmap: the blocks on the calendar from 29 September, block C's steps with their status, and what blocks D, E and F hold">
   <defs>
     <marker id="ar-rd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path class="ah" d="M0 0 L10 5 L0 10 z"/>
@@ -172,10 +178,14 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="18" y="509">D2 phase predictor, folding with it</text>
   <rect class="box val" x="10" y="522" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="537">D3 simulator truth, receiver clock</text>
-  <rect class="box val" x="10" y="550" width="275" height="22" rx="5"/>
-  <text class="sub" x="18" y="565">D4 navigation fit, ship filter</text>
+  <rect class="box proc" x="10" y="550" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="565">D3c scenario runs with motion</text>
   <rect class="box val" x="10" y="578" width="275" height="22" rx="5"/>
-  <text class="sub" x="18" y="593">D5 DE440, TDB − TT, precession</text>
+  <text class="sub" x="18" y="593">D4 navigation fit, ship filter</text>
+  <rect class="box proc" x="10" y="606" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="621">D4c-0 planning study, D4d-2 ship runs</text>
+  <rect class="box val" x="10" y="634" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="649">D5 DE440, TDB − TT, precession</text>
   <text class="lbl" x="293" y="458" font-weight="600">E · full system, simulated (next)</text>
   <rect class="box" x="293" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="301" y="481">several pulsars at full scale</text>
@@ -192,28 +202,29 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="584" y="537">GPU / FPGA port, stage by stage</text>
   <rect class="box" x="576" y="550" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="584" y="565">real time</text>
-  <rect class="box val" x="10" y="611" width="22" height="14" rx="3"/>
-  <text class="sub" x="40" y="622">validated (Jasper's run)</text>
-  <rect class="box proc" x="220" y="611" width="22" height="14" rx="3"/>
-  <text class="sub" x="250" y="622">done (Claude's run)</text>
-  <rect class="box rx" x="430" y="611" width="22" height="14" rx="3"/>
-  <text class="sub" x="460" y="622">running / under investigation</text>
-  <rect class="box" x="640" y="611" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
-  <text class="sub" x="670" y="622">next / open</text>
+  <rect class="box val" x="10" y="667" width="22" height="14" rx="3"/>
+  <text class="sub" x="40" y="678">validated (Jasper's run)</text>
+  <rect class="box proc" x="220" y="667" width="22" height="14" rx="3"/>
+  <text class="sub" x="250" y="678">done (Claude's run)</text>
+  <rect class="box rx" x="430" y="667" width="22" height="14" rx="3"/>
+  <text class="sub" x="460" y="678">running / under investigation</text>
+  <rect class="box" x="640" y="667" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
+  <text class="sub" x="670" y="678">next / open</text>
 </svg>
 <figcaption>The roadmap on 22 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
 TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
-done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D and E: D1–D5 are validated, a few items are
-parked (navigation page); E brings the full system in simulation, F the real implementation on antenna data and a GPU or FPGA.
+done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D, E and F. D's functions are validated in
+Jasper's runs. The scenario runs with motion and the ship runs are Claude's. A few items are parked (navigation page). E brings the full
+system in simulation; its first step is being decided. F is the real implementation on antenna data and a GPU or FPGA.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
 <div class="table-wrap"><table>
 <tr><th>Label</th><th>Content</th><th>Status</th></tr>
 <tr><td><b>A</b></td><td>Finish the front end: channelizer, per-channel dedispersion, exact noise, data weights, channels combined, optimal weighting, switch in <code>main.m</code></td><td><span class="badge validated">complete</span>; A3b (multi-seed Monte Carlo with blanking) <span class="badge validated">done 19 Oct</span>: <code>runMonteCarlo</code> on <code>processIQ</code>, 50 seeds, ratio 0.956 ± 0.034 (<a href="scripts.html#mc">scripts</a>)</td></tr>
-<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix, per-channel noise <span class="badge todo">parked</span></td></tr>
+<tr><td><b>B</b></td><td>RFI excision on short voltage data, one function at a time</td><td>closed for now (9 Oct): B1–B5d, B6 <span class="badge validated">done</span> (periodic mask off by default); B5e <span class="badge validated">validated 12 Oct</span>; periodic-mask fix <span class="badge todo">parked</span>; per-channel noise calibration built on 20 Oct as a switch (<code>noiseCal</code>, off by default; see below)</td></tr>
 <tr><td><b>C</b></td><td>Fast simulator for long observations (<code>simulateFold</code>)</td><td><b>closed 22 Oct</b> (started 20 Oct);
 parked: the time structure of rotating radars (C3d) and refractive scintillation, excision of bright pulses and RFI locked to the
 pulsar's period, and merging identical channels for very long runs (<a href="simulator.html#limits">simulator</a>).
@@ -226,16 +237,18 @@ the scenario runs with all variants, and the 100-day runs
 (<a href="scenario.html#hundred">final budgets</a>).</td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock, the navigation fit</td><td><b>closed 22 Oct</b> (started 21 Oct).
 A simulated ship stays within 73 km rms of its true track with B0329+54 and B0950+08 and a drifting SDR clock, against 379 km for dead
-reckoning; JPL's DE440 with TDB − TT and precession is in for real data. Parked items with what each needs:
-<a href="navigation.html#next">navigation</a>. Before that:
-<span class="badge validated">validated in Jasper's run of 22 Oct</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>) and D2 (<code>makePredictor</code>,
-<code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against the prediction) and D3b (<code>makeClock</code>: the receiver's
-clock), D3c (the observer's clock estimate; the simulator's truth with a moving receiver and a clock in <code>runScenario</code> is
-checked in Claude's runs). D4 designed: the navigation fit with clock synchronisation by extra pulsars in simultaneous beams. Done in Claude's runs: D4a
-(<code>navFit</code>, the robust batch fit for a fixed site with the calibrated/self switch; 100 days find the 100 km offset at 4.9σ) and
-D4b (the clock as correlated noise, and the SDR clock tracked day by day: no TOAs lost); the planning study D4c-0; D4d-1
-(<code>navFilter</code>, the Kalman filter for a moving ship). Next: D4d-2, the ship scenario <code>runShip</code>. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
-<tr><td><b>E</b></td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">next</span></td></tr>
+reckoning. JPL's DE440 with TDB − TT, precession and nutation is in for real data. Parked items with what each needs:
+<a href="navigation.html#next">navigation</a>.
+<span class="badge validated">validated in Jasper's runs of 22 Oct</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>), D2
+(<code>makePredictor</code>, <code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against
+the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observer's clock estimate (<code>makePredictor</code>
+<code>'Clock'</code>), D4a and D4b-1 (<code>navFit</code>, the robust batch fit with the clock as correlated noise), D4c-1
+(<code>'ClockPrior'</code>), D4d-1 (<code>navFilter</code>, the Kalman filter for a moving ship), TOAs as time-averages
+(<code>tSub</code>), and D5a–D5d (<code>loadEphemeris</code>, <code>delayModel</code> <code>'Ephemeris'</code>).
+<span class="badge written">Claude's runs</span>: the simulator's truth with a moving receiver and a clock in <code>runScenario</code>
+(D3c), the SDR clock tracked day by day (D4b-2), the planning study (D4c-0), the ship scenario <code>runShip</code> over eight ships
+(D4d-2), and the fixed-site reruns. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
+<tr><td><b>E</b></td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">next</span>; the first step is being decided</td></tr>
 <tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
 
@@ -251,9 +264,12 @@ D4b (the clock as correlated noise, and the SDR clock tracked day by day: no TOA
 </ol></div>
 <div class="callout why"><span class="ttl">The fast simulator before motion</span>
 <p><b>Alternative:</b> add motion (D) first, in the voltage simulator.</p>
-<p><b>Why not:</b> at the worst-case design point a J0437 TOA takes ~20 h, longer than one pass. Hours cannot be simulated at voltage level (~61 GB per second).
-The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so <code>detectPulsar</code> and <code>estimateTOA</code>
-run unchanged on it. Motion (D) is then a hard requirement: folding across passes needs a phase that stays coherent over days.</p></div>
+<p><b>Why not:</b> at the worst-case design point a J0437 TOA takes many hours, longer than one pass. The catalogue estimate of 6 Oct
+gave ~20 h. The fast simulator with J0437's measured profile later gave 82–95 h in the worst case, and 16 h at nominal flux
+(<a href="scenario.html#hundred">scenario</a>). Hours cannot be simulated at voltage level: the default path writes ~72 GB per second
+(~61 GB on the full band). The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so
+<code>detectPulsar</code> and <code>estimateTOA</code> run unchanged on it. Motion (D) is then a hard requirement: folding across passes
+needs a phase that stays coherent over days.</p></div>
 
 <h2>Block B: what remains</h2>
 <ul>
@@ -299,7 +315,8 @@ scenario, as a second list in <code>pipelineParams</code> (<a href="receiver.htm
 
 <h2>Block C: fast simulator (20–22 Oct, closed)</h2>
 <p><b>Stages.</b> Jasper's decision of 20 Oct: one channel, the full-band equivalent, first; ρ in the simulator's <code>snrDB</code>
-convention, with the conversion for the scenario later.</p>
+convention. <code>runScenario</code> converts the catalogue flux to that convention: ρ = <var>S</var><sub>1400</sub>/(SEFD·<var>W</var><sub>eq</sub>),
+with <var>W</var><sub>eq</sub> the pulse area of the unit-peak profile and SEFD 3.2·10⁵ Jy nominal, 7.4·10⁵ Jy worst case.</p>
 <ul>
 <li><b>C1</b> <code>simulateFold</code>: the mean profile (the periodic Gaussian, smoothed by the time bin and the linear assignment,
 exact in Fourier space); asymptotic weights <var>n</var>, 2<var>n</var>/3, <var>n</var>/6, or weights copied from a voltage fold;
@@ -315,12 +332,14 @@ per channel), and <code>NoiseCoeffs</code> (correlated time bins, with closed-fo
 3's χ² excess. C4b covers RFI and excision effects; scintillation across the band belongs here too.</li>
 </ul>
 <p>The order was C4a → C4b → C3 (20 Oct). The hook for D is a true phase drifting against the ephemeris.</p>
-<p><b>Status (21 Oct).</b></p>
+<p><b>Status (closed 22 Oct).</b></p>
 <ul>
 <li><b>Validated in Jasper's runs</b> (20 Oct): <code>testSimulateFold</code> 1–15 (the simulator, channels, passes, scintillation with
 the grid fix, adaptive sub-ints, dual polarization <code>'NPol'</code>, groups over gaps <code>'AcrossGaps'</code>, multi-component
 profiles <code>'Components'</code> with component templates, and the calibrated observer <code>'ObserverNoise'</code>), and
-<code>testRFIModel</code> 1–5 (the RFI model, and the per-channel noise calibration on synthetic data).</li>
+<code>testRFIModel</code> 1–5 (the RFI model, and the per-channel noise calibration on synthetic data). On 22 Oct:
+<code>testRFIChain</code> on the new code (both cases pass), <code>testSimulateFold</code> 16, <code>testRFIModel</code> 6 and
+<code>testDetectRFI</code> 4 (<a href="results.html#jasper22">results</a>).</li>
 <li><b>Done in Claude's runs</b> (20–21 Oct): <code>expSimVsChain</code>; <code>expSimRFI</code> (RFI costs 10–12 % SNR); the default
 DM 25 and L 0.2 s, with a comparison dataset; <code>testRFIChain</code> (both cases pass on the new code, the narrow carriers
 included, after the two fixes); the chain check of <code>noiseCal</code>; <code>runScenario</code>, clean and with all variants
@@ -329,8 +348,10 @@ profiles.</li>
 <li><b>Understood:</b> channel 61's extra non-Gaussianity averages out as 1/turns (the <code>testRFIChain</code> rerun). The error bars at
 SNR ~7 with B0329+54's five-component template were mostly bin resolution, fixed with NBin 2048; a rare low-SNR outlier remains
 (<a href="scenario.html#simulated">scenario</a>, <a href="limits.html#estimation">limits</a>).</li>
-<li><b>Open:</b> Jasper's runs of the above. Done since: <code>testRFIChain</code> with the per-channel thresholds (all pass) and the 100-day
-runs (the low-SNR tail: 1.9 % of B0329+54's TOAs beyond 3σ, for the navigation fit's outlier model).</li>
+<li><b>The 100-day runs</b> (Claude's runs, 22 Oct) found the low-SNR tail: 1.9 % of B0329+54's TOAs lie beyond 3σ. The navigation
+fit's outlier model is sized for it.</li>
+<li><b>Parked at the close:</b> the time structure of rotating radars (C3d), refractive scintillation, excision of bright pulses and of RFI
+locked to the pulsar's period, and merging identical channels for very long runs (<a href="simulator.html#limits">simulator</a>).</li>
 </ul>
 <h3>Design draft (6 Oct)</h3>
 <ul>
@@ -345,7 +366,7 @@ circular correlation matrix.</li>
 </ul>
 
 <h2>Block D: motion and barycentric phase (21–22 Oct, closed)</h2>
-<p>A TOA is folded across passes, so the fold must follow the receiver's motion. Block D predicts that motion and later turns what the
+<p>A TOA is folded across passes, so the fold must follow the receiver's motion. Block D predicts that motion, and turns what the
 prediction does not explain into a position. Its design was agreed on 21 Oct:</p>
 <ul>
 <li>an analytic Earth orbit first, and JPL's DE440 at the end of the block;</li>
@@ -364,21 +385,29 @@ and the pulse's phase in the observer's fold); D3b <code>makeClock</code>; D3c t
 <code>runScenario</code></td><td><span class="badge validated">D3a, D3b validated 22 Oct</span> <span class="badge written">D3c in <code>runScenario</code>: Claude's runs</span></td></tr>
 <tr><td>D4</td><td>The navigation fit, with the clock synchronised by extra pulsars: D4a <code>navFit</code> (robust batch fit, fixed site,
 perfect clock); D4b the clock as correlated noise; D4c several pulsars in simultaneous beams with one clock, and a switch between a
-calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge validated">D4a, D4b-1, D4c-1 ('ClockPrior'), D4d-1 validated 22 Oct</span> <span class="badge written">D4c-0,
-D4d-2 (<code>runShip</code>) done</span> <span class="badge validated">TOAs as time-averages
-(<code>tSub</code>) validated 22 Oct</span> <span class="badge written">the ship comparison done 22 Oct (Claude's runs): calibrated
-start 73 km rms against 379 km dead reckoning, honest against its ideal twin</span></td></tr>
+calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge validated">validated 22 Oct</span>
+D4a, D4b-1, D4c-1 (<code>'ClockPrior'</code>), D4d-1, and TOAs as time-averages (<code>tSub</code>).
+<span class="badge written">Claude's runs</span> D4b-2 (the clock loop in <code>runScenario</code>), D4c-0 (the planning study) and
+D4d-2 (<code>runShip</code>)</td></tr>
 <tr><td>D5</td><td>The exact Earth for real data: D5a <code>loadEphemeris</code> (JPL's DE440), D5b <code>delayModel</code>
 <code>'Ephemeris'</code>, D5c TDB − TT from DE440, D5d precession and nutation. Parked: J0437's binary orbit (J0437 never rises at
 52° N; needed for a southern route or a probe) and real ship and probe trajectories (no data yet)</td><td><span class="badge validated">D5a–D5d
 validated 22 Oct</span> <span class="badge todo">J0437's orbit and real trajectories parked</span></td></tr>
 </table></div>
+<p><b>Results</b> (<a href="results.html#blockD">validation record</a>):</p>
+<ul>
+<li>B0329+54 alone finds a fixed site 100 km east to ±30 km per equatorial component in 30 days, and at 4.9σ in 100 days.</li>
+<li>The ship comparison (eight ships, 14 days, Claude's runs): with a calibrated start the smoothed track stays within 73 km rms of the
+truth, against 379 km for dead reckoning. Its error bars agree with those of an ideal twin.</li>
+<li>JPL's DE440 matches JPL Horizons to 4.5 cm for the geocentre, and to 28–30 m for a site.</li>
+</ul>
 <p>Details: <a href="prediction.html">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
 
 <h2>Open items</h2>
 <div class="table-wrap"><table>
 <tr><th>Item</th><th>Note</th></tr>
-<tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html">limitations</a>).</td></tr>
+<tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html#propagation">limitations</a>). An open item for real data (notes §10); block D closed without it.</td></tr>
+<tr><td><span class="badge todo">todo</span> Doppler-shifted dispersion delay</td><td>The dispersion delay holds at the barycentric frequency, which Earth's orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term. For B0329+54 the missing term is an annual ±7.1 µs. It cancels in the simulator, so it matters for real data only. Needs a DM term in <code>delayModel</code> (notes §10; <a href="limits.html#propagation">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
 <tr><td><span class="badge validated">done 20 Oct</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
 <tr id="processiq"><td><span class="badge validated">done 19 Oct</span> The processing as one function: <code>processIQ</code></td><td><p><b>Why:</b> the same stage calls appeared in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code> and
@@ -402,7 +431,9 @@ unchanged, and the FPGA/GPU port is checked against the outputs. To be done befo
 path (A3b) → <code>runSNRSweep</code>, <code>runH0</code> and <code>runRFITest</code> (the full band and the RFI cases bit-identical;
 <code>runH0</code> on the channel path gives false alarms at the design rate). <code>runLockedRadar</code> stays as it is, because it
 processes difference channels by superposition.</p></td></tr>
-<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first (done 20 Oct: <code>simulateFold</code> <code>'NPol'</code>); the voltage chain stays single-pol for now.</td></tr>
+<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first (done 20 Oct: <code>simulateFold</code> <code>'NPol'</code>); the voltage chain stays single-pol for now. Part of block E.</td></tr>
+<tr id="item3"><td><span class="badge todo">open</span> Band-edge taper on the pulsar only (read-through item 3, 13 Oct)</td><td>The 8 MHz sin² band edges shape the simulated pulsar, but not the receiver noise. So the outer channels hold little pulse: channels 1 and 128 keep 2.4 %, channels 2 and 127 42 %, and channels 3 and 126 96 %. The optimal fit still assumes equal pulse strength (<code>ChannelGain</code> 1). This costs +2.5 % in σ<sub>TOA</sub> on the channel path, the whole 2.2 % gap between the channel path's error bars and the full band's (<a href="limits.html#signal">limitations</a>). It also gives a <code>pChi2</code> excess that grows with SNR², so it is irrelevant at the weak-signal target. Options: shape the noise with the same taper, or take <code>ChannelGain</code> from the observer's bandpass (<code>logs/2026-10-13_full-review.md</code>).</td></tr>
+<tr id="item8"><td><span class="badge todo">open</span> No exact optimum on the channel path (read-through item 8)</td><td><code>expectedPowerModel</code> gives the best achievable TOA error for the full band only. So a default run (channel path) has no optimum to compare against, and the channel-path sweeps use the measured mean T0 as their SNR axis (<a href="scripts.html#sweep">run scripts</a>).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Lag-array memory fixed the same day (bit-identical). Still open: run time ∝ bin length, and whole-file processing (<code>blankingWeights</code>, <code>detectRFI</code>, <code>periodicRFI</code>; L = 1 s already exceeds the 4 GB default): "excision for long data", when real data is close.</td></tr>
 <tr><td><span class="badge todo">todo</span> Generator refinements (review, 12 Oct)</td><td><ul>
@@ -454,7 +485,7 @@ noise-free, where <code>detectRFI</code> blanks the pulse itself. The limit is n
 <p>Validated 15 Oct: Jasper's <code>runAllTests</code> passed. It exercises <code>estimateTOA</code>; no test runs <code>main.m</code>, so
 the warning rests on Claude's case check. Still open for Jasper: the χ² threshold on the channel path, and items 3, 4 and 8 of the
 read-through.</p></td></tr>
-<tr><td>Deferred: phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR.</td></tr>
+<tr><td>Deferred: block 1, phase F</td><td>Weighted radiometer-model fit in <code>estimateTOA</code>: only gains at high SNR. (Not to be confused with block F, the real implementation.)</td></tr>
 </table></div>
 
 <h3>FFT memory versus DM</h3>
@@ -470,11 +501,27 @@ read-through.</p></td></tr>
 It is only a simulation problem. <var>L</var> must also be well above the sweep (1–2 s test data at high DM).</p>
 
 <h2>Longer-term roadmap</h2>
+<p>The project notes (§11) still list the plan of 6 Oct as blocks 2–4. Most of it is now done, or part of E or F:</p>
+<div class="table-wrap"><table>
+<tr><th>Item of the 6 Oct plan</th><th>Where it is now</th></tr>
+<tr><td>Relative motion; barycentric corrections (Roemer, Shapiro, Einstein); clock corrections; residuals against the timing model;
+the navigation solution (least squares → Kalman)</td><td>done in block D (<a href="prediction.html">phase prediction</a>,
+<a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>)</td></tr>
+<tr><td>Clock jitter</td><td>the receiver's clock is modelled at fold level in block D (<code>makeClock</code>); the ADC's sampling jitter is
+negligible (<a href="limits.html#timing">limitations</a>)</td></tr>
+<tr><td>Multiple pulsars (≥ 4); the 3×3 array with geometric delays and beamforming at IQ level; polarization</td><td>block E</td></tr>
+<tr><td>Real IQ recordings; the FPGA/GPU port of the processing, with <code>processIQ</code> as the reference</td><td>block F</td></tr>
+</table></div>
+<p>Still open, in no block yet:</p>
 <ul>
-<li><b>Block 2 – robustness:</b> DM check from sub-band TOAs; convention assertions; clock jitter.</li>
-<li><b>Block 3 – navigation physics:</b> relative motion and acceleration search; multiple pulsars (≥ 4); barycentric corrections (Roemer, Shapiro,
-Einstein), clock corrections, infinite-frequency conversion (<code>bulkDelayRef</code>); residuals vs timing model; navigation solution (least squares → Kalman).</li>
-<li><b>Block 4 – later:</b> 3×3 array with geometric delays and beamforming at IQ level; scattering, DM variations, polarization; generator at high DM; real IQ recordings and the FPGA/GPU port of the processing, with <code>processIQ</code> as the reference.</li>
+<li>A DM check from sub-band TOAs, and DM variations.</li>
+<li>Convention assertions (dedispersion takes <code>info_IQ</code>: f<sub>LO</sub>, f<sub>s</sub>, mapping, f<sub>ref</sub>).</li>
+<li>Motion in the voltage generator (Doppler and period change). The generator has a fixed period, so folding with a predictor is checked
+on synthetic power series only.</li>
+<li>An acceleration or period search.</li>
+<li>Infinite-frequency conversion (<code>bulkDelayRef</code>).</li>
+<li>Scattering.</li>
+<li>The generator at high DM (<a href="#dm">above</a>).</li>
 </ul>
 
 </main>

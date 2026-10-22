@@ -54,6 +54,28 @@ its cleanup ran at once and changed the folder → "Unrecognized function 'pipel
 same fixed temporary folder, and one died with "Unexpected end of p_zero.dat".</td><td>Each run makes its own folder
 (<code>tempname</code>), removed at the end; <code>testRFIModel</code> and <code>testDetectRFI</code> too (21 Oct).</td><td>Anything that
 can run twice at the same time needs its own scratch space.</td></tr>
+<tr><td>13</td><td><b><code>navFit</code>'s first solve was ill-conditioned</b> (22 Oct): the normal equations mixed metres and seconds,
+which differ by 18 orders of magnitude (RCOND 10⁻¹⁸).</td><td>The columns are scaled before solving; the maths is identical.</td><td>Give a
+fit's unknowns comparable scales before solving.</td></tr>
+<tr><td>14</td><td><b><code>navFit</code>'s clock error bars were too small</b> (22 Oct): they left out the uncertainty of the fitted
+parameters, so the clock pulls were 1.52.</td><td>Universal kriging: the parameter covariance enters the clock's variance (pulls 0.92 and
+1.00).</td><td>An estimate built on fitted parameters inherits their uncertainty.</td></tr>
+<tr><td>15</td><td><b><code>navFilter</code>'s first state was Earth-fixed</b> (22 Oct): over 35° of longitude a constant east current
+gets a 37 % vertical part, which the height constraint forbade. The east error was pinned, and the filter 30× overconfident.</td><td>The
+position and velocity errors live in the ship's own east-north frame (<a href="navigation.html#navfilter">navigation</a>).</td><td>Choose
+the frame in which the physics is constant.</td></tr>
+<tr><td>16</td><td><b>A TOA was tagged between its data</b> (22 Oct): a merged TOA got the time of its middle turn. For a TOA from two
+passes a day apart that lies near the opposite hour angle, where the daily position signal has the opposite sign; B0950+08's TOAs then
+carried almost none of it.</td><td>Each TOA's truth and clock are averaged over its sub-ints, it is tagged at its data's mean hour angle
+(<code>sideTag</code>), and the navigation rows are averaged over the sub-ints (<code>tSub</code>).</td><td>A measurement averaged over
+time must be modelled as that average, not at one time.</td></tr>
+<tr><td>17</td><td><b><code>sideTag</code> put a tag before the track began</b> (22 Oct): a TOA merging a partial first pass with the next
+pass got a mean hour angle 915 s before its first sub-int, and <code>runShip</code> crashed.</td><td>The tag is clamped to the span of its
+sub-ints.</td><td>A derived time must stay inside the data it describes.</td></tr>
+<tr><td>18</td><td><b>The analytic orbit's error was understated</b> (22 Oct): the help text and the docs said ~10⁴ km and ~30 ms. The
+comparison with DE440 showed 3.2·10⁵ km relative to the barycentre (Uranus and Neptune are left out), and up to 656 ms of Roemer delay
+for B0329+54.</td><td>Help text and docs corrected; simulations are unaffected, because truth and prediction share the orbit.</td><td>Check
+an approximation against the exact reference before quoting its error.</td></tr>
 </table></div>
 
 <h2 id="picture">One lesson in a picture: shared data means correlated noise (#8)</h2>
@@ -154,7 +176,8 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 too small pass silently. → <code>pChi2</code>, reported alongside the drop rule (<a href="toa.html#pchi2">TOA</a>).</li>
 <li><b>The band-edge channels hold almost no pulse</b> (19 Oct). <code>pChi2</code> was not uniform on the channel path at −5 dB: the
 fit assumes equal gain, but the simulated band-edge taper leaves channels 1 and 128 with 2 % of the pulse. The excess grows as SNR², and
-is gone at −15 dB. → kept as a known simulator artifact (roadmap item 3), parked with the per-channel calibration.</li>
+is gone at −15 dB. → kept as a known simulator artifact (roadmap <a href="roadmap.html#item3">item 3</a>), parked with the per-channel
+calibration.</li>
 <li><b>Coarse bins cost more at low SNR</b> (20 Oct). With B0329+54's five components at NBin 1024, the error bars were 18 % too
 small at SNR 7, although the bins were inside the 1/5 rule. And the half-maximum width missed the narrow components. → NBin 2048, and
 the warning at 1/10 of the spectral template width (<a href="toa.html#template">TOA</a>).</li>
@@ -167,8 +190,13 @@ area: a 3 dB lower peak and ~3× the data per TOA. J0437's wings cost ~5×. → 
 carrier channel made the blanking data-dependent: phase bins with blanking came out 4–9 % noisier than modelled. → per-channel
 thresholds from each channel's own correlation (<a href="excision.html#chanthr">excision</a>).</li>
 <li><b>A narrow core on a broad component gives rare outliers</b> (20–21 Oct). About 0.3–0.5 % of B0329+54's TOAs at SNR ~7 land one
-core width off, and χ² cannot flag them. → handled in block D's navigation filter (innovation gating, a robust likelihood), not by
-longer groups.</li>
+core width off, and χ² cannot flag them; over 100 days 1.9 % lie beyond 3σ. → handled in the navigation fit and filter, not by longer
+groups: their error model is a mixture with 2 % of the TOAs 4× wider (<a href="navigation.html#navfit">navigation</a>).</li>
+<li><b>The port clock is never exact</b> (22 Oct). Taken as exact in the ship's calibrated start, it made the clock's error bars 2.6× too
+small; the position barely suffered, because the clock's wander absorbs the offset within a day. → <code>navFilter</code>
+<code>'ClockPrior'</code>.</li>
+<li><b>A prior shrinks a strong current</b> (22 Oct). One simulated ship drew a current of 0.76 m/s, 2.5σ of the filter's 0.3 m/s
+prior. Even with ideal data the filter pulls it towards zero. That is a property of the estimate, not a bug.</li>
 </ul>
 
 <h2 id="statistics">Statistical lessons</h2>
@@ -180,7 +208,12 @@ longer groups.</li>
 <li><b>Common random numbers tie the points of a sweep together.</b> In the channel path's weak-regime sweep, rms/pred was
 1.07–1.08 at every point. That is one shared fluctuation of the same 10 noise seeds, not an effect of SNR.</li>
 <li><b>A surprising number from one run can be scatter.</b> J0437's pull width of 0.88 in one scenario run looked like error bars too
-large; a second run gave 0.94, and adaptive and fixed groups on the same data both gave ~1.1.</li>
+large; a second run gave 0.94, and adaptive and fixed groups on the same data both gave ~1.1. Likewise B0329+54's first 30-day site fit
+came out 2.2σ low; a 1000 km run with the same seeds was low by the same amount, and new days landed on the truth.</li>
+<li><b>Errors correlated along a track make one run noisier than its pulls suggest.</b> A smoothed ship track's errors are correlated
+over days, so the pulls of one ship's TOAs are not independent, and two-sigma effects in single runs looked like bugs. → pulls at fixed
+times over many seeds, against an ideal twin on the same TOAs (<a href="validation.html#longruns">validation</a>). The same pooling error
+was first in <code>testNavFilter</code>'s criteria.</li>
 </ul>
 
 </main>

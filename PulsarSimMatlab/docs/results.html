@@ -13,14 +13,18 @@
 <p class="lede">Every major measured result against its prediction, in time order, with what each one established.
 The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
 <p class="meta">Labels used below: block 1 (the full-band chain) was done in phases; phase D was the SNR sweep, and phase E the detector
-and the good-TOA rule. Blocks A (channelized front end) and B (RFI excision) were done in numbered steps (A1–A4, B1–B6); the
-<a href="roadmap.html">roadmap</a> lists them.</p>
+and the good-TOA rule. Blocks A (channelized front end), B (RFI excision), C (the fast simulator) and D (motion, the clock and
+navigation) were done in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>Every check so far tells the same story. When a sub-integration has an SNR of about 6 or more, the stated TOA error bars are honest
 to within a few percent, from weak signals to strong ones. The noise model is complete, and the detector's false-alarm rate is as
 designed. Below that SNR some TOAs lock onto noise peaks, and the good-TOA rule removes them. Interference is the exception: a radar
-destroys TOAs unless it is excised.</p></div>
+destroys TOAs unless it is excised.</p>
+<p>The fast simulator reproduces the voltage chain, from the detection threshold to high SNR, with and without RFI. Over 100 simulated
+days the core of the error bars stays honest, but 1.9 % of B0329+54's TOAs lie beyond 3σ, so the navigation fit expects outliers.
+With motion and a drifting clock, the navigation fit and filter find the position with honest error bars. B0329+54 alone gives ±30 km
+per 30 days for a fixed site. A ship with a calibrated start stays within 73 km rms of its track.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#glance">At a glance: are the error bars honest?</a></li>
@@ -35,15 +39,18 @@ destroys TOAs unless it is excised.</p></div>
 <li><a href="#threshold">TOA threshold sweep and the SNR ≥ 6–7 rule</a></li>
 <li><a href="#blockA">Block A and B results</a></li>
 <li><a href="#dm25">New default: DM 25, L 0.2 s</a></li>
+<li><a href="#blockC">Block C: the fast simulator against the voltage chain</a></li>
 <li><a href="#val21">Validation run of 21–22 Oct</a></li>
+<li><a href="#jasper22">Jasper's validation runs of 22 Oct</a></li>
+<li><a href="#blockD">Block D: from TOAs to a position</a></li>
 <li><a href="#other">Algorithm ports and run times</a></li>
 </ol></div>
 
 <h2 id="glance">At a glance: are the error bars honest?</h2>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 486" role="img" aria-label="Error-bar honesty across the validation record: measured over predicted scatter for every check, all near 1">
-  <rect class="fillwhy" x="544.4" y="30" width="61.2" height="410"/>
-  <path class="dash" d="M575.0 30 V440"/>
+<svg class="wide" viewBox="0 0 860 876" role="img" aria-label="Error-bar honesty across the validation record: measured over predicted scatter for every check, all near 1">
+  <rect class="fillwhy" x="544.4" y="30" width="61.2" height="800"/>
+  <path class="dash" d="M575.0 30 V830"/>
   <text class="ttl" x="10" y="54">Noise-free chain and −5 dB reference</text>
   <text class="sub" x="22" y="72">noise-free, 1 s (99 TOAs)</text>
   <path class="line" d="M563.9 68 H651.0"/>
@@ -112,20 +119,94 @@ destroys TOAs unless it is excised.</p></div>
   <path class="line" d="M565.0 422 H594.4"/>
   <path class="dot2" d="M575.2 422 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
   <text class="sub" x="828" y="426">1.008</text>
-  <path class="axis" d="M330 440 H820"/>
-  <path class="axis" d="M330.0 440 v5"/><text class="sub" x="330.0" y="458" text-anchor="middle">0.6</text>
-  <path class="axis" d="M452.5 440 v5"/><text class="sub" x="452.5" y="458" text-anchor="middle">0.8</text>
-  <path class="axis" d="M575.0 440 v5"/><text class="sub" x="575.0" y="458" text-anchor="middle">1</text>
-  <path class="axis" d="M697.5 440 v5"/><text class="sub" x="697.5" y="458" text-anchor="middle">1.2</text>
-  <path class="axis" d="M820.0 440 v5"/><text class="sub" x="820.0" y="458" text-anchor="middle">1.4</text>
-  <text class="sub" x="575.0" y="474" text-anchor="middle">measured scatter ÷ stated error bar (1 = honest; green band ±5 %)</text>
+  <text class="ttl" x="10" y="454">Channel path with blanking (A3b, 50 seeds)</text>
+  <text class="sub" x="22" y="472">Monte Carlo on processIQ (400 TOAs)</text>
+  <path class="line" d="M527.2 468 H568.9"/>
+  <path class="dot2" d="M543.5 468 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="472">0.956</text>
+  <text class="ttl" x="10" y="500">Fast simulator against its truth (block C)</text>
+  <text class="sub" x="22" y="518">−5 dB, 2000 sub-ints (expSimVsChain)</text>
+  <path class="line" d="M566.5 514 H585.9"/>
+  <path class="dot2" d="M571.7 514 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="518">1.002</text>
+  <text class="sub" x="22" y="536">RFI: noise only (expSimRFI, 400 TOAs)</text>
+  <path class="line" d="M556.0 532 H598.9"/>
+  <path class="dot2" d="M573.0 532 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="536">1.004</text>
+  <text class="sub" x="22" y="554">RFI: realistic scenario</text>
+  <path class="line" d="M527.2 550 H570.1"/>
+  <path class="dot2" d="M544.2 550 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="554">0.957</text>
+  <text class="sub" x="22" y="572">RFI: narrow carriers</text>
+  <path class="line" d="M595.8 568 H638.7"/>
+  <path class="dot2" d="M612.8 568 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="572">1.069</text>
+  <text class="sub" x="22" y="590">B0329+54, 100 days, all 978 TOAs</text>
+  <path class="line" d="M656.7 586 H684.4"/>
+  <path class="dot2" d="M666.0 586 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="590">1.156</text>
+  <text class="sub" x="22" y="608">J0437, 100 days, 76 TOAs</text>
+  <path class="line" d="M604.3 604 H703.7"/>
+  <path class="dot2" d="M649.5 604 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="608">1.129</text>
+  <text class="ttl" x="10" y="636">Navigation fit and filter (block D)</text>
+  <text class="sub" x="22" y="654">navFit, east, 400 realizations</text>
+  <path class="line" d="M547.8 650 H591.1"/>
+  <path class="dot2" d="M565.0 650 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="654">0.991</text>
+  <text class="sub" x="22" y="672">navFit, radial</text>
+  <path class="line" d="M536.8 668 H580.1"/>
+  <path class="dot2" d="M554.0 668 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="672">0.973</text>
+  <text class="sub" x="22" y="690">navFit, 2 % outliers, robust</text>
+  <path class="line" d="M580.9 686 H624.2"/>
+  <path class="dot2" d="M598.1 686 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="690">1.045</text>
+  <text class="sub" x="22" y="708">navFit, clock estimate (crystal, 1000)</text>
+  <path class="line" d="M549.7 704 H577.1"/>
+  <path class="dot2" d="M558.9 704 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="708">0.981</text>
+  <text class="sub" x="22" y="726">navFilter, 40 ships, east (160 pulls)</text>
+  <path class="line" d="M558.5 722 H627.0"/>
+  <path class="dot2" d="M588.3 722 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="726">1.029</text>
+  <text class="sub" x="22" y="744">navFilter, north</text>
+  <path class="line" d="M486.2 740 H554.7"/>
+  <path class="dot2" d="M516.0 740 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="744">0.911</text>
+  <text class="sub" x="22" y="762">runShip, calibrated, east (32 pulls)</text>
+  <path class="line" d="M412.7 758 H565.8"/>
+  <path class="dot2" d="M484.8 758 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="762">0.860</text>
+  <text class="sub" x="22" y="780">runShip, calibrated, north</text>
+  <path class="line" d="M400.4 776 H553.6"/>
+  <path class="dot2" d="M472.5 776 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="780">0.840</text>
+  <text class="sub" x="22" y="798">its ideal twin, east</text>
+  <path class="line" d="M382.1 794 H535.2"/>
+  <path class="dot2" d="M454.1 794 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="798">0.810</text>
+  <text class="sub" x="22" y="816">its ideal twin, north</text>
+  <path class="line" d="M382.1 812 H535.2"/>
+  <path class="dot2" d="M454.1 812 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="816">0.810</text>
+  <path class="axis" d="M330 830 H820"/>
+  <path class="axis" d="M330.0 830 v5"/><text class="sub" x="330.0" y="848" text-anchor="middle">0.6</text>
+  <path class="axis" d="M452.5 830 v5"/><text class="sub" x="452.5" y="848" text-anchor="middle">0.8</text>
+  <path class="axis" d="M575.0 830 v5"/><text class="sub" x="575.0" y="848" text-anchor="middle">1</text>
+  <path class="axis" d="M697.5 830 v5"/><text class="sub" x="697.5" y="848" text-anchor="middle">1.2</text>
+  <path class="axis" d="M820.0 830 v5"/><text class="sub" x="820.0" y="848" text-anchor="middle">1.4</text>
+  <text class="sub" x="575.0" y="864" text-anchor="middle">measured scatter ÷ stated error bar (1 = honest; green band ±5 %)</text>
   <text class="ttl" x="10" y="18">Are the error bars honest? Every check in the record</text>
 </svg>
 <figcaption>Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
-own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs). All agree with 1 within a few percent, except
-the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
-of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The last row is the noise-only run: the detection
-statistic has the predicted spread.</figcaption>
+own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs or pulls). The voltage-chain checks agree with 1
+within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
+of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection
+statistic has the predicted spread. The fast simulator reproduces honest error bars; its 100-day runs show B0329+54's heavy tail (1.9 %
+of the TOAs beyond 3σ), while the core of the distribution has a width of 1.01. The navigation rows are pulls of the fitted position
+(and clock) against the truth. The fit agrees with 1; the filter's north pulls are 0.91. The ship's pulls (32 per axis) are 0.84–0.86,
+and its ideal twin's on the same TOAs 0.81: the TOA chain adds nothing measurable.</figcaption>
 </figure>
 
 <h2 id="noisefree">1. Noise-free chain</h2>
@@ -148,7 +229,8 @@ and disappears once receiver noise dominates.</p>
 <div class="table-wrap"><table>
 <tr><th>Check</th><th>Result</th><th>Expected</th></tr>
 <tr><td>Noise baseline</td><td>1.232</td><td>1.233</td></tr>
-<tr><td>Normalized residual off-pulse (73,604 bins) / on-pulse</td><td>std 0.9995 / 0.9959</td><td>1 ± 0.0026 / 1 ± 0.0066</td></tr>
+<tr><td>Normalized residual, off-pulse (73,604 bins)</td><td>std 0.9995</td><td>1 ± 0.0026</td></tr>
+<tr><td>Normalized residual, on-pulse</td><td>std 0.9959</td><td>1 ± 0.0066</td></tr>
 <tr><td>TOAs</td><td>9/10 (turn 9 partial → rejected), median SNR 93.4, <b>median σ 2.880 µs</b>, χ²<sub>red</sub> 0.963</td><td>SNR 97.9 (flat band), best σ 2.85 µs</td></tr>
 <tr><td><code>validateTOA</code></td><td>rms/pred 0.868 (± 0.24 for 9 TOAs), χ² 6.8/9</td><td>1</td></tr>
 </table></div>
@@ -183,7 +265,7 @@ and disappears once receiver noise dominates.</p>
 <li><b>Below SNR ≈ 10, outliers</b> appear (the fit locks onto a noise peak, errors up to ±<var>T</var>/2): 5.6 % at SNR 3.8, 57 % at 1.2. The Gaussian
 core stays right (robust 83.9 vs 82.2 µs). Navigation needs outlier rejection → phase E.</li>
 <li><b>FFTFIT is optimal up to −5 dB</b> (≤ 1 %), then saturates at ≈ 0.47 µs (self-noise) while the optimum keeps falling (1.5× at +10 dB,
-2.4× at +20 dB). The target regime (−25…−54 dB) is weak-signal, so a better high-SNR estimator (phase F) is low priority.</li>
+2.4× at +20 dB). The target regime (−25…−54 dB) is weak-signal, so a better high-SNR estimator (block 1, phase F) is low priority.</li>
 </ol>
 
 <figure class="scroll">
@@ -330,11 +412,18 @@ T0 std 1.10 under H0 → settled by the long H0 run.</p>
 <p>100 passes, 900 noise-only profiles.</p>
 <div class="table-wrap"><table>
 <tr><th>Check</th><th>Measured</th><th>Expected</th></tr>
-<tr><td>T0 std / mean</td><td><b>1.0076</b> / +0.034</td><td>1 ± 0.024 / 0 ± 0.033</td></tr>
+<tr><td>T0 std</td><td><b>1.0076</b></td><td>1 ± 0.024</td></tr>
+<tr><td>T0 mean</td><td>+0.034</td><td>0 ± 0.033</td></tr>
 <tr><td>noise ratio</td><td>median 0.996</td><td>1</td></tr>
 <tr><td>normProfile correlation lag 1</td><td><b>0.2484</b></td><td>0.2501 (from <code>weightX</code>)</td></tr>
 <tr><td>lags 2–200</td><td>mean −0.0008, max |r| 0.0026</td><td>0 (noise 0.0007)</td></tr>
-<tr><td>exceedances at P<sub>FA</sub> 10⁻¹ / 10⁻² / 10⁻³</td><td>T0 96 / 7 / 3; Tmax 88 / 13 / 1</td><td>90 / 9 / 0.9</td></tr>
+</table></div>
+<p>Exceedances of the detection thresholds in the 900 profiles:</p>
+<div class="table-wrap"><table>
+<tr><th><var>P</var><sub>FA</sub></th><th class="num">T0</th><th class="num">Tmax</th><th class="num">expected</th></tr>
+<tr><td>10⁻¹</td><td class="num">96</td><td class="num">88</td><td class="num">90</td></tr>
+<tr><td>10⁻²</td><td class="num">7</td><td class="num">13</td><td class="num">9</td></tr>
+<tr><td>10⁻³</td><td class="num">3</td><td class="num">1</td><td class="num">0.9</td></tr>
 </table></div>
 <p>Established: the noise covariance model is complete for noise-dominated data (per-bin variance, neighbour covariance, nothing beyond),
 the detector thresholds give the stated <var>P</var><sub>FA</sub> down to 10⁻²…10⁻³, and the TOA error bars are right in the weak-signal regime. The phase E
@@ -424,7 +513,67 @@ kept in <code>data/ref_DM5_L0.1/</code>. Same seeds, −5 dB, channel path with 
 <p>Per turn nothing changes: coherent dedispersion at DM 25 recovers the pulse as well as at DM 5, and a run now gives 15 instead of 8
 TOAs (Claude's run, 20 Oct). Results above this section are at DM 5.</p>
 
-<h2 id="val21">12. Validation run of 21–22 Oct (frozen code)</h2>
+<h2 id="blockC">12. Block C: the fast simulator against the voltage chain (20–22 Oct)</h2>
+<p>The <a href="simulator.html">fast simulator</a> draws folded profiles from their statistics instead of simulating every voltage sample.
+These checks compare it with the voltage chain at the same settings. All are Claude's runs, except where a row says otherwise.</p>
+<h3>Without RFI (<code>expSimVsChain</code>, 20 Oct)</h3>
+<p>The simulator reproduces the chain from the detection threshold to high SNR: the same σ, SNR, detection probability, outliers and
+noise-only statistics. The simulated folds use 2000 one-turn sub-ints per point; the chain's numbers are the full-band sweeps of 5 and
+6 Oct (90 TOAs per point).</p>
+<div class="table-wrap"><table>
+<tr><th>ρ [dB]</th><th class="num">median σ, chain</th><th class="num">median σ, simulator</th><th class="num">rms/pred, chain</th><th class="num">rms/pred, simulator</th></tr>
+<tr><td>−25</td><td class="num">102.8 µs</td><td class="num">99.3 µs</td><td class="num">11.2</td><td class="num">16.4</td></tr>
+<tr><td>−20</td><td class="num">68.0 µs</td><td class="num">71.1 µs</td><td class="num">12.1</td><td class="num">6.7</td></tr>
+<tr><td>−15</td><td class="num">24.53 µs</td><td class="num">24.91 µs</td><td class="num">1.030</td><td class="num">1.006</td></tr>
+<tr><td>−10</td><td class="num">8.216 µs</td><td class="num">8.257 µs</td><td class="num">1.040</td><td class="num">0.985</td></tr>
+<tr><td>−5</td><td class="num">2.907 µs</td><td class="num">2.916 µs</td><td class="num">1.053</td><td class="num">1.002</td></tr>
+<tr><td>0</td><td class="num">1.225 µs</td><td class="num">1.225 µs</td><td class="num">1.061</td><td class="num">1.000</td></tr>
+<tr><td>+10</td><td class="num">0.5377 µs</td><td class="num">0.5378 µs</td><td class="num">1.044</td><td class="num">1.001</td></tr>
+<tr><td>+20</td><td class="num">0.4721 µs</td><td class="num">0.4722 µs</td><td class="num">1.036</td><td class="num">0.995</td></tr>
+</table></div>
+<ul>
+<li>At −20 dB and below, rms/pred is dominated by outliers in both. The outlier fractions agree: 5.6 % in the chain and 4.7 % in the
+simulator at −20 dB.</li>
+<li>The detection probability with an unknown phase at −20 dB is 0.433 ± 0.052 in the chain, and 0.361 in the simulator.</li>
+<li>Noise only: the detection statistic T0 has a spread of 0.9925 ± 0.010 in the simulator, against 1.008 ± 0.024 in the chain
+(<a href="#h0">section 8</a>). The neighbour correlation is 0.2491, against 0.2484.</li>
+</ul>
+<h3>With RFI (<code>expSimRFI</code>, 20 Oct)</h3>
+<p>The simulator takes the RFI left after excision from a measured profile of a 1 s voltage-chain run (<code>rfiProfile</code>). It
+reproduces the chain's SNR loss, σ and χ² excess within about 1 %. The production numbers, with the 1 s profiles at −5 dB (50 × 8 TOAs per case):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">SNR</th><th class="num">SNR / clean</th><th class="num">median σ</th><th class="num">rms/pred (± 0.035)</th><th class="num">median χ²<sub>red</sub></th></tr>
+<tr><td>noise only</td><td class="num">92.4</td><td class="num">1.000</td><td class="num">2.940 µs</td><td class="num">1.004</td><td class="num">1.0068</td></tr>
+<tr><td>realistic (B5e)</td><td class="num">82.6</td><td class="num">0.895</td><td class="num">3.293 µs</td><td class="num">0.957</td><td class="num">1.0733</td></tr>
+<tr><td>narrow Inmarsat</td><td class="num">81.1</td><td class="num">0.878</td><td class="num">3.357 µs</td><td class="num">1.069</td><td class="num">1.2455</td></tr>
+</table></div>
+<p>The RFI left after excision costs 10.5 % of the SNR in the realistic case, and 12.2 % with narrow carriers. That is 25 % and 30 % more
+observing time for the same σ. The χ² excess comes from channels whose noise the observer's flat model under-predicts; the per-channel
+noise calibration removes it (<a href="scenario.html#rfivariants">scenario</a>).</p>
+<h3>The RFI model on the voltage chain (<code>testRFIChain</code>)</h3>
+<p>The test runs the chain's RFI through the excision and compares the folds with the simulator's. On the new code (per-channel
+<code>detectRFI</code> thresholds, 30 lags) both cases pass, in Claude's run of 21 Oct and in Jasper's run of 22 Oct
+(<a href="tests.html#rfichain">tests</a>).</p>
+<div class="table-wrap"><table>
+<tr><th>Case, at 1 turn</th><th class="num">noise / model, real</th><th class="num">noise / model, simulated</th></tr>
+<tr><td>realistic</td><td class="num">1.0729</td><td class="num">1.0729</td></tr>
+<tr><td>narrow Inmarsat</td><td class="num">1.3286</td><td class="num">1.3292</td></tr>
+</table></div>
+<h3>The TOA budgets over 100 days (<code>runScenario</code>, 21–22 Oct)</h3>
+<p>The scenario runs give the budgets of the <a href="scenario.html#hundred">reference scenario</a>: B0329+54 from 52° N and J0437 from
+30° S. The clean cases:</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">good TOAs</th><th class="num">per day</th><th class="num">hours per TOA</th><th class="num">σ<sub>TOA</sub></th></tr>
+<tr><td>B0329+54, nominal</td><td class="num">978</td><td class="num">9.78</td><td class="num">1.97</td><td class="num">734 µs</td></tr>
+<tr><td>B0329+54, worst case</td><td class="num">187</td><td class="num">1.87</td><td class="num">10.1</td><td class="num">741 µs</td></tr>
+<tr><td>J0437, nominal</td><td class="num">76</td><td class="num">0.76</td><td class="num">16.0</td><td class="num">13.0 µs</td></tr>
+<tr><td>J0437, worst case</td><td class="num">14</td><td class="num">0.14</td><td class="num">82</td><td class="num">13.1 µs</td></tr>
+</table></div>
+<p>The core of the error bars is honest: for B0329+54 at nominal flux its width is 1.01. The tail is heavier than Gaussian: 1.9 % of
+B0329+54's TOAs lie beyond 3σ, against 0.27 % for a Gaussian. Almost all sit just above the grouping threshold, at SNR 7.1–8.1. That tail
+sets the outlier model of the navigation fit (<a href="#blockD">section 15</a>).</p>
+
+<h2 id="val21">13. Validation run of 21–22 Oct (frozen code)</h2>
 <p>Jasper's MATLAB would not open on 21 Oct, so Claude ran his eight validation steps on a frozen copy of the code (commit 171a716,
 in <code>~/Documents/pulsarnavigation-validation/2026-10-21/</code>, 14 h with other runs in parallel). Every step gave what it
 should. Each step and its result:</p>
@@ -443,7 +592,88 @@ narrow carriers: the reference values.</td></tr>
 30-day results with its measured profile, in all variants (<a href="scenario.html#rfivariants">scenario</a>).</td></tr>
 </table></div>
 
-<h2 id="other">13. Algorithm ports and run times</h2>
+<h2 id="jasper22">14. Jasper's validation runs of 22 Oct</h2>
+<p>Jasper's MATLAB worked again on 22 Oct. Every number of his runs is identical to Claude's runs. Each run and what it validated:</p>
+<div class="table-wrap"><table>
+<tr><th>Run</th><th>Result</th><th>Validated</th></tr>
+<tr><td><code>runAllTests</code> (morning)</td><td>22 of 22 pass, 8.3 min</td><td><code>testMakeTrajectory</code>, <code>testDelayModel</code>,
+<code>testMakePredictor</code> (with test 8, <code>'Clock'</code>), <code>testFoldPredictor</code>, <code>testTrueResiduals</code>,
+<code>testMakeClock</code>, <code>testSimulateFold</code> 16, <code>testRFIModel</code> 6, <code>testDetectRFI</code> 4 (per-channel
+thresholds), <code>testGeneratePulsarSignal</code> 7 (components), <code>testChannelTOA</code> 7</td></tr>
+<tr><td><code>runAllTests("testRFIChain")</code></td><td>all checks pass, 65.3 min (realistic 23.9 min, narrow Inmarsat 41.4 min)</td><td>the RFI
+model against the voltage chain, on the new code</td></tr>
+<tr><td><code>testNavFit</code>, <code>testNavFilter</code> (afternoon)</td><td>pass</td><td><code>navFit</code> (D4a, D4b-1) and
+<code>navFilter</code> (D4d-1)</td></tr>
+<tr><td><code>testNavFilter</code> with check 6</td><td>pass</td><td><code>'ClockPrior'</code> (D4c-1)</td></tr>
+<tr><td><code>testDelayModel</code> (11 checks), <code>testLoadEphemeris</code> (5 checks)</td><td>pass</td><td>DE440, TDB − TT, precession and
+nutation (D5a–D5d)</td></tr>
+<tr><td><code>testNavFit</code> (11 checks), <code>testNavFilter</code> (7 checks)</td><td>pass, 131.7 s and 8.8 s</td><td>TOAs as
+time-averages (<code>tSub</code>)</td></tr>
+</table></div>
+<p>Still Claude's runs only: the experiments (<code>expSimVsChain</code>, <code>expSimRFI</code>, <code>expComponentsChain</code>,
+<code>expNavFit</code>, <code>expNavPlan</code>), the scenario runs, <code>runScenario</code>'s motion option and <code>runShip</code>.</p>
+
+<h2 id="blockD">15. Block D: from TOAs to a position (22 Oct)</h2>
+<p>These runs give the fast simulator the truth of a receiver that is not where the observer thinks, and a clock that drifts
+(<a href="simulator.html#truth">the simulator's truth</a>). The observer then fits its position. All are Claude's runs; the functions
+they use are validated (<a href="#jasper22">section 14</a>).</p>
+<h3>A fixed site 100 km east (<code>expNavFit</code> on <code>runScenario</code> motion runs)</h3>
+<p>B0329+54 alone, 30 days from 52° N, with <code>navFit</code>'s averaged rows. The error per component matches the precision that
+<code>'Predict'</code> computes from the TOA schedule alone: 29.4 km against 29.6 km at nominal flux, and 109.1 km against 110.3 km in the
+worst case.</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">good TOAs</th><th class="num">east (truth 100 km)</th><th class="num">radial (truth 0)</th></tr>
+<tr><td>nominal flux, perfect clock</td><td class="num">302</td><td class="num">36.5 ± 29.6 km</td><td class="num">+9.9 ± 37.2 km</td></tr>
+<tr><td>nominal flux, SDR clock tracked day by day</td><td class="num">300</td><td class="num">35.1 ± 29.7 km</td><td class="num">–</td></tr>
+<tr><td>worst-case flux, perfect clock</td><td class="num">59</td><td class="num">82.2 ± 110.3 km</td><td class="num">−123.8 ± 127.0 km</td></tr>
+</table></div>
+<ul>
+<li><b>The nominal east estimate is 2.1σ low.</b> That is one noise draw, not a bias. With a 1000 km offset and the same seeds the fit
+is low by about the same amount: 947.2 ± 29.8 km. So the shortfall does not grow with the offset. Over 100 days the same pulsar gives
+80.3 ± 16.4 km, and the 4.9σ detection; days 31–100 alone give 99.9 ± 19.7 km.
+The 100-day fit used point rows and was not rerun with the averaged ones.</li>
+<li><b>The polar component</b> needs a calibrated start: −27.0 ± 16.7 km for a truth of 0 in 30 days, and −10.7 ± 9.1 km in 100 days
+(point rows).</li>
+<li><b>The SDR clock</b> (its rate off by −1.17·10⁻⁶, plus the crystal's noise) costs no position. Tracked day by day, it keeps 300 of
+302 TOAs. Per week, the rms of the clock it has not estimated lies between 151 µs and 855 µs: harmless against B0329+54's 6.6 ms
+pulse. Without tracking, the first run kept 213 TOAs, and the clock drifted to −6.65 ms.</li>
+</ul>
+<h3>Which pulsars help (<code>expNavPlan</code>)</h3>
+<p><code>navFit</code>'s <code>'Predict'</code> mode on the real pass schedules from 52° N, at nominal flux, over 100 days. Extra pulsars
+add little to the two equatorial components. With a real clock their gain is the polar component: they separate it from the clock's
+wander.</p>
+<div class="table-wrap"><table>
+<tr><th>Pulsars</th><th class="num">east</th><th class="num">polar, crystal clock</th></tr>
+<tr><td>B0329+54 alone</td><td class="num">16.2 km</td><td class="num">63.6 km</td></tr>
+<tr><td>+ B0950+08</td><td class="num">15.8 km</td><td class="num">34.3 km</td></tr>
+<tr><td>+ B0950+08, B1642−03, B1929+10</td><td class="num">15.4 km</td><td class="num">23.7 km</td></tr>
+</table></div>
+<p>At the worst-case flux B1642−03 and B1929+10 give no TOA in 30 days, and B0950+08 gives 4.</p>
+<h3>The ship (<code>runShip</code>)</h3>
+<p>Eight ships sail for 14 days with B0329+54, B0950+08 and a drifting SDR clock (<a href="navigation.html#ship">navigation</a>). The
+filter's error bars are judged by pulls at days 3, 7, 10 and 14, against an ideal twin: the same smoother on ideal TOAs at the same
+times.</p>
+<div class="table-wrap"><table>
+<tr><th>Start</th><th class="num">pull spread east, real</th><th class="num">east, twin</th><th class="num">north, real</th><th class="num">north, twin</th><th class="num">median rms of the track</th></tr>
+<tr><td>dead reckoning only</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">–</td><td class="num">379 km</td></tr>
+<tr><td>self-calibrated</td><td class="num">0.80</td><td class="num">0.86</td><td class="num">1.27</td><td class="num">0.67</td><td class="num">102 km</td></tr>
+<tr><td>calibrated</td><td class="num">0.86</td><td class="num">0.81</td><td class="num">0.84</td><td class="num">0.81</td><td class="num">73 km</td></tr>
+</table></div>
+<p>With a calibrated start the real filter matches its twin, so the TOA chain costs nothing measurable. With a self-calibrated start the
+north error is larger than the twin's in four of the eight ships; the cause is open and parked. At day 14 dead reckoning is 644 km off
+(median).</p>
+<h3>The exact Earth (<code>loadEphemeris</code>, <code>delayModel</code> <code>'Ephemeris'</code>)</h3>
+<div class="table-wrap"><table>
+<tr><th>Check</th><th>Result</th></tr>
+<tr><td>DE440 against JPL Horizons, the geocentre at three epochs</td><td>4.5 cm, 1.1·10⁻⁷ m/s</td></tr>
+<tr><td>A site at 52° N, with precession and nutation, 2026-03-01</td><td>28 m and 30 m (UT1 − UTC left out); 16.0 km and 13.2 km without
+precession and nutation</td></tr>
+<tr><td>TDB − TT from DE440 against the USNO series, 2000–2050</td><td>rms 2.25 µs, max 7.07 µs; the analytic two terms: rms 16.5 µs</td></tr>
+<tr><td>The analytic Earth orbit against DE440, relative to the barycentre</td><td>up to 3.2·10⁵ km off (Uranus and Neptune left out); in a
+simulation truth and observer share it, so a 100 km offset is measured the same to 2·10⁻¹² s</td></tr>
+</table></div>
+
+<h2 id="other">16. Algorithm ports and run times</h2>
 <p><b>NumPy ports</b>, made before the MATLAB runs, checked the algorithms:</p>
 <ul>
 <li>dispersion kernel: group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add equal to direct convolution;</li>

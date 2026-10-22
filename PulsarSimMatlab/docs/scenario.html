@@ -10,14 +10,18 @@
 <main>
 
 <h1>Reference scenario</h1>
-<p class="lede">The real hardware and pulsars the pipeline is designed for. This is where the numbers "−54 dB" and "20 hours
-per TOA" come from, and why the project targets weak signals.</p>
+<p class="lede">The real hardware and pulsars the pipeline is designed for. This is where the number "−54 dB" and the hours of data
+per TOA come from, and why the project targets weak signals.</p>
 <p class="meta">Drafted 6 October 2026 from Jasper's hardware; questions answered the same day. Pulsar data from the ATNF catalogue v2.6.5.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>The pipeline is designed for a small array (0.61 m², 1.2–1.6 GHz) and the best pulsar it can time, J0437−4715. At the worst-case
-design point the pulse peak is about 54 dB below the receiver noise, and one TOA takes about 20 hours of folding. That is why the project
-targets weak signals, why TOAs must be folded across several passes, and why a fast simulator is planned.</p></div>
+design point the pulse peak is about 54 dB below the receiver noise. The catalogue estimate on this page gives about 20 hours of data
+per TOA. The fast simulator with J0437's measured profile gives 82–95 hours, and 16 hours at nominal flux
+(<a href="#hundred">100-day budgets</a>). That is why the project targets weak signals, why TOAs must be folded across several passes,
+and why the fast simulator was built.</p>
+<p>The array will go on a ship, and J0437 never rises at 52° N. So the scenario runs time B0329+54 from the Netherlands, and J0437 from
+30° S (<a href="#ship">the ship</a>).</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#receiver">Receiver</a></li>
@@ -33,7 +37,7 @@ targets weak signals, why TOAs must be folded across several passes, and why a f
 
 <h2 id="receiver">Receiver</h2>
 <ul>
-<li>3×3 array, <b>0.61 m²</b>, <b>dual polarization</b> on all 9 elements, band <b>1.2–1.6 GHz</b>, ground station, <b>T<sub>sys</sub> 60–80 K</b>.</li>
+<li>3×3 array, <b>0.61 m²</b>, <b>dual polarization</b> on all 9 elements, band <b>1.2–1.6 GHz</b>, on a ship (<a href="#ship">below</a>), <b>T<sub>sys</sub> 60–80 K</b>.</li>
 <li>Site-independent: "should work anywhere". The station position is an input parameter; no pulsar is hard-coded; sources are chosen by visibility.</li>
 </ul>
 <div class="table-wrap"><table>
@@ -47,7 +51,8 @@ targets weak signals, why TOAs must be folded across several passes, and why a f
 <p><b>Alternative:</b> design for the nominal area and system temperature.</p>
 <p><b>Why not:</b> the effective area is not known precisely, and the time per TOA scales as SEFD². So the worst case takes 5.3× longer.
 The pipeline must work there; nominal performance is the bonus. That is why the project targets the weak-signal regime, and why, for
-example, improvements to the estimator at high SNR have low priority. (Jasper's decision, 6 Oct 2026.)</p></div>
+example, improvements to the estimator at high SNR have low priority.</p>
+<details><summary>History</summary><p>Jasper's decision, 6 Oct 2026.</p></details></div>
 
 <h2 id="time">Time per TOA</h2>
 <p>How the table below is computed:</p>
@@ -82,17 +87,17 @@ margin of about 3 dB.</p>
 <p>Do not combine the two. The simulator's own pulsar (10 ms, 5 %, one polarization) at <code>snrDB</code> −54 needs about 62 h per TOA
 at SNR 7, not the 20 h of the J0437 row.</p></div>
 <div class="table-wrap"><table>
-<tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nom / worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
-<tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9 / <b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
-<tr><td><b>J0835−4510</b> (Vela)</td><td>−45</td><td>89.3</td><td>67.8</td><td>1.7</td><td>1050</td><td>−41</td><td>0.1 / <b>0.3</b></td><td>146 (44 km)</td><td>&lt; 25° N</td></tr>
-<tr><td><b>J0332+5434</b> (B0329+54)</td><td>+55</td><td>714.5</td><td>26.8</td><td>6.6</td><td>203</td><td>−45</td><td>0.8 / <b>4.2</b></td><td>566 (170 km)</td><td>&gt; 15° S</td></tr>
-<tr><td>J0953+0755 (B0950+08)</td><td>+8</td><td>253.1</td><td>3.0</td><td>8.6</td><td>100</td><td>−53</td><td>12 / 67</td><td>738 (221 km)</td><td>62° S–78° N</td></tr>
-<tr><td>J1752−2806 (B1749−28)</td><td>−28</td><td>562.6</td><td>50.3</td><td>6.6</td><td>48</td><td>−52</td><td>18 / 96</td><td>566 (170 km)</td><td>&lt; 42° N</td></tr>
-<tr><td>J1645−0317 (B1642−03)</td><td>−3</td><td>387.7</td><td>35.8</td><td>3.8</td><td>26</td><td>−54</td><td>52 / 278</td><td>326 (98 km)</td><td>73° S–67° N</td></tr>
-<tr><td>J1932+1059 (B1929+10)</td><td>+11</td><td>226.5</td><td>3.2</td><td>5.6</td><td>29</td><td>−57</td><td>106 / 571</td><td>480 (144 km)</td><td>59° S–81° N</td></tr>
-<tr><td>J1939+2134 (B1937+21, MSP)</td><td>+22</td><td>1.56</td><td>71.0</td><td>~0.05</td><td>13.9</td><td>−62</td><td>670 / 3600</td><td>5 (1.4 km)</td><td>&gt; 48° S</td></tr>
-<tr><td>J1713+0747 (MSP)</td><td>+8</td><td>4.57</td><td>16.0</td><td>0.30</td><td>8.3</td><td>−67</td><td>3700 / 20000</td><td>26</td><td></td></tr>
-<tr><td>J2145−0750 (MSP)</td><td>−8</td><td>16.05</td><td>9.0</td><td>0.40</td><td>5.5</td><td>−65</td><td>3000 / 16000</td><td>34</td><td></td></tr>
+<tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nominal [h]</th><th>t worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
+<tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9</td><td><b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
+<tr><td><b>J0835−4510</b> (Vela)</td><td>−45</td><td>89.3</td><td>67.8</td><td>1.7</td><td>1050</td><td>−41</td><td>0.1</td><td><b>0.3</b></td><td>146 (44 km)</td><td>&lt; 25° N</td></tr>
+<tr><td><b>J0332+5434</b> (B0329+54)</td><td>+55</td><td>714.5</td><td>26.8</td><td>6.6</td><td>203</td><td>−45</td><td>0.8</td><td><b>4.2</b></td><td>566 (170 km)</td><td>&gt; 15° S</td></tr>
+<tr><td>J0953+0755 (B0950+08)</td><td>+8</td><td>253.1</td><td>3.0</td><td>8.6</td><td>100</td><td>−53</td><td>12</td><td>67</td><td>738 (221 km)</td><td>62° S–78° N</td></tr>
+<tr><td>J1752−2806 (B1749−28)</td><td>−28</td><td>562.6</td><td>50.3</td><td>6.6</td><td>48</td><td>−52</td><td>18</td><td>96</td><td>566 (170 km)</td><td>&lt; 42° N</td></tr>
+<tr><td>J1645−0317 (B1642−03)</td><td>−3</td><td>387.7</td><td>35.8</td><td>3.8</td><td>26</td><td>−54</td><td>52</td><td>278</td><td>326 (98 km)</td><td>73° S–67° N</td></tr>
+<tr><td>J1932+1059 (B1929+10)</td><td>+11</td><td>226.5</td><td>3.2</td><td>5.6</td><td>29</td><td>−57</td><td>106</td><td>571</td><td>480 (144 km)</td><td>59° S–81° N</td></tr>
+<tr><td>J1939+2134 (B1937+21, MSP)</td><td>+22</td><td>1.56</td><td>71.0</td><td>~0.05</td><td>13.9</td><td>−62</td><td>670</td><td>3600</td><td>5 (1.4 km)</td><td>&gt; 48° S</td></tr>
+<tr><td>J1713+0747 (MSP)</td><td>+8</td><td>4.57</td><td>16.0</td><td>0.30</td><td>8.3</td><td>−67</td><td>3700</td><td>20000</td><td>26</td><td></td></tr>
+<tr><td>J2145−0750 (MSP)</td><td>−8</td><td>16.05</td><td>9.0</td><td>0.40</td><td>5.5</td><td>−65</td><td>3000</td><td>16000</td><td>34</td><td></td></tr>
 </table></div>
 <p>Bright but DM too high for now: J1644−4559 (DM 479), J0738−4042 (161), J1935+1616 (159), J0837−4135 (147).</p>
 
@@ -208,8 +213,9 @@ therefore takes about two days of calendar time for J0437 from 30° S (<a href="
 <li><b>Vela is as good as J0437.</b> It is bright, with a TOA in about 20 min. But it has a wider pulse, DM 67.8, glitches and timing
 noise.</li>
 <li><b>J0437 is the only realistic millisecond pulsar.</b> The time per TOA scales as <var>S</var>⁻², so a pulsar 15× fainter takes 225×
-longer. J0437 resembles the simulated pulsar (P 5.8 ms against 10 ms, DM 2.6 against 5), at ρ ≈ −54 dB in the worst case. It needs about
-20 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight.</li>
+longer. J0437 resembles the voltage chain's simulated pulsar (P 5.8 ms against 10 ms; DM 2.6 against the default 25), at ρ ≈ −54 dB in
+the worst case. This estimate gives it about 20 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight. With its measured
+profile the fast simulator gives 82–95 h and 13 µs (<a href="#hundred">below</a>).</li>
 <li>Both good sources are southern; for northern sites <b>B0329+54</b> is the only source with TOAs within a pass. From Europe and most of North America
 there is no feasible MSP.</li>
 <li><b>Normal pulsars are needed</b> for geometry (≥ 4 well-separated directions for 3-D position + clock) and visibility, at the cost of wide pulses
@@ -221,7 +227,8 @@ there is no feasible MSP.</li>
 <ol>
 <li><b>Weak signal everywhere:</b> ρ ≈ −54 dB, per-pulse SNR ≪ 1. Self-noise is negligible; FFTFIT is optimal; any phase-dependent bias must be
 ≪ 4·10⁻⁶ of the baseline.</li>
-<li><b>A 20 h TOA spans several passes</b> → fold across passes with gaps → barycentric phase prediction (D) is a hard requirement.</li>
+<li><b>A 20 h TOA spans several passes</b> → fold across passes with gaps → barycentric phase prediction (D, <a href="prediction.html">stage
+7a</a>) is a hard requirement.</li>
 <li><b>Hours of data</b> cannot be simulated at voltage level → the fast simulator (C).</li>
 <li><b>DM target 100</b> (Vela 67.8, B1937+21 71.0, B0740−28 73.8, plus margin) → the channelized front end on the processing side.</li>
 <li><b>Dual polarization</b> → √2 in SNR (2× in time); add the second polarization.</li>
@@ -231,10 +238,12 @@ there is no feasible MSP.</li>
 
 <h2 id="ship">The ship and the Netherlands</h2>
 <p>The array will go on a ship. So the site moves, and a fixed flat installation is not an option. The simulations therefore assume a
-steered array, with constant gain over a pass. (Jasper's information, 20 Oct 2026.)</p>
+steered array, with constant gain over a pass.</p>
 <p>For now the location is the Netherlands, at 52° N. From there J0437 (maximum elevation −9°) and Vela (−7°) never rise.
 <b>B0329+54</b> never sets, and is above 20° for 19.6 h a day. So the scenario runs use B0329+54 from 52° N, and J0437 from 30° S, where it
 is up 12.3 h a day: a ship that sailed south.</p>
+<details><summary>History</summary><p>Jasper's information, 20 Oct 2026. The receiver had first been drafted, on 6 Oct, as a ground
+station.</p></details>
 <p>B0329+54 at 1.4 GHz:</p>
 <ul>
 <li>P 714.5 ms, DM 26.8 (which is why the default DM is 25), W<sub>50</sub> 6.6 ms, S<sub>1400</sub> 203 mJy;</li>
@@ -266,8 +275,9 @@ table, with single Gaussians, stays as the reference that the later ones are com
 <p>The hours per TOA agree with the radiometer equation, allowing about 10 % for the band-edge taper. The error bars are honest, and
 there are no outliers. A worst-case J0437 TOA needs more data than one pass holds, and spans the gap to the next pass.</p>
 <p>The figures of merit are better than this page's estimates (1160 and 55 µs·√h), which used the margin
-W<sub>eq</sub> = 2·W<sub>50</sub>. These are TOA budgets. With motion (block D) the TOAs become positions. Per day, B0329+54 then
-constrains the line-of-sight distance to 30–70 km, and J0437 to 2–4 km.</p>
+W<sub>eq</sub> = 2·W<sub>50</sub>. These are TOA budgets. Per day, B0329+54's TOAs constrain the line-of-sight distance to 30–70 km,
+and J0437's to 2–4 km. The navigation fit turns the TOAs into a position: with motion and its five components, B0329+54 alone finds a
+fixed site to ±30 km per equatorial component in 30 days (<a href="navigation.html#navfit">navigation</a>).</p>
 <div class="callout warn"><span class="ttl">With B0329+54's real profile (five components)</span>
 <p>The table above used a single Gaussian with the catalogue W<sub>50</sub>. B0329+54's five components at 1410 MHz spread the same flux
 over twice the pulse area. So the peak is 3 dB lower (ρ −45.0 dB nominal, −48.6 dB worst case), and a TOA needs about 3× more data.</p>

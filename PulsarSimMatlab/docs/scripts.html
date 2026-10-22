@@ -28,10 +28,11 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
 <tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case; realistic 3–6 min</td></tr>
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 <tr><td><a href="#rfiprofile"><code>runRFIProfile.m</code></a></td><td>What does RFI leave per channel after excision? (profiles for the fast simulator)</td><td><code>data/rfi/profile/</code></td><td>1 s: 25–50 min per case</td></tr>
-<tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S)</td><td><code>data/scenario/</code></td><td>~10 min per B0329+54 case for 30 simulated days</td></tr>
+<tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S); with motion, the TOAs of a receiver that is not where it thinks</td><td><code>data/scenario/</code></td><td>~10 min per B0329+54 case for 30 simulated days</td></tr>
+<tr><td><a href="#ship"><code>runShip.m</code></a></td><td>Can a ship keep its position with two pulsars and a drifting clock? (the closed loop with <code>navFilter</code>)</td><td><code>data/scenario/ship_*</code></td><td>~6 min per 14-day run</td></tr>
 </table></div>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 276" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
+<svg class="wide" viewBox="0 0 860 378" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
   <text class="ttl" x="220" y="30" text-anchor="middle">pulsar signal</text>
   <text class="ttl" x="360" y="30" text-anchor="middle">receiver noise</text>
   <text class="ttl" x="500" y="30" text-anchor="middle">signal strength</text>
@@ -58,7 +59,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="573" y="77" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="95" text-anchor="middle">none</text>
   <rect class="box" x="713" y="77" width="134" height="28" rx="5"/>
-  <text class="sub" x="780" y="95" text-anchor="middle">full band</text>
+  <text class="sub" x="780" y="95" text-anchor="middle">frontEnd</text>
   <text class="mono" x="10" y="129">runSNRSweep</text>
   <rect class="box proc" x="153" y="111" width="134" height="28" rx="5"/>
   <text class="sub" x="220" y="129" text-anchor="middle">10 realizations</text>
@@ -69,7 +70,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="573" y="111" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="129" text-anchor="middle">none</text>
   <rect class="box" x="713" y="111" width="134" height="28" rx="5"/>
-  <text class="sub" x="780" y="129" text-anchor="middle">full band</text>
+  <text class="sub" x="780" y="129" text-anchor="middle">frontEnd</text>
   <text class="mono" x="10" y="163">runH0</text>
   <rect class="box proc" x="153" y="145" width="134" height="28" rx="5"/>
   <text class="sub" x="220" y="163" text-anchor="middle">none (zero sky)</text>
@@ -80,7 +81,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="573" y="145" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="163" text-anchor="middle">none</text>
   <rect class="box" x="713" y="145" width="134" height="28" rx="5"/>
-  <text class="sub" x="780" y="163" text-anchor="middle">full band</text>
+  <text class="sub" x="780" y="163" text-anchor="middle">frontEnd</text>
   <text class="mono" x="10" y="197">runRFITest</text>
   <rect class="box" x="153" y="179" width="134" height="28" rx="5"/>
   <text class="sub" x="220" y="197" text-anchor="middle">main's</text>
@@ -98,19 +99,53 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="293" y="213" width="134" height="28" rx="5"/>
   <text class="sub" x="360" y="231" text-anchor="middle">main's seed</text>
   <rect class="box proc" x="433" y="213" width="134" height="28" rx="5"/>
-  <text class="sub" x="500" y="231" text-anchor="middle">−5 dB, then −5…−60 dB*</text>
+  <text class="sub" x="500" y="231" text-anchor="middle">−5, then −5…−60 dB*</text>
   <rect class="box proc" x="573" y="213" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="231" text-anchor="middle">locked radar cases</text>
   <rect class="box proc" x="713" y="213" width="134" height="28" rx="5"/>
-  <text class="sub" x="780" y="231" text-anchor="middle">channels, excision options</text>
-  <rect class="box proc" x="10" y="251" width="22" height="14" rx="3"/><text class="sub" x="40" y="262">varied: what the experiment is about</text>
-  <rect class="box" x="300" y="251" width="22" height="14" rx="3"/><text class="sub" x="330" y="262">kept fixed</text>
-  <text class="sub" x="440" y="262">* weak signals from noise-free folds plus the measured leftover</text>
+  <text class="sub" x="780" y="231" text-anchor="middle">excision options</text>
+  <text class="mono" x="10" y="265">runRFIProfile</text>
+  <rect class="box proc" x="153" y="247" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="265" text-anchor="middle">none (zero sky)</text>
+  <rect class="box" x="293" y="247" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="265" text-anchor="middle">main's seed</text>
+  <rect class="box" x="433" y="247" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="265" text-anchor="middle">no pulsar</text>
+  <rect class="box proc" x="573" y="247" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="265" text-anchor="middle">3 cases, 0.1 s and 1 s</text>
+  <rect class="box" x="713" y="247" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="265" text-anchor="middle">channels, excision</text>
+  <text class="mono" x="10" y="299">runScenario</text>
+  <rect class="box proc" x="153" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="299" text-anchor="middle">B0329+54, J0437</text>
+  <rect class="box" x="293" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="299" text-anchor="middle">drawn per fold</text>
+  <rect class="box proc" x="433" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="299" text-anchor="middle">nominal, worst</text>
+  <rect class="box proc" x="573" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="299" text-anchor="middle">clean, RFI variants</text>
+  <rect class="box proc" x="713" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="299" text-anchor="middle">fast simulator</text>
+  <text class="mono" x="10" y="333">runShip</text>
+  <rect class="box proc" x="153" y="315" width="134" height="28" rx="5"/>
+  <text class="sub" x="220" y="333" text-anchor="middle">B0329+54, B0950+08</text>
+  <rect class="box" x="293" y="315" width="134" height="28" rx="5"/>
+  <text class="sub" x="360" y="333" text-anchor="middle">drawn per fold</text>
+  <rect class="box" x="433" y="315" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="333" text-anchor="middle">nominal</text>
+  <rect class="box" x="573" y="315" width="134" height="28" rx="5"/>
+  <text class="sub" x="640" y="333" text-anchor="middle">none</text>
+  <rect class="box proc" x="713" y="315" width="134" height="28" rx="5"/>
+  <text class="sub" x="780" y="333" text-anchor="middle">fast simulator</text>
+  <rect class="box proc" x="10" y="353" width="22" height="14" rx="3"/><text class="sub" x="40" y="364">varied: what the experiment is about</text>
+  <rect class="box" x="300" y="353" width="22" height="14" rx="3"/><text class="sub" x="330" y="364">kept fixed</text>
+  <text class="sub" x="440" y="364">* weak signals from noise-free folds plus the measured leftover</text>
 </svg>
 <figcaption>Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
-interference alone.</figcaption>
+interference alone. <code>runScenario</code> and <code>runShip</code> draw folds with the fast simulator instead of voltages, for real
+pulsars over days.</figcaption>
 </figure>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> run the front end that <code>frontEnd</code> chooses. They
@@ -185,7 +220,7 @@ over seeds:</p>
 <li>0.0126 % of the samples blanked.</li>
 </ul>
 <p><code>pChi2</code> is not uniform there at −5 dB (mean 0.29). The band-edge channels 1 and 128 hold almost no pulse in the
-simulation, but the fit assumes equal gain (roadmap <a href="roadmap.html">open item 3</a>). The excess grows with SNR²: at −15 dB
+simulation, but the fit assumes equal gain (roadmap <a href="roadmap.html#item3">open item 3</a>). The excess grows with SNR²: at −15 dB
 <code>pChi2</code> is uniform (Kolmogorov–Smirnov 0.090; ratio 0.971).</p>
 <details><summary>History</summary>
 <p>The channel-path Monte Carlo is step A3b, 19 Oct 2026. Until 19 Oct the script ran on the full band only, and
@@ -208,17 +243,18 @@ noise is rescaled (common random numbers, see below).</li>
 <ul>
 <li>excision is off for SNR points above <code>excisionMaxSNR</code> (−5 dB), because <code>detectRFI</code> would flag a bright pulse
 itself;</li>
-<li>there is no exact optimum yet (roadmap item 8). So the detection theory and the SNR axes use the measured mean T0, the matched-filter
+<li>there is no exact optimum yet (roadmap <a href="roadmap.html#item8">item 8</a>). So the detection theory and the SNR axes use the measured mean T0, the matched-filter
 SNR at the known phase, instead;</li>
 <li>at high SNR the mean T0 is much larger than <code>estimateTOA</code>'s SNR: at +10 dB 2332 against 493. T0 is normalized by the
 noise without a pulsar, so the pulsar's own noise is not in it. That only matters where <var>P</var><sub>D</sub> = 1 anyway.</li>
 </ul></li>
 <li>Figure: σ<sub>TOA</sub> vs SNR (rms, robust, predicted, optimum), ratios, |<var>z</var>| &lt; 1 and outliers, detection.</li>
 </ul>
-<div class="callout why"><span class="ttl">Design choice: H0 is a zero sky (Jasper, 5 Oct)</span>
+<div class="callout why"><span class="ttl">Design choice: H0 is a zero sky</span>
 <p><b>Alternative:</b> use a very low SNR, such as −50 dB, as "no pulsar".</p>
 <p><b>Why not:</b> −50 dB is not "no pulsar". It is a real small-antenna operating point that only needs long integrations. H0 must be a
-sky with no pulsar at all.</p></div>
+sky with no pulsar at all.</p>
+<details><summary>History</summary><p>Jasper, 5 Oct 2026.</p></details></div>
 <div class="callout why"><span class="ttl">Design choice: the same random numbers at every SNR</span>
 <p><b>Alternative:</b> new pulsar and noise realizations at every SNR point.</p>
 <p><b>Why not:</b> with the same sky and noise seed at every SNR (only the noise level is rescaled), the curves against SNR are smooth: the
@@ -240,7 +276,7 @@ SNR ≥ 6–7 per TOA carries over from the full band:</p>
 <tr><td>P<sub>D</sub>, unknown phase</td><td class="num">0.09</td><td class="num">0.69</td><td class="num">1</td></tr>
 </table></div>
 <p>There are no outliers among the good TOAs at any point. On the full band it was 72 % at SNR 4.8 and 100 % at 7.5. The channel path needs
-about 5 % more SNR for the same ρ, because of the edge channels (roadmap item 3). The rms/pred of 1.07–1.08 at every point is one shared
+about 5 % more SNR for the same ρ, because of the edge channels (roadmap <a href="roadmap.html#item3">item 3</a>). The rms/pred of 1.07–1.08 at every point is one shared
 fluctuation: the same 10 noise seeds serve every SNR, and the H0 T0 standard deviation is 1.072.</p>
 
 <h2 id="h0"><code>runH0.m</code> <span class="badge validated">validated</span></h2>
@@ -330,15 +366,20 @@ the periodic mask. <code>runCases</code> picks a subset, and only the radars it 
 <p>Results and the frequency-guard sweep: <a href="excision.html#locked">locked radar</a>; the periodic mask:
 <a href="excision.html#periodic"><code>periodicRFI</code></a>.</p>
 
-<h2 id="rfiprofile"><code>runRFIProfile.m</code> (20 Oct)</h2>
+<h2 id="rfiprofile"><code>runRFIProfile.m</code></h2>
 <p>A voltage-chain run without a pulsar: zero sky, receiver noise and RFI, through the channel path with excision. <code>rfiProfile</code>
 measures, per channel, the level, the noise coefficients and the valid fraction (<a href="simulator.html#rfi">simulator</a>). The cases
 are realistic, narrow Inmarsat and noise only. Each is run at 0.1 s (<code>runRFITest</code>'s settings) and at 1 s (the steady part,
 with the radar beam passages outside the run). It measures 30 lags (since 21 Oct).</p>
-<p>The profiles were measured at DM 5. <code>testRFIChain</code>'s half-A profile at DM 25 agrees with them within its scatter, so they
-stay.</p>
+<p>The profiles in <code>data/rfi/profile/</code> were measured at DM 5. <code>testRFIChain</code>'s half-A profile at DM 25 agrees with
+them within its scatter, so they stay valid at the default DM.</p>
+<p>The 1 s profiles were measured again with the new excision code (per-channel <code>detectRFI</code> thresholds, 30 lags). They are in
+<code>data/rfi/profile_21oct/</code>. The 100-day scenario runs used them, from a scratch copy of <code>runScenario</code>. The committed
+<code>runScenario.m</code> still loads <code>data/rfi/profile/</code>, so its 30-day results stay as recorded.</p>
+<details><summary>History</summary><p>Written 20 Oct 2026 (step C4b). 30 lags since 21 Oct; the profiles were measured again the same
+day.</p></details>
 
-<h2 id="scenario"><code>runScenario.m</code> (20 Oct)</h2>
+<h2 id="scenario"><code>runScenario.m</code></h2>
 <p>The reference scenario with the fast simulator:</p>
 <ul>
 <li>B0329+54 from the Netherlands (52° N, passes of 19.6 h above 20°), and J0437 from 30° S (passes of 12.3 h);</li>
@@ -349,8 +390,8 @@ stay.</p>
 <p>In plain steps:</p>
 <ol>
 <li>Daily passes from latitude, declination and the 20° elevation mask, one per sidereal day.</li>
-<li>Each pass is cut into chunks (4 h for B0329+54, for memory) on the sub-int grid (120 s / 300 s sub-ints), and <code>simulateFold</code>
-draws the folds.</li>
+<li>Each pass is cut into chunks for memory (2 h for B0329+54, 24 h for J0437) on the sub-int grid, and <code>simulateFold</code> draws
+the folds. The sub-ints are 120 s for B0329+54 and 300 s for J0437.</li>
 <li><code>adaptiveSubints</code> merges sub-ints until SNR ~7 (also over the gap to the next day); the sub-ints of the group still open at the
 end of a chunk are carried into the next one, which is exact because fold sums add.</li>
 <li><code>foldToTOA</code> on every closed group; the TOA against the truth.</li>
@@ -369,19 +410,30 @@ assumes a good ephemeris; a first test with an offset of 0.12 turns closed no gr
 the passes.</li>
 <li>Each TOA records its absolute time, the measured residual and the true one, split into position and clock: the input of the
 navigation fit. The result files get the suffix <code>_motion_perfect</code> or <code>_motion_sdr</code>.</li>
+<li>A TOA merges sub-ints, often over hours and sometimes over two passes a day apart, so it is a time-average. Its true parts and the
+clock estimate the observer used are averaged over its sub-ints. Its time tag is the time nearest its mean time whose sidereal phase is
+the circular mean of its sub-ints' (<code>sideTag</code>), clamped to their span. It also carries its sub-ints' times
+(<code>tSub</code>), so that the navigation fit can average its row the same way.</li>
 <li>With the SDR clock the observer tracks it (<code>motion.track</code> <code>"daily"</code>). After each day it fits all its TOAs so
 far with <code>navFit</code> and the clock model, predicts its clock for the next day, and folds that day with the prediction. Until it
 has 20 TOAs, about two days, it keeps the calibration from port. <code>"none"</code> keeps the calibration throughout; those files get
 the suffix <code>_notrack</code>.</li>
 </ul>
-<p>In a 6-day check the tracked clock was known to 33–45 µs from day 3 on, while the untracked one was 0.25–1 ms off. The pulse is 6.6 ms
-wide.</p>
+<p>A 6-day check with the SDR clock (true rate −1.17·10⁻⁶): the rms of the clock the observer had not estimated, per day. The pulse is
+6.6 ms wide.</p>
+<div class="table-wrap"><table>
+<tr><th>Day</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th></tr>
+<tr><td>tracked</td><td class="num">1062 µs</td><td class="num">1316 µs</td><td class="num">43 µs</td><td class="num">45 µs</td><td class="num">282 µs</td><td class="num">33 µs</td></tr>
+<tr><td>not tracked</td><td class="num">1062 µs</td><td class="num">1150 µs</td><td class="num">1044 µs</td><td class="num">784 µs</td><td class="num">521 µs</td><td class="num">246 µs</td></tr>
+</table></div>
+<p>Day 2's 1.3 ms came from a rate fitted to one day; tracking therefore starts at 20 TOAs. Over the 30-day run the tracked clock's
+daily error stays between 16 µs and 620 µs on days 4–28, and every TOA is kept (<a href="navigation.html#navfit">navigation</a>).</p>
 <p>For J0437 a 1 ms clock-offset error is 0.17 turns, far outside its pulse, so <code>adaptiveSubints</code> would close no groups.
 For J0437 the observer must know its clock offset much better; keeping it known is the navigation filter's job.</p>
 <p>The variants are clean, RFI, RFI + calibration, + scintillation, and fixed groups for comparison. Results:
 <a href="scenario.html">scenario</a>.</p>
 
-<h2 id="ship"><code>runShip.m</code> (22 Oct)</h2>
+<h2 id="ship"><code>runShip.m</code></h2>
 <p>A ship that navigates by pulsars: the fast simulator and the navigation filter in a closed loop (block D4d). The ship knows its track
 only from dead reckoning, and an unknown current pushes it off that track.</p>
 <div class="table-wrap"><table>
@@ -417,9 +469,13 @@ Part of the cause was real: a TOA from two passes a day apart was tagged between
 The rest was the noise of single runs, which the twin now separates. The calibrated start, the mean-reverting current and the averaged
 rows followed the same day.</p></details>
 
-<h2>Planned</h2>
-<p>The processing is factored out since 19 Oct (<code>processIQ</code>, <code>foldToTOA</code>), used by <code>main</code> and all run scripts except
-<code>runLockedRadar</code>, which processes difference channels by superposition (<a href="roadmap.html#processiq">roadmap</a>).</p>
+<h2 id="processing">The processing in the scripts</h2>
+<p>The processing is factored out into <code>processIQ</code> (IQ in, fold out) and <code>foldToTOA</code> (TOAs, detection, good
+TOAs). <code>main</code> and the voltage-chain scripts use both, except <code>runLockedRadar</code>, which processes difference channels
+by superposition (<a href="roadmap.html#processiq">roadmap</a>). <code>runScenario</code> and <code>runShip</code> do not call
+<code>processIQ</code>: the fast simulator draws their folds, and they form TOAs with <code>adaptiveSubints</code> and
+<code>foldToTOA</code>.</p>
+<details><summary>History</summary><p><code>processIQ</code> and <code>foldToTOA</code> since 19 Oct 2026.</p></details>
 
 </main>
 <script src="nav.js"></script>

@@ -4,19 +4,21 @@ import numpy as np
 # (100 us after 1 s, ~7 s after 20 h uncorrected); J0437's binary orbit ~3 s within one 20 h fold; clock rate off by 1e-9 over
 # 20 h: 72 us; station position error 4-100 km: delta_r/c; DM change of 1e-3 pc/cm3 at 1.4 GHz: 2.1 us; residual of an exactly
 # locked radar in the main beam at -54 dB with guard and periodic mask: 0.41 us; ionosphere 3-70 ns; scattering 0.4 ns at DM 5,
-# about a microsecond at DM ~100.
+# about a microsecond at DM ~100; Doppler-shifted dispersion delay (22 Oct 2026, logs/2026-10-22_doppler-dispersion.md):
+# +-0.3 us (J0437) ... +-7.1 us (B0329+54), annual. Status per row (22 Oct 2026): what block D models, what is parked.
 c = 299792458.0
-rows = [('Earth\'s orbital motion (uncorrected)', 100e-6, 7.2, 'after 1 s … after 20 h'),
-        ('J0437\'s binary orbit, within one fold', 3.0, None, '~3 s in 20 h'),
-        ('clock rate off by 10⁻⁹, over 20 h', 72e-6, None, '72 µs'),
-        ('station position error 4–100 km', 4e3/c, 100e3/c, '13–330 µs'),
-        ('DM change of 0.001 pc cm⁻³', 2.1e-6, None, '2.1 µs at 1.4 GHz'),
-        ('locked radar left after excision (main beam)', 0.41e-6, None, '0.41 µs at −54 dB'),
-        ('ionosphere', 3e-9, 70e-9, '3–70 ns'),
-        ('scattering', 0.4e-9, 1e-6, '0.4 ns (DM 5) … µs (DM ~100)')]
+rows = [('Earth\'s orbital motion (uncorrected)', 100e-6, 7.2, 'after 1 s … after 20 h', 'modelled since block D'),
+        ('J0437\'s binary orbit, within one fold', 3.0, None, '~3 s in 20 h', 'not modelled: parked'),
+        ('clock rate off by 10⁻⁹, over 20 h', 72e-6, None, '72 µs', 'modelled since block D'),
+        ('station position error 4–100 km', 4e3/c, 100e3/c, '13–330 µs', 'the navigation signal (block D)'),
+        ('Doppler-shifted dispersion delay, annual', 0.3e-6, 7.1e-6, '0.3 µs (J0437) … 7.1 µs (B0329+54)', 'real data only: cancels in the simulator'),
+        ('DM change of 0.001 pc cm⁻³', 2.1e-6, None, '2.1 µs at 1.4 GHz', ''),
+        ('locked radar left after excision (main beam)', 0.41e-6, None, '0.41 µs at −54 dB', ''),
+        ('ionosphere', 3e-9, 70e-9, '3–70 ns', 'open for real data'),
+        ('scattering', 0.4e-9, 1e-6, '0.4 ns (DM 5) … µs (DM ~100)', '')]
 x0, x1, lo, hi = 300, 820, -10, 1
 X = lambda t: x0 + (np.log10(t) - lo)/(hi - lo)*(x1 - x0)
-y0, dy = 50, 30
+y0, dy = 50, 34
 o = []
 yb = y0 + len(rows)*dy
 toa, ns = 12e-6, 1e-9
@@ -25,9 +27,11 @@ o.append(f'<rect class="fillfg" x="{X(toa):.1f}" y="{y0 - 14}" width="{x1 - X(to
 for t, lab in ((toa, 'J0437 TOA at SNR 7: 12 µs'), (ns, '1 ns = 30 cm')):
     o.append(f'<path class="dash" d="M{X(t):.1f} {y0 - 22} V{y0 - 14}"/>')
     o.append(f'<text class="sub" x="{X(t):.1f}" y="{y0 - 26}" text-anchor="middle">{lab}</text>')
-for i, (name, a, b, val) in enumerate(rows):
+for i, (name, a, b, val, status) in enumerate(rows):
     y = y0 + i*dy
-    o.append(f'<text class="sub" x="10" y="{y + 4}">{name}</text>')
+    o.append(f'<text class="sub" x="10" y="{y + 2}">{name}</text>')
+    if status:
+        o.append(f'<text class="sub" x="10" y="{y + 15}" opacity="0.7">{status}</text>')
     big = (b or a) > toa
     cls = 'bad' if big else ('dot2' if (b or a) > ns else 'dot')
     lcls = 'curve4' if big else ('curve2' if (b or a) > ns else 'curve')
@@ -52,9 +56,10 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {yb + 44}" role="img" aria-label="Size of each effect the simulation leaves out, as a timing error on a log scale, against the J0437 TOA precision and the nanosecond goal">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How big each effect left out of the simulation is, as a timing error (log scale; numbers from the sections below). Right of the
-12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours: Earth's motion, the pulsar's binary
-orbit, the clock and the station position, all part of block D. Between 1 ns and 12 µs (orange) an effect does not change today's TOAs but
-matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a radar locked to the pulsar.</figcaption>
+<figcaption>How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
+12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours. Block D models three of them:
+Earth's motion, the clock and the station position. The pulsar's binary orbit is parked. Between 1 ns and 12 µs (orange) an effect does
+not change today's TOAs but matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a
+radar locked to the pulsar. The Doppler-shifted dispersion delay sits there too; it matters for real data only.</figcaption>
 </figure>'''
 open('effects.svg', 'w').write(svg)

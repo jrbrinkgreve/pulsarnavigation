@@ -58,7 +58,7 @@ svg = '''<figure class="scroll">
 <figcaption>Why noise and RFI are added <em>after</em> dispersion (expected power in 16 sub-bands of 25 MHz, the code's constants). a: the
 receiver sees the pulsar already dispersed, but an impulse made at the receiver arrives at all frequencies at once, and a carrier is
 simply on. b: dedispersion moves each frequency earlier by τ(<var>f</var>) − τ(1.6 GHz). The pulsar lines up; the impulse becomes an
-<em>inverse</em> sweep, 6.3 ms long; the carrier stays where it was. Real data behaves like this, so the simulator must add RFI at this
+<em>inverse</em> sweep, 6.3 ms long at the DM 5 drawn here (31.5 ms at DM 25); the carrier stays where it was. Real data behaves like this, so the simulator must add RFI at this
 point. It also shows why excision works <em>before</em> dedispersion: there the impulse is short and in one place.</figcaption>
 </figure>'''
 open('rxorder.svg', 'w').write(svg)

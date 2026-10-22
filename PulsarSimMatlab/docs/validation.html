@@ -14,6 +14,13 @@
 processing-side code allowed to read <code>info_gen</code>, <code>info_disp</code> and <code>info_rx</code>, and they are never used to
 make a result, only to check one.</p>
 
+<div class="callout note"><span class="ttl">In short</span>
+<p>A result counts as validated when a test predicts its own scatter and the code lands inside it, in Jasper's own run. The TOAs are
+judged against the simulation's true pulse times (<code>validateTOA</code>): the scatter of (TOA − truth) must match the stated error
+bars. The best possible error bar comes from <code>expectedPowerModel</code>, and the plot checks show each stage against its expected
+signal. Over hours and days, the fast simulator and the navigation fit are judged the same way, against their own truth: pulls at fixed
+times over many realizations, and an ideal twin on the same TOA schedule.</p></div>
+
 <h2>How a result counts as validated</h2>
 <p>Three kinds of check run throughout the project, and most tests use all three:</p>
 <ul>
@@ -31,6 +38,22 @@ far off.</p></div>
 <p>The check functions are the only processing-side code that may read the simulation's truth, and they never feed a result. Every
 stage that produces a TOA must work unchanged on real data, where there is no truth to read (the <a href="conventions.html#truth">ground-truth
 rule</a>). Keeping the two apart is what makes a validated result mean something for real data.</p></div>
+
+<h2 id="longruns">Long runs and navigation: judged against their truth</h2>
+<p>The fast simulator keeps its truth in a separate struct, and <code>trueResiduals</code> gives the true pulse phase of a moving
+receiver (<a href="simulator.html#truth">fast simulator</a>). The navigation results are judged against that truth in three ways:</p>
+<ul>
+<li><b>The true residuals themselves.</b> <code>expNavFit</code> fits the noise-free true residuals first: they give the 100 km offset
+as 99.994 km. So the fit and the truth agree, and any error after that comes from the TOAs.</li>
+<li><b>Pulls at fixed times, over many realizations.</b> A smoothed track's errors are correlated along the whole track, so the pulls of
+all TOAs of one run are not independent. <code>testNavFilter</code> and the ship runs therefore take the pulls at four fixed times
+(in the ship runs days 3, 7, 10 and 14) and pool them over realizations.</li>
+<li><b>An ideal twin.</b> The same smoother runs on ideal TOAs: the truth averaged over the same sub-ints, plus Gaussian noise of the
+stated σ. If the
+real filter's errors match the twin's, the TOA chain adds nothing; if not, the difference is the chain's (<a href="navigation.html#ship">navigation</a>).</li>
+</ul>
+<p>A single ship run is far noisier than its pulls suggest, because its errors are correlated along the track. So the filter is judged
+over many seeds, never on one run.</p>
 
 <h2 id="validate"><code>validateTOA</code> <span class="badge validated">validated</span></h2>
 <div class="sig">val = validateTOA(toa, info_gen, 'Plot', true, 'Label', '')</div>
@@ -424,7 +447,8 @@ above times \(dt\):</p>
 <div class="eq">\[ \mathrm{SNR}^2 = \int \frac{P_s^2}{v}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = \int \frac{P_s'^2}{v}\,dt, \qquad P_s' = \frac{dP_s}{dt} \]</div>
 <p>These give <code>M.snrPulse</code> and <code>M.toaErrPulse</code>. Without noise they are NaN, because the integrals diverge in the tails.
 At −5 dB they are 96.5 and 2.892 µs, also checked against a Python port. RFI is not in the model; it shows up as an excess in the
-checks. (Added 5 Oct 2026.)</p>
+checks.</p>
+<details><summary>History</summary><p>Added 5 Oct 2026.</p></details>
 <div class="callout why"><span class="ttl">Why compute the exact optimum</span>
 <p>Without it you cannot tell whether FFTFIT is 2 % or 0.5 % from optimal (it is 0.5 % at −5 dB). The integrals ∫<var>W</var>² for the mean and
 (∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance are also the prototype of the narrow-channel and blanking noise models. On real data with ripple,
@@ -435,9 +459,9 @@ slopes and notches the difference can be 10–30 %.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>Shows</th><th>Status</th></tr>
 <tr><td><a href="api.html#plotdispersioncheck"><code>plotDispersionCheck</code></a></td><td>raw vs dispersed dynamic spectra with the expected sweep; band-integrated power</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td><a href="api.html#plotiqcheck"><code>plotIQCheck</code></a></td><td>dynamic spectra of dispersed and dedispersed IQ with the expected sweep, power vs expected, mean spectra, raw I/Q zoom, per-pulse centroid/energy</td><td><span class="badge validated">noise-free</span>; patched for noise</td></tr>
-<tr><td><a href="api.html#plotdetectedpower"><code>plotDetectedPower</code></a></td><td>overview, optional channel waterfall, zoom vs expected, normalized residual; per-pulse centroid offsets on (P − off-pulse baseline); <code>DisplayAverage</code> for display only</td><td><span class="badge validated">noise-free</span>; noise version written</td></tr>
-<tr><td><a href="api.html#plotfoldcheck"><code>plotFoldCheck</code></a></td><td>total profile vs expected (kernel-averaged: boxcar + assignment), zoom, normalized residual, sub-int stack, per-sub-int centroid offsets with covariance-correct errors</td><td><span class="badge validated">noise-free</span>; noise version written</td></tr>
+<tr><td><a href="api.html#plotiqcheck"><code>plotIQCheck</code></a></td><td>dynamic spectra of dispersed and dedispersed IQ with the expected sweep, power vs expected, mean spectra, raw I/Q zoom, per-pulse centroid/energy</td><td><span class="badge validated">validated</span> without noise. It was patched for noise, and that version is not validated.</td></tr>
+<tr><td><a href="api.html#plotdetectedpower"><code>plotDetectedPower</code></a></td><td>overview, optional channel waterfall, zoom vs expected, normalized residual; per-pulse centroid offsets on (P − off-pulse baseline); <code>DisplayAverage</code> for display only</td><td><span class="badge validated">validated</span> without noise. The noise version is <span class="badge written">written</span>.</td></tr>
+<tr><td><a href="api.html#plotfoldcheck"><code>plotFoldCheck</code></a></td><td>total profile vs expected (kernel-averaged: boxcar + assignment), zoom, normalized residual, sub-int stack, per-sub-int centroid offsets with covariance-correct errors</td><td><span class="badge validated">validated</span> without noise. The noise version is <span class="badge written">written</span>.</td></tr>
 </table></div>
 <p>Each function's options (time windows, display averaging, truth inputs) are listed with its help text in the <a href="api.html">function reference</a>. The IQ, detected and fold checks run on the full-band path only (<code>main.m</code> prints a note on the channel path).</p>
 <div class="callout note"><span class="ttl">The centroid cross-check, and the +3.7 µs that was not a bias</span>

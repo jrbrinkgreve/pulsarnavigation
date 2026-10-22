@@ -97,7 +97,7 @@ pulsars are needed.</figcaption>
 </figure>
 <div class="callout note"><span class="ttl">What this project is, and is not (yet)</span>
 <p>The voltage pipeline produces TOAs with honest error bars for <em>one</em> pulsar at a receiver that does not move. The motion
-of the receiver (Doppler) and the barycentric corrections are in block D: see <a href="prediction.html">phase prediction</a> and
+of the receiver (Doppler) and the barycentric corrections are in stage 7a: see <a href="prediction.html">phase prediction</a> and
 <a href="localisation.html">localisation, frames and relativity</a>. The navigation solution is stage 10: a batch fit for a fixed site
 and a Kalman filter for a moving ship (<a href="navigation.html">navigation</a>). Several pulsars at full scale and the array follow in
 block E (<a href="roadmap.html">roadmap</a>).</p></div>
@@ -525,7 +525,8 @@ averages down, and the SNR grows as the square root of the number of turns.</p><
 <figcaption>Folding. a: simulated folded profiles at an SNR of 0.25 per turn, scaled so the noise per bin stays the same: the pulse
 grows as √<var>N</var> and is clear after a few thousand turns. b: SNR against observing time for the simulated 10 ms pulsar (SNR per
 turn ≈ 373·ρ). Each 10 dB weaker signal needs 100× longer. At −54 dB a TOA with SNR 7 takes about 62 hours; J0437, with its narrower
-pulse and both polarizations, needs about 20 (<a href="scenario.html">scenario</a>).</figcaption>
+pulse and both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h
+(16 h at nominal flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>
 <p><b>In the code:</b> <a href="fold.html"><code>foldProfile</code></a>.</p>
 
@@ -690,7 +691,7 @@ mixed with good data. So excision works on the channel voltages, before dedisper
 
 <h2 id="propagation">10. Other propagation effects</h2>
 <div class="callout note"><span class="ttl">In short</span>
-<p>Scattering, the pulsar's spectrum, the ionosphere and motion are not in the simulator yet. Scintillation is in the fast simulator
+<p>Scattering, the pulsar's spectrum and the ionosphere are not in the simulator. Scintillation and motion are in the fast simulator
 only. Motion matters most: the drift it causes is the navigation signal itself. How big each effect is:
 <a href="limits.html#sizes">Limitations</a>.</p></div>
 <ul>
@@ -703,7 +704,9 @@ simulator is white.</li>
 <li><b>Ionosphere.</b> The same 1/<var>f</var>² law as interstellar dispersion, but ~3–70 ns and changing with time; also Faraday
 rotation and ionospheric scintillation.</li>
 <li><b>Motion.</b> Earth's orbital speed (<var>v</var>/<var>c</var> ≈ 10⁻⁴) drifts the pulse phase by ~100 µs per second at 100 Hz. That
-drift <em>is</em> the navigation signal; following it needs a barycentric phase model (block D).</li>
+drift <em>is</em> the navigation signal. The observer follows it with a barycentric phase model (<a href="prediction.html">stage 7a</a>),
+and the fast simulator puts every pulse where the true trajectory puts it (<code>trueResiduals</code>,
+<a href="simulator.html#truth">fast simulator</a>). The voltage simulation has a fixed period.</li>
 </ul>
 
 <h3 id="scint">Interstellar scintillation</h3>

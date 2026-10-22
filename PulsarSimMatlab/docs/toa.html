@@ -511,7 +511,8 @@ changed from the half-maximum width to the spectral width. Multi-component templ
 <dt>Per sub-int</dt><dd>valid, coverage, phase, phaseErr, <b>toa</b>, <b>toaErr</b>, amp, ampErr, baseline, snr (= <var>b</var>/σ<sub>b</sub>), redChi2, flagChi2, converged ('optimal': the weight iteration met its criterion; 'equal' does not iterate: true), tRef, fRef, turnRef, nChanUsed, chanBaseline</dd>
 <dt><code>toa.total</code></dt><dd>phase, phaseErr, timeOffset (relative to the ephemeris), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, converged, nChanUsed</dd>
 </dl>
-<p><code>main.m</code> adds <code>toa.good</code> = valid ∧ detected (unknown phase) ∧ ¬flagChi2; see <a href="detection.html#good">good TOAs</a>.</p>
+<p><code>foldToTOA</code>, which calls <code>estimateTOA</code>, adds <code>toa.good</code> = valid ∧ detected (unknown phase) ∧ ¬flagChi2;
+see <a href="detection.html#good">good TOAs</a>.</p>
 
 <h2 id="valid">9. Validation</h2>
 <ul>

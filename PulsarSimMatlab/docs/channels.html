@@ -13,8 +13,7 @@
 <p class="lede">The default processing path. It splits the band into 128 channels of 3.125 MHz, dedisperses each channel coherently
 to one common reference, and detects each channel with an exact model of its noise.</p>
 <p class="meta">Selected with <code>frontEnd = 'channels'</code> · RFI excision (<code>excision = true</code>, default) sits between
-<code>channelizeIQ</code> and <code>dedisperseChannels</code>; see <a href="excision.html">RFI excision</a> · block A, the default since
-8 Oct 2026</p>
+<code>channelizeIQ</code> and <code>dedisperseChannels</code>; see <a href="excision.html">RFI excision</a> · block A, the default</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#why">Why a channelized front end</a></li>
@@ -27,7 +26,7 @@ to one common reference, and detects each channel with an exact model of its noi
 
 <h2 id="why">Why a channelized front end</h2>
 <p>The <a href="fullband.html">full-band path</a> worked and was validated first. Then a channelized path was put in front of
-everything else (Jasper's decision, 6 Oct 2026), for four reasons:</p>
+everything else, for four reasons:</p>
 
 <div class="callout why"><span class="ttl">1 · RFI excision needs it</span>
 <p>Real data contains RFI. At −54 dB one radar pulse outweighs about 80,000 pulsar pulses. So it must be blanked on the voltages,
@@ -96,12 +95,14 @@ forward filter (stage 2, real samples at 4 GHz) is the remaining problem (<a hre
 </figure>
 
 <div class="callout why"><span class="ttl">3 · Sub-band TOAs later</span>
-<p>Arrival times per group of channels give a check of the DM from the data itself (block 2 of the <a href="roadmap.html">roadmap</a>).</p></div>
+<p>Arrival times per group of channels give a check of the DM from the data itself (planned; <a href="roadmap.html">roadmap</a>,
+longer term).</p></div>
 
 <div class="callout why"><span class="ttl">4 · Nothing is lost</span>
 <p>Each channel is still dedispersed <em>coherently</em>, on its voltage, so there is no smear inside a channel (the
 <a href="fullband.html#dedisp-why">full-band page</a> shows what shifting channels would leave). The full-band path stays as the validated
 reference: with all new options off, every changed function reproduces its old output bit for bit.</p></div>
+<details><summary>History</summary><p>Jasper's decision, 6 Oct 2026.</p></details>
 
 <h2 id="chan">5a · <code>channelizeIQ</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info_chan = channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, 'ChanWidth', 3.125e6, 'T0', info_IQ.t0)</div>

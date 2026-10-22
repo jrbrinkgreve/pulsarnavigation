@@ -13,7 +13,8 @@
 <p class="lede">Every parameter of the pipeline, its value, what it means, why it has that value, and which stage
 uses it. <code>pipelineParams.m</code> is a script: <code>main.m</code> and every <code>run*.m</code> call it, so they all use the same
 values.</p>
-<p class="meta">Values checked against <code>pipelineParams.m</code> at commit <code>8a756ec</code> (13 Oct 2026). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
+<p class="meta">Values checked line by line against <code>pipelineParams.m</code> as of commit <code>95a93bc</code> (21 Oct 2026, its last change;
+checked 22 Oct). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
 uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
 
 <div class="callout note"><span class="ttl">In short</span>
@@ -191,12 +192,16 @@ then cuts the band into 128 channels whose edges fall on the band edges (fine li
   <text class="lbl" x="527.5" y="129.0" text-anchor="middle">1 s</text>
   <path class="thin" d="M765.3 150 V130.0" opacity="0.7"/>
   <circle cx="765.3" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="765.3" y="116.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, worst case</text>
+  <text class="sub" x="765.3" y="116.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, catalogue est.</text>
   <text class="lbl" x="765.3" y="129.0" text-anchor="middle">21 h</text>
+  <path class="thin" d="M794.2 150 V94.0" opacity="0.7"/>
+  <circle cx="794.2" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="794.0" y="80.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, simulated</text>
+  <text class="lbl" x="794.0" y="93.0" text-anchor="middle">82–95 h</text>
   <path class="thin" d="M788.2 150 V174.0" opacity="0.7"/>
   <circle cx="788.2" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="788.2" y="194.0" text-anchor="middle" style="fill:var(--fg)">TOA at −54 dB (sim. pulsar)</text>
-  <text class="lbl" x="788.2" y="207.0" text-anchor="middle">62 h</text>
+  <text class="sub" x="773.7" y="194.0" text-anchor="middle" style="fill:var(--fg)">TOA at −54 dB (sim. pulsar)</text>
+  <text class="lbl" x="773.7" y="207.0" text-anchor="middle">62 h</text>
   <circle cx="44" cy="276" r="4" style="fill:var(--accent)"/><text class="sub" x="53" y="280">sampling and processing grid</text>
   <circle cx="234" cy="276" r="4" style="fill:var(--why)"/><text class="sub" x="243" y="280">the pulsar</text>
   <circle cx="424" cy="276" r="4" style="fill:var(--warn)"/><text class="sub" x="433" y="280">interference</text>
@@ -206,13 +211,15 @@ then cuts the band into 128 channels whose edges fall on the band edges (fine li
 <figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
 bins resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a million times longer, which
-is why block C plans a fast simulator.</figcaption>
+is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>
 
 <h2 id="pulsar">1. Pulsar (ground truth for generation)</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the target millisecond pulsar.</td><td>generator; <code>ephem.f0</code></td></tr>
+<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the millisecond pulsar of the design point. The
+scenario runs use B0329+54 from 52° N, where J0437 never rises (<a href="scenario.html#ship">scenario</a>); the fast simulator takes
+their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>A</code></td><td>1</td><td>pulsar noise std at the pulse peak (signal scale)</td><td>Sets the scale only; the receiver noise is set relative to it through <code>snrDB</code>.</td><td>generator; <code>addNoiseAndRFI</code> via <code>info_gen</code></td></tr>
 <tr><td><code>dutycycle</code></td><td>5 %</td><td>pulse FWHM as a percentage of <var>T</var> → 0.5 ms, σ<sub>t</sub> = 212.3 µs</td><td>Typical of real pulsars (a few percent).</td><td>generator; <code>ephem.profileFWHM</code></td></tr>
 <tr><td><code>genEnvMode</code></td><td><code>'power'</code></td><td>the FWHM refers to the power profile</td><td>The processing detects power; see <a href="sky.html#gen">sky</a>.</td><td>generator</td></tr>
@@ -224,7 +231,7 @@ is why block C plans a fast simulator.</figcaption>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>f_in</code></td><td>4 GHz</td><td>real RF sample rate of the sky and receiver files</td><td>Nyquist 2 GHz covers the 1.6 GHz band edge with room for the IQ filter; 4 GHz / 800 MHz is an integer decimation (5).</td><td>generator, dispersion, noise, IQ</td></tr>
-<tr><td><code>L</code></td><td>0.2 s</td><td>signal length</td><td>0.2 s since 20 Oct (Jasper), with DM 25: dedispersion leaves the last sweep (31.5 ms) of the run not fully supported, so ~168 ms are usable — 16 complete turns on the full band, 15 on the channel path. About 12 GB of files. Until 20 Oct 0.1 s at DM 5 (93.7 ms usable, 9 / 8 turns; that dataset is kept in <code>data/ref_DM5_L0.1/</code> for comparison). The reference runs of 29 Sep–1 Oct used 1 s (~61 GB).</td><td>generator</td></tr>
+<tr><td><code>L</code></td><td>0.2 s</td><td>signal length</td><td>0.2 s since 20 Oct (Jasper), with DM 25: dedispersion leaves the last sweep (31.5 ms) of the run not fully supported, so ~168 ms are usable — 16 complete turns on the full band, 15 on the channel path. About 14.5 GB of files on the default channel path with excision (12.2 GB on the full band). Until 20 Oct 0.1 s at DM 5 (93.7 ms usable, 9 / 8 turns; that dataset is kept in <code>data/ref_DM5_L0.1/</code> for comparison). The reference runs of 29 Sep–1 Oct used 1 s (~61 GB).</td><td>generator</td></tr>
 <tr><td><code>seed</code></td><td>42</td><td>pulsar random stream</td><td>Fixed, so every run shares one pulsar realization; Monte Carlo scripts vary it explicitly.</td><td>generator</td></tr>
 </table></div>
 
@@ -240,7 +247,7 @@ is why block C plans a fast simulator.</figcaption>
 <h2 id="noise">4. Receiver noise and interference</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.1 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.2 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>noiseSeed</code></td><td>seed + 1 = 43</td><td>receiver-noise random stream</td><td>Different from the pulsar seed; "seed 43" is the reference realization in every comparison.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>rfiOn</code></td><td>false</td><td>switch the RFI scenario on</td><td>Noise-only is the reference; RFI is studied on purpose (<code>runRFITest</code>).</td><td>main</td></tr>
 <tr><td><code>rfiList</code></td><td>'illustrative'</td><td>which list <code>rfi</code> is taken from: <code>'illustrative'</code> (5 sources) or <code>'realistic'</code> (16 sources, B5e, 9 Oct)</td><td>The illustrative list stays the default, so main and all tests are unchanged (Jasper).</td><td>main</td></tr>
@@ -279,7 +286,7 @@ put in to test robustness.</p>
 <tr><td><code>ephem.F1</code></td><td>0</td><td>spin-frequency derivative</td></tr>
 <tr><td><code>ephem.TRef</code></td><td>0.5·<code>T</code> = 5 ms</td><td>phase-0 epoch = first true pulse centre, so every true pulse is at an integer phase</td></tr>
 <tr><td><code>ephem.DM</code></td><td><code>DM</code></td><td>dispersion measure for dedispersion</td></tr>
-<tr><td><code>ephem.profileFWHM</code></td><td>0.05 turns</td><td>template FWHM (power profile; <code>'amplitude'</code> mode would need /√2)</td></tr>
+<tr><td><code>ephem.profileFWHM</code></td><td>0.05 turns, or <code>profileComponents</code> when that is set</td><td>template FWHM (power profile; <code>'amplitude'</code> mode would need /√2), or the component list</td></tr>
 </table></div>
 
 <h2 id="files">7. Files</h2>
@@ -323,7 +330,7 @@ when the unit tests' data are re-frozen (the tests themselves read their own cop
 dispersion sweep (31.5 ms; 6.3 ms at DM 5) is not fully supported, so it ends at ~168.5 ms and turn 16 is incomplete; on the channel path
 turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard, 20/62.5 kHz; full band 20/8 MHz = 2.5 µs), because the file
 starts exactly on a turn boundary</td></tr>
-<tr><td>Disk</td><td>~12 GB (full band) + channel and excision files (~6 GB at the earlier 0.1 s)</td><td>printed by <code>main.m</code></td></tr>
+<tr><td>Disk at 0.2 s</td><td>~12.2 GB on the full band; ~12.7 GB on the channel path; ~14.5 GB with excision (the default)</td><td>printed by <code>main.m</code> (its disk formula)</td></tr>
 </table></div>
 
 <h2 id="main">9. Run control in <code>main.m</code></h2>

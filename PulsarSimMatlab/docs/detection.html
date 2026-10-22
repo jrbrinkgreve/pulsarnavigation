@@ -229,6 +229,17 @@ drops from 0.97 to 0.83. Simulated false-alarm rate of the 4.15 threshold: 1.0·
 <p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there".</p>
 
 <h2 id="good">Good TOAs (in <code>foldToTOA</code>)</h2>
+<div class="sig">[toa, detection, info] = foldToTOA(fold, info_fold, profileFWHM, Bnoise, 'Weighting', weighting)</div>
+<p class="meta"><a href="api.html#foldtotoa">Full interface and help text of <code>foldToTOA</code> →</a></p>
+<p><code>foldToTOA</code> is the back end of the processing. It builds the template from <code>profileFWHM</code> (a width, or a list of
+components), runs <code>estimateTOA</code> and <code>detectPulsar</code>, and applies the good-TOA rule below. A fold from the fast simulator
+goes through the same code.</p>
+<dl class="facts">
+<dt>Options</dt><dd><code>Weighting</code> (<code>'equal'</code>; main passes <code>'optimal'</code> on the channel path),
+<code>Verbose</code> (true)</dd>
+<dt>Outputs</dt><dd><code>toa</code>: <code>estimateTOA</code>'s struct plus <code>toa.good</code>; <code>detection</code>:
+<code>detectPulsar</code>'s struct; <code>info</code>: the template, <code>Bnoise</code>, the weighting and the two stages' infos</dd>
+</dl>
 <div class="eq">\[ \texttt{toa.good} = \texttt{toa.valid} \;\land\; \texttt{detection.detectedUnknown} \;\land\; \lnot\,\texttt{toa.flagChi2} \]</div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 200" role="img" aria-label="A sub-integration's TOA is good only if it was fitted, the pulsar is detected and the chi-squared is acceptable">

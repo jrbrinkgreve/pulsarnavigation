@@ -35,7 +35,10 @@ formulas and constants or from a results table (list and use: <code>tools/figure
 Wide figures sit in <code>&lt;figure class="scroll"&gt;</code> with <code>&lt;svg class="wide"&gt;</code>: on a phone they scroll sideways instead of
 shrinking the text.</li>
 <li>Components: <code>.callout.why</code> (motivation), <code>.callout.warn</code> (caveats), <code>.callout.note</code>, <code>.badge.validated / .written / .todo</code>,
-<code>.sig</code> (function signature), <code>.eq</code> (formula block).</li>
+<code>.sig</code> (function signature), <code>.eq</code> (formula block). Data figures colour their series with the tokens
+<code>--series-1</code>, <code>--series-2</code>, <code>--series-3</code> (blue, orange, aqua; checked for colour-vision deficiency, in
+light and dark), through the SVG classes <code>s1</code>/<code>s2</code>/<code>s3</code> (lines), <code>s1f</code>… (filled markers) and
+<code>s1band</code>, <code>s2band</code> (error bands). Inline <code>code</code> may wrap, so long file paths fit a phone.</li>
 <li><b>Page format</b> (agreed 13 Oct 2026): short sentences, one idea each. A page or section starts with "In short" (a
 <code>.callout.note</code> or an <code>&lt;h3&gt;</code>), then the physics, then how it works in plain numbered steps with exact formulas
 folded into <code>&lt;details&gt;</code>, then "Design choices": one <code>.callout.why</code> per choice with the alternative and why it was
@@ -196,6 +199,27 @@ without loss; every link to it retargeted. Pipeline map and table show the new s
 <a href="clock.html">stage 4a</a>, right after the receiver, with <code>makeClock</code>, the clock's three effects, its design choice, tests
 and History, and a lede on why the clock matters. The receiver page is back to stages 3–4, with a pointer. Every link to the old section,
 the pipeline table and the home page's stage cards updated. No code change.</td></tr>
+<tr><td>22 Oct 2026</td><td><code>8728266</code>–<code>26a03da</code></td><td>Block D's exact Earth (D5) documented with its commits:
+<code>loadEphemeris</code> (phase prediction 3b, tests), <code>delayModel</code> <code>'Ephemeris'</code> and the analytic orbit's accuracy
+corrected (prediction, localisation), TDB − TT from DE440 (localisation, formulas, prediction, tests; a form feed from an unescaped
+<code>\f</code> repaired), precession and nutation (prediction, localisation, tests), roadmap status. <code>api.html</code> regenerated after
+each code commit.</td></tr>
+<tr><td>22 Oct 2026</td><td><code>67607a9</code>, <code>8a3188a</code></td><td>TOAs as time-averages (navigation: section, design box,
+tests 11 and 7; tests page); <code>runShip</code> on the run-scripts page. <code>api.html</code> regenerated.</td></tr>
+<tr><td>22 Oct 2026</td><td><code>682556a</code>–<code>85ea666</code></td><td>Six data figures on the navigation page (a TOA as a
+time-average, what extra pulsars buy, the navigation signal, one ship's drift, eight ships' track errors, <code>navFit</code> converging);
+validated series colours in <code>style.css</code> (<code>--series-1..3</code>, classes <code>s1</code>/<code>s2</code>/<code>s3</code>).</td></tr>
+<tr><td>22 Oct 2026</td><td><code>dad440a</code></td><td>The Doppler-shifted dispersion delay as a row in the limitations' propagation table.</td></tr>
+<tr><td>22 Oct 2026</td><td><code>cef9f6b</code>, <code>1c16951</code></td><td>Block D closed and block F added (Jasper): roadmap, home page, history,
+navigation; the worst-case precision ±110 km.</td></tr>
+<tr><td>22 Oct 2026</td><td><code>65b1c95</code></td><td><code>api.html</code> regenerated (by accident, during the docs audit; kept: it adds
+<code>runScenario</code>'s help on <code>tSub</code> and <code>sideTag</code>).</td></tr>
+<tr><td>22 Oct 2026</td><td>after <code>65b1c95</code></td><td>Full docs update after the audit of 22 Oct (Jasper: "review all documentation
+pages, update the visuals when needed or lacking, and check missing or outdated information"). Status pages (roadmap, home, validation
+record, limitations) brought to blocks C and D closed; stage pages (simulator, navigation, prediction, clock, excision and the rest)
+updated to the reruns and the code; record and reference pages (tests, scripts, parameters, conventions, pipeline, history, lessons,
+formulas, glossary) completed; figures checked against their data and regenerated or added. Per page, with sources:
+<code>.claude/runs/2026-10-22_docs_update.md</code>. No code change.</td></tr>
 </table></div>
 
 </main>

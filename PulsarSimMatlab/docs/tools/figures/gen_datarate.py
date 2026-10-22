@@ -49,7 +49,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {H}" role="img" aria-label="Bytes written per second of simulated signal by each stage, on a log scale, against the 24 GB memory">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How much each stage writes per second of simulated signal, computed from the parameters (log scale; blue: sky, orange:
+<figcaption>How much each stage writes per second of simulated signal, computed from the parameters (log scale; blue: sky, purple:
 receiver, green: processing). At <var>L</var> = 1 s each RF file is 16 GB and a run writes 61–73 GB, far more than the 24 GB of
 memory, which is why every stage streams in blocks. Detection is where the data shrink: on the full band 800 complex samples become one power value (1600× fewer bytes); on the
 channel path each 0.96 µs bin keeps all 128 channels, so it shrinks 8×. With excision the weight file adds 9 numbers per bin and channel.</figcaption>

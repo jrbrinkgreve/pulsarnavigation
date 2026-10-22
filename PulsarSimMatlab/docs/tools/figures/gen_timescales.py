@@ -1,8 +1,10 @@
 import numpy as np
+import re
 # Time scales of the pipeline on one log ruler (parameters.html), from the parameters: RF sample 1/f_in, IQ sample 1/fs,
 # channel sample 1/(4/3 * 3.125 MHz), detected bin 4 channel samples, phase bin T/nBin, pulse sigma_t and FWHM, dispersion
 # sweep at DM 25 (since 20 Oct; 6.3 ms at DM 5), period T, file length L (0.2 s since 20 Oct); RFI: impulse 200 ns, radar pulse 2 us; time per TOA: J0437 worst case ~21 h
-# (scenario.html), the simulated pulsar at -54 dB ~62 h (SNR 7, ~373*rho per turn).
+# (scenario.html), the simulated pulsar at -54 dB ~62 h (SNR 7, ~373*rho per turn); J0437 worst case with its measured profile in the
+# fast simulator 82-95 h (scenario.html #hundred; added 22 Oct 2026).
 T = 10e-3
 items = [  # (seconds, name, value text, category, row)
     (1/4e9, 'RF sample', '0.25 ns', 'grid', 'a1'),
@@ -18,7 +20,8 @@ items = [  # (seconds, name, value text, category, row)
     (T, 'period', '10 ms', 'psr', 'a1'),
     (0.2, 'file length L', '0.2 s', 'run', 'a2'),
     (1.0, 'reference runs', '1 s', 'run', 'a1'),
-    (21*3600, 'J0437 TOA, worst case', '21 h', 'run', 'a1'),
+    (21*3600, 'J0437 TOA, catalogue est.', '21 h', 'run', 'a1'),
+    (82*3600, 'J0437 TOA, simulated', '82–95 h', 'run', 'a2'),
     (62*3600, 'TOA at −54 dB (sim. pulsar)', '62 h', 'run', 'b1')]
 col = {'grid': 'var(--accent)', 'psr': 'var(--why)', 'rfi': 'var(--warn)', 'run': 'var(--fg)'}
 x0, x1, lo, hi = 40, 820, -10, 6
@@ -40,6 +43,7 @@ for t, name, val, cat, row in items:
     o.append(f'<circle cx="{x:.1f}" cy="{ya}" r="3.5" style="fill:{col[cat]}"/>')
     name = name.replace('σ_t', 'σ<tspan baseline-shift="sub" font-size="9">t</tspan>')
     xt = x - (16 if name == 'RF sample' else 0)
+    xt = min(xt, 852 - 2.9 * len(re.sub(r'<[^>]+>', '', name)))   # keep labels near the right edge inside the frame
     o.append(f'<text class="sub" x="{xt:.1f}" y="{y - 8:.1f}" text-anchor="middle" style="fill:{col[cat]}">{name}</text>')
     o.append(f'<text class="lbl" x="{xt:.1f}" y="{y + 5:.1f}" text-anchor="middle">{val}</text>')
 lx = 40
@@ -54,6 +58,6 @@ svg = '''<figure class="scroll">
 <figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
 bins resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a million times longer, which
-is why block C plans a fast simulator.</figcaption>
+is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>'''
 open('timescales.svg', 'w').write(svg)
