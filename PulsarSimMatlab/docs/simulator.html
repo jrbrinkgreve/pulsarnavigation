@@ -9,14 +9,16 @@
 <body>
 <main>
 
-<h1>Fast simulator: <code>simulateFold</code> <span class="badge validated">validated</span></h1>
+<h1>Stages 1–7 in one step · Fast simulator: <code>simulateFold</code> <span class="badge validated">validated</span></h1>
 <p class="lede">The fast simulator draws the folded profiles directly from their known statistics, instead of simulating every voltage
 sample. Hours of observation then take seconds. Everything after the fold (<code>foldToTOA</code>: TOAs, detection, good TOAs) runs
-unchanged on the result.</p>
+unchanged on the result. It stands in for stages 1–7 when a run lasts hours to days. For a moving receiver with a real clock it also
+places each pulse where the true trajectory and clock put it.</p>
 <div class="sig">[info, fold, truth] = simulateFold(f0, rhoDB, nTurns, 'SubintPeriods', n, 'NChan', 128, 'ChannelGain', g, 'RFI', prof, ...)</div>
 <p class="meta"><a href="api.html#simulatefold">Full interface and help text of <code>simulateFold</code> →</a> · calibration: <code>rfiProfile</code>,
 <code>runRFIProfile.m</code> · tests: <a href="tests.html#simfold"><code>testSimulateFold</code></a>, <a href="tests.html#simvschain"><code>expSimVsChain</code></a>,
-<a href="tests.html#simrfi"><code>expSimRFI</code></a> · block C, since 20 Oct 2026</p>
+<a href="tests.html#simrfi"><code>expSimRFI</code></a> · the truth of a moving receiver: <a href="#truth"><code>trueResiduals</code></a>
+· block C, since 20 Oct 2026</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>A J0437 TOA needs about 20 hours of data. The voltage chain writes about 61 GB per second, so hours are out of reach.</p>
@@ -25,7 +27,9 @@ the variance (the radiometer equation), and the correlation with the neighbourin
 20 hours in 60 s sub-ints take 0.05 s.</p>
 <p>It reproduces the voltage chain within its statistics, in three settings: the full band from the detection threshold to +20 dB; the
 channel path, including the slightly high χ² of the edge channels; and realistic RFI after excision, using profiles measured on the
-voltage chain.</p></div>
+voltage chain.</p>
+<p>For a moving receiver, <code>trueResiduals</code> gives each sub-int's true pulse phase against the observer's prediction. With it
+the scenario runs carry a site error and a real clock.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#idea">The idea</a></li>
@@ -35,6 +39,8 @@ voltage chain.</p></div>
 <li><a href="#schedule">Observing schedule</a></li>
 <li><a href="#scint">Scintillation</a></li>
 <li><a href="#adaptive">Adaptive sub-int length</a></li>
+<li><a href="#truth"><code>trueResiduals</code>: how late the pulse really is</a></li>
+<li><a href="#motion">Motion and the clock in the scenario runs</a></li>
 <li><a href="#rho">Which ρ</a></li>
 <li><a href="#valid">Validation against the voltage chain</a></li>
 <li><a href="#why">Design choices</a></li>
@@ -267,6 +273,84 @@ spans the gap, and only the last group stays incomplete (2 without <code>'Across
 <details><summary>History</summary>
 <p>Adaptive sub-ints: step C3c; <code>'AcrossGaps'</code>: 20 Oct 2026.</p></details>
 
+<h2 id="truth"><code>trueResiduals</code>: how late the pulse really is <span class="badge validated">validated</span></h2>
+<div class="sig">res = trueResiduals(t, psr, trajTrue, trajAssumed, ...)</div>
+<p class="meta"><a href="api.html#trueresiduals">Full interface and help text of <code>trueResiduals</code> →</a></p>
+<h3>In short</h3>
+<p>The observer folds with a predictor made from the trajectory it assumes. The pulses arrive where the true trajectory puts them.
+<code>trueResiduals</code> computes how late each pulse is against the prediction, and where it therefore sits in the observer's fold.
+That lateness is the signal navigation measures. Only the simulator calls this function, because it needs the true trajectory.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The true arrival:</b> a pulse that passes the barycentre at time <var>S</var> reaches the receiver at the true time
+<var>t</var>, with <var>t</var> + Δ<sub>T</sub>(<var>t</var>) = <var>S</var>. Δ<sub>T</sub> is <code>delayModel</code> on the true
+trajectory.</li>
+<li><b>The predicted arrival:</b> the observer expects the same pulse at <var>t</var><sub>A</sub>, with <var>t</var><sub>A</sub> +
+Δ<sub>A</sub>(<var>t</var><sub>A</sub>) = <var>S</var>. Δ<sub>A</sub> is <code>delayModel</code> on the assumed trajectory.</li>
+<li><b>The clock:</b> the observer's clock reads <var>c</var> = <var>t</var> + ε(<var>t</var>) when the pulse arrives. ε is the clock
+error. The observer corrects the reading with its own estimate ε̂(<var>c</var>), the same one its predictor uses.</li>
+<li><b>The residual:</b> <var>r</var> = <var>c</var> − ε̂(<var>c</var>) − <var>t</var><sub>A</sub>. Only the part of the clock error that
+the observer has not estimated shifts the pulse. A positive residual means the pulse is late.</li>
+<li><b>In the fold:</b> the pulse sits at phase <var>f</var>·<var>r</var> turns. <var>f</var> is the observed spin frequency of the
+observer's predictor.</li>
+</ol>
+<p>Without the clock, the residual is the difference of the two delays, divided by one plus the Doppler factor. A site 100 km east of
+the assumed one gives B0329+54 a daily sine of 193.33 µs. That is 2.7·10⁻⁴ of a turn. A true receiver closer to the pulsar than assumed
+gives a negative residual, because the pulse arrives early.</p>
+<details><summary>The exact solution</summary>
+<p><var>r</var> = <var>x</var> + ε(<var>t</var>) − ε̂(<var>c</var>), with <var>x</var> = <var>t</var> − <var>t</var><sub>A</sub> = (Δ<sub>A</sub> −
+Δ<sub>T</sub>)/(1 + dΔ<sub>A</sub>/d<var>t</var>) to first order. On the Earth the Doppler factor dΔ<sub>A</sub>/d<var>t</var> is below
+10⁻⁴, so the division changes 193 µs by at most 19 ns. The function solves <var>x</var> exactly, with Newton steps on
+Δ<sub>A</sub>(<var>t</var> − <var>x</var>) − Δ<sub>T</sub>(<var>t</var>) − <var>x</var> = 0. It works with small differences only,
+because absolute times of about 8·10⁸ s carry 1.2·10⁻⁷ s of rounding. The phase uses <var>f</var> = <var>f</var><sub>spin</sub>·(1 +
+dΔ<sub>A</sub>/d<var>t</var>), the frequency of the observer's predictor.</p></details>
+<div class="callout warn"><span class="ttl">Half a turn is the limit</span>
+<p>The fold cannot tell a pulse that is <var>f</var>·<var>r</var> turns late from one that is a whole turn later. A TOA is therefore
+unambiguous only while |<var>f</var>·<var>r</var>| stays below half a turn. For B0329+54 that allows a position error of ±107,000 km.
+For J0437 it allows only ±863 km. Beyond half a turn <code>trueResiduals</code> warns.</p></div>
+<h3>Tests (<code>tests/testTrueResiduals.m</code>)</h3>
+<p>The residual matches closed forms to 5·10⁻¹¹ s, and a real fold puts the pulse where the function says.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Same trajectory</td><td>Truth and assumption equal, a perfect clock.</td><td>Exactly 0.</td></tr>
+<tr><td>2 · Site 100 km east</td><td>B0329+54 from 52° N over one day, against the closed form.</td><td>Agrees to 2.9·10⁻¹¹ s. The daily
+sine is 193.328 µs. The pulse is early wherever the true site is closer. The full model adds 31 ns, the Einstein term of the site.</td></tr>
+<tr><td>3 · Doppler factor</td><td>A probe at 300 km/s, the true one 1000 km closer to the pulsar.</td><td>Agrees with −(1000 km/<var>c</var>)/(1
++ <var>v</var>/<var>c</var>) to 4.9·10⁻¹¹ s. Without the factor it would be 3.33 µs off.</td></tr>
+<tr><td>4 · Clock</td><td>A clock error with offset, rate and a wobble.</td><td>Adds exactly. The geometric part is unchanged.</td></tr>
+<tr><td>5 · End to end</td><td>Data whose pulses arrive where the true probe puts them, folded with the assumed probe's
+predictor.</td><td>The folded pulse sits at −0.16678 turns, as predicted, to 4.7·10⁻⁶ turns. It is early, as the probe is closer.</td></tr>
+<tr><td>6 · Inputs</td><td>A bad clock; a pulse 0.67 turns off.</td><td>The clock is refused. The phase gives a warning.</td></tr>
+<tr><td>7 · SDR clock</td><td>Samples timed by a clock with a 3 ms offset and a rate of 2·10⁻⁶. They are folded with the predictor and a
+clock estimate that is 10 µs and 2·10⁻⁷ off.</td><td>The pulse sits where the function says: to 6·10⁻⁹ turns at 200 times, and to
+6·10⁻⁶ turns in the fold. With a perfect estimate the clock drops out.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D3a. Two test criteria were corrected. The first bound, 2·10⁻¹¹ s, was below the analytic model's own
+rounding: the Earth's mean longitude is about 9500° in 2026, and its rounding in double is worth 1.6·10⁻¹¹ s. The amplitude check had
+left out the Doppler factor, which is −8.3·10⁻⁵ on 1 March. The observer's clock estimate and check 7 were added as the second part of
+D3c. Check 7 also exposed a constant rounding of up to 60 ns in the predictor's clock origin, which was fixed.</p></details>
+
+<h2 id="motion">Motion and the clock in the scenario runs <span class="badge written">done</span></h2>
+<p>The fast simulator shifts each sub-integration's pulse by the phase offset from <code>trueResiduals</code>: <code>runScenario</code> with
+<code>motion.on</code> (<a href="scripts.html#scenario">run scripts</a>). For a 100 km offset the residual changes by 1.4·10⁻⁸ s per second. Over a 120 s sub-integration that is 1.7 ns, far below a phase bin. One
+offset per sub-integration is therefore enough for a position error.</p>
+<p>A clock rate is different. At the 2 ppm of a commercial SDR the pulse moves by 240 µs within a 120 s sub-integration. For B0329+54
+that is 5 % of its 5 ms core. For J0437 a 300 s sub-integration moves it by 600 µs, four times its pulse width. The observer must
+therefore fold with its own estimate of the clock rate, as it does with the Doppler shift. The predictor takes that estimate
+(<a href="prediction.html#predictor">stage 7a</a>). What is left for the simulator is the clock error the observer has not estimated.</p>
+<p>A first check over two days reproduces the 100 km daily sine to 1.6·10⁻⁸ s. It also shows how much a free-running crystal wanders:
+about 76 µs in a day, and 13 ms in a month. The clock must therefore be part of the navigation fit.</p>
+<p>The first 30-day run of B0329+54 with the true site 100 km east and a perfect clock gives the navigation fit its first data:</p>
+<div class="table-wrap"><table>
+<tr><th>Flux</th><th>Good TOAs</th><th>σ per TOA</th><th>Std of the pulls</th><th>Expected precision per equatorial component</th></tr>
+<tr><td>Nominal</td><td class="num">302 (10 per day)</td><td class="num">738 µs</td><td class="num">1.03</td><td class="num">±31 km: 100 km is a 3σ detection</td></tr>
+<tr><td>Worst case</td><td class="num">59 (2 per day)</td><td class="num">744 µs</td><td class="num">1.13</td><td class="num">±71 km: about 150 days are needed for 3σ</td></tr>
+</table></div>
+<p>The motion costs no TOAs: the same run without it gave 299 good TOAs at nominal flux.</p>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as the last part of step D3c. The first 30-day run with motion followed the same evening.</p></details>
+
 <h2 id="rho">Which ρ</h2>
 <div class="callout warn"><span class="ttl">The simulator's ρ, not the scenario page's</span>
 <p><code>rhoDB</code> is the simulator's <code>snrDB</code>: the peak of the Gaussian pulse over the receiver noise. So a simulated fold
@@ -435,7 +519,7 @@ The drawn noise uses the measured ones. Otherwise the simulation would hide exac
 scintillation.</li>
 <li><b>Motion within a sub-int</b>: <code>'PhaseOffset'</code> takes one value per sub-int, or a function of time that is evaluated
 once per sub-int. A position error moves the pulse by only nanoseconds within a sub-int. An unestimated clock rate can move it by
-hundreds of microseconds, so the observer folds with its clock estimate (<a href="motion.html#truth">block D</a>).</li>
+hundreds of microseconds, so the observer folds with its clock estimate (<a href="#truth">above</a>).</li>
 <li><b>Excision of bright pulses</b> (the chain clips pulse peaks above ~−5 dB) and RFI locked to the pulsar's period.</li>
 <li><b>Memory:</b> 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array. For hours of data, channels with identical
 statistics will be merged into effective channels.</li>

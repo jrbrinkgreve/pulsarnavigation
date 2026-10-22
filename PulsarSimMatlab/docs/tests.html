@@ -666,40 +666,40 @@ voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="maketraj"><code>testMakeTrajectory</code> (21 Oct)</h2>
 <p>The receiver's positions and velocities agree with closed forms, for a fixed site, a ship, a probe and a custom trajectory. The
-seven checks and their numbers are on the <a href="motion.html#trajectory">block D page</a>.</p>
+seven checks and their numbers are on the <a href="prediction.html#trajectory">phase-prediction page</a>.</p>
 
 <h2 id="delaymodel"><code>testDelayModel</code> (21 Oct)</h2>
 <p>Every term of the delay to the barycentre agrees with a closed form computed in the test. For example, a site moved 100 km east
-gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. The nine checks are on the <a href="motion.html#delay">block D
+gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. The nine checks are on the <a href="prediction.html#delay">phase-prediction
 page</a>.</p>
 
 <h2 id="makepred"><code>testMakePredictor</code> (21 Oct)</h2>
 <p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns, also across a ship's sharp turn. The seven
-checks are on the <a href="motion.html#predictor">block D page</a>.</p>
+checks are on the <a href="prediction.html#predictor">phase-prediction page</a>.</p>
 
 <h2 id="foldpred"><code>testFoldPredictor</code> (21 Oct)</h2>
 <p>Folding with a predictor removes the Doppler shift completely: a pulsar with a Doppler factor of 10⁻³ folds to within 10⁻⁸ of the
 fold with its true phases. Without a predictor the old fold is unchanged. The five checks are on the
-<a href="motion.html#fold">block D page</a>.</p>
+<a href="fold.html#predictor">folding page</a>.</p>
 
 <h2 id="trueres"><code>testTrueResiduals</code> (21 Oct)</h2>
 <p>The residual between the true and the predicted arrival matches closed forms to 5·10⁻¹¹ s. Data whose pulses arrive where a true
 trajectory puts them, folded with the predictor of an assumed trajectory, show the pulse at the phase the function gives, to 5·10⁻⁶
 turns, also when the samples are timed by an SDR-like clock and the observer folds with its own clock estimate. The seven checks are on
-the <a href="motion.html#truth">block D page</a>.</p>
+the <a href="simulator.html#truth">fast-simulator page</a>.</p>
 
 <h2 id="makeclock"><code>testMakeClock</code> (21 Oct)</h2>
 <p>The drawn clocks have the Allan deviation that their noise coefficients prescribe, from 5 minutes to 17 hours, and the time error
-grows from a known start as the Kalman model says. The five checks are on the <a href="motion.html#clock">block D page</a>.</p>
+grows from a known start as the Kalman model says. The five checks are on the <a href="receiver.html#clock">receiver page</a>.</p>
 
 <h2 id="navfit"><code>testNavFit</code> (22 Oct)</h2>
 <p>The navigation fit recovers known site offsets to a few metres without noise. Its error bars are honest with Gaussian noise, and stay
 honest with 2 % outliers, where plain least squares is 51 % overconfident. With a crystal clock the position stays honest, and the
-fitted clock is honest too. The ten checks are on the <a href="motion.html#navfit">block D page</a>.</p>
+fitted clock is honest too. The ten checks are on the <a href="navigation.html#navfit">navigation page</a>.</p>
 
 <h2 id="navfilter"><code>testNavFilter</code> (22 Oct)</h2>
 <p>For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with
-honest error bars, also with outliers. The five checks are on the <a href="motion.html#navfilter">block D page</a>.</p>
+honest error bars, also with outliers. The five checks are on the <a href="navigation.html#navfilter">navigation page</a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic

@@ -9,10 +9,11 @@
 <body>
 <main>
 
-<h1>Stages 3–4 · Receiver: noise, RFI and IQ</h1>
+<h1>Stages 3–4 · Receiver: noise, RFI, IQ and clock</h1>
 <p class="lede">These two stages are the receiver. Stage 3 adds what the receiver contributes: its own thermal noise, and the
 man-made interference the antenna picks up. Stage 4 turns the real 4 GHz stream into complex samples at 800 MHz, as an analog I/Q
-receiver followed by an ADC would.</p>
+receiver followed by an ADC would. The receiver's clock times every sample. Its error matters over hours and days, so
+<code>makeClock</code> draws it for the fast simulator.</p>
 <p class="meta">Run by <code>runStage.receiver</code> · rerun this alone to change the SNR, the RFI or the noise seed.</p>
 
 <div class="toc"><b>On this page</b><ol>
@@ -21,6 +22,8 @@ receiver followed by an ADC would.</p>
 <a href="#noise-valid">validation and limits</a></li>
 <li><a href="#iq"><code>applyIQmodulation</code></a>: <a href="#iq-short">in short</a> · <a href="#iq-phys">physics</a> ·
 <a href="#iq-how">how it works</a> · <a href="#iq-why">design choices</a> · <a href="#iq-valid">validation</a></li>
+<li><a href="#clock"><code>makeClock</code></a>: <a href="#clock-short">in short</a> · <a href="#clock-phys">what the clock does to the
+TOAs</a> · <a href="#clock-how">how it works</a> · <a href="#clock-why">design choices</a> · <a href="#clock-valid">tests</a></li>
 </ol></div>
 
 <figure class="scroll">
@@ -933,6 +936,83 @@ reproduces the old behaviour (amplitudes halved).</p></div>
 <a href="results.html#noise5">validation record</a>).</li>
 <li><code>plotIQCheck</code>: the dynamic spectra of the dispersed and dedispersed IQ data follow the expected sweep.</li>
 </ul>
+
+<h2 id="clock">The receiver's clock: <code>makeClock</code> <span class="badge validated">validated</span></h2>
+<div class="sig">clk = makeClock([t1 t2], ...)</div>
+<p class="meta"><a href="api.html#makeclock">Full interface and help text of <code>makeClock</code> →</a></p>
+<h3 id="clock-short">In short</h3>
+<p>Every time stamp comes from the receiver's oscillator, so the oscillator's error goes straight into every TOA. <code>makeClock</code>
+draws one realization of that error over time, for the simulator's truth. The observer never sees it. Its navigation filter will
+estimate the clock's offset and rate instead.</p>
+<p>In the voltage chain every time stamp is exact, and a run lasts seconds. The clock matters over hours and days, so the fast simulator
+applies it, through <a href="simulator.html#truth"><code>trueResiduals</code></a>.</p>
+<h3 id="clock-phys">What the clock does to the TOAs</h3>
+<p>Three effects of the clock matter:</p>
+<div class="table-wrap"><table>
+<tr><th>Effect</th><th>What it does</th><th>Size, and what follows</th></tr>
+<tr><td>Offset, rate and wander of the clock</td><td>Shift every TOA.</td><td>A temperature-compensated crystal (TCXO) drifts about 3.6 µs
+per hour, an oven-controlled one (OCXO) 4–36 ns. B0329+54's 734 µs TOAs tolerate a TCXO; J0437's 13 µs TOAs need an OCXO or better. The
+clock offset and rate become part of the navigation state.</td></tr>
+<tr><td>Frequency error within a fold</td><td>Smears the fold like an uncorrected Doppler shift.</td><td>10⁻⁹ over an hour is 3.6 µs:
+below B0329+54's bins. A commercial SDR's uncorrected 2·10⁻⁶ is 7.2 ms per hour, so its rate must be estimated (the predictor's <a href="prediction.html#predictor"><code>'Clock'</code> option</a>).</td></tr>
+<tr><td>Sampling jitter of the ADC</td><td>Adds phase noise to the voltage samples.</td><td>1 ps adds 10⁻⁴ of the input power as noise:
+negligible for the pulsar, a noise floor under strong RFI.</td></tr>
+</table></div>
+<h3 id="clock-how">How it works</h3>
+<ol>
+<li><b>The fixed part:</b> an offset at the start, a rate and an ageing drift. A commercial SDR's reference oscillator is specified to
+±2 ppm. Its rate can therefore be up to 2·10⁻⁶, which adds 7.2 ms per hour.</li>
+<li><b>The noise:</b> the oscillator's frequency also wanders at random. Its spectrum has three parts, each set by one coefficient:
+white frequency noise (<var>h</var>₀), flicker (<var>h</var>₋₁) and a random walk (<var>h</var>₋₂).</li>
+<li><b>The grid:</b> the noise is drawn on a 60 s grid over the whole span and is linear in between.</li>
+</ol>
+<p>An oscillator's stability is usually given as its Allan deviation σ<sub><var>y</var></sub>(τ). It is the typical change of the
+average frequency from one interval of length τ to the next. White noise makes it fall with τ, flicker keeps it flat, and a random walk
+makes it grow.</p>
+<div class="table-wrap"><table>
+<tr><th>Preset</th><th><var>h</var>₀</th><th><var>h</var>₋₁</th><th><var>h</var>₋₂</th><th>What it is</th></tr>
+<tr><td><code>"perfect"</code></td><td>0</td><td>0</td><td>0</td><td>No noise (the default).</td></tr>
+<tr><td><code>"crystal"</code></td><td>1.8·10⁻²¹</td><td>6.5·10⁻²²</td><td>1.37·10⁻²⁴</td><td>The worked example of Van Dierendonck,
+McGraw and Brown (1984): a crystal oscillator stable to 3 parts in 10¹¹.</td></tr>
+</table></div>
+<p>The noise of a commercial SDR's oscillator is not published. It is best measured on the device itself, against a better
+reference.</p>
+<details><summary>The formulas, and how each part is drawn</summary>
+<p>σ<sub><var>y</var></sub>²(τ) = <var>h</var>₀/(2τ) + 2 ln2·<var>h</var>₋₁ + (2π)²/6·<var>h</var>₋₂·τ (the paper's eqs. 6–8).</p>
+<ul>
+<li>White: the time error takes independent steps of variance <var>h</var>₀Δ/2 per grid step Δ. This is exact.</li>
+<li>Random walk: the frequency and the time error form a two-state process with covariance <var>q</var>₂·[Δ³/3, Δ²/2; Δ²/2, Δ] per
+step, <var>q</var>₂ = 2π²<var>h</var>₋₂. This is exact, and it is the model the Kalman filter will use.</li>
+<li>Flicker: no finite-state model is exact. The step-averaged frequency is synthesized by FFT with the spectrum
+<var>h</var>₋₁/<var>f</var>, over twice the span, so that the FFT never joins the two ends. It is then integrated.</li>
+</ul>
+<p>Between grid nodes the left-out noise is a white-noise bridge of √(<var>h</var>₀Δ/8): 0.12 ns for the crystal at 60 s.</p></details>
+<h3 id="clock-why">Design choices</h3>
+<div class="callout why"><span class="ttl">Flicker included, by FFT</span>
+<p><b>Alternative:</b> only white and random-walk noise, the two that a two-state Kalman model describes exactly.</p>
+<p><b>Why not:</b> for the paper's crystal, flicker is the largest of the three noises from 1 s to 100 s. After 200 s it is 42 % of the
+time error's variance. Leaving it out would make the clock look better than it is.</p></div>
+<h3 id="clock-valid">Tests (<code>tests/testMakeClock.m</code>)</h3>
+<p>The drawn clocks have the Allan deviation that their coefficients prescribe, from 5 minutes to 17 hours.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · No noise</td><td>Offset, rate and ageing.</td><td>Exact. As <code>trueResiduals</code>' clock it gives exactly its
+error.</td></tr>
+<tr><td>2 · Seeds, grid</td><td>The same seed, another seed; values at and between the nodes.</td><td>Reproducible; exact at the nodes;
+linear in between.</td></tr>
+<tr><td>3 · Allan deviation</td><td>40 clocks of 20,000 steps per noise type, at 2 to 1000 steps.</td><td>White and random walk agree
+within twice their scatter everywhere. Flicker agrees within 3 % from 5 steps and is 9 % high at 2 steps. The crystal agrees within
+5 %.</td></tr>
+<tr><td>4 · Kalman relation</td><td>The crystal's white and random-walk noise, 200 s after a known start.</td><td>8.46 ns, against
+8.50 ns from the paper's eq. 60.</td></tr>
+<tr><td>5 · Inputs</td><td>Times outside the grid, a reversed span, a negative coefficient.</td><td>Refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D3b. Jasper chose to include flicker by FFT and to keep the paper's crystal as the only preset; the planned
+receiver is a commercial SDR. The proposed check against the paper's 11 ns after 200 s was not comparable: that number depends on how
+the flicker noise is started. The check now uses white and random-walk noise only, where the paper's formula is exact.</p>
+<p>The clock was added to block D's plan on 21 Oct 2026, after it had been left out. Later the same day it was settled that the
+receiver will be a commercial SDR.</p></details>
 
 </main>
 <script src="nav.js"></script>

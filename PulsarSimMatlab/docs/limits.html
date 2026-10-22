@@ -136,10 +136,10 @@ measured +2.19 %). With a realistic receiver, which applies the bandpass to puls
 <li><b>No clock errors yet.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, about 6× the J0437 TOA precision. A constant rate can
 be fitted; random wander cannot. Three effects are planned into block D: the clock's offset, rate and wander, its frequency error within a
 fold, and the ADC's sampling jitter. The simulator's truth will get a clock process, and the navigation state the clock's offset and
-rate (<a href="motion.html#next">block D</a>). Which oscillator the hardware has is still open.</li>
+rate (<a href="receiver.html#clock">the receiver's clock</a>). Which oscillator the hardware has is still open.</li>
 <li><b>Relative motion: predicted, not yet simulated.</b> Earth's orbital speed changes the pulse rate by up to 10⁻⁴: at 100 Hz, about
 100 µs of phase drift per second. Since 21 Oct the phase predictor follows that drift, and the fold uses it
-(<a href="motion.html">block D</a>). The simulator's truth with a moving receiver, and the navigation fit, are the next steps.</li>
+(<a href="prediction.html">phase prediction</a>). The simulator's truth with a moving receiver, and the navigation fit, are the next steps.</li>
 <li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day
 orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).
 That is about 2·10⁵× the fold's phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. So the phase
@@ -189,7 +189,7 @@ TOAs.</li>
 <li><b>How they will be handled (agreed 21 Oct).</b> The groups stay at SNR 7, for the larger number of TOAs. The navigation fit uses
 redundancy: it checks each TOA against the prediction from the others and from the ship's dead reckoning, and its error model has a
 small outlier part. For B0329+54 an outlier then stands 4.8–8.6σ from the prediction. Fixed groups are not used for multi-component
-pulsars. See <a href="motion.html#next">block D</a>.</li>
+pulsars. See <a href="navigation.html#signal">navigation</a>.</li>
 </ul></li>
 <li><var>P</var><sub>FA</sub> validated down to 10⁻²…10⁻³; smaller values (10⁻⁶ for navigation) by extrapolating Gaussian / Rice tails.</li>
 <li>Covariance between consecutive sub-ints not stored (~1–4 % of the variance of 2–3 off-pulse bins at the boundary; negligible).</li>

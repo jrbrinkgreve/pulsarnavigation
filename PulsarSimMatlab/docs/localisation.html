@@ -15,8 +15,8 @@ This page explains how a position follows from arrival times, which coordinate f
 geometric and relativistic delays sit between the pulsar and the receiver. It ends with what the model still leaves out, and what each
 omission would cost against real data.</p>
 <p class="meta">Code: <code>makeTrajectory</code> (frames), <code>delayModel</code> (delays and time scales), <code>makePredictor</code>
-(phase), <code>trueResiduals</code> and <code>makeClock</code> (the simulator's truth) · details per function on the
-<a href="motion.html">block D page</a></p>
+(phase), <code>trueResiduals</code> and <code>makeClock</code> (the simulator's truth) · details per function on the pages
+<a href="prediction.html">phase prediction</a>, <a href="simulator.html#truth">fast simulator</a> and <a href="receiver.html#clock">receiver</a></p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>A pulsar's phase is defined at the barycentre of the solar system, in its own time scale. The receiver sits on a ship on a rotating
@@ -143,7 +143,7 @@ chain in the figure above.</p>
 <div class="callout why"><span class="ttl">Every trajectory in one of two frames</span>
 <p>A trajectory is either Earth-fixed or barycentric. A ship and a ground site are naturally Earth-fixed: their tracks come as latitude
 and longitude. A deep-space probe is naturally barycentric. The delay model turns both into the barycentric frame itself, so the
-predictor and a later Kalman filter never need to know which kind of vehicle they handle (<a href="motion.html#trajectory">block D</a>).</p></div>
+predictor and a later Kalman filter never need to know which kind of vehicle they handle (<a href="prediction.html#trajectory">phase prediction</a>).</p></div>
 
 <h2 id="time">3. Time scales and the receiver's clock</h2>
 <p>Several clocks are involved, and they disagree by up to minutes. The code counts every time in seconds since J2000.0, which is
@@ -162,7 +162,7 @@ predictor and a later Kalman filter never need to know which kind of vehicle the
 per year.</td></tr>
 </table></div>
 <p>The observer never knows true time directly. It corrects its clock readings with its own estimate of the clock error, and the
-predictor uses the corrected time (<a href="motion.html#predictor">block D</a>). In the simulator the true clock comes from
+predictor uses the corrected time (<a href="prediction.html#predictor">phase prediction</a>). In the simulator the true clock comes from
 <code>makeClock</code>, and only the part of it that the observer has not estimated moves the pulse.</p>
 <div class="callout warn"><span class="ttl">The ephemeris must match the time scale</span>
 <p>Published timing models come in TDB or in TCB units. Their spin frequencies differ by 1.55·10⁻⁸ of the value. Using a TCB model as if
@@ -220,7 +220,7 @@ absorbs. The code does not yet model a probe's own clock; it treats a probe's ti
 <div class="callout why"><span class="ttl">The simulator only needs the model to be consistent</span>
 <p>In the simulator, the truth and the observer's prediction use the same delay model. Its own errors therefore cancel in the
 residual, and only the difference between the true and the assumed trajectory and clock remains. That is why an analytic Earth orbit
-was enough to start with. Real data are different: there every omission below shows up in the residual (<a href="motion.html#delay">block D</a>).</p></div>
+was enough to start with. Real data are different: there every omission below shows up in the residual (<a href="prediction.html#delay">phase prediction</a>).</p></div>
 
 <h2 id="missing">6. What the model leaves out</h2>
 <p>Each item below is the same for the truth and the prediction in the simulator, so it cancels there. Against real data it would

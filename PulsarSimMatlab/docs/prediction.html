@@ -1,0 +1,248 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase Prediction</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+
+<h1>Stage 7a · Phase prediction for a moving receiver</h1>
+<p class="lede">A pulsar's rotation is a clock at the centre of mass of the solar system, the barycentre. The receiver moves with the
+Earth and with its ship, so the pulses reach it early or late by up to ±500 s over a year and ±8 ms over a day. This stage predicts
+that motion, so that the fold (stage 7) stays aligned over hours and days. What the prediction does not explain becomes the position,
+in stage 10.</p>
+<p class="meta">Functions: <code>makeTrajectory</code> → <code>delayModel</code> → <code>makePredictor</code>, run by the observer
+from the ephemeris and the trajectory it assumes · the fold follows the result: <a href="fold.html#predictor"><code>foldProfile('Predictor',
+…)</code></a> · the simulator's truth: <a href="simulator.html#truth"><code>trueResiduals</code></a> and the receiver's clock
+<a href="receiver.html#clock"><code>makeClock</code></a> · frames, time scales and relativity: <a href="localisation.html">localisation</a>
+· block D, since 21 Oct 2026</p>
+
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#why">Why the phase must be predicted</a></li>
+<li><a href="#trajectory"><code>makeTrajectory</code>: where the receiver is</a></li>
+<li><a href="#delay"><code>delayModel</code>: from the receiver to the barycentre</a></li>
+<li><a href="#predictor"><code>makePredictor</code>: the predicted pulse phase</a></li>
+</ol></div>
+
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 170" role="img" aria-label="Stage 7a in the chain: a trajectory and the timing model give delays, the delays give a phase predictor, the fold evaluates the predictor; its TOAs feed navigation, which will later update the trajectory">
+  <defs>
+    <marker id="ar-mo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0 0 L10 5 L0 10 z"/>
+    </marker>
+  </defs>
+  <rect class="box sky" x="10" y="20" width="160" height="40" rx="6"/>
+  <text class="lbl" x="90" y="38" text-anchor="middle">trajectory r(t)</text>
+  <text class="sub" x="90" y="53" text-anchor="middle">site · ship · probe · filter</text>
+  <rect class="box sky" x="10" y="90" width="160" height="40" rx="6"/>
+  <text class="lbl" x="90" y="108" text-anchor="middle">timing model</text>
+  <text class="sub" x="90" y="123" text-anchor="middle">f0, F1, TRef, RA, Dec</text>
+  <rect class="box proc" x="220" y="55" width="140" height="40" rx="6"/>
+  <text class="lbl" x="290" y="73" text-anchor="middle">delayModel</text>
+  <text class="sub" x="290" y="88" text-anchor="middle">Δ = t_SSB − t</text>
+  <rect class="box proc" x="410" y="55" width="140" height="40" rx="6"/>
+  <text class="lbl" x="480" y="73" text-anchor="middle">makePredictor</text>
+  <text class="sub" x="480" y="88" text-anchor="middle">φ(t): polynomials</text>
+  <a href="fold.html#predictor"><rect class="box proc" x="600" y="55" width="110" height="40" rx="6"/>
+  <text class="lbl" x="655" y="73" text-anchor="middle">fold</text>
+  <text class="sub" x="655" y="88" text-anchor="middle">stage 7 → TOAs</text></a>
+  <a href="navigation.html"><rect class="box proc" x="740" y="55" width="110" height="40" rx="6"/>
+  <text class="lbl" x="795" y="73" text-anchor="middle">navigation</text>
+  <text class="sub" x="795" y="88" text-anchor="middle">stage 10</text></a>
+  <path class="line" d="M170 40 L220 70" marker-end="url(#ar-mo)"/>
+  <path class="line" d="M170 110 L220 82" marker-end="url(#ar-mo)"/>
+  <path class="line" d="M360 75 H410" marker-end="url(#ar-mo)"/>
+  <path class="line" d="M550 75 H600" marker-end="url(#ar-mo)"/>
+  <path class="line" d="M710 75 H740" marker-end="url(#ar-mo)"/>
+  <path class="dash" d="M795 95 V150 H90 V130" marker-end="url(#ar-mo)"/>
+  <text class="sub" x="440" y="145" text-anchor="middle">later: the fit updates the trajectory (a Kalman-like motion predictor)</text>
+</svg>
+<figcaption>Stage 7a in the chain. The receiver's trajectory and the pulsar's timing model give the delays; the delays give a phase
+predictor; the fold (stage 7) only evaluates the predictor. Its TOAs go to navigation (stage 10). The dashed line is still to come:
+navigation's estimate fed back as an updated trajectory.</figcaption>
+</figure>
+
+<h2 id="why">1. Why the phase must be predicted</h2>
+<p>The fold assigns every time bin a pulse phase. Without a predictor it uses a constant spin rate: φ(<var>t</var>) = <var>f</var>₀·(<var>t</var> −
+TRef). That is only right for a receiver at rest relative to the barycentre.</p>
+<p>A real receiver moves. Its distance to the pulsar changes, so each pulse travels a little longer or shorter. The Earth's orbital
+speed changes the arrival rate by up to 10⁻⁴, a Doppler shift. Within one 120 s sub-integration that moves the pulse by 12 ms. That is
+more than B0329+54's 5 ms core width. For J0437 a 300 s sub-integration drifts by five whole turns. Without a prediction, every fold
+longer than a few minutes smears out.</p>
+<p>This stage therefore computes the delay from the receiver to the barycentre. It turns that into a predicted phase, and the fold
+follows it. In the test, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one without Doppler: the profiles agree to 10⁻⁸ of
+the peak.</p>
+<p>The terms of the delay, and how large they are:</p>
+<div class="table-wrap"><table>
+<tr><th>Term</th><th>What it is</th><th>Size</th></tr>
+<tr><td>Roemer, Earth's orbit</td><td>Light-travel time across the Earth's offset from the barycentre</td><td>±412 s per year for
+B0329+54</td></tr>
+<tr><td>Roemer, Earth's rotation</td><td>The site turns with the Earth</td><td>±7.6 ms per day for B0329+54 from 52° N</td></tr>
+<tr><td>Roemer, the ship</td><td>The receiver's position on the Earth: what navigation wants to find</td><td>333 µs per 100 km along the
+line of sight</td></tr>
+<tr><td>Einstein</td><td>The receiver's clock runs at a varying rate along the eccentric orbit</td><td>±1.66 ms per year</td></tr>
+<tr><td>Shapiro</td><td>The Sun's gravity delays the pulse</td><td>−17 to +6 µs over a year for B0329+54</td></tr>
+<tr><td>Binary orbit (D5)</td><td>J0437 orbits a companion</td><td>±3.4 s per 5.74 days</td></tr>
+</table></div>
+<p>Sections 2–4 build the prediction in three steps. The fold then follows it (<a href="fold.html#predictor">stage 7</a>). The fast
+simulator places the true pulses against it (<a href="simulator.html#truth"><code>trueResiduals</code></a>). The difference between
+the two is what navigation measures (<a href="navigation.html">stage 10</a>).</p>
+<details><summary>History</summary>
+<p>Block D's design was agreed on 21 Oct 2026: an analytic Earth orbit first and DE440 at the end, and a phase predictor with a
+trajectory interface, for sensor fusion. Later the same day it was decided that the observer folds with its own clock estimate. Steps
+D1 (where the receiver is, the delays) and D2 (the predictor, the fold that follows it) were built on 21 Oct. Their tests pass in
+Jasper's run of 22 Oct.</p></details>
+
+<h2 id="trajectory">2 · <code>makeTrajectory</code>: where the receiver is <span class="badge validated">validated</span></h2>
+<div class="sig">traj = makeTrajectory(type, ...)</div>
+<p class="meta"><a href="api.html#maketrajectory">Full interface and help text of <code>makeTrajectory</code> →</a></p>
+<h3>In short</h3>
+<p><code>makeTrajectory</code> describes where the receiver is at any time. It returns one struct with a position function and a
+velocity function. The delay model and the predictor only ever see this struct, so they work the same for every kind of receiver.</p>
+<h3>How it works</h3>
+<div class="table-wrap"><table>
+<tr><th>Type</th><th>The receiver</th><th>Frame</th></tr>
+<tr><td><code>'fixed'</code></td><td>A site on the ground, given as latitude, longitude and height. An offset in east, north and up can move
+it, for example to put the true site 100 km from the assumed one.</td><td>Earth-fixed</td></tr>
+<tr><td><code>'track'</code></td><td>A ship, given as waypoints in time. The positions between them are interpolated: linearly, smoothly
+(<code>pchip</code>) or as a cubic spline.</td><td>Earth-fixed</td></tr>
+<tr><td><code>'barycentric'</code></td><td>A deep-space probe, given as positions relative to the barycentre.</td><td>Barycentric</td></tr>
+<tr><td><code>'custom'</code></td><td>Anything that can return positions, such as a Kalman filter's propagated state.</td><td>Either</td></tr>
+</table></div>
+<p>Times are seconds since J2000.0 (1 January 2000, 12:00 TT). Positions are in metres. The Earth-fixed frame rotates with the Earth;
+the delay model adds that rotation.</p>
+<div class="callout why"><span class="ttl">One entry point for every vehicle</span>
+<p>The end goal is sensor fusion: the pulsars combined with the vehicle's own motion sensors, on a ship or on a deep-space probe. A
+motion predictor such as a Kalman filter then supplies the trajectory. The <code>'custom'</code> type is where it plugs in. Nothing else
+in block D needs to know what kind of vehicle it is.</p></div>
+<h3>Tests (<code>tests/testMakeTrajectory.m</code>)</h3>
+<p>The positions and velocities agree with closed forms and with an independent conversion back to latitude and longitude.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Fixed site</td><td>The ellipsoid geometry, and an offset of 100 km east.</td><td>Back to latitude and longitude to
+10⁻¹⁰°. The offset is 100.000000 km, exactly horizontal.</td></tr>
+<tr><td>2–3 · Ship track</td><td>Waypoints, legs, and the velocity.</td><td>Waypoints exact. The smooth track's velocity equals its
+derivative to 2·10⁻⁸ m/s and is continuous at turns.</td></tr>
+<tr><td>4 · Across 180° longitude</td><td>A track crossing the date line.</td><td>The midpoint lies on 180.00000000°.</td></tr>
+<tr><td>5 · Probe orbit</td><td>A 1 AU orbit sampled hourly, as a spline.</td><td>Within 1 mm of the true circle.</td></tr>
+<tr><td>6–7 · Custom, inputs</td><td>The filter entry point; bad inputs.</td><td>The default velocity is exact for uniform motion. Four
+bad inputs are refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D1a. The <code>'spline'</code> option was added while writing the test: <code>pchip</code> leaves metres of
+error on an hourly orbit, the spline 1 mm.</p></details>
+
+<h2 id="delay">3 · <code>delayModel</code>: from the receiver to the barycentre <span class="badge validated">validated</span></h2>
+<div class="sig">d = delayModel(t, traj, psr, ...)</div>
+<p class="meta"><a href="api.html#delaymodel">Full interface and help text of <code>delayModel</code> →</a></p>
+<h3>In short</h3>
+<p><code>delayModel</code> gives the time to add to the receiver's arrival time to get the arrival time at the barycentre. It returns
+the total and each term separately.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The Earth:</b> the centre of mass of the Earth and Moon follows a Keplerian orbit around the Sun, from JPL's approximate orbital
+elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU. The Moon moves the Earth around the Earth–Moon
+centre by about 4700 km.</li>
+<li><b>The receiver:</b> an Earth-fixed position is turned with the Earth's rotation angle and added to the Earth's position. A
+barycentric trajectory is used as it is.</li>
+<li><b>The terms:</b> the Roemer delay projects the receiver's position onto the direction of the pulsar. The Einstein delay and the
+Shapiro delay are added from their standard formulas.</li>
+</ol>
+<details><summary>The formulas and their signs</summary>
+<p>With <var>r</var> the receiver relative to the barycentre and <var>n̂</var> the unit vector to the pulsar:</p>
+<div class="eq">\[ \Delta = t_\mathrm{SSB} - t = \frac{\mathbf r\cdot\hat n}{c} \;-\; \frac{|\mathbf r|^2 - (\mathbf r\cdot\hat n)^2}{2cD}
+\;+\; \Delta_E \;+\; 2T_\odot \ln\frac{|\mathbf r_\odot| + \mathbf r_\odot\cdot\hat n}{\mathrm{AU}} \]</div>
+<ul>
+<li>The first term is the Roemer delay. A receiver displaced towards the pulsar gets each pulse earlier, so the barycentre's time is
+later.</li>
+<li>The second term corrects for the curved wave front of a pulsar at distance <var>D</var>. It is about 1 µs for B0329+54.</li>
+<li>Δ<sub>E</sub> = TDB − TT is the Einstein delay: 1.657 ms·sin <var>g</var> + 14 µs·sin 2<var>g</var>, with <var>g</var> the Earth's
+mean anomaly, plus a site term <var>v</var><sub>E</sub>·<var>r</var><sub>site</sub>/<var>c</var>² of about 1 µs.</li>
+<li>The last term is minus the Shapiro delay. Here <var>r</var><sub>⊙</sub> is the receiver relative to the Sun, and
+<var>T</var><sub>⊙</sub> = <var>GM</var><sub>⊙</sub>/<var>c</var>³ = 4.925 µs. It becomes strongly negative when the Sun is close to
+the line of sight.</li>
+</ul></details>
+<div class="callout why"><span class="ttl">An analytic Earth first, the exact one at the end of block D</span>
+<p>The analytic orbit is off by about 10⁴ km in absolute terms. In the simulator that does not matter, because the true delays and the
+predicted ones come from the same model. Only their difference reaches the navigation fit, and that difference is exact. Real data
+will need JPL's planetary ephemeris DE440, which is accurate to centimetres, plus precession and nutation of the Earth's axis. They will
+go behind the same interface at the end of block D.</p></div>
+<h3>Tests (<code>tests/testDelayModel.m</code>)</h3>
+<p>Each term agrees with a closed form computed independently in the test.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Orbit</td><td>Perihelion and aphelion distances; the Sun's and the Moon's offsets.</td><td>a(1 ∓ e) to 2·10⁻⁷ AU. Both
+offsets lie in their expected ranges.</td></tr>
+<tr><td>2 · Annual Roemer</td><td>A pulsar towards perihelion: the peak-to-peak delay is 2a/<var>c</var>.</td><td>998.013534 s against
+998.013536 s.</td></tr>
+<tr><td>3 · Daily Roemer</td><td>The site's rotation at 52° N.</td><td>Exact to 2·10⁻¹³ s. The amplitude is 7.607 ms, largest at the
+pulsar's transit.</td></tr>
+<tr><td>4 · Site 100 km east</td><td>The measurement equation of the navigation fit.</td><td>A daily sine of 193.33 µs, exact to
+1.5·10⁻¹³ s.</td></tr>
+<tr><td>5–6 · Ship, probe</td><td>Other trajectories.</td><td>A ship at rest equals the fixed site bit for bit. A moving ship's delay
+rate equals <var>v</var>·<var>n̂</var>/<var>c</var>. A probe's terms match their closed forms.</td></tr>
+<tr><td>7–8 · Einstein, Shapiro</td><td>The sizes of the small terms.</td><td>Einstein: 3.3145 ms peak to peak. Shapiro for B0329+54:
+−17.1 to +5.8 µs.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D1b. Three corrections were made to the test while writing it, none to the model. The annual closed form
+needs the eccentricity at the date of each extreme. The extremes had to be found on a grid finer than one hour. The amplitude
+tolerance had to allow for the one-minute grid.</p></details>
+
+<h2 id="predictor">4 · <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h2>
+<div class="sig">pred = makePredictor(psr, traj, [t1 t2], ...)</div>
+<p class="meta"><a href="api.html#makepredictor">Full interface and help text of <code>makePredictor</code> →</a></p>
+<h3>In short</h3>
+<p><code>makePredictor</code> computes the pulse phase the receiver should see, once per observation. It stores the phase as short
+polynomials, so the fold only has to evaluate them.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The phase at the barycentre:</b> φ = Φ₀ + <var>f</var>₀·(<var>t</var><sub>SSB</sub> − TRef) + ½·<var>F</var>1·(<var>t</var><sub>SSB</sub> −
+TRef)², the pulsar's timing model.</li>
+<li><b>The arrival time:</b> a pulse received at time <var>t</var> reaches the barycentre at <var>t</var><sub>SSB</sub> = <var>t</var> +
+Δ(<var>t</var>), with Δ from <code>delayModel</code>.</li>
+<li><b>Segments:</b> the span is cut into one-hour segments. In each, the phase is fitted with a Chebyshev polynomial of degree 12.</li>
+<li><b>Checks:</b> each segment is compared with the direct computation between its fitting points. A segment that misses 1 ns is
+split in two, until it passes. A ship's sharp turn is the typical case: around it the segments shrink to a few seconds.</li>
+</ol>
+<p>The predictor returns the phase and the observed spin frequency. That frequency includes the Doppler shift.</p>
+<p>The receiver's samples are timed by its own oscillator, so the data's time stamps are clock readings, not true time. With the option
+<code>'Clock'</code> the predictor gets the observer's estimate of its clock error. It turns each clock reading into its best estimate of
+true time before it computes the delays. A commercial SDR's oscillator is specified to ±2 ppm. Without this correction that rate would
+move the pulse by 240 µs within a 120 s sub-integration, like an uncorrected Doppler shift.</p>
+<div class="callout why"><span class="ttl">Polynomials instead of delays inside the fold</span>
+<p>Radio observatories do the same: they compute "polycos" before an observation. It keeps all the physics out of the streaming fold,
+which only evaluates a polynomial. That is also the interface an FPGA or GPU version needs. The trajectory is the predictor's only
+input about the receiver, so a motion predictor plugs in without touching the fold.</p></div>
+<details><summary>Precision</summary>
+<p>Absolute times (about 8·10⁸ s) and absolute phases (up to about 10¹¹ turns) lose precision in double arithmetic. So the
+polynomials hold the phase counted from the integer turn at the start of the span, as a function of the time since that start. Only
+one constant carries the rounding of the large numbers, about 10⁻⁶ turns, and it is the same for every segment. There are therefore
+no steps between segments.</p></details>
+<h3>Tests (<code>tests/testMakePredictor.m</code>)</h3>
+<p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Two days at 52° N</td><td>The phase of a 100 Hz pulsar.</td><td>48 segments, accurate to 1.9·10⁻¹⁰ s.</td></tr>
+<tr><td>2 · Frequency</td><td>The observed frequency is <var>f</var>₀·(1 + dΔ/d<var>t</var>).</td><td>To 1.2·10⁻¹¹. The Doppler factor in
+March is −8.3·10⁻⁵.</td></tr>
+<tr><td>3 · Segment boundaries</td><td>No steps.</td><td>The largest step is 1.9·10⁻⁸ turns, within the bound.</td></tr>
+<tr><td>4 · Spin-down</td><td>A large <var>F</var>1, worth 174 turns over two days.</td><td>Accurate to 2·10⁻¹⁰ s.</td></tr>
+<tr><td>5 · Ship's turn</td><td>A kink in the delay.</td><td>Split into 15 segments, down to 7 s. Accurate to 6.3·10⁻¹⁰ s next to the
+turn.</td></tr>
+<tr><td>6–7 · Probe, inputs</td><td>A moving probe; bad inputs.</td><td>Accurate to 2·10⁻¹⁰ s. Bad inputs are refused.</td></tr>
+<tr><td>8 · Clock estimate</td><td>A 2.5 ms offset, a rate of 1.7·10⁻⁶ and ageing.</td><td>The phase at clock readings is accurate to
+2.6·10⁻¹⁰ s, the frequency per clock second to 2.6·10⁻¹¹. A zero estimate changes nothing, bit for bit.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D2a. Three test criteria were corrected while writing the test: the step bound, a truth computed from
+absolute times, and a ship's turn that fell on a segment boundary. The option <code>'Clock'</code> was added the same day as the first
+part of D3c, after Jasper chose to fold with the observer's own clock estimate.</p></details>
+
+</main>
+<script src="nav.js"></script>
+</body>
+</html>

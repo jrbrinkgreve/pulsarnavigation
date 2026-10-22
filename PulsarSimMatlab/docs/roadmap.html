@@ -29,7 +29,7 @@ voltage chain (1.24 → 0.99);</li>
 </ul>
 <p><b>Block D started</b> (21 Oct): where the receiver is (<code>makeTrajectory</code>), the delays to the barycentre
 (<code>delayModel</code>), the predicted phase (<code>makePredictor</code>), the fold that follows it, the simulator's truth and the
-receiver's clock are validated: their tests pass in Jasper's run of 22 Oct (<a href="motion.html">block D</a>).</p>
+receiver's clock are validated: their tests pass in Jasper's run of 22 Oct (<a href="prediction.html">phase prediction</a>, <a href="simulator.html#truth">truth</a>, <a href="receiver.html#clock">clock</a>).</p>
 <p><b>Next:</b> the navigation fit, D4a (designed, with clock synchronisation by extra pulsars). Claude's validation run of 21–22 Oct and
 the 100-day scenario runs are done (<a href="results.html#val21">results</a>, <a href="scenario.html#hundred">scenario</a>); Jasper's own
 runs of the new tests are still needed. Then several pulsars and the navigation solution (E).</p></div>
@@ -223,7 +223,7 @@ clock), D3c (the observer's clock estimate; the simulator's truth with a moving 
 checked in Claude's runs). D4 designed: the navigation fit with clock synchronisation by extra pulsars in simultaneous beams. Done in Claude's runs: D4a
 (<code>navFit</code>, the robust batch fit for a fixed site with the calibrated/self switch; 100 days find the 100 km offset at 4.9σ) and
 D4b (the clock as correlated noise, and the SDR clock tracked day by day: no TOAs lost); the planning study D4c-0; D4d-1
-(<code>navFilter</code>, the Kalman filter for a moving ship). Next: D4d-2, the ship scenario <code>runShip</code>. See <a href="motion.html">block D</a>.</td></tr>
+(<code>navFilter</code>, the Kalman filter for a moving ship). Next: D4d-2, the ship scenario <code>runShip</code>. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 
@@ -355,7 +355,7 @@ perfect clock); D4b the clock as correlated noise; D4c several pulsars in simult
 calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge written">D4a, D4b, D4c-0, D4d-1 done 22 Oct (Claude's runs)</span> <span class="badge todo">D4d-2 next</span></td></tr>
 <tr><td>D5</td><td>J0437's binary orbit, DE440, real ship and probe trajectories</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
-<p>Details: <a href="motion.html">motion and phase (block D)</a>.</p>
+<p>Details: <a href="prediction.html">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
 
 <h2>Open items</h2>
 <div class="table-wrap"><table>

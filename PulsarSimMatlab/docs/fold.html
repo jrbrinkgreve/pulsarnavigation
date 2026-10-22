@@ -22,6 +22,7 @@ and how strongly neighbouring bins share noise.</p>
 <li><a href="#how">How it works</a></li>
 <li><a href="#weights">The weights: what each field is for</a></li>
 <li><a href="#noisecoeffs">Correlated time bins (<code>'NoiseCoeffs'</code>)</a> and <a href="#dataweights">data weights per channel (<code>'DataWeights'</code>)</a></li>
+<li><a href="#predictor">Folding with a predictor (<code>'Predictor'</code>)</a></li>
 <li><a href="#why">Design choices</a></li>
 <li><a href="#choose">Choosing NBin and the sub-int length</a></li>
 </ol></div>
@@ -39,6 +40,7 @@ and how strongly neighbouring bins share noise.</p>
 </dl>
 <p>The model uses only what the observer knows: the ephemeris. <var>T</var><sub>ref</sub> is set to the first true pulse centre
 (<var>T</var>/2, from <code>ephem.TRef</code>), and Φ<sub>0</sub> = 0. Every true pulse peak is then at a whole number of turns.</p>
+<p>A moving receiver needs a predicted phase instead: see <a href="#predictor">folding with a predictor</a>.</p>
 <p>Each detected time bin is assigned to phase bins by its phase. Averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
 
 <figure class="scroll">
@@ -532,6 +534,29 @@ modelled noise:</p>
 <p><code>'NoiseCoeffs'</code>: step A1a, 7 Oct 2026. <code>'DataWeights'</code>: step A1b, the same day. The rule for bins with
 <var>W</var> = 0 was found in step A3a (<code>blankingWeights</code>).</p></details>
 
+<h2 id="predictor">Folding with a predictor: <code>'Predictor'</code> <span class="badge validated">validated</span></h2>
+<p><code>foldProfile</code> takes the predictor of <a href="prediction.html#predictor">stage 7a</a> with the option <code>'Predictor'</code>. Each time bin then gets its phase from the
+predictor instead of from a constant spin rate. The predictor must be built with its start at the recording's time zero.</p>
+<p>Each sub-integration still gets a reference time and frequency, so that a TOA is the reference time plus the fitted phase offset
+divided by the frequency. The reference time is where the predicted phase reaches the sub-integration's middle turn. For a partial last
+sub-integration that turn can fall just after the data. There the phase continues linearly with the last frequency.</p>
+<p>Without a predictor nothing changes: the old constant-rate fold is bit for bit the same.</p>
+<h3>Tests (<code>tests/testFoldPredictor.m</code>)</h3>
+<p>Folding with a predictor removes the Doppler shift completely.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Doppler removed</td><td>A pulsar with a Doppler factor of 10⁻³, folded with the predictor.</td><td>Equal to the fold with
+the true phases to 1.1·10⁻⁸ of the peak.</td></tr>
+<tr><td>2 · Without it</td><td>The same data folded at a constant rate.</td><td>Smeared: the peak is 2 % of the true one.</td></tr>
+<tr><td>3 · References</td><td>Each sub-integration's reference time and frequency.</td><td>Exact to 6·10⁻¹⁴ turns, also for the
+partial last one.</td></tr>
+<tr><td>4 · No delays</td><td>A predictor without delays against the old fold.</td><td>Identical to 5·10⁻¹¹.</td></tr>
+<tr><td>5 · Inputs</td><td>A predictor that is too short, or not a predictor.</td><td>Refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 21 Oct 2026 as step D2b. The first version clamped the reference time to the predictor's span, which left the partial last
+sub-integration 0.39 turns off. It now extrapolates linearly.</p></details>
+
 <h2 id="why">Design choices</h2>
 <p>The reasons for linear assignment, <code>weightX</code> and the data weights are with those sections above. Four more:</p>
 <div class="callout why"><span class="ttl">Fold the detected power, after dedispersion</span>
@@ -554,7 +579,7 @@ and to catch bad data (notes §12).</p></div>
 
 <h2>Options and outputs</h2>
 <dl class="facts">
-<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
+<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>Predictor</code> (none; <a href="#predictor">above</a>), <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
 <dt>Fold</dt><dd><code>sum</code>, <code>weight</code>, <code>weight2</code>, <code>weightX</code>, <code>prof</code>, <code>profTotal</code>, per sub-int <code>turnRef</code>, <code>tRef</code>, <code>fRef</code>, <code>tMean</code>, <code>nTimeBins</code></dd>
 <dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
 </dl>
