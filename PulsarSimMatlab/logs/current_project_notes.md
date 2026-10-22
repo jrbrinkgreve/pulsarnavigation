@@ -2356,6 +2356,18 @@ barycentric corrections, navigation solution).
   1.4 GHz, time-variable), Faraday rotation (single polarization), ionospheric
   scintillation and refraction for the target hardware / site; decide what to model and
   correct (§9). Likely with block D (time-dependent corrections) or later.
+- **[todo] Doppler-shifted dispersion delay (22 Oct 2026; real data only).** The dispersion
+  delay K·DM/ν² holds at the frequency in the frame of the interstellar medium (≈ the SSB),
+  ν_SSB ≈ ν_obs(1 − v·n̂/c); TEMPO/TEMPO2 evaluate it at the barycentric frequency.
+  `delayModel` has no dispersion term, and `makePredictor` takes the DM delay at refFreq as a
+  constant (absorbed in the phase reference). Missing at the observer: ≈ 2(v·n̂/c)·K·DM/ν_ref²,
+  an annual term. B0329+54 (DM 26.8, ν_ref = fHigh 1.6 GHz: 43.4 ms; v·n̂/c up to 8.2e-5):
+  ±7.1 µs; Earth rotation adds ~0.05 µs daily. J0437 (DM 2.64: 4.3 ms; 3.7e-5): ±0.3 µs. The
+  in-band sweep scales by (1 + v·n̂/c): ±2.6 µs over 1.2–1.6 GHz at DM 25 after dedispersion
+  with the catalogue DM (negligible smearing). No effect in the simulator (truth and
+  prediction both leave the term out). Against real data the navigation fit would read the
+  annual term as position or clock. Small against B0329+54's ~500 µs per TOA. Fix when needed:
+  a DM term in `delayModel` at the barycentric frequency (psr.DM, ν_ref).
 5. **[todo] DMs up to ~100 (Jasper, 5 Oct: 60; raised to 100 on 6 Oct for Vela, DM 67.8,
    and margin): FFT memory.** The single-FFT dispersion
    kernels grow with the sweep (∝ DM). Minimum FFT sizes (sweep 1.2–1.6 GHz + guards):
