@@ -25,7 +25,11 @@ Name-value options:
   'Ephemeris' [] (default): the analytic Earth below. A loadEphemeris struct (JPL's DE440): the
              geocentre, its velocity and the Sun from the file, read at TDB = TT + the Einstein
              term (block D5b), and that term (TDB - TT) integrated from the file (D5c, to ~2 us,
-             against the analytic two terms' ~60 us); 'Moon' and 'Planets' then do not apply.
+             against the analytic two terms' ~60 us), and the site turned with the Earth's real
+             axis: IAU 2006 precession, the leading nutation terms and apparent sidereal time
+             (D5d; ~40 km at the site in 2026 without them); 'Moon' and 'Planets' then do not apply.
+  'DeltaT'   TT - UT1 [s] for the Earth's rotation (default 69.184: TT - UTC since 2017, with
+             UT1 - UTC, below 0.9 s, left out; real data take it from IERS Bulletin A).
 
 The terms (signs: contributions to t_SSB - t_obs):
   roemer     r_obs . n / c: the light-travel time across the observer's offset from the SSB
@@ -68,6 +72,7 @@ arguments
     opts.Moon (1,1) logical = true
     opts.Planets (1,1) logical = true
     opts.Ephemeris = []
+    opts.DeltaT (1,1) double = 69.184
 end
 
 c = 299792458; AU = 149597870700; Tsun = 1.32712440018e20 / c^3;
@@ -94,12 +99,21 @@ end
 switch upper(traj.frame)
     case 'ECEF'
         rT = traj.pos(t); vT = traj.vel(t);
-        th = eraAngle(t);                             % Earth rotation angle [rad]
+        Q = [];
+        if isempty(opts.Ephemeris)
+            th = eraAngle(t, opts.DeltaT);            % Earth rotation angle [rad]
+        else
+            [th, Q] = earthOrientation(t, opts.DeltaT);   % apparent sidereal time; precession-nutation (D5d)
+        end
         cs = cos(th); sn = sin(th);
         rSite = [cs .* rT(1, :) - sn .* rT(2, :); sn .* rT(1, :) + cs .* rT(2, :); rT(3, :)];
         w = 2*pi * 1.00273781191135448 / 86400;       % d(angle)/dt [rad/s]
         vRot = [cs .* vT(1, :) - sn .* vT(2, :); sn .* vT(1, :) + cs .* vT(2, :); vT(3, :)];
         vSite = vRot + w * [-rSite(2, :); rSite(1, :); zeros(1, N)];
+        if ~isempty(Q)                                % true equator and equinox of date -> J2000 (ICRF)
+            rSite = reshape(pagemtimes(Q, reshape(rSite, 3, 1, N)), 3, N);
+            vSite = reshape(pagemtimes(Q, reshape(vSite, 3, 1, N)), 3, N);
+        end
         rObs = rE + rSite; vObs = vE + vSite;
     case 'SSB'
         rObs = traj.pos(t); vObs = traj.vel(t);
@@ -129,7 +143,8 @@ if isempty(opts.Ephemeris)
     d.model = sprintf(['analytic (Keplerian EMB, Moon %d, planets %d; Earth rotation angle, no ' ...
                        'precession/nutation)'], opts.Moon, opts.Planets);
 else
-    d.model = sprintf('JPL ephemeris %s; Earth rotation angle, no precession/nutation', opts.Ephemeris.file);
+    d.model = sprintf(['JPL ephemeris %s; IAU 2006 precession, leading nutation terms, apparent sidereal ' ...
+                       'time (TT - UT1 = %.3f s); no polar motion'], opts.Ephemeris.file, opts.DeltaT);
 end
 end
 
@@ -206,8 +221,42 @@ ep = deg2rad(23.439281);
 r = [r(1, :); cos(ep) * r(2, :) - sin(ep) * r(3, :); sin(ep) * r(2, :) + cos(ep) * r(3, :)];
 end
 
-function th = eraAngle(t)
-%ERAANGLE  Earth rotation angle [rad] (IERS 2003) with UT1 ~ TT - 69.184 s.
-Du = (t - 69.184) / 86400;
+function th = eraAngle(t, dT)
+%ERAANGLE  Earth rotation angle [rad] (IERS 2003) with UT1 = TT - dT.
+Du = (t - dT) / 86400;
 th = 2*pi * mod(0.7790572732640 + 1.00273781191135448 * Du, 1);
+end
+
+function [gast, Q] = earthOrientation(t, dT)
+%EARTHORIENTATION  Apparent sidereal time [rad, 1 x N] and Q = P' N' [3 x 3 x N], which turns the true
+% equator and equinox of date into J2000: IAU 2006 precession (Capitaine et al. 2003: zeta_A, z_A, theta_A,
+% eps_A), the leading nutation terms (Meeus ch. 22: ~0.5" in longitude, ~0.1" in obliquity, i.e. ~15 m and
+% ~3 m at the surface), GMST from the Earth rotation angle (IERS Conventions 2010 eq. 5.32) plus the
+% equation of the equinoxes. Left out: the frame bias (0.02", 0.6 m) and polar motion (~0.3", ~10 m).
+as = pi / (180 * 3600);
+T = t / (36525 * 86400);                             % TT centuries since J2000
+zeta  = (2.650545 + T .* (2306.083227 + T .* (0.2988499 + T .* (0.01801828 + T .* (-5.971e-6 - 3.173e-7 * T))))) * as;
+z     = (-2.650545 + T .* (2306.077181 + T .* (1.0927348 + T .* (0.01826837 + T .* (-2.8596e-5 - 2.904e-7 * T))))) * as;
+theta = (T .* (2004.191903 + T .* (-0.4294934 + T .* (-0.04182264 + T .* (-7.089e-6 - 1.274e-7 * T))))) * as;
+eps   = (84381.406 + T .* (-46.836769 + T .* (-0.0001831 + T .* (0.00200340 + T .* (-5.76e-7 - 4.34e-8 * T))))) * as;
+Om = deg2rad(125.04455501 - 1934.1361849 * T);       % the Moon's node
+Ls = deg2rad(280.4665 + 36000.7698 * T);             % the Sun's and the Moon's mean longitudes
+Lm = deg2rad(218.3165 + 481267.8813 * T);
+dpsi = (-17.20 * sin(Om) - 1.32 * sin(2*Ls) - 0.23 * sin(2*Lm) + 0.21 * sin(2*Om)) * as;
+deps = (9.20 * cos(Om) + 0.57 * cos(2*Ls) + 0.10 * cos(2*Lm) - 0.09 * cos(2*Om)) * as;
+gmst = eraAngle(t, dT) + (0.014506 + T .* (4612.156534 + T .* (1.3915817 + T .* (-4.4e-7 + T .* (-2.9956e-5 - 3.68e-8 * T))))) * as;
+gast = gmst + dpsi .* cos(eps);
+P = pagemtimes(pagemtimes(rotAxis(3, -z), rotAxis(2, theta)), rotAxis(3, -zeta));      % J2000 -> mean of date
+Nm = pagemtimes(pagemtimes(rotAxis(1, -eps - deps), rotAxis(3, -dpsi)), rotAxis(1, eps));  % mean -> true of date
+Q = pagemtimes(P, 'transpose', Nm, 'transpose');
+end
+
+function R = rotAxis(ax, a)
+%ROTAXIS  Rotation matrices [3 x 3 x N]: the frame turned by angles a [1 x N] about axis ax.
+a = reshape(a, 1, 1, []); c = cos(a); s = sin(a); o = zeros(size(a)); l = ones(size(a));
+switch ax
+    case 1, R = [l o o; o c s; o -s c];
+    case 2, R = [c o -s; o l o; s o c];
+    case 3, R = [c s o; -s c o; o o l];
+end
 end

@@ -38,9 +38,17 @@ standard formulas). Times in 2026 (s since J2000 TT).
      orbit against it over a year: the Earth relative to the Sun within 2e4 km, relative to the
      SSB within 4e5 km (the analytic Sun leaves out Uranus and Neptune); the navigation's
      measurement (the site 100 km east minus the site, all terms, two days) is the same with both
-     to 1e-11 s; Shapiro for B0329+54 within -20 ... +8 us; the Einstein term at the geocentre is
+     to 3 us (the orbit drops out; since D5d the offset also turns with the Earth's real axis:
+     0.37 deg of precession is up to 2.2 us on 100 km); Shapiro for B0329+54 within -20 ... +8 us; the Einstein term at the geocentre is
      the file's TDB - TT (D5c, 1e-15 s); a bad 'Ephemeris' refused.
-Errors at the end if any check fails. (21 Oct 2026, block D1b; check 10 22 Oct, D5b.)
+ 11. The site in the sky with the Earth's real axis (block D5d): a site at 52 N 5 E, sea level,
+     relative to the SSB, against JPL Horizons (queried 22 Oct 2026: DE441, the IAU 2006/2000A
+     Earth orientation, measured UT1 and polar motion) at 2026-03-01 00:00 and 06:00 TT (TT - UT1
+     = 69.184 s, UT1 - UTC left out) and at 2000-01-01 12:00 TT ('DeltaT' 63.829 s: UT1 - UTC was
+     +0.355 s): within 300 m (UT1 - UTC, below 0.9 s, is up to 260 m at 52 N; polar motion ~10 m;
+     the nutation terms left out ~15 m). Shown: the site's offset without precession and
+     nutation.
+Errors at the end if any check fails. (21 Oct 2026, block D1b; checks 10-11 22 Oct, D5b-d.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -209,12 +217,32 @@ eBar = max(vecnorm(dA.rEarth - dJ.rEarth));
 navJ = delayModel(td, siteE, b0329, 'Ephemeris', eph).total - delayModel(td, site, b0329, 'Ephemeris', eph).total;
 eNav = max(abs(navJ - dAll));
 shJ = delayModel(ty, site, b0329, 'Ephemeris', eph, 'Terms', "shapiro").shapiro;
-ok10 = eF < 1e-2 && eV < 1e-5 && eEin < 1e-15 && eHel < 2e7 && eBar < 4e8 && eNav < 1e-11 && min(shJ) > -20e-6 && max(shJ) < 8e-6 && ...
+ok10 = eF < 1e-2 && eV < 1e-5 && eEin < 1e-15 && eHel < 2e7 && eBar < 4e8 && eNav < 3e-6 && min(shJ) > -20e-6 && max(shJ) < 8e-6 && ...
        strcmp(errId(@() delayModel(t0, site, b0329, 'Ephemeris', struct('x', 1))), 'delayModel:ephemeris');
 fprintf(['10. DE440: geocentre = the file''s to %.1e m, %.1e m/s; the analytic Earth off by %.0f km from the Sun, %.0f km from the SSB; ' ...
          'the 100 km measurement the same to %.1e s; Shapiro %.1f ... %.1f us; Einstein = the file''s TDB - TT to %.0e s: %s\n'], ...
     eF, eV, eHel / 1e3, eBar / 1e3, eNav, 1e6 * min(shJ), 1e6 * max(shJ), eEin, passStr(ok10));
 if ~ok10, fails{end+1} = 'DE440'; end
+
+% 11. The site with precession and nutation, against JPL Horizons
+% ---------------------------------------------------------------------------------
+% JD (TT), TT - UT1 [s], SSB relative to the site: x y z [km]
+H = [2461100.5,  69.184, 1.397089429256220E+08, -4.564961116569822E+07, -1.981349822260844E+07;
+     2461100.75, 69.184, 1.399345680864637E+08, -4.508732318910608E+07, -1.957189792558004E+07;
+     2451545.0,  63.829, 2.756570930439800E+07, -1.323575836055412E+08, -5.742365601137837E+07];
+e11 = zeros(1, 3); eNo = zeros(1, 3);
+for i = 1:3
+    tH = (H(i, 1) - 2451545.0) * 86400;
+    dH = delayModel(tH, site, b0329, 'Ephemeris', eph, 'DeltaT', H(i, 2));
+    e11(i) = norm(dH.rObs + 1e3 * H(i, 3:5).');
+    th = 2*pi * mod(0.7790572732640 + 1.00273781191135448 * (tH - H(i, 2)) / 86400, 1);   % no precession or nutation
+    rS = site.pos(tH); rS = [cos(th) * rS(1) - sin(th) * rS(2); sin(th) * rS(1) + cos(th) * rS(2); rS(3)];
+    eNo(i) = norm(dH.rEarth + rS + 1e3 * H(i, 3:5).');
+end
+ok11 = all(e11 < 300);
+fprintf('11. the site against JPL Horizons (2026 00:00, 06:00, J2000): %.0f, %.0f, %.0f m; without precession and nutation %.1f, %.1f, %.1f km: %s\n', ...
+    e11, eNo / 1e3, passStr(ok11));
+if ~ok11, fails{end+1} = 'Earth orientation'; end
 
 if isempty(fails)
     fprintf('testDelayModel: ALL PASSED\n');
