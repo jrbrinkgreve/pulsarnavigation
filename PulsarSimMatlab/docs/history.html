@@ -300,6 +300,8 @@ error (D4a–D4d-1).</li>
 <li><b>The exact Earth for real data</b> (D5): JPL's DE440 read directly, TDB − TT integrated from it, precession and nutation. JPL's
 Horizons service confirms it to centimetres for the geocentre and about 30 m for a site. The comparison showed the analytic orbit
 up to 320,000 km off the barycentre; simulations are unaffected, because truth and prediction share it.</li>
+<li><b>Block D closed</b> (Jasper): eight simulated ships keep within 73 km rms of their tracks with a calibrated start, against
+379 km for dead reckoning, and the filter is as honest as on ideal data. Ten items are parked, each with what it needs.</li>
 <li><b>The ship in a closed loop</b> (<code>runShip</code>) found a modelling error: a TOA is an average over hours of data, sometimes
 over two passes a day apart, and one time per TOA damps or even flips the daily position signal. <code>navFit</code> and
 <code>navFilter</code> now average each TOA's row over its sub-integrations (Jasper's run: validated). The same runs taught that a
@@ -387,6 +389,10 @@ agreed.</p>
 <tr><td>21 Oct</td><td>The observer folds with its own clock estimate (Jasper: option a)</td><td>A commercial SDR's ±2 ppm would smear the fold like an uncorrected Doppler shift: 240 µs in a 120 s sub-int.</td></tr>
 <tr><td>21 Oct</td><td>D4: clock synchronisation with extra pulsars (Jasper)</td><td>The clock is common to all pulsars, a position error is not: differences between pulsars cancel the clock, and with the position known the pulsars discipline the clock.</td></tr>
 <tr><td>21 Oct</td><td>Several digital beams at once (Jasper)</td><td>The array mixes the signals digitally, so extra pulsars cost no time on B0329+54.</td></tr>
+<tr><td>22 Oct</td><td>Block D closed after the ship comparison and the fixed-site reruns (Jasper)</td><td>Everything is validated; what
+is left (J0437's orbit, real trajectories, the self-calibrated ship's north, and smaller refinements) is not on the path to block E.</td></tr>
+<tr><td>22 Oct</td><td>A block F: the real implementation, with antenna data and the processing on a GPU or FPGA (Jasper)</td><td>E keeps the
+full system in simulation; the hardware and the port are a different kind of work, checked against the MATLAB reference.</td></tr>
 <tr><td>22 Oct</td><td>D5 for real data: DE440, the higher-order Einstein terms, precession and nutation; J0437's binary orbit and real
 trajectories parked (Jasper)</td><td>The simulations do not need them, real TOAs do. J0437 never rises at 52° N, and there are no real
 trajectories yet.</td></tr>

@@ -12,7 +12,7 @@ blocks = [  # (label, first day, last day, lane, status)
     ('review week', dt.date(2026, 10, 12), dt.date(2026, 10, 16), 1, 'V'),
     ('processIQ', dt.date(2026, 10, 19), dt.date(2026, 10, 19), 0, 'V'),
     ('C · fast simulator', dt.date(2026, 10, 20), dt.date(2026, 10, 22), 1, 'V'),     # closed 22 Oct
-    ('D · motion', dt.date(2026, 10, 21), dt.date(2026, 10, 22), 0, 'R', 'right'),   # label beside the bar
+    ('D · motion', dt.date(2026, 10, 21), dt.date(2026, 10, 22), 0, 'V', 'right'),   # closed 22 Oct; label beside the bar
 ]
 cCols = [  # block C in detail: (column title, [(item, status)])
     ('simulator (simulateFold)', [('C1 noise model', 'V'), ('C2 against the voltage chain', 'C'),
@@ -29,19 +29,21 @@ cCols = [  # block C in detail: (column title, [(item, status)])
                                 ('100-day final runs', 'C')]),
     ('open questions', [('error bars at SNR ~7: explained', 'C'), ('J0437 narrow pulls: noise', 'C'),
                         ('detectRFI thresholds per channel', 'V'), ('rfiProfile: lags beyond 7', 'V'),
-                        ('low-SNR outliers: robust fit (D)', 'N')]),
+                        ('low-SNR outliers: robust fit (D)', 'V')]),
 ]
 after = [  # blocks D and E: (title, now/next, [(item, status)])
-    ('D · motion and phase', 'now', [('D1 trajectory, delays to the barycentre', 'V'),
-                                     ('D2 phase predictor, the fold that follows it', 'V'),
-                                     ('D3 simulator truth, receiver clock, its estimate', 'V'),
-                                     ('D4 navigation fit, clock synchronisation (designed)', 'N'),
-                                     ('D5 binary orbit (J0437), DE440, real trajectories', 'N')]),
-    ('E · navigation', 'next', [('several pulsars (B0329+54, J0437, …)', 'N'),
-                                ('navigation solution (position + clock)', 'N'),
-                                ('3×3 array, second polarization', 'N'),
-                                ('real IQ recordings from the hardware', 'N'),
-                                ('FPGA / GPU port of processIQ', 'N')]),
+    ('D · motion and phase', 'closed', [('D1 trajectory, delays to the barycentre', 'V'),
+                                     ('D2 phase predictor, folding with it', 'V'),
+                                     ('D3 simulator truth, receiver clock', 'V'),
+                                     ('D4 navigation fit, ship filter', 'V'),
+                                     ('D5 DE440, TDB − TT, precession', 'V')]),
+    ('E · full system, simulated', 'next', [('several pulsars at full scale', 'N'),
+                                ('navigation solution: position + clock', 'N'),
+                                ('3×3 array, second polarization', 'N')]),
+    ('F · real implementation', 'later', [('IQ from the antenna, mixer and SDR', 'N'),
+                                ('processIQ on the recordings', 'N'),
+                                ('GPU / FPGA port, stage by stage', 'N'),
+                                ('real time', 'N')]),
 ]
 cls = {'V': 'box val', 'C': 'box proc', 'R': 'box rx', 'N': 'box'}
 o = []
@@ -69,7 +71,7 @@ o.append(f'<path class="dash" d="M{xt:.1f} 76 V{yAx}"/><text class="sub" x="{xt 
 o.append(f'<path class="line" d="M{X(TODAY) + px:.1f} 81 h18" marker-end="url(#ar-rd)"/>')
 for k, (lab, when, _) in enumerate(after):
     y = 36 + k * 36
-    st = 'R' if when == 'now' else 'N'
+    st = {'now': 'R', 'closed': 'V'}.get(when, 'N')
     dash = ' stroke-dasharray="5 4"' if st == 'N' else ''
     o.append(f'<rect class="{cls[st]}" x="640" y="{y}" width="210" height="18" rx="4"{dash}/>')
     o.append(f'<text class="lbl" x="745" y="{y + 13}" text-anchor="middle">{lab} ({when})</text>')
@@ -88,14 +90,14 @@ for j, (title, items) in enumerate(cCols):
 nMax = max(len(items) for _, items in cCols)
 y3 = y2 + 30 + nMax * (ch + gap) + 26
 # ---- 3. after C ------------------------------------------------------------------------------
-o.append(f'<text class="ttl" x="10" y="{y3}">3 · blocks D and E</text>')
+o.append(f'<text class="ttl" x="10" y="{y3}">3 · blocks D, E and F</text>')
 for j, (title, when, items) in enumerate(after):
-    x = 10 + j * 425
+    x = 10 + j * 283
     o.append(f'<text class="lbl" x="{x}" y="{y3 + 22}" font-weight="600">{title} ({when})</text>')
     for i, (it, st) in enumerate(items):
         y = y3 + 30 + i * (ch + gap)
         dash = ' stroke-dasharray="5 4"' if st == 'N' else ''
-        o.append(f'<rect class="{cls[st]}" x="{x}" y="{y}" width="415" height="{ch}" rx="5"{dash}/>')
+        o.append(f'<rect class="{cls[st]}" x="{x}" y="{y}" width="275" height="{ch}" rx="5"{dash}/>')
         o.append(f'<text class="sub" x="{x + 8}" y="{y + 15}">{it}</text>')
 yL = y3 + 30 + max(len(i) for _, _, i in after) * (ch + gap) + 16
 leg = [('V', 'validated (Jasper\'s run)'), ('C', 'done (Claude\'s run)'), ('R', 'running / under investigation'),
@@ -116,11 +118,11 @@ svg = f'''<figure class="scroll">
   ''' + '\n  '.join(o) + f'''
 </svg>
 <figcaption>The roadmap on {TODAY.day} {TODAY.strftime("%B")}. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
-TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion and phase, started on 21 Oct. (2) Block C's
+TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
-done in Claude's runs. Open is a robust fit against the low-SNR tail (with D4). (3) Blocks D and E: D1–D3 are validated, D4 is designed,
-then several pulsars and the navigation solution.
+done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D and E: D1–D5 are validated, a few items are
+parked (navigation page); E brings the full system in simulation, F the real implementation on antenna data and a GPU or FPGA.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>'''
 open('roadmap.svg', 'w').write(svg)

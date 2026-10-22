@@ -1,4 +1,4 @@
-# Block D handover (22 Oct 2026, prepared for the close-out)
+# Block D handover (22 Oct 2026): block D CLOSED
 
 Block D: motion, barycentric phase prediction, the clock, and the navigation fit. Started 21 Oct, built and
 validated 21-22 Oct. Detailed log: logs/2026-10-20_blockC.md (D sections). Docs: prediction.html (stage 7a),
@@ -63,7 +63,16 @@ Unit tests: runAllTests lists 25; all pass in Jasper's runs (the D ones on 22 Oc
 | The self-calibrated ship's north error | real north worse than the twin in 4 of 8 ships (pull spread 1.27 vs 0.67); calibrated agrees | a per-ship comparison of the TOAs with the twin's (as done for the tagging error) |
 | Robust filter, one pass | navFilter weighs outliers once (navFit iterates) | an iterated smoother pass if outliers matter on real data |
 
-## Open for Jasper
+## Closed
 
-- Confirm the close of block D after the final ship comparison.
-- Then block E (several pulsars at full scale, the 3x3 array, second polarisation, real IQ, the FPGA/GPU port).
+Jasper: "yes, close D after the reruns". The fixed-site reruns (sidereal tag, averaged rows) confirm D4a / D4b: nominal east
+36.5 +- 29.6 km (the same noise draw as before), SDR tracked 35.1 +- 29.7 km, worst case honest at +-110 km (was given as +-71
+km with point rows). Block D closed 22 Oct 2026, evening.
+
+## Next
+
+- Block E: the full navigation system in simulation (several pulsars at full scale, the navigation solution, 3x3 array,
+  second polarisation).
+- Block F (Jasper, 22 Oct): the real implementation - IQ recordings from the antenna, mixer and SDR through processIQ; the
+  processing ported to a GPU or FPGA and checked stage by stage against processIQ; in the end real time.
+- 23 Oct, 09:00: reminder to have an agent check all docs for missing or outdated text (scheduled task remind-docs-check).

@@ -16,23 +16,22 @@
 <div class="callout note"><span class="ttl">In short</span>
 <p><b>Done:</b> the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
 review week (12–16 Oct), and the processing as one function, <code>processIQ</code> (19 Oct).</p>
-<p><b>Now: block C</b> (since 20 Oct). The fast simulator <code>simulateFold</code> is built and validated. It covers channels, RFI
-profiles, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles and per-channel noise
-calibration. The first scenario runs give TOA budgets for B0329+54, seen from the Netherlands, and J0437, seen from 30° S.</p>
-<p><b>20–21 Oct</b>, in Claude's runs (awaiting Jasper's):</p>
+<p><b>Block C closed</b> (22 Oct). The fast simulator <code>simulateFold</code> is validated. It covers channels, RFI profiles,
+observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles and per-channel noise calibration.
+Its scenario runs give TOA budgets for B0329+54, seen from the Netherlands, and J0437, seen from 30° S
+(<a href="scenario.html#hundred">scenario</a>).</p>
+<p><b>Block D closed</b> (22 Oct). It covers motion, phase prediction, the receiver's clock and navigation. All its unit tests pass in
+Jasper's runs. The scenario and ship runs are Claude's.</p>
 <ul>
-<li>the scenario's RFI variants: realistic RFI costs about 20–25 % of the TOAs, and the noise calibration makes χ² 1, also on the
-voltage chain (1.24 → 0.99);</li>
-<li>J0437 with its measured profile: about 5× more data per TOA than with the single Gaussian (adopted 21 Oct);</li>
-<li>the narrow-carrier test failures diagnosed (the lag cut-off, and <code>detectRFI</code>'s false flags), and both addressed in the code
-(30 lags in the RFI profiles, per-channel <code>detectRFI</code> thresholds). The chain test has not been rerun with them yet.</li>
+<li>A fixed site 100 km east is found by B0329+54 alone: ±29 km after 30 days, 4.9σ after 100 days.</li>
+<li>The receiver's own crystal clock is tracked day by day without losing TOAs.</li>
+<li>A ship over 14 days keeps within 73 km rms of its track with a calibrated start, against 379 km by dead reckoning.</li>
+<li>JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</li>
 </ul>
-<p><b>Block D started</b> (21 Oct): where the receiver is (<code>makeTrajectory</code>), the delays to the barycentre
-(<code>delayModel</code>), the predicted phase (<code>makePredictor</code>), the fold that follows it, the simulator's truth and the
-receiver's clock are validated: their tests pass in Jasper's run of 22 Oct (<a href="prediction.html">phase prediction</a>, <a href="simulator.html#truth">truth</a>, <a href="clock.html">clock</a>).</p>
-<p><b>Next:</b> the navigation fit, D4a (designed, with clock synchronisation by extra pulsars). Claude's validation run of 21–22 Oct and
-the 100-day scenario runs are done (<a href="results.html#val21">results</a>, <a href="scenario.html#hundred">scenario</a>); Jasper's own
-runs of the new tests are still needed. Then several pulsars and the navigation solution (E).</p></div>
+<p>Pages: <a href="prediction.html">phase prediction</a>, <a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>. The
+parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
+<p><b>Next: block E.</b> Several pulsars at full scale, the 3×3 array, the second polarization, real IQ recordings, and the FPGA/GPU
+port.</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -92,14 +91,16 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="lbl" x="476.0" y="32">processIQ</text>
   <rect class="box val" x="498.8" y="72" width="68.4" height="18" rx="4"/>
   <text class="lbl" x="498.8" y="68">C · fast simulator</text>
-  <rect class="box rx" x="521.6" y="36" width="45.6" height="18" rx="4"/>
+  <rect class="box val" x="521.6" y="36" width="45.6" height="18" rx="4"/>
   <text class="lbl" x="571.2" y="49">D · motion</text>
   <path class="dash" d="M567.2 76 V112"/><text class="sub" x="571.2" y="108">today</text>
   <path class="line" d="M567.2 81 h18" marker-end="url(#ar-rd)"/>
-  <rect class="box rx" x="640" y="36" width="210" height="18" rx="4"/>
-  <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (now)</text>
+  <rect class="box val" x="640" y="36" width="210" height="18" rx="4"/>
+  <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (closed)</text>
   <rect class="box" x="640" y="72" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
-  <text class="lbl" x="745" y="85" text-anchor="middle">E · navigation (next)</text>
+  <text class="lbl" x="745" y="85" text-anchor="middle">E · full system, simulated (next)</text>
+  <rect class="box" x="640" y="108" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
+  <text class="lbl" x="745" y="121" text-anchor="middle">F · real implementation (later)</text>
   <text class="ttl" x="10" y="156">2 · block C, step by step</text>
   <text class="lbl" x="10" y="178" font-weight="600">simulator (simulateFold)</text>
   <rect class="box val" x="10" y="186" width="205" height="22" rx="5"/>
@@ -159,31 +160,36 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="663" y="257">detectRFI thresholds per channel</text>
   <rect class="box val" x="655" y="270" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="285">rfiProfile: lags beyond 7</text>
-  <rect class="box" x="655" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box val" x="655" y="298" width="205" height="22" rx="5"/>
   <text class="sub" x="663" y="313">low-SNR outliers: robust fit (D)</text>
-  <text class="ttl" x="10" y="436">3 · blocks D and E</text>
-  <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase (now)</text>
-  <rect class="box val" x="10" y="466" width="415" height="22" rx="5"/>
+  <text class="ttl" x="10" y="436">3 · blocks D, E and F</text>
+  <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase (closed)</text>
+  <rect class="box val" x="10" y="466" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="481">D1 trajectory, delays to the barycentre</text>
-  <rect class="box val" x="10" y="494" width="415" height="22" rx="5"/>
-  <text class="sub" x="18" y="509">D2 phase predictor, the fold that follows it</text>
-  <rect class="box val" x="10" y="522" width="415" height="22" rx="5"/>
-  <text class="sub" x="18" y="537">D3 simulator truth, receiver clock, its estimate</text>
-  <rect class="box" x="10" y="550" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="565">D4 navigation fit, clock synchronisation (designed)</text>
-  <rect class="box" x="10" y="578" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="593">D5 binary orbit (J0437), DE440, real trajectories</text>
-  <text class="lbl" x="435" y="458" font-weight="600">E · navigation (next)</text>
-  <rect class="box" x="435" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="443" y="481">several pulsars (B0329+54, J0437, …)</text>
-  <rect class="box" x="435" y="494" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="443" y="509">navigation solution (position + clock)</text>
-  <rect class="box" x="435" y="522" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="443" y="537">3×3 array, second polarization</text>
-  <rect class="box" x="435" y="550" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="443" y="565">real IQ recordings from the hardware</text>
-  <rect class="box" x="435" y="578" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="443" y="593">FPGA / GPU port of processIQ</text>
+  <rect class="box val" x="10" y="494" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="509">D2 phase predictor, folding with it</text>
+  <rect class="box val" x="10" y="522" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="537">D3 simulator truth, receiver clock</text>
+  <rect class="box val" x="10" y="550" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="565">D4 navigation fit, ship filter</text>
+  <rect class="box val" x="10" y="578" width="275" height="22" rx="5"/>
+  <text class="sub" x="18" y="593">D5 DE440, TDB − TT, precession</text>
+  <text class="lbl" x="293" y="458" font-weight="600">E · full system, simulated (next)</text>
+  <rect class="box" x="293" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="481">several pulsars at full scale</text>
+  <rect class="box" x="293" y="494" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="509">navigation solution: position + clock</text>
+  <rect class="box" x="293" y="522" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="537">3×3 array, second polarization</text>
+  <text class="lbl" x="576" y="458" font-weight="600">F · real implementation (later)</text>
+  <rect class="box" x="576" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="584" y="481">IQ from the antenna, mixer and SDR</text>
+  <rect class="box" x="576" y="494" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="584" y="509">processIQ on the recordings</text>
+  <rect class="box" x="576" y="522" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="584" y="537">GPU / FPGA port, stage by stage</text>
+  <rect class="box" x="576" y="550" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="584" y="565">real time</text>
   <rect class="box val" x="10" y="611" width="22" height="14" rx="3"/>
   <text class="sub" x="40" y="622">validated (Jasper's run)</text>
   <rect class="box proc" x="220" y="611" width="22" height="14" rx="3"/>
@@ -194,11 +200,11 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="670" y="622">next / open</text>
 </svg>
 <figcaption>The roadmap on 22 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
-TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion and phase, started on 21 Oct. (2) Block C's
+TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
-done in Claude's runs. Open is a robust fit against the low-SNR tail (with D4). (3) Blocks D and E: D1–D3 are validated, D4 is designed,
-then several pulsars and the navigation solution.
+done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D and E: D1–D5 are validated, a few items are
+parked (navigation page); E brings the full system in simulation, F the real implementation on antenna data and a GPU or FPGA.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
@@ -216,7 +222,10 @@ groups over gaps, multi-component profiles, the calibrated observer) and <code>t
 <span class="badge written">done in Claude's runs</span>: C2 (<code>expSimVsChain</code>), the cost of RFI (<code>expSimRFI</code>),
 the scenario runs with all variants, and the 100-day runs
 (<a href="scenario.html#hundred">final budgets</a>).</td></tr>
-<tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td>started 21 Oct.
+<tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock, the navigation fit</td><td><b>closed 22 Oct</b> (started 21 Oct).
+A simulated ship stays within 73 km rms of its true track with B0329+54 and B0950+08 and a drifting SDR clock, against 379 km for dead
+reckoning; JPL's DE440 with TDB − TT and precession is in for real data. Parked items with what each needs:
+<a href="navigation.html#next">navigation</a>. Before that:
 <span class="badge validated">validated in Jasper's run of 22 Oct</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>) and D2 (<code>makePredictor</code>,
 <code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against the prediction) and D3b (<code>makeClock</code>: the receiver's
 clock), D3c (the observer's clock estimate; the simulator's truth with a moving receiver and a clock in <code>runScenario</code> is
@@ -224,7 +233,8 @@ checked in Claude's runs). D4 designed: the navigation fit with clock synchronis
 (<code>navFit</code>, the robust batch fit for a fixed site with the calibrated/self switch; 100 days find the 100 km offset at 4.9σ) and
 D4b (the clock as correlated noise, and the SDR clock tracked day by day: no TOAs lost); the planning study D4c-0; D4d-1
 (<code>navFilter</code>, the Kalman filter for a moving ship). Next: D4d-2, the ship scenario <code>runShip</code>. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
-<tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td><b>E</b></td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">next</span></td></tr>
+<tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
 
 <h2 id="why">Design choices: why this order</h2>
@@ -332,7 +342,7 @@ circular correlation matrix.</li>
 <li>Validation: reproduce the block 1 numbers with weights copied from a voltage fold.</li>
 </ul>
 
-<h2>Block D: motion and barycentric phase</h2>
+<h2>Block D: motion and barycentric phase (21–22 Oct, closed)</h2>
 <p>A TOA is folded across passes, so the fold must follow the receiver's motion. Block D predicts that motion and later turns what the
 prediction does not explain into a position. Its design was agreed on 21 Oct:</p>
 <ul>
