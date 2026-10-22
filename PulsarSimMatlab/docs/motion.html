@@ -533,6 +533,28 @@ hours share the same clock.</p>
 <p>Each pulsar also has a constant offset between our profile's reference point and its timing model. A switch chooses how it is
 handled. Either the observer starts from a calibrated position and time, for example in port, or it estimates the offsets itself.
 Without calibration the polar component of a fixed site stays unobservable.</p>
+<h3>Which extra pulsars help: a planning study</h3>
+<p><code>navFit</code>'s <code>'Predict'</code> mode gives the errors a TOA schedule would produce, without simulating
+(<code>tests/expNavPlan.m</code>). The schedules use each pulsar's real passes above 20° from 52° N: B0329+54's TOA rate from the scenario
+runs, and the others' from the <a href="scenario.html#visibility">scenario table</a>. For B0329+54 alone the study predicts what the real
+fits gave: ±29.6 km east and ±16.3 km polar over 30 days. B1749−28 is never above 20° from 52° N.</p>
+<div class="table-wrap"><table>
+<tr><th>100 days, nominal flux</th><th>TOAs</th><th>East</th><th>Radial</th><th>Polar (calibrated), perfect clock</th><th>Polar (calibrated), crystal clock</th><th>Clock one day ahead</th></tr>
+<tr><td>B0329+54 alone</td><td class="num">1005</td><td class="num">16.2 km</td><td class="num">18.7 km</td><td class="num">8.9 km</td><td class="num">63.6 km</td><td class="num">453 µs</td></tr>
+<tr><td>+ B0950+08</td><td class="num">+ 75</td><td class="num">15.8 km</td><td class="num">15.7 km</td><td class="num">8.8 km</td><td class="num">34.3 km</td><td class="num">443 µs</td></tr>
+<tr><td>+ B0950+08, B1642−03, B1929+10</td><td class="num">+ 75, 13, 8</td><td class="num">15.4 km</td><td class="num">13.7 km</td><td class="num">8.7 km</td><td class="num">23.7 km</td><td class="num">442 µs</td></tr>
+</table></div>
+<ul>
+<li><b>The equatorial position barely gains:</b> 5 % in east and up to 25 % in radial. B0329+54's TOAs dominate.</li>
+<li><b>The daily clock tracking does not gain either.</b> The extra pulsars are too weak to follow the clock from day to day, so a
+millisecond pulsar needs a better oscillator.</li>
+<li><b>The real gain is the polar component with a real clock.</b> With B0329+54 alone the crystal's slow wander mimics the constant that
+carries the polar component, and its error grows from 9 to 64 km. The clock is common to all pulsars, but the polar term projects
+differently onto each (sin δ is 0.82, 0.14, −0.06 and 0.19), so extra pulsars separate them again: 34 km with B0950+08, 24 km with all
+three.</li>
+<li><b>B0950+08 brings most of it.</b> B1642−03 and B1929+10 give only a few TOAs a month at nominal flux, and none in 30 days at worst
+case. At worst-case flux B0950+08 too gives only 4 TOAs in 30 days.</li>
+</ul>
 <div class="callout why"><span class="ttl">The clock as correlated noise, not as free segments</span>
 <p><b>Alternative:</b> a free clock offset and rate for every day.</p>
 <p><b>Why not:</b> a straight line per day absorbs part of a daily sine, and the daily sine is the position signal itself. The clock
@@ -545,7 +567,7 @@ predicts the precision for any TOA schedule, to choose pulsars without simulatin
 <tr><td>D4b</td><td>The clock in the fit, as correlated noise; the fitted clock fed back as the observer's estimate in the scenario,
 day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge written">done 22 Oct (Claude's runs)</span></td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
-the per-pulsar offsets.</td><td><span class="badge todo">next</span></td></tr>
+the per-pulsar offsets. The planning study (D4c-0, above) is done.</td><td><span class="badge written">D4c-0 done 22 Oct</span> <span class="badge todo">D4c-1 next</span></td></tr>
 <tr><td>D4d</td><td>The Kalman filter for a moving ship: dead reckoning in, trajectory and clock fed back.</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 <h3>The clock</h3>
