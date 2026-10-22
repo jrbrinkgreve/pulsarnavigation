@@ -381,6 +381,42 @@ For J0437 the observer must know its clock offset much better; keeping it known 
 <p>The variants are clean, RFI, RFI + calibration, + scintillation, and fixed groups for comparison. Results:
 <a href="scenario.html">scenario</a>.</p>
 
+<h2 id="ship"><code>runShip.m</code> (22 Oct)</h2>
+<p>A ship that navigates by pulsars: the fast simulator and the navigation filter in a closed loop (block D4d). The ship knows its track
+only from dead reckoning, and an unknown current pushes it off that track.</p>
+<div class="table-wrap"><table>
+<tr><th>Setting</th><th>Default</th></tr>
+<tr><td>Route</td><td>From 50° N, 5° W, heading 250°, 5 knots, 14 days</td></tr>
+<tr><td>Current</td><td>A mean drawn with 0.3 m/s per axis, plus a wander of 0.1 m/s that reverts to the mean over about 2 days</td></tr>
+<tr><td>Pulsars</td><td>B0329+54 with five components (NBin 2048, 120 s sub-integrations) and B0950+08 as one Gaussian (W<sub>50</sub> 8.6 ms,
+100 mJy, NBin 512, 300 s), in simultaneous beams</td></tr>
+<tr><td>Clock</td><td>The SDR's crystal with a rate within ±2 ppm. The port calibration is off by a drawn 1 ms and 10⁻⁹.</td></tr>
+<tr><td>Start</td><td><code>"self"</code>, or <code>"calibrated"</code>: the per-pulsar constants known from port</td></tr>
+</table></div>
+<p>Other runs set <code>shipOpts</code> before calling the script, with any of the fields <code>nDays</code>, <code>flux</code>,
+<code>seed</code> and <code>start</code>. The seed draws the current, the clock and every fold's noise.</p>
+<p>In plain steps:</p>
+<ol>
+<li>The truth: the dead-reckoning track is a rhumb line. The true track adds the current's drift in the ship's own east and north
+directions.</li>
+<li>Each day, each pulsar is folded whenever it is above 20° at the ship's dead-reckoning position. The observer folds with its current
+track and clock estimate. The simulator puts each sub-integration's pulse where the true track and clock put it.</li>
+<li><code>adaptiveSubints</code> and <code>foldToTOA</code> give the TOAs. Each TOA keeps its sub-integrations' times and the observer's
+reference values for them. The filter averages each TOA's row over those times, as the TOA itself is averaged.</li>
+<li>Each evening the observer runs <code>navFilter</code> on all its TOAs so far, referred to the dead-reckoning track and the port
+clock. It folds the next day with the corrected track and clock.</li>
+<li>After the last day: the smoother over all TOAs against the truth, and its twin. The twin is the same smoother on ideal TOAs, the
+truth plus Gaussian noise of the stated size. A difference between the two comes from the TOA chain, not from the filter.</li>
+</ol>
+<p>It prints a daily table (TOAs per pulsar, the dead-reckoning error, the observer's error one day ahead, the clock it had not
+estimated) and the final errors and pulls. The result goes to <code>data/scenario/ship_14d_nominal.mat</code>, with <code>_cal</code>
+for a calibrated start and <code>_seed&lt;n&gt;</code> for other seeds. Results: <a href="navigation.html#navfilter">navigation</a>.</p>
+<details><summary>History</summary>
+<p>Written 22 Oct 2026 as step D4d-2 (Jasper: dead reckoning unknown, a general route). The first multi-seed runs showed stuck estimates.
+Part of the cause was real: a TOA from two passes a day apart was tagged between them, where the daily signal has the opposite sign.
+The rest was the noise of single runs, which the twin now separates. The calibrated start, the mean-reverting current and the averaged
+rows followed the same day.</p></details>
+
 <h2>Planned</h2>
 <p>The processing is factored out since 19 Oct (<code>processIQ</code>, <code>foldToTOA</code>), used by <code>main</code> and all run scripts except
 <code>runLockedRadar</code>, which processes difference channels by superposition (<a href="roadmap.html#processiq">roadmap</a>).</p>
