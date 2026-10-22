@@ -27,6 +27,7 @@ block D, since 21 Oct 2026</p>
 <li><a href="#truth"><code>trueResiduals</code>: how late the pulse really is</a></li>
 <li><a href="#clock"><code>makeClock</code>: the receiver's clock</a></li>
 <li><a href="#navfit"><code>navFit</code>: the site from the TOAs</a></li>
+<li><a href="#navfilter"><code>navFilter</code>: a moving receiver</a></li>
 <li><a href="#next">The simulator's truth, and next: the navigation fit and the clock</a></li>
 </ol></div>
 
@@ -487,7 +488,63 @@ normal equations in metres and seconds at once, which differ by 18 orders of mag
 clock (D4b) followed the same day. Its first error bars left out the uncertainty of the fitted parameters and were 50 % too small; check
 10 caught it. Check 9 once gave a pull spread of 1.13 with 200 realizations; 1000 realizations per case gave 1.00, 1.02 and 0.98.</p></details>
 
-<h2 id="next">9. The simulator's truth, and next: the navigation fit and the clock</h2>
+<h2 id="navfilter">9 · <code>navFilter</code>: a moving receiver <span class="badge written">done</span></h2>
+<div class="sig">fit = navFilter(toa, psrs, trajDR, ...)</div>
+<p class="meta"><a href="api.html#navfilter">Full interface and help text of <code>navFilter</code> →</a></p>
+<h3>In short</h3>
+<p>On a ship the observer knows its track only from dead reckoning: speed log and compass. The dead-reckoning error grows; an unknown
+current of 0.3 m/s is 26 km a day. <code>navFilter</code> estimates that error over time from the TOA residuals, together with the clock.
+It is a Kalman filter around the dead-reckoning track, followed by a smoother that uses all TOAs for every moment.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The state:</b> the position error and the velocity error in the ship's own east and north directions; the clock's offset and
+rate; with <code>"self"</code> one constant per pulsar. Everything is in metres, the clock as the speed of light times its offset, as in
+GNSS receivers.</li>
+<li><b>Between TOAs:</b> the position error grows with the velocity error. The velocity error is an unknown current that changes slowly
+(a random walk). The clock follows the two-state model of <code>makeClock</code>.</li>
+<li><b>At each TOA:</b> the residual is the position error projected onto the pulsar's direction, plus the clock and the pulsar's
+constant. That is linear in the state, so an ordinary Kalman filter suffices.</li>
+<li><b>Afterwards:</b> a smoother runs back through the TOAs, so that every moment gets the best estimate from all of them.</li>
+</ol>
+<p>A ship stays at sea level, so the filter has no up component. That lets one pulsar find north as well as east: the equatorial
+component that rotates with the Earth then fixes north.</p>
+<div class="callout why"><span class="ttl">Errors in the ship's own frame</span>
+<p><b>Alternative:</b> keep the errors in Earth-fixed coordinates.</p>
+<p><b>Why not:</b> a current pushes the ship along its own east and north, and those directions turn as the ship moves. Over 35° of
+longitude a fixed Earth-fixed east vector gets a 37 % vertical part. The first version did this: the height constraint then forbade the
+east error, and the filter was 30 times overconfident in east. In the ship's own frame a constant current is a constant state.</p></div>
+<div class="callout why"><span class="ttl">A filter, and the same answer as the batch fit</span>
+<p>For a fixed site the filter and <code>navFit</code> are the same estimator: test 1 shows they agree to 10⁻⁴ of the errors. The filter
+adds what the batch fit cannot do: a state that changes in time, and an estimate at any moment that can be fed back to the predictor.</p></div>
+<details><summary>The equations</summary>
+<p>State <var>x</var> = [<var>d</var><sub>E</sub>, <var>d</var><sub>N</sub>, <var>v</var><sub>E</sub>, <var>v</var><sub>N</sub>, <var>b</var>,
+<var>ḃ</var>, <var>J</var><sub>k</sub>]. Over Δ: <var>d</var> += Δ<var>v</var>; <var>v</var> a random walk of spectral density
+<var>q</var><sub>v</sub> (default 1.2·10⁻⁷ m²/s³, about 0.1 m/s per day); the clock with <var>c</var>²<var>q</var>₁ and
+<var>c</var>²<var>q</var>₂. Measurement: <var>c r</var> = <b>a</b>(<var>t</var>)·<var>M</var>(<var>t</var>)ᵀ<var>d</var> + <var>b</var> +
+<var>J</var><sub>k</sub>, with <var>M</var>(<var>t</var>) the local frame of the dead-reckoning track. The smoother is
+Rauch-Tung-Striebel. Outliers: the same mixture as <code>navFit</code>, applied to each TOA's innovation in one pass. On the real
+surface a horizontal error <var>d</var> lies <var>d</var>²/2<var>R</var> below the tangent plane (7 km at 300 km); the closed loop keeps
+<var>d</var> small.</p></details>
+<h3>Tests (<code>tests/testNavFilter.m</code>)</h3>
+<p>For a fixed site the filter is the batch fit; on a moving ship it tracks the dead-reckoning error with honest error bars.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Fixed site</td><td>Against <code>navFit</code>: without a clock, with the crystal clock, and with a calibrated start.</td>
+<td>The same to 2–7·10⁻⁵ of the errors.</td></tr>
+<tr><td>2 · A ship</td><td>14 days along 50° N at 2.1 m/s, an unknown current of 0.3 m/s, B0329+54 and B0950+08, the crystal clock;
+40 realizations.</td><td>Honest: pulls 1.03 east and 0.91 north. After 14 days the error is 95 km, against 553 km for dead reckoning
+alone.</td></tr>
+<tr><td>3 · Outliers</td><td>2 % of the TOAs moved by 5–10σ.</td><td>95 % caught; pulls 1.05 east and 0.74 north. Without the mixture
+the east pulls are 1.32.</td></tr>
+<tr><td>4–5 · Predict, inputs</td><td>The planning mode; bad inputs.</td><td>Predict exact; bad inputs refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 22 Oct 2026 as step D4d-1, after Jasper agreed to the ship design (dead reckoning still unknown, a general route, a separate
+run script). The first version kept the errors in Earth-fixed coordinates, which failed for the east error over a long track (above).
+Test 2's first criteria pooled the pulls of all TOAs, which are strongly correlated along a smoothed track; they now use four fixed times
+per realization.</p></details>
+
+<h2 id="next">10. The simulator's truth, and next: the navigation fit and the clock</h2>
 <h3>D3 · the simulator's truth in the scenario <span class="badge written">done</span></h3>
 <p>The fast simulator shifts each sub-integration's pulse by the phase offset from <code>trueResiduals</code>: <code>runScenario</code> with
 <code>motion.on</code> (<a href="scripts.html#scenario">run scripts</a>). For a 100 km offset the residual changes by 1.4·10⁻⁸ s per second. Over a 120 s sub-integration that is 1.7 ns, far below a phase bin. One
@@ -568,7 +625,8 @@ predicts the precision for any TOA schedule, to choose pulsars without simulatin
 day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge written">done 22 Oct (Claude's runs)</span></td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
 the per-pulsar offsets. The planning study (D4c-0, above) is done.</td><td><span class="badge written">D4c-0 done 22 Oct</span> <span class="badge todo">D4c-1 next</span></td></tr>
-<tr><td>D4d</td><td>The Kalman filter for a moving ship: dead reckoning in, trajectory and clock fed back.</td><td><span class="badge todo">todo</span></td></tr>
+<tr><td>D4d</td><td>The Kalman filter for a moving ship (<code>navFilter</code>, <a href="#navfilter">section 9</a>); then the ship
+scenario <code>runShip</code> with the filter's estimate fed back.</td><td><span class="badge written">D4d-1 done 22 Oct (Claude's run)</span> <span class="badge todo">D4d-2 next</span></td></tr>
 </table></div>
 <h3>The clock</h3>
 <p>Every time stamp comes from the receiver's clock, so its errors go straight into the TOAs. Three effects matter:</p>
