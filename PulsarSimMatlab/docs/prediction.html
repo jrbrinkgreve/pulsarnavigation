@@ -161,7 +161,8 @@ Shapiro delay are added from their standard formulas.</li>
 later.</li>
 <li>The second term corrects for the curved wave front of a pulsar at distance <var>D</var>. It is about 1 µs for B0329+54.</li>
 <li>Δ<sub>E</sub> = TDB − TT is the Einstein delay: 1.657 ms·sin <var>g</var> + 14 µs·sin 2<var>g</var>, with <var>g</var> the Earth's
-mean anomaly, plus a site term <var>v</var><sub>E</sub>·<var>r</var><sub>site</sub>/<var>c</var>² of about 1 µs.</li>
+mean anomaly, plus a site term <var>v</var><sub>E</sub>·<var>r</var><sub>site</sub>/<var>c</var>² of about 1 µs. With
+<code>'Ephemeris'</code> the first two terms are replaced by TDB − TT integrated from DE440 (<a href="#ephemeris">loadEphemeris</a>).</li>
 <li>The last term is minus the Shapiro delay. Here <var>r</var><sub>⊙</sub> is the receiver relative to the Sun, and
 <var>T</var><sub>⊙</sub> = <var>GM</var><sub>⊙</sub>/<var>c</var>³ = 4.925 µs. It becomes strongly negative when the Sun is close to
 the line of sight.</li>
@@ -219,6 +220,9 @@ it, in the same way as a trajectory from <code>makeTrajectory</code>.</p>
 <li><b>Evaluation:</b> the time selects the interval. The polynomials give the position, and their derivatives give the velocity.</li>
 <li><b>The chain:</b> the file stores the Earth relative to the Earth–Moon barycentre, and that barycentre relative to the solar-system
 barycentre. The function adds the links up.</li>
+<li><b>TDB − TT:</b> at loading, the function integrates the rate of a clock at the geocentre along the Earth's path, every 6 hours over
+the whole file. That rate follows from the Earth's speed and the potential of the Sun, the Moon and the planets. The integral takes
+0.8 s and replaces the analytic model's two terms.</li>
 </ol>
 <p>The time is TDB, the ephemeris' own time scale. The frame is ICRF, which is the J2000 equator and equinox to 0.02″.</p>
 <div class="callout why"><span class="ttl">Reading JPL's file directly</span>
@@ -234,11 +238,14 @@ service (DE441).</td><td>Within 4.5 cm and 1.1·10⁻⁷ m/s.</td></tr>
 <tr><td>2 · Velocity</td><td>The velocity against a central difference of the position.</td><td>Within 1.1·10⁻⁶ m/s.</td></tr>
 <tr><td>3 · Earth and Moon</td><td>The two balance about their barycentre with the Earth/Moon mass ratio.</td><td>81.300568, the same at
 every time to 10⁻¹².</td></tr>
-<tr><td>4 · Inputs</td><td>A missing file, a file that is not SPK, an unknown body, a time outside the file.</td><td>Refused.</td></tr>
+<tr><td>4 · TDB − TT</td><td>The integral against the USNO series (USNO Circular 179), stated good to about 10 µs, from 2000 to
+2050.</td><td>2.25 µs rms, 7.1 µs at most. The analytic two terms are 16.5 µs rms and 33 µs at most off the same series.</td></tr>
+<tr><td>5 · Inputs</td><td>A missing file, a file that is not SPK, an unknown body, a time outside the file.</td><td>Refused.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 22 Oct 2026 as step D5a, the first step of block D's last part. The file was downloaded from NAIF the same day, after Jasper's
-go-ahead for D5.</p></details>
+go-ahead for D5. TDB − TT followed the same day (step D5c). A first comparison removed a linear trend from the integral; that trend is
+real over 2000–2050, and the published series has it too.</p></details>
 
 <h2 id="predictor">4 · <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h2>
 <div class="sig">pred = makePredictor(psr, traj, [t1 t2], ...)</div>

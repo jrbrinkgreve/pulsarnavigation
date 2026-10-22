@@ -194,7 +194,11 @@ sight that grazes the Sun.</td></tr>
 <p>\[ \Delta_\mathrm{E} = 1.657\,\mathrm{ms}\,\sin g + 14\,\mu\mathrm{s}\,\sin 2g + \frac{\mathbf{v}_\oplus\cdot\mathbf{r}_\mathrm{site}}{c^2},
 \qquad \Delta_\mathrm{S} = 2T_\odot \ln\frac{|\mathbf{r}_\odot| + \mathbf{r}_\odot\cdot\hat{\mathbf{n}}}{1\,\mathrm{AU}}, \]</p>
 <p>with <var>g</var> the Earth's mean anomaly, <var>r</var>⊙ the receiver relative to the Sun, and <var>T</var>⊙ = <var>GM</var>⊙/<var>c</var>³
-= 4.925 µs.</p></details>
+= 4.925 µs.</p>
+<p>With DE440 the geocentric part of Δ<sub>E</sub> is integrated instead of taken from the two-term series:</p>
+<p>\[ rac{d(\mathrm{TDB}-\mathrm{TT})}{dt} = rac{v_\oplus^2/2 + U}{c^2} - L_C, \qquad U = \sum_i rac{GM_i}{|\mathbf r_\oplus - \mathbf r_i|}, \]</p>
+<p>with the sum over the Sun, the Moon and the planets, and <var>L</var><sub>C</sub> = 1.48082686741·10⁻⁸ the IAU's mean rate, which
+keeps TDB in pace with TT on average.</p></details>
 
 <h2 id="relativity">5. Relativistic corrections</h2>
 <p>Two effects of general relativity are large enough to matter, and a third concerns which clock is meant.</p>
@@ -204,6 +208,9 @@ slightly eccentric orbit. The clock therefore runs a little slow near perihelion
 little fast near aphelion, compared with the uniform barycentric time TDB. Accumulated over a year this is ±1.66 ms. The site adds a
 smaller daily term, because it moves with the Earth's rotation: up to about 2 µs. Converting the Earth's time TT into TDB removes these
 variations, and that conversion is the Einstein term.</p>
+<p>The analytic model keeps the two largest terms of the conversion: 1.657 ms over a year and 14 µs over half a year. The Moon and the
+planets add many smaller terms, up to about 60 µs together. With JPL's DE440 the code instead integrates the clock's rate along the
+Earth's actual path through the solar system. That matches the published series to about 2 µs.</p>
 <h3>The Shapiro delay: gravity slows the pulse</h3>
 <p>A pulse that passes the Sun travels through curved space-time and arrives later. The delay grows as the line of sight passes closer to
 the Sun. For B0329+54 it varies between −17 and +6 µs over a year. For a pulsar near the ecliptic, the line of sight can graze the Sun,
@@ -231,6 +238,8 @@ add the systematic error in the last column, unless it is modelled.</p>
 <code>delayModel</code> option <code>'Ephemeris'</code> (<a href="prediction.html#ephemeris">loadEphemeris</a>).</td><td>The analytic
 orbit: about 1.5·10⁴ km relative to the Sun, and up to 3.2·10⁵ km relative to the barycentre, because Uranus and Neptune are left out.
 That is up to 0.66 s of Roemer delay, 71 ms of it varying within two years. With DE440: a few centimetres.</td></tr>
+<tr><td>The full Einstein term</td><td>By default only the two largest terms of TDB − TT. With <code>'Ephemeris'</code> the conversion is
+integrated from DE440.</td><td>Up to 60 µs with the two terms; about 2 µs with DE440.</td></tr>
 <tr><td>Precession</td><td>The Earth's axis and equinox move by about 0.37° between 2000 and 2026.</td><td>The site lands up to about
 40 km from its place in the J2000 frame: up to 136 µs, daily.</td></tr>
 <tr><td>Nutation</td><td>The axis also nods by up to 17″.</td><td>About 0.5 km: up to 1.8 µs.</td></tr>
