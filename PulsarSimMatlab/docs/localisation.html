@@ -227,8 +227,10 @@ was enough to start with. Real data are different: there every omission below sh
 add the systematic error in the last column, unless it is modelled.</p>
 <div class="table-wrap"><table>
 <tr><th>Left out</th><th>What it is</th><th>Error against real data</th></tr>
-<tr><td>The exact Earth orbit</td><td>A Keplerian orbit with the Moon and two planets, instead of JPL's DE440.</td><td>About 10⁴ km, or
-30 ms, absolute. Planned for the end of block D.</td></tr>
+<tr><td>The exact Earth orbit</td><td>By default a Keplerian orbit with the Moon and two planets. JPL's DE440 is available as the
+<code>delayModel</code> option <code>'Ephemeris'</code> (<a href="prediction.html#ephemeris">loadEphemeris</a>).</td><td>The analytic
+orbit: about 1.5·10⁴ km relative to the Sun, and up to 3.2·10⁵ km relative to the barycentre, because Uranus and Neptune are left out.
+That is up to 0.66 s of Roemer delay, 71 ms of it varying within two years. With DE440: a few centimetres.</td></tr>
 <tr><td>Precession</td><td>The Earth's axis and equinox move by about 0.37° between 2000 and 2026.</td><td>The site lands up to about
 40 km from its place in the J2000 frame: up to 136 µs, daily.</td></tr>
 <tr><td>Nutation</td><td>The axis also nods by up to 17″.</td><td>About 0.5 km: up to 1.8 µs.</td></tr>

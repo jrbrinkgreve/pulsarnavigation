@@ -143,9 +143,10 @@ error on an hourly orbit, the spline 1 mm.</p></details>
 the total and each term separately.</p>
 <h3>How it works</h3>
 <ol>
-<li><b>The Earth:</b> the centre of mass of the Earth and Moon follows a Keplerian orbit around the Sun, from JPL's approximate orbital
-elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU. The Moon moves the Earth around the Earth–Moon
-centre by about 4700 km.</li>
+<li><b>The Earth:</b> by default, the centre of mass of the Earth and Moon follows a Keplerian orbit around the Sun, from JPL's
+approximate orbital elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU. The Moon moves the Earth around
+the Earth–Moon centre by about 4700 km. With <code>'Ephemeris'</code> the Earth and the Sun come from JPL's DE440 instead
+(<a href="#ephemeris">loadEphemeris</a>).</li>
 <li><b>The receiver:</b> an Earth-fixed position is turned with the Earth's rotation angle and added to the Earth's position. A
 barycentric trajectory is used as it is.</li>
 <li><b>The terms:</b> the Roemer delay projects the receiver's position onto the direction of the pulsar. The Einstein delay and the
@@ -166,8 +167,11 @@ mean anomaly, plus a site term <var>v</var><sub>E</sub>·<var>r</var><sub>site</
 the line of sight.</li>
 </ul></details>
 <div class="callout why"><span class="ttl">An analytic Earth first, the exact one at the end of block D</span>
-<p>The analytic orbit is off by about 10⁴ km in absolute terms. In the simulator that does not matter, because the true delays and the
-predicted ones come from the same model. Only their difference reaches the navigation fit, and that difference is exact. Real data
+<p>The analytic orbit puts the Earth within about 1.5·10⁴ km of its true distance from the Sun. The Sun itself is off by up to
+3·10⁵ km from the barycentre, because the analytic model leaves out Uranus and Neptune. B0329+54's Roemer delay is then off by up to
+0.66 s, and 71 ms of that varies within two years. In the simulator this does not matter, because the true delays and the predicted ones
+come from the same model. Only their difference reaches the navigation fit, and that difference is the same with either orbit to
+2·10⁻¹² s. Real data
 need JPL's planetary ephemeris DE440, which is accurate to centimetres, plus precession and nutation of the Earth's axis.
 <code>loadEphemeris</code> reads DE440 (<a href="#ephemeris">below</a>); <code>delayModel</code> takes it behind the same interface in the
 next step.</p></div>
@@ -188,11 +192,16 @@ rate equals <var>v</var>·<var>n̂</var>/<var>c</var>. A probe's terms match the
 <tr><td>7–8 · Einstein, Shapiro</td><td>The sizes of the small terms.</td><td>Einstein: 3.3145 ms peak to peak. Shapiro for B0329+54:
 −17.1 to +5.8 µs.</td></tr>
 <tr><td>9 · Inputs</td><td>A trajectory with an unknown frame.</td><td>Refused.</td></tr>
+<tr><td>10 · DE440</td><td>The <code>'Ephemeris'</code> option: the geocentre against the file, the analytic orbit against DE440, and the
+navigation's measurement with both.</td><td>The geocentre equals the file's to 4 mm. The analytic Earth is 15,465 km off relative to the
+Sun and 320,277 km relative to the barycentre. A site 100 km east gives the same delay difference with both orbits, to 2·10⁻¹² s.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 as step D1b. Three corrections were made to the test while writing it, none to the model. The annual closed form
 needs the eccentricity at the date of each extreme. The extremes had to be found on a grid finer than one hour. The amplitude
-tolerance had to allow for the one-minute grid.</p></details>
+tolerance had to allow for the one-minute grid. The <code>'Ephemeris'</code> option and test 10 were added on 22 Oct 2026 (step D5b).
+The comparison with DE440 showed that the analytic orbit's absolute error had been understated: 10⁴ km holds for the Earth relative to
+the Sun, not for the barycentre.</p></details>
 
 <h2 id="ephemeris">3b · <code>loadEphemeris</code>: JPL's DE440 <span class="badge written">passes in Claude's run</span></h2>
 <div class="sig">eph = loadEphemeris(file);  [r, v] = eph.earth(t)</div>
