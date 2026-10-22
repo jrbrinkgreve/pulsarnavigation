@@ -30,8 +30,10 @@ Jasper's runs. The scenario and ship runs are Claude's.</p>
 </ul>
 <p>Pages: <a href="prediction.html">phase prediction</a>, <a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>. The
 parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
-<p><b>Next: block E.</b> Several pulsars at full scale, the 3×3 array, the second polarization, real IQ recordings, and the FPGA/GPU
-port.</p></div>
+<p><b>Next: block E</b>, the full navigation system in simulation: several pulsars at full scale, the navigation solution, the 3×3 array
+and the second polarization.</p>
+<p><b>Then block F</b>, the real implementation: IQ recordings from the antenna, mixer and SDR through <code>processIQ</code>, and the
+processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
