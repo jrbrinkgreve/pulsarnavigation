@@ -147,7 +147,8 @@ the total and each term separately.</p>
 approximate orbital elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU. The Moon moves the Earth around
 the Earth–Moon centre by about 4700 km. With <code>'Ephemeris'</code> the Earth and the Sun come from JPL's DE440 instead
 (<a href="#ephemeris">loadEphemeris</a>).</li>
-<li><b>The receiver:</b> an Earth-fixed position is turned with the Earth's rotation angle and added to the Earth's position. A
+<li><b>The receiver:</b> an Earth-fixed position is turned with the Earth's rotation angle and added to the Earth's position. With
+<code>'Ephemeris'</code> it is turned with the Earth's real axis instead: precession, nutation and apparent sidereal time. A
 barycentric trajectory is used as it is.</li>
 <li><b>The terms:</b> the Roemer delay projects the receiver's position onto the direction of the pulsar. The Einstein delay and the
 Shapiro delay are added from their standard formulas.</li>
@@ -195,14 +196,19 @@ rate equals <var>v</var>·<var>n̂</var>/<var>c</var>. A probe's terms match the
 <tr><td>9 · Inputs</td><td>A trajectory with an unknown frame.</td><td>Refused.</td></tr>
 <tr><td>10 · DE440</td><td>The <code>'Ephemeris'</code> option: the geocentre against the file, the analytic orbit against DE440, and the
 navigation's measurement with both.</td><td>The geocentre equals the file's to 4 mm. The analytic Earth is 15,465 km off relative to the
-Sun and 320,277 km relative to the barycentre. A site 100 km east gives the same delay difference with both orbits, to 2·10⁻¹² s.</td></tr>
+Sun and 320,277 km relative to the barycentre. A site 100 km east gives the same delay difference with both orbits, apart from the
+turn of the real axis: 0.7 µs.</td></tr>
+<tr><td>11 · The real axis</td><td>A site at 52° N, 5° E against JPL Horizons, which uses the full IAU model and measured Earth
+rotation, in 2026 and at J2000.</td><td>Within 28–30 m in 2026 and 9 m at J2000. Without precession and nutation the site would be 13–16 km
+off in 2026.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 as step D1b. Three corrections were made to the test while writing it, none to the model. The annual closed form
 needs the eccentricity at the date of each extreme. The extremes had to be found on a grid finer than one hour. The amplitude
 tolerance had to allow for the one-minute grid. The <code>'Ephemeris'</code> option and test 10 were added on 22 Oct 2026 (step D5b).
 The comparison with DE440 showed that the analytic orbit's absolute error had been understated: 10⁴ km holds for the Earth relative to
-the Sun, not for the barycentre.</p></details>
+the Sun, not for the barycentre. Precession, nutation and the <code>'DeltaT'</code> option followed the same day with test 11 (step D5d).
+Test 10's bound on the 100 km measurement then had to allow for the turn of the real axis.</p></details>
 
 <h2 id="ephemeris">3b · <code>loadEphemeris</code>: JPL's DE440 <span class="badge written">passes in Claude's run</span></h2>
 <div class="sig">eph = loadEphemeris(file);  [r, v] = eph.earth(t)</div>

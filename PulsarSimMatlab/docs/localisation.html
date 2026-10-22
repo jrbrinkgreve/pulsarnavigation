@@ -240,10 +240,14 @@ orbit: about 1.5·10⁴ km relative to the Sun, and up to 3.2·10⁵ km relative
 That is up to 0.66 s of Roemer delay, 71 ms of it varying within two years. With DE440: a few centimetres.</td></tr>
 <tr><td>The full Einstein term</td><td>By default only the two largest terms of TDB − TT. With <code>'Ephemeris'</code> the conversion is
 integrated from DE440.</td><td>Up to 60 µs with the two terms; about 2 µs with DE440.</td></tr>
-<tr><td>Precession</td><td>The Earth's axis and equinox move by about 0.37° between 2000 and 2026.</td><td>The site lands up to about
-40 km from its place in the J2000 frame: up to 136 µs, daily.</td></tr>
-<tr><td>Nutation</td><td>The axis also nods by up to 17″.</td><td>About 0.5 km: up to 1.8 µs.</td></tr>
-<tr><td>UT1 − UTC</td><td>The Earth's rotation runs up to 0.9 s ahead of or behind UTC.</td><td>About 260 m at 52° N: up to 0.9 µs.</td></tr>
+<tr><td>Precession</td><td>The Earth's axis and equinox move by about 0.37° between 2000 and 2026. Modelled with
+<code>'Ephemeris'</code> (IAU 2006).</td><td>Without it the site lands up to about 40 km from its place in the J2000 frame: 13–16 km at
+52° N in 2026, up to 136 µs.</td></tr>
+<tr><td>Nutation</td><td>The axis also nods by up to 17″. The leading terms are modelled with <code>'Ephemeris'</code>.</td><td>About
+0.5 km: up to 1.8 µs. The terms left out are about 15 m.</td></tr>
+<tr><td>UT1 − UTC</td><td>The Earth's rotation runs up to 0.9 s ahead of or behind UTC. The option <code>'DeltaT'</code> takes the
+value from IERS.</td><td>About 260 m at 52° N: up to 0.9 µs. With <code>'Ephemeris'</code> and the right <code>'DeltaT'</code> the site
+matches JPL Horizons to 9–30 m.</td></tr>
 <tr><td>Polar motion</td><td>The axis wanders over the Earth's surface by about 0.3″.</td><td>About 9 m: 30 ns.</td></tr>
 <tr><td>Ionosphere</td><td>Free electrons near the Earth add dispersion.</td><td>About 34 ns at 1.4 GHz for 50 TEC units; it changes
 with the time of day and the season.</td></tr>
