@@ -295,6 +295,15 @@ per-channel <code>detectRFI</code> thresholds and the extra RFI-profile lags are
 <li><b>Block D, the navigation fit:</b> <code>navFit</code> finds the 100 km site offset (4.9σ in 100 days), the SDR clock is tracked day
 by day without losing TOAs, a planning study shows what extra pulsars add, and <code>navFilter</code> tracks a ship's dead-reckoning
 error (D4a–D4d-1).</li>
+<li><b>The docs became stages throughout:</b> phase prediction (7a), the receiver's clock (4a), the fast simulator (1–7) and navigation
+(10); the separate block-D page was split up.</li>
+<li><b>The exact Earth for real data</b> (D5): JPL's DE440 read directly, TDB − TT integrated from it, precession and nutation. JPL's
+Horizons service confirms it to centimetres for the geocentre and about 30 m for a site. The comparison showed the analytic orbit
+up to 320,000 km off the barycentre; simulations are unaffected, because truth and prediction share it.</li>
+<li><b>The ship in a closed loop</b> (<code>runShip</code>) found a modelling error: a TOA is an average over hours of data, sometimes
+over two passes a day apart, and one time per TOA damps or even flips the daily position signal. <code>navFit</code> and
+<code>navFilter</code> now average each TOA's row over its sub-integrations (Jasper's run: validated). The same runs taught that a
+single ship run is far noisier than its pulls suggest; an ideal twin on the same TOAs now separates the TOA chain from the filter.</li>
 </ul>
 
 <h2 id="decisions">2. Decision log</h2>
@@ -378,6 +387,15 @@ agreed.</p>
 <tr><td>21 Oct</td><td>The observer folds with its own clock estimate (Jasper: option a)</td><td>A commercial SDR's ±2 ppm would smear the fold like an uncorrected Doppler shift: 240 µs in a 120 s sub-int.</td></tr>
 <tr><td>21 Oct</td><td>D4: clock synchronisation with extra pulsars (Jasper)</td><td>The clock is common to all pulsars, a position error is not: differences between pulsars cancel the clock, and with the position known the pulsars discipline the clock.</td></tr>
 <tr><td>21 Oct</td><td>Several digital beams at once (Jasper)</td><td>The array mixes the signals digitally, so extra pulsars cost no time on B0329+54.</td></tr>
+<tr><td>22 Oct</td><td>D5 for real data: DE440, the higher-order Einstein terms, precession and nutation; J0437's binary orbit and real
+trajectories parked (Jasper)</td><td>The simulations do not need them, real TOAs do. J0437 never rises at 52° N, and there are no real
+trajectories yet.</td></tr>
+<tr><td>22 Oct</td><td>The ship's current reverts to its mean over about 2 days instead of wandering freely (Jasper)</td><td>A random walk
+let the current grow past 1 m/s in two weeks, stronger than most real currents.</td></tr>
+<tr><td>22 Oct</td><td>A TOA's row averaged over its sub-integrations (Jasper)</td><td>One time per TOA damps the daily signal by up to a
+quarter, or flips it for a TOA from two passes.</td></tr>
+<tr><td>22 Oct</td><td>The docs as stages: the clock on its own page, the block-D page removed (Jasper)</td><td>One place per topic, in
+the order of the chain.</td></tr>
 <tr><td>22 Oct</td><td>Block C closed, with the time structure of rotating radars, refractive scintillation, bright-pulse excision, RFI locked to the period and channel merging parked (Jasper)</td><td>The simulator and its RFI model are validated and the budgets done; none of the parked items is on the critical path.</td></tr>
 <tr><td>22 Oct</td><td>D4: a closed clock loop in the scenario (option a), a planning study first for D4c, then the ship (D4d) with a separate script <code>runShip</code>; dead reckoning still unknown, the route general (Jasper)</td><td>The ship is the end goal and where clock synchronisation matters most; the multi-pulsar timeline is built once, in its final form.</td></tr>
 <tr><td>21 Oct</td><td>Per-pulsar offsets: a switch between a calibrated start and self-calibration (Jasper)</td><td>A start from a known position and time makes the polar component and the absolute clock reachable; self-calibration keeps the option of starting anywhere.</td></tr>

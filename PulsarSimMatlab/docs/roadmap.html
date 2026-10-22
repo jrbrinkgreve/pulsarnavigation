@@ -353,8 +353,9 @@ and the pulse's phase in the observer's fold); D3b <code>makeClock</code>; D3c t
 <tr><td>D4</td><td>The navigation fit, with the clock synchronised by extra pulsars: D4a <code>navFit</code> (robust batch fit, fixed site,
 perfect clock); D4b the clock as correlated noise; D4c several pulsars in simultaneous beams with one clock, and a switch between a
 calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge validated">D4a, D4b-1, D4c-1 ('ClockPrior'), D4d-1 validated 22 Oct</span> <span class="badge written">D4c-0,
-D4d-2 (<code>runShip</code>) done</span> <span class="badge todo">open: merged TOAs tagged between passes (fix proposed); the calibrated
-ship start</span></td></tr>
+D4d-2 (<code>runShip</code>) done</span> <span class="badge validated">TOAs as time-averages
+(<code>tSub</code>) validated 22 Oct</span> <span class="badge written">the ship comparison (self and calibrated, 8 seeds, with the
+ideal twin): running</span></td></tr>
 <tr><td>D5</td><td>The exact Earth for real data: D5a <code>loadEphemeris</code> (JPL's DE440), D5b <code>delayModel</code>
 <code>'Ephemeris'</code>, D5c TDB − TT from DE440, D5d precession and nutation. Parked: J0437's binary orbit (J0437 never rises at
 52° N; needed for a southern route or a probe) and real ship and probe trajectories (no data yet)</td><td><span class="badge validated">D5a–D5d

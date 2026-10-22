@@ -282,19 +282,41 @@ in Jasper's run.</p></details>
 <div class="table-wrap"><table>
 <tr><th>Step</th><th>What</th><th>Status</th></tr>
 <tr><td>D4a</td><td><code>navFit</code>: a robust batch fit for a fixed site with a perfect clock, on the 30-day motion run. It also
-predicts the precision for any TOA schedule, to choose pulsars without simulating (<a href="#navfit">section 2</a>).</td><td><span class="badge written">done 22 Oct (Claude's run)</span></td></tr>
+predicts the precision for any TOA schedule, to choose pulsars without simulating (<a href="#navfit">section 2</a>).</td><td><span class="badge validated">validated 22 Oct</span></td></tr>
 <tr><td>D4b</td><td>The clock in the fit, as correlated noise; the fitted clock fed back as the observer's estimate in the scenario,
-day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge written">done 22 Oct (Claude's runs)</span></td></tr>
+day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge validated">validated 22 Oct</span> (the
+scenario runs: Claude's)</td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
-the per-pulsar offsets. The planning study (D4c-0, above) is done.</td><td><span class="badge written">D4c-0 done 22 Oct</span> <span class="badge todo">D4c-1 next</span></td></tr>
+the per-pulsar offsets. The planning study (D4c-0, above), and the port clock's uncertainty for a calibrated start
+(<code>'ClockPrior'</code>).</td><td><span class="badge validated">validated 22 Oct</span> <span class="badge written">the ship's
+calibrated start: comparison running</span></td></tr>
 <tr><td>D4d</td><td>The Kalman filter for a moving ship (<code>navFilter</code>, <a href="#navfilter">section 4</a>); then the ship
-scenario <code>runShip</code> with the filter's estimate fed back.</td><td><span class="badge written">D4d-1 done 22 Oct (Claude's run)</span> <span class="badge todo">D4d-2 next</span></td></tr>
+scenario <code>runShip</code> with the filter's estimate fed back, and TOAs as time-averages (<a href="#averaged">above</a>).</td><td><span class="badge validated">navFilter and the averaged rows validated 22 Oct</span> <span class="badge written">runShip: final
+comparison running</span></td></tr>
+<tr><td>D5</td><td>The exact Earth for real data: JPL's DE440, TDB − TT from it, precession and nutation (<a href="prediction.html#ephemeris">phase
+prediction</a>).</td><td><span class="badge validated">validated 22 Oct</span></td></tr>
 </table></div>
-<h3>Later: stored profiles and real orbits</h3>
-<p>The Kalman filter's predicted track already goes back into the predictor through a <code>'custom'</code> trajectory, once a day in
-the ship scenario. A later refinement shifts the stored sub-integration profiles by the phase correction when the filter improves its
-estimate, instead of folding them again. Block D's last step is JPL's DE440 ephemeris in place of the analytic Earth orbit. J0437's
-binary orbit and real ship and probe trajectories are on the same list.</p>
+<h3>Parked at the end of block D</h3>
+<div class="table-wrap"><table>
+<tr><th>Item</th><th>Why it waits</th><th>What it needs</th></tr>
+<tr><td>J0437's binary orbit</td><td>J0437 never rises at 52° N. It matters for a southern route or a probe.</td><td>A binary timing model
+(ELL1) in the predictor and the truth: about 3 s of delay over 5.74 days.</td></tr>
+<tr><td>Real ship and probe trajectories</td><td>No data yet.</td><td>Logged positions into <code>makeTrajectory</code>
+<code>'track'</code>, which exists; a reader for a probe's trajectory file.</td></tr>
+<tr><td>The Earth's real axis in the fit's rows</td><td>The rows use the Earth rotation angle only. Against real data the axis has
+turned 0.37°: about 0.4 % of the offsets fitted.</td><td>The same precession and nutation as <code>delayModel</code>'s
+<code>'Ephemeris'</code> mode.</td></tr>
+<tr><td>The clock's wander inside a long TOA</td><td>A TOA from two passes spans a day, and the crystal wanders a few hundred µs in that
+time. Test 7's north pulls are 1.19.</td><td>An extra variance per averaged TOA from the clock model over its span.</td></tr>
+<tr><td>Stored profiles shifted, not refolded</td><td>The fold is redone each day with the new predictor.</td><td>Shift the stored
+sub-integration profiles by the phase change. Millisecond pulsars need it.</td></tr>
+<tr><td>UT1 − UTC and polar motion</td><td><code>'DeltaT'</code> is one number; polar motion is about 10 m.</td><td>IERS Bulletin A as a
+function of time.</td></tr>
+<tr><td>A probe's own clock</td><td>A probe's time stamps are taken as TDB.</td><td>The probe's proper time from its speed and potential
+(<a href="localisation.html#relativity">localisation</a>).</td></tr>
+<tr><td>The current as a mean-reverting state</td><td>The filter models the current's wander as a random walk with the same daily
+change.</td><td>A first-order Gauss–Markov velocity state.</td></tr>
+</table></div>
 <details><summary>History</summary>
 <p>Block D's design, agreed on 21 Oct 2026, made B0329+54's 2-D equatorial offset the first deliverable, with the outlier handling by
 redundancy. Later the same day D4 was designed around Jasper's idea of clock synchronisation with extra pulsars, with simultaneous
