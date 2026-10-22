@@ -24,7 +24,8 @@ Name-value options:
              false leave the EMB on its Keplerian orbit around a Sun at the SSB (for tests).
   'Ephemeris' [] (default): the analytic Earth below. A loadEphemeris struct (JPL's DE440): the
              geocentre, its velocity and the Sun from the file, read at TDB = TT + the Einstein
-             term (block D5b); 'Moon' and 'Planets' then do not apply.
+             term (block D5b), and that term (TDB - TT) integrated from the file (D5c, to ~2 us,
+             against the analytic two terms' ~60 us); 'Moon' and 'Planets' then do not apply.
 
 The terms (signs: contributions to t_SSB - t_obs):
   roemer     r_obs . n / c: the light-travel time across the observer's offset from the SSB
@@ -76,15 +77,17 @@ n = [cos(dl) * cos(a); cos(dl) * sin(a); sin(dl)];
 N = numel(t);
 
 if isempty(opts.Ephemeris)
+    tdbTT = tdbMinusTT(t);                                % TDB - TT at the geocentre
     [rE, rS] = earthAndSun(t, opts.Moon, opts.Planets);   % geocentre and Sun wrt the SSB
     h = 60;                                               % velocity by central difference
     vE = (earthAndSun(t + h, opts.Moon, opts.Planets) - earthAndSun(t - h, opts.Moon, opts.Planets)) / (2*h);
 else
     eph = opts.Ephemeris;
-    if ~isstruct(eph) || ~isfield(eph, 'earth') || ~isfield(eph, 'sun')
+    if ~isstruct(eph) || ~isfield(eph, 'earth') || ~isfield(eph, 'sun') || ~isfield(eph, 'tdbMinusTT')
         error('delayModel:ephemeris', '''Ephemeris'' must be a loadEphemeris struct, or [] for the analytic orbit.');
     end
-    tdb = t + tdbMinusTT(t);                              % the ephemeris' time scale (1.7 ms: 50 m of the Earth's motion)
+    tdbTT = eph.tdbMinusTT(t);                            % TDB - TT from the ephemeris (D5c)
+    tdb = t + tdbTT;                                      % the ephemeris' time scale (1.7 ms: 50 m of the Earth's motion)
     [rE, vE] = eph.earth(tdb); rS = eph.sun(tdb);
 end
 
@@ -113,7 +116,7 @@ if use("curvature") && isfield(psr, 'distance') && ~isempty(psr.distance)
     d.curvature = -(sum(rObs.^2, 1) - rn.^2) / (2 * c * psr.distance);
 end
 if use("einstein") && strcmpi(traj.frame, 'ECEF')
-    d.einstein = tdbMinusTT(t) + sum(vE .* rSite, 1) / c^2;
+    d.einstein = tdbTT + sum(vE .* rSite, 1) / c^2;
 end
 if use("shapiro")
     rs = rObs - rS;                                    % observer relative to the Sun

@@ -27,9 +27,20 @@ segment's last four numbers are the first interval's start, the interval length,
 and the number of records. Bodies chain to the SSB through their centers: the Earth (399) is given
 relative to the EMB (3), the EMB relative to the SSB (0).
 
-Output eph: earth, sun, moon, emb (@(t) [r, v]), state (@(target, center, t) [r, v]), span [t1 t2]
-(s TDB since J2000, covered by all segments), segments (struct array: target, center, frame, type,
-span), file.
+TDB - TT at the geocentre (block D5c), from the same file: a clock on the Earth runs slow by its
+speed and the Sun's and planets' potential, relative to the barycentre's time, so
+  d(TDB - TT)/dt = (v_E^2 / 2 + U) / c^2 - L_C,   U = sum GM_i / |r_E - r_i| (Sun, Moon, planets),
+with L_C = 1.48082686741e-8 the IAU's mean rate (Resolution B3, 2006), so that TDB keeps pace with
+TT on average. Integrated with the trapezoid rule on a 6-hour grid over the whole file (1 s; 12 ns
+from a 12-hour grid) and evaluated by a cubic spline. GM values: DE440's (Park et al. 2021). The
+constant: the mean of the USNO series (Kaplan 2005, USNO Circular 179, eq. 2.6, good to ~10 us)
+over 2000-2050, which the integral follows to 2.2 us rms there. (Fairhead & Bretagnon's series is
+this integral expanded analytically; delayModel's analytic model keeps only its two largest terms,
+up to 60 us off.)
+
+Output eph: earth, sun, moon, emb (@(t) [r, v]), state (@(target, center, t) [r, v]), tdbMinusTT
+(@(t) TDB - TT at the geocentre [s]), span [t1 t2] (s TDB since J2000, covered by all segments),
+segments (struct array: target, center, frame, type, span), file.
 Errors: 'loadEphemeris:file' (no file), 'loadEphemeris:format' (not a little-endian SPK file, or a
 segment type other than 2), 'loadEphemeris:body' (an id not in the file), 'loadEphemeris:range'
 (a time outside a segment).
@@ -87,12 +98,45 @@ eph.sun = @(t) relState(segs, 10, 0, t);
 eph.moon = @(t) relState(segs, 301, 0, t);
 eph.emb = @(t) relState(segs, 3, 0, t);
 eph.span = [max(arrayfun(@(s) s.span(1), segs)), min(arrayfun(@(s) s.span(2), segs))];
+eph.tdbMinusTT = tdbTable(segs, eph.span);
 eph.segments = rmfield(segs, {'init', 'intlen', 'n', 'coef'});
 eph.file = file;
 end
 
 
 % =================================================================================
+function f = tdbTable(segs, span)
+% TDB - TT at the geocentre: the integral of (v_E^2/2 + U)/c^2 - L_C on a 6-hour grid, 0 at J2000 plus
+% the USNO series' mean over 2000-2050, as a spline.
+c = 299792458; LC = 1.48082686741e-8; h = 6 * 3600;
+emrat = 81.3005682214972154;                         % DE440's Earth/Moon mass ratio
+ids = [10 301 1 2 4 5 6 7 8 9];                      % Sun, Moon, Mercury ... Pluto (system barycentres)
+gm = 1e9 * [132712440041.279419, 403503.235502 / (1 + emrat), 22031.868551, 324858.592, 42828.375816, ...
+            126712764.1, 37940584.8418, 5794556.4, 6836527.10058, 975.5];   % [m^3/s^2]
+tg = (ceil(span(1) / h):floor(span(2) / h)) * h;
+[rE, vE] = toSSB(segs, 399, tg);
+U = zeros(size(tg));
+for j = 1:numel(ids)
+    U = U + gm(j) ./ vecnorm(rE - toSSB(segs, ids(j), tg));
+end
+rate = (sum(vE.^2, 1) / 2 + U) / c^2 - LC;
+F = cumsum([0, (rate(1:end-1) + rate(2:end)) / 2 * h]);
+F = F - F(tg == 0);
+w = tg >= 0 & tg <= 50 * 365.25 * 86400;
+F = F + mean(usnoSeries(tg(w)) - F(w));
+pp = spline(tg, F);
+f = @(t) ppval(pp, t);
+end
+
+function dt = usnoSeries(t)
+% TDB - TT, USNO Circular 179 (Kaplan 2005) eq. 2.6 [s]; T in Julian centuries since J2000.
+T = t / (36525 * 86400);
+dt = 0.001657 * sin(628.3076 * T + 6.2401) + 0.000022 * sin(575.3385 * T + 4.2970) + ...
+     0.000014 * sin(1256.6152 * T + 6.1969) + 0.000005 * sin(606.9777 * T + 4.0212) + ...
+     0.000005 * sin(52.9691 * T + 0.4444) + 0.000002 * sin(21.3299 * T + 5.5431) + ...
+     0.000010 * T .* sin(628.3076 * T + 4.2490);
+end
+
 function [r, v] = relState(segs, target, center, t)
 % The state of target relative to center: both chained to the SSB (id 0).
 [rT, vT] = toSSB(segs, target, t);

@@ -12,10 +12,15 @@ Run from the PulsarSimMatlab folder: run('tests/testLoadEphemeris.m'), or runAll
      agrees within 1e-5 m/s (Earth: 30 km/s).
   3. The Earth and the Moon about their barycentre: r_Earth = -r_Moon / EMRAT at every time (the
      two are separate fits in the file), with DE440's Earth/Moon mass ratio 81.30057 (1e-6).
-  4. Bad inputs refused: a missing file ('loadEphemeris:file'), a file that is not SPK
+  4. TDB - TT at the geocentre (block D5c), integrated from the file, against the USNO series
+     (Kaplan 2005, USNO Circular 179 eq. 2.6, stated good to ~10 us; typed into this test
+     independently of loadEphemeris' copy) over 2000-2050, daily: rms below 5 us, largest
+     difference below 10 us (the constant is the series' mean by construction; the shape is the
+     test). Shown: delayModel's analytic two terms against the same series.
+  5. Bad inputs refused: a missing file ('loadEphemeris:file'), a file that is not SPK
      ('loadEphemeris:format'), a body not in the file ('loadEphemeris:body'), a time outside the
      file ('loadEphemeris:range').
-Errors at the end if any check fails. (22 Oct 2026, block D5a.)
+Errors at the end if any check fails. (22 Oct 2026, block D5a; check 4 for D5c.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -56,14 +61,26 @@ fprintf('3. Earth = -Moon / EMRAT about the EMB: EMRAT %.6f (spread %.1e, off th
     std(q) / mean(q), perp, passStr(ok3));
 if ~ok3, fails{end+1} = 'EMRAT'; end
 
-% 4. Bad inputs
+% 4. TDB - TT against the USNO series
+t5 = 0:86400:50 * 365.25 * 86400; T = t5 / (36525 * 86400);
+usno = 0.001657 * sin(628.3076 * T + 6.2401) + 0.000022 * sin(575.3385 * T + 4.2970) + ...
+       0.000014 * sin(1256.6152 * T + 6.1969) + 0.000005 * sin(606.9777 * T + 4.0212) + ...
+       0.000005 * sin(52.9691 * T + 0.4444) + 0.000002 * sin(21.3299 * T + 5.5431) + 0.000010 * T .* sin(628.3076 * T + 4.2490);
+e5 = eph.tdbMinusTT(t5) - usno;
+g = deg2rad(357.53 + 0.98560028 * (t5 / 86400)); e2 = 1.657e-3 * sin(g) + 1.4e-5 * sin(2*g) - usno; e2 = e2 - mean(e2);
+ok5 = rms(e5) < 5e-6 && max(abs(e5)) < 10e-6;
+fprintf('4. TDB - TT from the file against the USNO series, 2000-2050: rms %.2f us, largest %.2f us (the analytic two terms: rms %.1f, largest %.1f us): %s\n', ...
+    1e6 * rms(e5), 1e6 * max(abs(e5)), 1e6 * rms(e2), 1e6 * max(abs(e2)), passStr(ok5));
+if ~ok5, fails{end+1} = 'TDB - TT'; end
+
+% 5. Bad inputs
 bad = [tempname, '.bsp']; fb = fopen(bad, 'w'); fwrite(fb, zeros(1, 2048, 'uint8')); fclose(fb);
 ok4 = strcmp(errId(@() loadEphemeris(fullfile(root, 'data', 'ephem', 'none.bsp'))), 'loadEphemeris:file') && ...
       strcmp(errId(@() loadEphemeris(bad)), 'loadEphemeris:format') && ...
       strcmp(errId(@() eph.state(12345, 0, 0)), 'loadEphemeris:body') && ...
       strcmp(errId(@() eph.earth(eph.span(2) + 86400)), 'loadEphemeris:range');
 delete(bad);
-fprintf('4. missing file, not SPK, unknown body, time outside refused %d: %s\n', ok4, passStr(ok4));
+fprintf('5. missing file, not SPK, unknown body, time outside refused %d: %s\n', ok4, passStr(ok4));
 if ~ok4, fails{end+1} = 'input checks'; end
 
 if isempty(fails)
