@@ -449,6 +449,19 @@ clock model 35 % of the TOAs are flagged and half the fits do not settle.</td></
 <tr><td>10 · Clock estimate</td><td>The fitted clock at the TOAs and one day ahead, against the truth.</td><td>Honest: pull spreads 0.92 and
 1.00, typical errors 200 µs and 480 µs.</td></tr>
 </table></div>
+<h3>The first result: B0329+54 finds a 100 km offset</h3>
+<p>The simulator's scenario runs put the true site 100 km east of the assumed one, with a perfect clock, and <code>navFit</code> fits
+the observer's TOAs (<code>tests/expNavFit.m</code>):</p>
+<div class="table-wrap"><table>
+<tr><th>Run (nominal flux)</th><th>Good TOAs</th><th>East (truth 100 km)</th><th>What it shows</th></tr>
+<tr><td>30 days</td><td class="num">302</td><td class="num">35.9 ± 29.6 km</td><td>2.2σ low: a fluctuation of these 30 days' noise.</td></tr>
+<tr><td>the same days with 1000 km</td><td class="num">282</td><td class="num">947 ± 30 km</td><td>No pull of the TOAs toward the prediction:
+slope −0.05 ± 0.03.</td></tr>
+<tr><td>days 31–100</td><td class="num">688</td><td class="num">99.9 ± 19.7 km</td><td>New noise: on the truth.</td></tr>
+<tr><td>100 days</td><td class="num">990</td><td class="num">80.3 ± 16.4 km</td><td>The 100 km offset detected at 4.9σ.</td></tr>
+</table></div>
+<p>A calibrated start also gives the polar component: −10.7 ± 9.1 km over 100 days, against a truth of 0. At worst-case flux 30 days give
+only 59 TOAs and ±82 km.</p>
 <details><summary>History</summary>
 <p>Added 22 Oct 2026 as step D4a, with Jasper's switch between a calibrated start and self-calibration. The first version solved the
 normal equations in metres and seconds at once, which differ by 18 orders of magnitude; the columns are now scaled before solving. The
