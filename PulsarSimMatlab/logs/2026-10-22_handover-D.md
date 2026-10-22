@@ -28,8 +28,11 @@ Unit tests: runAllTests lists 25; all pass in Jasper's runs (the D ones on 22 Oc
 - Planning study (expNavPlan): extra pulsars add little to the 2-D position or the daily clock; with a real clock they
   separate the polar component from the clock's wander (B0329 alone 64 km -> 34 km with B0950+08, 24 km with three).
 - Ship (runShip, 14 days, B0329+54 + B0950+08): first run (seed 1): dead reckoning 1103 km off at day 14, smoothed
-  track 84 / 78 km rms. FINAL comparison self vs calibrated, 8 seeds, with the ideal twin: [to be filled in when the runs
-  of 22 Oct evening finish].
+  track 84 / 78 km rms. Final comparison (averaged rows, mean-reverting current, 8 seeds x 14 days, pulls at days 3, 7, 10, 14;
+  real filter / its ideal twin): calibrated start: pull spreads east 0.86 / 0.81, north 0.84 / 0.81; median rms error east 42 /
+  40, north 57 / 66 km - the TOA chain costs nothing measurable. Self-calibrated: east 0.80 / 0.86, north 1.27 / 0.67; median
+  28 / 41 and 88 / 39 km - north worse than the twin in 4 of 8 ships (open, parked). 2-D rms track error, medians: dead
+  reckoning 379 km (644 km at day 14), self 102 km, calibrated 73 km.
 - The analytic Earth orbit (default for simulations) is up to 3.2e5 km off the SSB (Uranus and Neptune left out); in a
   simulation that cancels. With 'Ephemeris': JPL Horizons to 4.5 cm (geocentre), 28-30 m (a site, 2026; UT1 - UTC left
   out); TDB - TT to 2.25 us rms of the USNO series.
@@ -57,6 +60,7 @@ Unit tests: runAllTests lists 25; all pass in Jasper's runs (the D ones on 22 Oc
 | UT1 - UTC and polar motion | 'DeltaT' takes TT - UT1 as one number; polar motion ~10 m | IERS Bulletin A values as a function of time |
 | A probe's own clock | the code treats a probe's time stamps as TDB | the probe's proper time from its speed and potential (localisation.html) |
 | The current as a Gauss-Markov state in navFilter | the filter models the wander as a random walk with the same daily change | a first-order Gauss-Markov velocity state (exact for runShip's truth) |
+| The self-calibrated ship's north error | real north worse than the twin in 4 of 8 ships (pull spread 1.27 vs 0.67); calibrated agrees | a per-ship comparison of the TOAs with the twin's (as done for the tagging error) |
 | Robust filter, one pass | navFilter weighs outliers once (navFit iterates) | an iterated smoother pass if outliers matter on real data |
 
 ## Open for Jasper
