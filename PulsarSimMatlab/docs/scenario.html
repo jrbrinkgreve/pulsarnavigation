@@ -28,6 +28,7 @@ targets weak signals, why TOAs must be folded across several passes, and why a f
 <li><a href="#ship">The ship and the Netherlands</a></li>
 <li><a href="#simulated">Simulated TOA budget (fast simulator)</a></li>
 <li><a href="#rfivariants">With realistic RFI: the scenario variants</a></li>
+<li><a href="#hundred">100 days: the final budgets</a></li>
 </ol></div>
 
 <h2 id="receiver">Receiver</h2>
@@ -378,6 +379,38 @@ from 22.8 to 17.3 in the nominal case: information grows as the flux squared, an
 (0.005–0.009 turns). This is the threshold effect described above; all but one are positive. Fixed groups reach down to SNR ~5.5, and add
 a jump to the template's side peak: z −19.3, at −0.0259 turns (the autocorrelation's side peak is at ±0.0247). For navigation: use
 adaptive groups, a robust fit, or a higher target SNR for pulsars with several components.</li>
+</ul>
+
+<h2 id="hundred">100 days: the final budgets</h2>
+<div class="callout note"><span class="ttl">In short</span>
+<p>Over 100 days the budgets of the 30-day runs hold. B0329+54 gives about 10 good TOAs a day at nominal flux, and 7.7 with realistic
+RFI and scintillation. J0437 gives one about every 1.3 days. The error bars are honest in the core of the distribution. But 1.9 % of
+B0329+54's TOAs lie beyond 3σ, seven times more than a Gaussian would give, so the navigation fit must expect such a tail.</p></div>
+<p>Two variants per case: clean, and the full realistic case (RFI with the observer's calibration, and scintillation). The RFI profiles
+are the ones measured on 21 Oct with the new excision code. 100 simulated days per case (Claude's run, 21–22 Oct 2026, 9.8 h with other
+runs in parallel).</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th>Variant</th><th>Good TOAs</th><th>per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred (without |z| &gt; 4)</th><th>χ²<sub>red</sub></th><th>σ·√h</th></tr>
+<tr><td>B0329+54, nominal</td><td>clean</td><td class="num">978</td><td class="num">9.78</td><td>1.97 (1.30–2.73)</td><td class="num">734 µs</td><td class="num">1.16 (1.12)</td><td class="num">1.00</td><td class="num">1029</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">765</td><td class="num">7.65</td><td>2.47 (1.57–3.60)</td><td class="num">735 µs</td><td class="num">1.16 (1.07)</td><td class="num">1.00</td><td class="num">1155</td></tr>
+<tr><td>B0329+54, worst case</td><td>clean</td><td class="num">187</td><td class="num">1.87</td><td>10.1 (7.0–14.0)</td><td class="num">741 µs</td><td class="num">1.21 (1.12)</td><td class="num">1.00</td><td class="num">2358</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">146</td><td class="num">1.46</td><td>13.2 (8.6–18.2)</td><td class="num">742 µs</td><td class="num">1.40 (1.12)</td><td class="num">1.00</td><td class="num">2695</td></tr>
+<tr><td>J0437, nominal</td><td>clean</td><td class="num">76</td><td class="num">0.76</td><td>16.0 (11.5–21.0)</td><td class="num">13.0 µs</td><td class="num">1.13</td><td class="num">1.00</td><td class="num">52.1</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">68</td><td class="num">0.68</td><td>18.8 (2.4–30.8)</td><td class="num">13.0 µs</td><td class="num">1.10</td><td class="num">1.00</td><td class="num">56.4</td></tr>
+<tr><td>J0437, worst case</td><td>clean</td><td class="num">14</td><td class="num">0.14</td><td>82 (55–105)</td><td class="num">13.1 µs</td><td class="num">1.14</td><td class="num">1.00</td><td class="num">118</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">12</td><td class="num">0.12</td><td>95 (54–137)</td><td class="num">13.1 µs</td><td class="num">0.69</td><td class="num">1.00</td><td class="num">128</td></tr>
+</table></div>
+<ul>
+<li><b>The rates hold.</b> The TOAs per day, hours per TOA and σ·√h are within a few percent of the 30-day runs. J0437's worst case
+now has 12–14 TOAs instead of 2–4, which is still few.</li>
+<li><b>The core of the error bars is honest.</b> For B0329+54 at nominal flux the width of the central part of the pulls is 1.01 (from
+the median absolute deviation, and from the interquartile range).</li>
+<li><b>The tail is heavier than Gaussian.</b> 1.9 % of B0329+54's TOAs lie beyond 3σ, against 0.27 % for a Gaussian, and 0.3–0.7 %
+beyond 4σ. Almost all of them have an SNR of 7.1–8.1, just above the grouping threshold: the template-shape threshold effect described
+above, which over 100 days shows up as a continuum between 3σ and 5σ. The first 30 days happened to have almost none: one TOA beyond 3σ.
+Whether the rate varies or that was chance is open.</li>
+<li><b>For the navigation fit:</b> its outlier model must allow about 2 % of the TOAs beyond 3σ, not only 0.5 % beyond 4σ. J0437 has no
+such tail in these runs.</li>
 </ul>
 
 </main>

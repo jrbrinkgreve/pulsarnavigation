@@ -30,8 +30,9 @@ voltage chain (1.24 → 0.99);</li>
 <p><b>Block D started</b> (21 Oct): where the receiver is (<code>makeTrajectory</code>), the delays to the barycentre
 (<code>delayModel</code>), the predicted phase (<code>makePredictor</code>) and the fold that follows it are done in Claude's runs
 (<a href="motion.html">block D</a>).</p>
-<p><b>Next:</b> Jasper's validation runs and the 100-day scenario runs (both running). In block D, the simulator's truth with a moving
-receiver (D3) and the navigation fit (D4). Then several pulsars and the navigation solution (E).</p></div>
+<p><b>Next:</b> the navigation fit, D4a (designed, with clock synchronisation by extra pulsars). Claude's validation run of 21–22 Oct and
+the 100-day scenario runs are done (<a href="results.html#val21">results</a>, <a href="scenario.html#hundred">scenario</a>); Jasper's own
+runs of the new tests are still needed. Then several pulsars and the navigation solution (E).</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -73,28 +74,30 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <path class="axis" d="M20 112 H590"/>
   <path class="axis" d="M20.0 112 v4"/>
   <text class="sub" x="20.0" y="128" text-anchor="middle">29 Sep</text>
-  <path class="axis" d="M193.5 112 v4"/>
-  <text class="sub" x="193.5" y="128" text-anchor="middle">6 Oct</text>
-  <path class="axis" d="M367.0 112 v4"/>
-  <text class="sub" x="367.0" y="128" text-anchor="middle">13 Oct</text>
-  <path class="axis" d="M540.4 112 v4"/>
-  <text class="sub" x="540.4" y="128" text-anchor="middle">20 Oct</text>
-  <rect class="box val" x="20.0" y="36" width="198.3" height="18" rx="4"/>
+  <path class="axis" d="M179.6 112 v4"/>
+  <text class="sub" x="179.6" y="128" text-anchor="middle">6 Oct</text>
+  <path class="axis" d="M339.2 112 v4"/>
+  <text class="sub" x="339.2" y="128" text-anchor="middle">13 Oct</text>
+  <path class="axis" d="M498.8 112 v4"/>
+  <text class="sub" x="498.8" y="128" text-anchor="middle">20 Oct</text>
+  <rect class="box val" x="20.0" y="36" width="182.4" height="18" rx="4"/>
   <text class="lbl" x="20.0" y="32">Block 1 · full-band chain</text>
-  <rect class="box val" x="193.5" y="72" width="74.3" height="18" rx="4"/>
-  <text class="lbl" x="193.5" y="68">A · channels</text>
-  <rect class="box val" x="243.0" y="36" width="49.6" height="18" rx="4"/>
-  <text class="lbl" x="243.0" y="32">B · excision</text>
-  <rect class="box val" x="342.2" y="72" width="123.9" height="18" rx="4"/>
-  <text class="lbl" x="342.2" y="68">review week</text>
-  <rect class="box val" x="515.7" y="36" width="24.8" height="18" rx="4"/>
-  <text class="lbl" x="515.7" y="32">processIQ</text>
-  <rect class="box rx" x="540.4" y="72" width="49.6" height="18" rx="4"/>
-  <text class="lbl" x="540.4" y="68">C · fast simulator</text>
-  <path class="dash" d="M590.0 76 V112"/><text class="sub" x="594.0" y="108">today</text>
-  <path class="line" d="M590.0 81 h18" marker-end="url(#ar-rd)"/>
-  <rect class="box" x="640" y="36" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
-  <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (next)</text>
+  <rect class="box val" x="179.6" y="72" width="68.4" height="18" rx="4"/>
+  <text class="lbl" x="179.6" y="68">A · channels</text>
+  <rect class="box val" x="225.2" y="36" width="45.6" height="18" rx="4"/>
+  <text class="lbl" x="225.2" y="32">B · excision</text>
+  <rect class="box val" x="316.4" y="72" width="114.0" height="18" rx="4"/>
+  <text class="lbl" x="316.4" y="68">review week</text>
+  <rect class="box val" x="476.0" y="36" width="22.8" height="18" rx="4"/>
+  <text class="lbl" x="476.0" y="32">processIQ</text>
+  <rect class="box proc" x="498.8" y="72" width="45.6" height="18" rx="4"/>
+  <text class="lbl" x="498.8" y="68">C · fast simulator</text>
+  <rect class="box rx" x="521.6" y="36" width="45.6" height="18" rx="4"/>
+  <text class="lbl" x="571.2" y="49">D · motion</text>
+  <path class="dash" d="M567.2 76 V112"/><text class="sub" x="571.2" y="108">today</text>
+  <path class="line" d="M567.2 81 h18" marker-end="url(#ar-rd)"/>
+  <rect class="box rx" x="640" y="36" width="210" height="18" rx="4"/>
+  <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (now)</text>
   <rect class="box" x="640" y="72" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
   <text class="lbl" x="745" y="85" text-anchor="middle">E · navigation (next)</text>
   <text class="ttl" x="10" y="156">2 · block C, step by step</text>
@@ -125,7 +128,7 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <rect class="box proc" x="225" y="270" width="205" height="22" rx="5"/>
   <text class="sub" x="233" y="285">testRFIChain (voltage chain)</text>
   <rect class="box proc" x="225" y="298" width="205" height="22" rx="5"/>
-  <text class="sub" x="233" y="313">narrow carriers: diagnosed</text>
+  <text class="sub" x="233" y="313">narrow carriers: fixed, passes</text>
   <rect class="box val" x="225" y="326" width="205" height="22" rx="5"/>
   <text class="sub" x="233" y="341">noise calibration: simulator</text>
   <rect class="box proc" x="225" y="354" width="205" height="22" rx="5"/>
@@ -145,7 +148,7 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="448" y="313">J0437 measured profile</text>
   <rect class="box proc" x="440" y="326" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="341">adopt J0437 profile</text>
-  <rect class="box" x="440" y="354" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
+  <rect class="box proc" x="440" y="354" width="205" height="22" rx="5"/>
   <text class="sub" x="448" y="369">100-day final runs</text>
   <text class="lbl" x="655" y="178" font-weight="600">open questions</text>
   <rect class="box proc" x="655" y="186" width="205" height="22" rx="5"/>
@@ -158,19 +161,19 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <text class="sub" x="663" y="285">rfiProfile: lags beyond 7</text>
   <rect class="box" x="655" y="298" width="205" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="663" y="313">low-SNR outliers: robust fit (D)</text>
-  <text class="ttl" x="10" y="436">3 · after C</text>
-  <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase</text>
-  <rect class="box" x="10" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="481">Earth rotation and orbit (Doppler)</text>
-  <rect class="box" x="10" y="494" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="509">station on a ship: moving position</text>
-  <rect class="box" x="10" y="522" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="537">barycentric phase prediction</text>
+  <text class="ttl" x="10" y="436">3 · blocks D and E</text>
+  <text class="lbl" x="10" y="458" font-weight="600">D · motion and phase (now)</text>
+  <rect class="box proc" x="10" y="466" width="415" height="22" rx="5"/>
+  <text class="sub" x="18" y="481">D1 trajectory, delays to the barycentre</text>
+  <rect class="box proc" x="10" y="494" width="415" height="22" rx="5"/>
+  <text class="sub" x="18" y="509">D2 phase predictor, the fold that follows it</text>
+  <rect class="box proc" x="10" y="522" width="415" height="22" rx="5"/>
+  <text class="sub" x="18" y="537">D3 simulator truth, receiver clock, its estimate</text>
   <rect class="box" x="10" y="550" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="565">binary model (J0437, ELL1)</text>
+  <text class="sub" x="18" y="565">D4 navigation fit, clock synchronisation (designed)</text>
   <rect class="box" x="10" y="578" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="18" y="593">clock model</text>
-  <text class="lbl" x="435" y="458" font-weight="600">E · navigation</text>
+  <text class="sub" x="18" y="593">D5 binary orbit (J0437), DE440, real trajectories</text>
+  <text class="lbl" x="435" y="458" font-weight="600">E · navigation (next)</text>
   <rect class="box" x="435" y="466" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="443" y="481">several pulsars (B0329+54, J0437, …)</text>
   <rect class="box" x="435" y="494" width="415" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -190,11 +193,12 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
   <rect class="box" x="640" y="611" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
   <text class="sub" x="670" y="622">next / open</text>
 </svg>
-<figcaption>The roadmap on 21 October. (1) The blocks on the calendar. C, the fast simulator, started on 20 Oct. It comes before D because a
-TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. (2) Block C's steps. The simulator itself is complete
-and validated. The voltage-chain checks, the RFI variants, J0437's measured profile, the per-channel detectRFI thresholds and the extra
-lags in the RFI profiles are done in Claude's runs, awaiting Jasper's. Open are the 100-day runs, and a robust fit against the rare
-low-SNR outliers (with D). (3) Blocks D and E: motion and the phase prediction, then several pulsars and the navigation solution.
+<figcaption>The roadmap on 22 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–21 Oct; it came before D because a
+TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion and phase, started on 21 Oct. (2) Block C's
+steps, all done. The simulator itself is validated. The voltage-chain checks, the RFI variants, J0437's measured profile, the per-channel
+detectRFI thresholds, the extra lags in the RFI profiles and the 100-day runs are done in Claude's runs, awaiting Jasper's. Open is a
+robust fit against the low-SNR tail (with D4). (3) Blocks D and E: D1–D3 are done in Claude's runs, D4 is designed, then several pulsars
+and the navigation solution.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
@@ -206,7 +210,8 @@ Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).<
 <span class="badge validated">validated in Jasper's runs</span>: <code>testSimulateFold</code> 1–15 (C1, C3a–c with the adaptive sub-ints <code>mergeSubints</code> and <code>adaptiveSubints</code>, C4a, dual polarization,
 groups over gaps, multi-component profiles, the calibrated observer) and <code>testRFIModel</code> 1–5 (C4b on synthetic data).
 <span class="badge written">done in Claude's runs</span>: C2 (<code>expSimVsChain</code>), the cost of RFI (<code>expSimRFI</code>),
-<code>testRFIChain</code>, and the scenario runs with all variants. Next: the 100-day scenario runs.</td></tr>
+<code>testRFIChain</code> (both cases pass on the new code), the scenario runs with all variants, and the 100-day runs
+(<a href="scenario.html#hundred">final budgets</a>).</td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock</td><td>started 21 Oct.
 <span class="badge written">done in Claude's runs</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>) and D2 (<code>makePredictor</code>,
 <code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against the prediction) and D3b (<code>makeClock</code>: the receiver's
@@ -306,8 +311,8 @@ profiles.</li>
 <li><b>Understood:</b> channel 61's extra non-Gaussianity averages out as 1/turns (the <code>testRFIChain</code> rerun). The error bars at
 SNR ~7 with B0329+54's five-component template were mostly bin resolution, fixed with NBin 2048; a rare low-SNR outlier remains
 (<a href="scenario.html#simulated">scenario</a>, <a href="limits.html#estimation">limits</a>).</li>
-<li><b>Open:</b> Jasper's runs of the above; <code>testRFIChain</code> and the realistic scenario with the per-channel thresholds; the
-100-day runs.</li>
+<li><b>Open:</b> Jasper's runs of the above. Done since: <code>testRFIChain</code> with the per-channel thresholds (all pass) and the 100-day
+runs (the low-SNR tail: 1.9 % of B0329+54's TOAs beyond 3σ, for the navigation fit's outlier model).</li>
 </ul>
 <h3>Design draft (6 Oct)</h3>
 <ul>
