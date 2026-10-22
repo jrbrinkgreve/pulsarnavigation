@@ -85,6 +85,20 @@ function returns only the covariance a TOA schedule would give, to plan which pu
 <var>q</var>₂ = 2π²<var>h</var>₋₂. Flicker is left out of this model; at daily scales it adds about 3 µs against 76 µs. The clock
 estimate is the posterior mean K S⁻¹(<var>r</var> − A<var>p</var>), and its error includes the uncertainty of the fitted parameters
 (universal kriging).</p></details>
+<h3 id="averaged">A TOA is a time-average</h3>
+<p>A TOA merges sub-integrations until its SNR reaches about 7. For B0329+54 that takes about 2 hours, for B0950+08 about 12 hours of
+data spread over two passes a day apart. The TOA's residual is therefore the average over its sub-integrations, not the value at one
+time. The daily position signal averaged over 10 hours is only 0.74 of its value at the middle of that time. Over two passes a day
+apart at the same hour angle it keeps its full size, but the middle of that time span lies near the opposite hour angle, where the
+signal has the opposite sign.</p>
+<p>So each TOA can carry the times of its sub-integrations (<code>toa.tSub</code>). The fit then averages the TOA's row over them, just
+as the data are averaged. Test 11 shows the difference: with the rows averaged, a 1000 km offset comes out unbiased; with one time per
+TOA it comes out at 0.84 of the truth.</p>
+<div class="callout why"><span class="ttl">The row averaged, not one well-chosen time</span>
+<p><b>Alternative:</b> tag each TOA with the time whose hour angle its data represent best, and keep one row per TOA.</p>
+<p><b>Why not:</b> no single time represents data spread over many hours of hour angle. The best tag still damps the daily signal, by
+0.74 for 10 hours of data. Averaging the row is exact and costs nothing. The run scripts still tag each TOA at its data's mean hour
+angle, for the filter's time order and for plots.</p></div>
 <div class="callout why"><span class="ttl">A mixture, not a hard cut</span>
 <p><b>Alternative:</b> drop every TOA beyond 4σ and fit the rest.</p>
 <p><b>Why not:</b> the 100-day runs show a continuum of far-off TOAs between 3σ and 5σ, not a clean gap. A hard cut either keeps some or
@@ -113,6 +127,9 @@ pulsars to 0.9 m; bad inputs refused.</td></tr>
 clock model 35 % of the TOAs are flagged and half the fits do not settle.</td></tr>
 <tr><td>10 · Clock estimate</td><td>The fitted clock at the TOAs and one day ahead, against the truth.</td><td>Honest: pull spreads 0.92 and
 1.00, typical errors 200 µs and 480 µs.</td></tr>
+<tr><td>11 · Time-averages</td><td>A site 1000 km east. Each TOA is the average over 10 hours of sub-integrations, or over 5 + 5 hours a
+day apart; 200 realizations.</td><td>Rows averaged: 1002 ± 82 km, pull spread 0.97. One time per TOA: 845 km, 0.84 of the
+truth.</td></tr>
 </table></div>
 <h3>The first result: B0329+54 finds a 100 km offset</h3>
 <p>The simulator's scenario runs put the true site 100 km east of the assumed one, with a perfect clock, and <code>navFit</code> fits
@@ -249,6 +266,9 @@ the east pulls are 1.32.</td></tr>
 <tr><td>6 · Port clock</td><td>The ships of test 2 with a calibrated start whose port clock is off by a drawn 1 ms and 10⁻⁹, given as
 <code>'ClockPrior'</code>.</td><td>Honest: pulls 1.04 east, 0.91 north and 0.90 for the clock. With the port clock taken as exact, the
 clock pulls are 2.6.</td></tr>
+<tr><td>7 · Time-averages</td><td>Ships with TOAs of 10 hours, or 5 + 5 hours a day apart, and the clock's unknown rate in the
+residuals.</td><td>Rows averaged: pulls 1.10 east and 1.19 north. One time per TOA fails: a split TOA's time is up to 86 ms of clock
+away from its data.</td></tr>
 </table></div>
 <!-- The ship scenario (runShip) goes here: an h3 after the tests, like navFit's "The first result". -->
 <details><summary>History</summary>

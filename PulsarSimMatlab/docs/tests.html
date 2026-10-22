@@ -295,8 +295,8 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
-<tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~40 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
-<tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~40 s</td><td><span class="badge validated">1–10 pass (Jasper's run, 22 Oct)</span> <span class="badge written">11: Claude's run</span></td></tr>
+<tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~1 min</td><td><span class="badge validated">1–6 pass (Jasper's run, 22 Oct)</span> <span class="badge written">7: Claude's run</span></td></tr>
 <tr><td><a href="#loadeph"><code>testLoadEphemeris</code></a></td><td><code>loadEphemeris</code> D5a (JPL's DE440)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge validated">all pass on the new code, narrow Inmarsat included (Jasper's run, 22 Oct)</span></td></tr>
@@ -696,11 +696,13 @@ grows from a known start as the Kalman model says. The five checks are on the <a
 <h2 id="navfit"><code>testNavFit</code> (22 Oct)</h2>
 <p>The navigation fit recovers known site offsets to a few metres without noise. Its error bars are honest with Gaussian noise, and stay
 honest with 2 % outliers, where plain least squares is 51 % overconfident. With a crystal clock the position stays honest, and the
-fitted clock is honest too. The ten checks are on the <a href="navigation.html#navfit">navigation page</a>.</p>
+fitted clock is honest too. A TOA spread over many hours is fitted without bias once its row is averaged over its sub-integrations.
+The eleven checks are on the <a href="navigation.html#navfit">navigation page</a>.</p>
 
 <h2 id="navfilter"><code>testNavFilter</code> (22 Oct)</h2>
 <p>For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with
-honest error bars, also with outliers. With a calibrated start the port clock's uncertainty keeps the clock honest. The six checks are on the <a href="navigation.html#navfilter">navigation page</a>.</p>
+honest error bars, also with outliers. With a calibrated start the port clock's uncertainty keeps the clock honest. TOAs spread over many hours need their rows averaged.
+The seven checks are on the <a href="navigation.html#navfilter">navigation page</a>.</p>
 
 <h2 id="loadeph"><code>testLoadEphemeris</code> (22 Oct)</h2>
 <p>The Earth from JPL's DE440 file agrees with JPL's Horizons service to 4.5 cm at three dates. The velocity is the derivative of the
