@@ -510,8 +510,8 @@ only what it can physically do.</p></div>
 <tr><th>Step</th><th>What</th><th>Status</th></tr>
 <tr><td>D4a</td><td><code>navFit</code>: a robust batch fit for a fixed site with a perfect clock, on the 30-day motion run. It also
 predicts the precision for any TOA schedule, to choose pulsars without simulating (<a href="#navfit">section 8</a>).</td><td><span class="badge written">done 22 Oct (Claude's run)</span></td></tr>
-<tr><td>D4b</td><td>The clock in the fit, as correlated noise (done); the fitted clock fed back as the observer's estimate in the
-scenario, day by day (next).</td><td><span class="badge written">D4b-1 done 22 Oct (Claude's run)</span></td></tr>
+<tr><td>D4b</td><td>The clock in the fit, as correlated noise; the fitted clock fed back as the observer's estimate in the scenario,
+day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge written">done 22 Oct (Claude's runs)</span></td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
 the per-pulsar offsets.</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>D4d</td><td>The Kalman filter for a moving ship: dead reckoning in, trajectory and clock fed back.</td><td><span class="badge todo">todo</span></td></tr>

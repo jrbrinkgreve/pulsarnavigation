@@ -369,7 +369,13 @@ assumes a good ephemeris; a first test with an offset of 0.12 turns closed no gr
 the passes.</li>
 <li>Each TOA records its absolute time, the measured residual and the true one, split into position and clock: the input of the
 navigation fit. The result files get the suffix <code>_motion_perfect</code> or <code>_motion_sdr</code>.</li>
+<li>With the SDR clock the observer tracks it (<code>motion.track</code> <code>"daily"</code>). After each day it fits all its TOAs so
+far with <code>navFit</code> and the clock model, predicts its clock for the next day, and folds that day with the prediction. Until it
+has 20 TOAs, about two days, it keeps the calibration from port. <code>"none"</code> keeps the calibration throughout; those files get
+the suffix <code>_notrack</code>.</li>
 </ul>
+<p>In a 6-day check the tracked clock was known to 33–45 µs from day 3 on, while the untracked one was 0.25–1 ms off. The pulse is 6.6 ms
+wide.</p>
 <p>For J0437 a 1 ms clock-offset error is 0.17 turns, far outside its pulse, so <code>adaptiveSubints</code> would close no groups.
 For J0437 the observer must know its clock offset much better; keeping it known is the navigation filter's job.</p>
 <p>The variants are clean, RFI, RFI + calibration, + scintillation, and fixed groups for comparison. Results:

@@ -28,6 +28,13 @@ Assumptions (notes §11, simulator.html):
     the simulator's frame (f0, not the Doppler-shifted frequency): 1e-4 relative, 19 ns on the
     193 us of a 100 km offset. A warning if the true offset drifts by more than 5 % of the FWHM
     within a sub-int (one offset per sub-int would then be too coarse);
+  - with an SDR clock the observer tracks it (motion.track "daily", block D4b-2): after each day
+    it fits all its TOAs so far with navFit and the clock model (the residuals with its own clock
+    estimate of the time added back), predicts its clock for the next day (constant + clockAt) and
+    folds that day with the prediction. Until 20 TOAs (~2 days) it keeps the calibration in port
+    (a check with 10: day 2 extrapolated a rate fitted from one day and was 1.3 ms off). "none": the
+    calibration only (the clock then drifts away by milliseconds within weeks). Groups that span a
+    day boundary mix two estimates (their difference is the one-day prediction error, ~0.5 ms);
   - rho in the simulator's convention (peak of the Gaussian pulse / receiver noise per
     polarization, rho = S_peak/SEFD), 'NPol' 2; the observer passes Bnoise x 2;
   - pulse and template: B0329+54's five Gaussian components at 1410 MHz (since 20 Oct; a single
@@ -49,7 +56,7 @@ exact because fold sums add. Each closed group gives one TOA. What is still open
 last day is counted as leftover.
 
 Outputs per case (printed table; data/scenario/scenario_<pulsar>_<flux>_<variant>_<n>d.mat, with
-motion ..._<n>d_motion_<clock>.mat):
+motion ..._<n>d_motion_<clock>.mat, and ..._sdr_notrack.mat without tracking):
 good TOAs per day, hours of data per TOA (median, 10-90 %), calendar span per TOA, median
 sigma (us and c*sigma in km), rms of (TOA - truth)/sigma and the fraction beyond 5, mean
 reduced chi^2 and pChi2 < 0.05, leftover fraction, figure of merit sigma*sqrt(hours) [us
@@ -69,7 +76,8 @@ motion = struct('on', false, ...
     'offsetENU', [100e3 0 0], ...    % true site minus assumed site, east-north-up [m]
     'clock', "perfect", ...          % "perfect" | "sdr" (crystal noise + a rate within +-2 ppm)
     'clockOffsetErr', 1e-3, ...      % "sdr": the observer's estimate is off by this offset [s]
-    'clockRateErr', 1e-9);           %   ... and this rate [s/s]
+    'clockRateErr', 1e-9, ...        %   ... and this rate [s/s]
+    'track', "daily");               % "sdr": "daily" (refit and predict the clock each day) | "none"
 
 scriptDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(scriptDir, 'functions'));
@@ -123,12 +131,11 @@ for ip = 1:numel(pulsars)
     TRef = 0.5 / ps.f0;
     tmpl = gaussianTemplate(ps.nBin, profileOf(ps));
     dPhi = 0.1 * ps.fwhm;              % true pulse phase against the ephemeris [turns]
-    tag = ""; truthOf = []; M = [];
-    if motion.on                       % the truth of a moving receiver: phase offset at scenario time s
+    tag = ""; M = [];
+    if motion.on                       % the truth of a moving receiver (the offset is set per day below)
         M = motionTruth(motion, ps, tSid, nDays, ip);
-        truthOf = @(s) trueResiduals(M.t0 + s, M.psr, M.trajTrue, M.trajAssumed, M.clockArgs{:});
-        dPhi = @(s) offsetAt(truthOf, s);
         tag = "_motion_" + motion.clock;
+        if motion.clock == "sdr" && motion.track == "none", tag = tag + "_notrack"; end
     end
     for fl = fluxes
         for va = variants
@@ -140,7 +147,7 @@ for ip = 1:numel(pulsars)
             end
             tCase = tic;
             simArgs = {'NChan', nCh, 'ChannelGain', gc, 'NPol', nPol, 'NBin', ps.nBin, ...
-                'SubintPeriods', nPer, 'PhaseOffset', dPhi, 'Verbose', false};
+                'SubintPeriods', nPer, 'Verbose', false};
             if isempty(ps.comps), simArgs = [simArgs, {'FWHM', ps.fwhm}]; %#ok<AGROW>
             else, simArgs = [simArgs, {'Components', ps.comps}]; end %#ok<AGROW>
             adArgs = {'TargetSNR', 7, 'Weighting', 'optimal', 'AcrossGaps', true, 'Verbose', false};
@@ -170,9 +177,16 @@ for ip = 1:numel(pulsars)
             end
             G = struct('day', {}, 'nMerged', {}, 'hours', {}, 'spanHours', {}, 'T0', {}, ...
                 'valid', {}, 'good', {}, 'err', {}, 'sigma', {}, 'snr', {}, 'chi2', {}, 'pChi2', {}, ...
-                'tAbs', {}, 'resid', {}, 'trueResid', {}, 'trueGeo', {}, 'trueClock', {});
+                'tAbs', {}, 'resid', {}, 'trueResid', {}, 'trueGeo', {}, 'trueClock', {}, 'clockUsed', {});
             carry = []; nSubTotal = 0; maxDrift = 0;
+            ehat = [];                                          % the observer's clock estimate
+            if motion.on, ehat = M.ehat0; end                   % (day 1: the calibration in port)
             for d = 1:nDays
+                if motion.on                                     % the truth with today's clock estimate
+                    ca = clockArgsOf(M, ehat);
+                    truthOf = @(s) trueResiduals(M.t0 + s, M.psr, M.trajTrue, M.trajAssumed, ca{:});
+                    dPhi = @(s) offsetAt(truthOf, s);
+                end
                 % sub-int grid of the day's pass: complete turns inside it, nPer per sub-int
                 k1 = ceil(ps.f0 * (passes(d, 1) - TRef) + 0.5);
                 k2 = floor(ps.f0 * (passes(d, 2) - TRef) - 0.5);
@@ -183,7 +197,7 @@ for ip = 1:numel(pulsars)
                     kB = k1 + min(c0 + mChunk, nSubDay) * nPer - 1;     % last turn
                     win = TRef + ([kA - 0.5 - 1e-6, kB + 0.5 + 1e-6]) / ps.f0;
                     [iC, fC, tC] = simulateFold(ps.f0, ps.rho.(fl), [], 'Passes', win, simArgs{:}, ...
-                        'Seed', 1e5 * ip + 1000 * d + c0);
+                        'PhaseOffset', dPhi, 'Seed', 1e5 * ip + 1000 * d + c0);
                     nSubTotal = nSubTotal + iC.nSub;
                     if iC.nSub > 1                                       % drift of the true offset per sub-int
                         maxDrift = max(maxDrift, max(abs(diff(tC.phaseOffset))));
@@ -221,8 +235,12 @@ for ip = 1:numel(pulsars)
                             'chi2', toa.redChi2(g), 'pChi2', toa.pChi2(g), ...
                             'tAbs', tAbsOf(M, fT.subint.tRef(g)), 'resid', toa.toa(g) - fT.subint.tRef(g), ...
                             'trueResid', rT.residual(g), 'trueGeo', rT.geometric(g), ...
-                            'trueClock', rT.clock(g) - rT.clockEstimate(g)); %#ok<SAGROW>
+                            'trueClock', rT.clock(g) - rT.clockEstimate(g), ...
+                            'clockUsed', clockUsedAt(M, ehat, fT.subint.tRef(g))); %#ok<SAGROW>
                     end
+                end
+                if motion.on && motion.clock == "sdr" && motion.track == "daily"
+                    ehat = trackClock(G, M, ehat);               % refit, predict tomorrow's clock
                 end
             end
             nLeft = 0;
@@ -340,14 +358,15 @@ M.trajAssumed = makeTrajectory('fixed', 'Lat', ps.lat, 'Lon', ps.lon);
 M.trajTrue = makeTrajectory('fixed', 'Lat', ps.lat, 'Lon', ps.lon, 'OffsetENU', motion.offsetENU);
 switch motion.clock
     case "perfect"
-        M.clockArgs = {};
+        M.clk = []; M.ehat0 = []; M.clockH = [];
         M.clockRate = 0;
     case "sdr"                                      % crystal noise and a rate within +-2 ppm
         rs = RandStream('mt19937ar', 'Seed', 500 + ip);
         M.clockRate = 2e-6 * (2 * rand(rs) - 1);
-        clk = makeClock([M.t0, M.t0 + (nDays + 1) * tSid], 'Preset', "crystal", 'Rate', M.clockRate, 'Seed', 600 + ip);
+        M.clk = makeClock([M.t0, M.t0 + (nDays + 1) * tSid], 'Preset', "crystal", 'Rate', M.clockRate, 'Seed', 600 + ip);
         r0 = M.clockRate + motion.clockRateErr; b0 = motion.clockOffsetErr; t0 = M.t0;
-        M.clockArgs = {'Clock', clk, 'ClockEstimate', @(c) b0 + r0 * (c - t0)};
+        M.ehat0 = @(c) b0 + r0 * (c - t0);          % the calibration in port
+        M.clockH = M.clk.h;                         % the observer knows its oscillator's noise class
     otherwise
         error('runScenario:clock', 'motion.clock must be "perfect" or "sdr".');
 end
@@ -359,6 +378,31 @@ end
 function t = tAbsOf(M, s)
 %TABSOF  Absolute time (s since J2000, TT) of scenario time s; NaN without motion.
 if isempty(M), t = NaN; else, t = M.t0 + s; end
+end
+
+function a = clockArgsOf(M, ehat)
+%CLOCKARGSOF  trueResiduals' clock arguments: the true clock and the observer's estimate ({} if perfect).
+if isempty(M.clk), a = {}; else, a = {'Clock', M.clk, 'ClockEstimate', ehat}; end
+end
+
+function v = clockUsedAt(M, ehat, s)
+%CLOCKUSEDAT  The observer's clock estimate at scenario time s (0 without a clock).
+if isempty(M) || isempty(M.clk), v = 0; else, v = ehat(M.t0 + s); end
+end
+
+function ehat = trackClock(G, M, ehat)
+%TRACKCLOCK  The observer's daily clock update (block D4b-2): fit all good TOAs so far with navFit and the
+% clock model, its own estimate added back (the residuals then hold the uncorrected clock), and predict
+% the clock: the fitted constant (offset at t0; it also holds the polar position term) + clockAt.
+g = [G.good];
+if nnz(g) < 20, return, end                         % ~2 days: a rate fitted from one day extrapolates poorly
+toa = struct('t', [G(g).tAbs], 'r', [G(g).resid] + [G(g).clockUsed], 'sigma', [G(g).sigma]);
+ws = warning('off', 'navFit:converge');
+f = navFit(toa, struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg), M.trajAssumed, 'Clock', M.clockH, ...
+    'ClockStart', M.t0);
+warning(ws);
+c1 = f.p(strcmp(f.names, 'c1'));
+ehat = @(c) c1 + f.clockAt(c);
 end
 
 function v = offsetAt(truthOf, s)
