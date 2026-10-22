@@ -91,13 +91,13 @@ offset. It works like GNSS, with natural beacons.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 21 October 2026</h2>
+<h2>Status · 22 October 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
   <div class="done"><b>B ✓ (for now)</b>RFI excision: essentials done; two items parked with designs</div>
   <div class="done"><b>C ✓</b>fast simulator for hours of data: validated, <a href="scenario.html#hundred">scenario budgets</a> done; closed 22 Oct</div>
-  <div class="later"><b>D (now)</b>motion, barycentric phase, clock: prediction and truth built, the navigation fit next</div>
+  <div class="later"><b>D (now)</b>motion, barycentric phase, clock, navigation: prediction, truth, batch fit and ship filter built; the ship scenario runs</div>
   <div class="later"><b>E</b>several pulsars, navigation, array</div>
 </div>
 <p><b>Now: block D, motion and the clock.</b> The receiver moves with the Earth and its ship, and it times its data with its own
@@ -130,8 +130,9 @@ several pulsars and the navigation solution (E). Details and reasons: <a href="r
 <tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. The scenario runs give the TOA budgets, over 30 and 100 days (Claude's runs). A few
 refinements are parked (simulator page)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock: <code>makeTrajectory</code>, <code>delayModel</code>, <code>makePredictor</code>,
-<code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate. Next: the
-simulator's truth in <code>runScenario</code>, then the navigation fit</td><td><span class="badge written">in progress since 21 Oct</span> <span class="badge validated">D1–D3 validated 22 Oct</span></td></tr>
+<code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate; the
+navigation fit <code>navFit</code> and the ship's Kalman filter <code>navFilter</code>; the ship scenario <code>runShip</code>. Next: the
+calibrated ship start, then DE440</td><td><span class="badge written">in progress since 21 Oct</span> <span class="badge validated">D1–D3, navFit, navFilter validated 22 Oct</span></td></tr>
 <tr><td>E</td><td>Several pulsars, navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 </details>

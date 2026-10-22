@@ -270,11 +270,11 @@ the per-pulsar offsets. The planning study (D4c-0, above) is done.</td><td><span
 <tr><td>D4d</td><td>The Kalman filter for a moving ship (<code>navFilter</code>, <a href="#navfilter">section 4</a>); then the ship
 scenario <code>runShip</code> with the filter's estimate fed back.</td><td><span class="badge written">D4d-1 done 22 Oct (Claude's run)</span> <span class="badge todo">D4d-2 next</span></td></tr>
 </table></div>
-<h3>Later: the Kalman filter and real orbits</h3>
-<p>After the batch fit, a Kalman filter takes over. Its state is position, velocity and the clock, with a motion model per vehicle.
-Its predicted trajectory goes into the predictor through the <code>'custom'</code> trajectory. When the filter improves its estimate,
-the stored sub-integration profiles are shifted by the phase correction instead of being folded again. Block D ends with J0437's binary
-orbit, JPL's DE440 ephemeris, and real ship and probe trajectories.</p>
+<h3>Later: stored profiles and real orbits</h3>
+<p>The Kalman filter's predicted track already goes back into the predictor through a <code>'custom'</code> trajectory, once a day in
+the ship scenario. A later refinement shifts the stored sub-integration profiles by the phase correction when the filter improves its
+estimate, instead of folding them again. Block D's last step is JPL's DE440 ephemeris in place of the analytic Earth orbit. J0437's
+binary orbit and real ship and probe trajectories are on the same list.</p>
 <details><summary>History</summary>
 <p>Block D's design, agreed on 21 Oct 2026, made B0329+54's 2-D equatorial offset the first deliverable, with the outlier handling by
 redundancy. Later the same day D4 was designed around Jasper's idea of clock synchronisation with extra pulsars, with simultaneous
