@@ -35,12 +35,21 @@ Output data/scenario/ship_<nDays>d_<flux>.mat (R: settings, TOAs with their trut
 observer errors, the final smoothed fit) and a printed daily table: TOAs per pulsar, the DR error
 |true - DR| and the observer's error |true - its track| at the end of each day [km], and the
 clock it had not estimated [us]. Then the final smoother over all TOAs against the truth.
+Other runs: set shipOpts before running the script, with any of the fields nDays, flux and seed, e.g.
+shipOpts = struct('seed', 3, 'flux', "worst"); runShip. The seed draws the current, the clock rate,
+the clock's noise and every fold's noise; seed 1 is the default run, other seeds add _seed<n> to the
+file name.
 (22 Oct 2026, block D4d-2; design agreed with Jasper the same day.)
 %}
 
 nDays = 14; flux = "nominal";
 route = struct('start', [50 -5], 'heading', 250, 'speed', 5 * 1852 / 3600, ...   % 5 kn
     'current', 0.3, 'currentNoise', 1.2e-7, 'seed', 1);
+if exist('shipOpts', 'var')                          % a caller's settings (a dedicated name: runScenario also has nDays)
+    if isfield(shipOpts, 'nDays'), nDays = shipOpts.nDays; end
+    if isfield(shipOpts, 'flux'), flux = string(shipOpts.flux); end
+    if isfield(shipOpts, 'seed'), route.seed = shipOpts.seed; end
+end
 epoch = 9555.5 * 86400;                              % 2026-03-01 00:00 TT
 
 scriptDir = fileparts(mfilename('fullpath'));
@@ -81,10 +90,10 @@ rT = rDR + Eg .* d(1, :) + Ng .* d(2, :);
 trajT = makeTrajectory('custom', 'Frame', 'ECEF', 'PosFcn', @(t) interp1(tg, rT.', t, 'pchip').');
 offT = @(t) [interp1(tg, d(1, :), t, 'pchip'); interp1(tg, d(2, :), t, 'pchip')];   % true - DR, local E N
 clkRate = 2e-6 * (2 * rand(rs) - 1);
-clk = makeClock([epoch, epoch + (nDays + 1) * 86400], 'Preset', "crystal", 'Rate', clkRate, 'Seed', 11);
+clk = makeClock([epoch, epoch + (nDays + 1) * 86400], 'Preset', "crystal", 'Rate', clkRate, 'Seed', 10 + route.seed);
 ehat0 = @(cc) 1e-3 + (clkRate + 1e-9) * (cc - epoch);  % the port calibration
-fprintf('runShip: %d days from %s at %.1f kn, heading %d deg; current %s m/s; clock rate %.2e\n', nDays, ...
-    mat2str(route.start), route.speed * 3600 / 1852, route.heading, mat2str(round(v(:, 1).', 3)), clkRate);
+fprintf('runShip: %d days (%s flux, seed %d) from %s at %.1f kn, heading %d deg; current %s m/s; clock rate %.2e\n', nDays, ...
+    flux, route.seed, mat2str(route.start), route.speed * 3600 / 1852, route.heading, mat2str(round(v(:, 1).', 3)), clkRate);
 
 % ---- the observer's day-by-day loop ------------------------------------------------------------------
 corr = struct('tL', epoch, 'd', [0; 0], 'v', [0; 0]);  % its track correction (none on day 1)
@@ -112,7 +121,7 @@ for day = 1:nDays
             for c0 = 0:mChunk:nSub - 1
                 kA = k1 + c0 * ps.nPer; kB = k1 + min(c0 + mChunk, nSub) * ps.nPer - 1;
                 w = TRef + ([kA - 0.5 - 1e-6, kB + 0.5 + 1e-6]) / ps.f0;
-                [iC, fC] = simulateFold(ps.f0, ps.rho, [], 'Passes', w, simArgs{:}, 'Seed', 1e6 * k + 1000 * day + 10 * iw + c0);
+                [iC, fC] = simulateFold(ps.f0, ps.rho, [], 'Passes', w, simArgs{:}, 'Seed', 1e7 * (route.seed - 1) + 1e6 * k + 1000 * day + 10 * iw + c0);
                 if ~isempty(carry{k}), [fC, iC] = catFolds(carry{k}.fold, carry{k}.info, fC, iC); end
                 [fM, iM, sel] = adaptiveSubints(fC, iC, ps.tmpl, BnC * nPol, 'TargetSNR', 7, 'Weighting', 'optimal', ...
                     'AcrossGaps', true, 'Verbose', false);
@@ -179,7 +188,8 @@ fprintf(['runShip: final smoother, %d TOAs: track error rms east %.1f km, north 
 R = struct('route', route, 'nDays', nDays, 'flux', flux, 'psr', rmfield(psr, 'tmpl'), 'clockRate', clkRate, ...
     'G', G, 'daily', daily, 'final', struct('t', fS.t, 'enu', fS.enu, 'enuErr', fS.enuErr, 'truth', enT), ...
     'made', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')));
-save(fullfile(outDir, sprintf('ship_%dd_%s.mat', nDays, flux)), 'R');
+tag = ""; if route.seed ~= 1, tag = sprintf("_seed%d", route.seed); end
+save(fullfile(outDir, sprintf('ship_%dd_%s%s.mat', nDays, flux, tag)), 'R');
 
 
 % =================================================================================

@@ -26,7 +26,13 @@ and makeClock, independent of the filter's own model.
   4. 'Predict': the covariances equal those of the run with data ('Robust' false), 1e-9 relative.
   5. A trajectory in the 'SSB' frame, missing residuals and a bad clock are refused
      ('navFilter:traj', 'navFilter:toa', 'navFilter:clock').
-Errors at the end if any check fails. (22 Oct 2026, block D4d.)
+  6. 'ClockPrior': the ships of check 2 with a calibrated start whose port clock is off by a drawn
+     offset (1 ms) and rate (1e-9) - the observer's residuals against its port clock estimate. With
+     'ClockPrior' [1e-3 1e-9] the pulls of east, north and the clock offset at the four times have
+     std 1 (+- 0.2) and mean 0 (+- 4 / sqrt(40)); with the prior taken as exact ([0 0]) the rms of
+     the north or clock pulls exceeds 2 (the option is needed). 'ClockPrior' without 'Clock' is
+     refused ('navFilter:clock'). Its own random stream: checks 2 and 3 keep their numbers.
+Errors at the end if any check fails. (22 Oct 2026, block D4d; check 6 for D4c-1.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -76,7 +82,8 @@ L = 14 * 86400; tg = t1 + (0:3600:L); vShip = 2.1;
 lonDR = -5 - rad2deg(vShip * (tg - t1) / (6371e3 * cosd(50)));
 trajDR = makeTrajectory('track', 'Time', tg, 'Lat', 50 * ones(size(tg)), 'Lon', lonDR, 'Interp', 'pchip');
 nR = 40;
-[pE, pN, dr, kfErr, pER, pNR, hitR, pEW] = deal([]);
+[pE, pN, dr, kfErr, pER, pNR, hitR, pEW, pC, pX] = deal([]);
+rs6 = RandStream('mt19937ar', 'Seed', 53);             % check 6's draws, apart from checks 2 and 3
 ws = warning('off', 'trueResiduals:wrap');             % seconds of SDR clock drift: no fold here, only residuals
 for m = 1:nR
     [trajT, offT] = shipTruth(trajDR, tg, rs);
@@ -105,6 +112,18 @@ for m = 1:nR
         badSorted = bad(f.order);
         hitR = [hitR, [nnz(fR.outlier(badSorted)); nnz(badSorted)]]; %#ok<AGROW>
     end
+    % 6. a calibrated start, the port clock off by a drawn offset and rate
+    t0 = toa.t(1); dB = 1e-3 * randn(rs6); dD = 1e-9 * randn(rs6);
+    cRead = toa.t + clk.offset(toa.t);                  % the clock's readings
+    eHat = clk.offset(t0) + dB + (clk.rate(t0) + dD) * (cRead - t0);   % the port estimate there
+    toaC = toa; toaC.r = toa.r - eHat;
+    bTrue = clk.offset(toa.t) - eHat;                   % the clock error left in the residuals
+    calArgs = {[b0329, b0950], trajDR, 'Clock', hCr, 'PositionPrior', 1e3, 'Start', "calibrated"};
+    fC = navFilter(toaC, calArgs{:}, 'ClockPrior', [1e-3 1e-9]);
+    fX = navFilter(toaC, calArgs{:});                   % the prior taken as exact
+    bT = bTrue(fC.order);
+    pC = [pC, [(fC.enu(1:2, at) - truthENU(1:2, at)) ./ fC.enuErr(1:2, at); (fC.clock(at) - bT(at)) ./ fC.clockErr(at)]]; %#ok<AGROW>
+    pX = [pX, [(fX.enu(1:2, at) - truthENU(1:2, at)) ./ fX.enuErr(1:2, at); (fX.clock(at) - bT(at)) ./ fX.clockErr(at)]]; %#ok<AGROW>
 end
 warning(ws);
 ok2 = abs(std(pE) - 1) < 0.2 && abs(std(pN) - 1) < 0.2 && abs(mean(pE)) < 4 / sqrt(nR) && abs(mean(pN)) < 4 / sqrt(nR);
@@ -135,6 +154,14 @@ ok5 = strcmp(errId(@() navFilter(toa, [b0329, b0950], probe)), 'navFilter:traj')
       strcmp(errId(@() navFilter(toa, [b0329, b0950], trajDR, 'Clock', [1 -1 0])), 'navFilter:clock');
 fprintf('5. SSB trajectory, missing residuals and a bad clock refused %d: %s\n', ok5, passStr(ok5));
 if ~ok5, fails{end+1} = 'input checks'; end
+
+% 6. ClockPrior (the realizations ran with check 2)
+mC = mean(pC, 2); sC = std(pC, 0, 2); rX = rms(pX, 2);
+ok6 = all(abs(sC - 1) < 0.2) && all(abs(mC) < 4 / sqrt(nR)) && max(rX(2:3)) > 2 && ...
+      strcmp(errId(@() navFilter(toa, [b0329, b0950], trajDR, 'Start', "calibrated", 'ClockPrior', [1e-3 1e-9])), 'navFilter:clock');
+fprintf(['6. calibrated start, the port clock off by 1 ms and 1e-9: pulls east %+.2f / %.3f, north %+.2f / %.3f, clock %+.2f / %.3f ' ...
+         '(mean / std); the prior taken as exact: rms east %.1f, north %.1f, clock %.1f: %s\n'], [mC, sC].', rX, passStr(ok6));
+if ~ok6, fails{end+1} = 'ClockPrior'; end
 
 if isempty(fails)
     fprintf('testNavFilter: ALL PASSED\n');

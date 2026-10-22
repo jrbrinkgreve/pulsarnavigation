@@ -30,7 +30,11 @@ Rauch-Tung-Striebel smoother then gives the best estimate at every TOA from all 
 
 The switch 'Start' (Jasper, 21 Oct), as navFit:
   "self"        the clock offset at t0 is part of the constants J_k, its rate is unknown;
-  "calibrated"  a known position and time at the start (port): b = d = 0 and J_k = 0 at t0.
+  "calibrated"  a known position and time at the start (port): J_k = 0, and the clock's offset and
+                rate at t0 known to 'ClockPrior' (default exactly: b = d = 0). A port calibration is
+                never exact: 1 ms of offset is 300 km in c b, more than a TOA's error. An exact prior
+                then states the clock too precisely (testNavFilter check 6: clock pulls rms 2.6; the
+                position is hardly hurt, as the clock's own wander takes the offset within a day).
 Height ('Height', default true): a ship stays at sea level, so dp and dv have no up component. That
 is what lets one pulsar find north: the radial (equatorial) component then fixes it. The horizontal
 error is taken in the tangent plane of the DR point; on the real surface an error d lies d^2/2R lower
@@ -51,6 +55,9 @@ Inputs:
 Name-value options:
   'Start'          "self" (default) | "calibrated".
   'Clock'          [] (a perfect clock) | [h0 h_1 h_2] | a makeClock struct.
+  'ClockPrior'     [s, s/s] the sigmas of the clock's offset and rate at the first TOA with
+                   "calibrated" (default [0 0]: known exactly); needs 'Clock'. Not used with "self"
+                   (the offset is in the J_k, the rate free).
   'Height'         true (default) | false (a site or probe whose height is unknown).
   'PositionPrior'  [m] initial sigma of dp per axis (default 1e7: unknown).
   'VelocityPrior'  [m/s] initial sigma of dv per axis (default 0.3; 0 for a fixed site).
@@ -72,6 +79,7 @@ arguments
     traj struct
     opts.Start (1,1) string {mustBeMember(opts.Start, ["self" "calibrated"])} = "self"
     opts.Clock = []
+    opts.ClockPrior (1,2) double {mustBeNonnegative} = [0 0]
     opts.Height (1,1) logical = true
     opts.PositionPrior (1,1) double {mustBePositive} = 1e7
     opts.VelocityPrior (1,1) double {mustBeNonnegative} = 0.3
@@ -114,6 +122,8 @@ if haveClk
     if isstruct(opts.Clock), h = opts.Clock.h; else, h = opts.Clock; end
     if numel(h) ~= 3 || any(h < 0), error('navFilter:clock', 'Clock must be [h0 h_1 h_2] >= 0 or a makeClock struct.'); end
     q = c^2 * [h(1) / 2, 2 * pi^2 * h(3)];             % [m^2/s] and [m^2/s^3]
+elseif any(opts.ClockPrior > 0)
+    error('navFilter:clock', '''ClockPrior'' needs ''Clock'' (the clock''s states).');
 end
 
 % the prior at t0 (the first TOA)
@@ -122,6 +132,9 @@ P0 = zeros(nS);
 P0(iP, iP) = opts.PositionPrior^2 * eye(nD);
 P0(iV, iV) = opts.VelocityPrior^2 * eye(nD);
 if haveClk && opts.Start == "self", P0(iD, iD) = (c * 1e-5)^2; end   % the rate unknown (well beyond 2 ppm)
+if haveClk && opts.Start == "calibrated"                % the port calibration's own error
+    P0(iB, iB) = (c * opts.ClockPrior(1))^2; P0(iD, iD) = (c * opts.ClockPrior(2))^2;
+end
 if ~isempty(iJ), P0(iJ, iJ) = 1e7^2 * eye(nPsr); end
 P = P0;
 
