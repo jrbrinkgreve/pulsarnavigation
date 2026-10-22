@@ -57,6 +57,8 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_excision.py` | one channel through detectRFI, blanking, dedispersion, W | excision.html |
 | `gen_fold.py` | folding in three steps | fold.html |
 | `gen_toa.py` | FFTFIT: profile, cross-correlation, weights | toa.html |
+| `gen_navavg.py` | a TOA is a time-average: the daily signal of a 100 km offset, a 10 h TOA and a two-pass TOA against one time per TOA | navigation.html (2, averaged) |
+| `gen_navplan.py` | the planning study: the polar error with a crystal clock per pulsar set, 30 and 100 days (logged numbers) | navigation.html (3) |
 | `gen_det.py` | T0 and Tmax under H0 / H1 (simulated, ~1 min) | detection.html |
 | `gen_results.py` | phase D sweep and threshold sweep | results.html |
 | `gen_simvschain.py` | fast simulator vs voltage chain: median σ and P_D against ρ (C2) | simulator.html |

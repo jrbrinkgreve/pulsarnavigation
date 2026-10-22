@@ -20,6 +20,9 @@
   --written: #8a6d1d;
   --rx: #7b4f9d;
   --bg-rx: #f3eef8;
+  --series-1: #2a78d6;   /* data figures: categorical slots, validated (dataviz checks, 22 Oct 2026) */
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
   --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
   --side-w: 270px;
@@ -46,6 +49,9 @@
     --written: #d8bd62;
     --rx: #c19ee0;
     --bg-rx: #2a2233;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
   }
 }
 :root[data-theme="dark"] {
@@ -68,6 +74,9 @@
   --written: #d8bd62;
   --rx: #c19ee0;
   --bg-rx: #2a2233;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
 }
 
 * { box-sizing: border-box; }
@@ -314,6 +323,15 @@ svg .lbl { font-size: 12px; }
 svg .ttl { font-size: 13px; font-weight: 600; }
 svg .mono { font-family: var(--mono); font-size: 12px; }
 svg .ok { fill: var(--ok); }
+svg .s1 { stroke: var(--series-1); stroke-width: 2; fill: none; stroke-linecap: round; }
+svg .s2 { stroke: var(--series-2); stroke-width: 2; fill: none; stroke-linecap: round; }
+svg .s3 { stroke: var(--series-3); stroke-width: 2; fill: none; stroke-linecap: round; }
+svg .s1f { fill: var(--series-1); stroke: var(--bg); stroke-width: 2; }
+svg .s2f { fill: var(--series-2); stroke: var(--bg); stroke-width: 2; }
+svg .s3f { fill: var(--series-3); stroke: var(--bg); stroke-width: 2; }
+svg .s1band { fill: var(--series-1); opacity: 0.16; stroke: none; }
+svg .s2band { fill: var(--series-2); opacity: 0.16; stroke: none; }
+svg .err { stroke: var(--fg-muted); stroke-width: 1.2; fill: none; opacity: 0.55; }
 svg .bad { fill: var(--todo); }
 figure .wide { min-width: 640px; }
 figure.scroll { overflow-x: auto; }
