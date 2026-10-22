@@ -26,6 +26,7 @@ block D, since 21 Oct 2026</p>
 <li><a href="#fold">Folding with a predictor</a></li>
 <li><a href="#truth"><code>trueResiduals</code>: how late the pulse really is</a></li>
 <li><a href="#clock"><code>makeClock</code>: the receiver's clock</a></li>
+<li><a href="#navfit"><code>navFit</code>: the site from the TOAs</a></li>
 <li><a href="#next">The simulator's truth, and next: the navigation fit and the clock</a></li>
 </ol></div>
 
@@ -377,7 +378,62 @@ within twice their scatter everywhere. Flicker agrees within 3 % from 5 steps an
 receiver is a commercial SDR. The proposed check against the paper's 11 ns after 200 s was not comparable: that number depends on how
 the flicker noise is started. The check now uses white and random-walk noise only, where the paper's formula is exact.</p></details>
 
-<h2 id="next">8. The simulator's truth, and next: the navigation fit and the clock</h2>
+<h2 id="navfit">8 · <code>navFit</code>: the site from the TOAs <span class="badge written">done</span></h2>
+<div class="sig">fit = navFit(toa, psrs, site, ...)</div>
+<p class="meta"><a href="api.html#navfit">Full interface and help text of <code>navFit</code> →</a></p>
+<h3>In short</h3>
+<p><code>navFit</code> finds where a fixed site really is from the residuals of its TOAs. Each residual is the site's offset projected
+onto the pulsar's direction. The Earth's rotation turns that into a daily sine, and a fit of many TOAs recovers the offset. A few TOAs
+near the detection threshold are far off; the fit recognises them and lets them count much less.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The model:</b> each residual is the offset times a known direction vector, plus a constant per pulsar. The direction vector is the
+pulsar's direction turned back by the Earth rotation angle at the TOA's time.</li>
+<li><b>What one pulsar sees:</b> the two components in the equatorial plane rotate with the Earth and give the daily sine. The component
+along the Earth's axis gives a constant, the same as the clock offset and the pulsar's own offset.</li>
+<li><b>The switch</b> <code>'Start'</code>: with <code>"self"</code> the constant is unknown and fitted, so the fit gives the two
+equatorial components. With <code>"calibrated"</code> the observer started from a known position and time, so the constant is known and
+the fit gives the full 3-D position.</li>
+<li><b>Robustness:</b> the noise model is a mixture. Most TOAs follow their error bar; a fraction ε = 2 % scatter k = 4 times wider.
+The fit repeats: each TOA gets its probability of belonging to the core, its weight follows from that, and the weighted fit is solved
+again until it no longer changes.</li>
+<li><b>The result</b> is given in the site's own directions: east, radial (in the equatorial plane, away from the Earth's axis) and polar.
+With <code>"calibrated"</code> also east, north and up.</li>
+</ol>
+<p>East lies entirely in the equatorial plane, so an offset to the east is fully visible to one pulsar. North and up each have a part
+along the Earth's axis. For B0329+54 from 52° N with 302 TOAs of 734 µs, each equatorial component is known to about ±30 km. A calibrated
+start gives the polar component to about ±16 km, because the constant uses every TOA at once.</p>
+<details><summary>The formulas</summary>
+<p>\[ r_i = \mathbf{a}_i\cdot\delta\mathbf{x} + c_k + \text{noise}, \qquad \mathbf{a}_i = -R_z(\theta_i)^\mathsf{T}\hat{\mathbf{n}}_k/c \]</p>
+<p>with δ<b>x</b> the offset in Earth-fixed coordinates and θ the Earth rotation angle. The noise is
+(1 − ε)·N(0, σ²) + ε·N(0, (kσ)²). A TOA with normalized residual <var>u</var> gets the core probability
+γ = (1 − ε)φ(<var>u</var>) / [(1 − ε)φ(<var>u</var>) + (ε/k)φ(<var>u</var>/k)] and the weight γ/σ² + (1 − γ)/(kσ)². Left out: the
+residual's factor 1/(1 + Doppler), about 10⁻⁴, and the Einstein site term, about 2·10⁻⁴ of the offset. With <code>'Predict'</code> the
+function returns only the covariance a TOA schedule would give, to plan which pulsars to observe and for how long.</p></details>
+<div class="callout why"><span class="ttl">A mixture, not a hard cut</span>
+<p><b>Alternative:</b> drop every TOA beyond 4σ and fit the rest.</p>
+<p><b>Why not:</b> the 100-day runs show a continuum of far-off TOAs between 3σ and 5σ, not a clean gap. A hard cut either keeps some or
+throws away good ones. The mixture lets each TOA count according to how likely it is to be good.</p></div>
+<h3>Tests (<code>tests/testNavFit.m</code>)</h3>
+<p>The fit recovers known offsets to a few metres without noise, and its error bars are honest with Gaussian noise and with outliers.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · No noise</td><td>A true site [30, −20, 10] km east, north, up from the assumed one.</td><td>Recovered to 2.8 m (calibrated,
+3-D) and 3.7 m (self, equatorial).</td></tr>
+<tr><td>2 · Gaussian noise</td><td>400 realizations, 100 km east, 300 TOAs of 734 µs.</td><td>101.0 ± 30.2 km against a stated ±30.5 km;
+pulls 0.99 and 0.97.</td></tr>
+<tr><td>3 · Outliers</td><td>2 % of the TOAs moved by 5–10σ.</td><td>The robust fit stays honest (pulls 1.05) and flags 99.1 % of the
+outliers and 0.09 % of the good TOAs. Plain least squares gives pulls of 1.51.</td></tr>
+<tr><td>4 · Calibrated start</td><td>The polar component.</td><td>±14.6 km, against a stated ±15.7 km; twice as good as the equatorial
+ones.</td></tr>
+<tr><td>5–7 · Predict, two pulsars, inputs</td><td>The planning mode; one constant per pulsar; bad inputs.</td><td>Predict exact; two
+pulsars to 0.9 m; bad inputs refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 22 Oct 2026 as step D4a, with Jasper's switch between a calibrated start and self-calibration. The first version solved the
+normal equations in metres and seconds at once, which differ by 18 orders of magnitude; the columns are now scaled before solving.</p></details>
+
+<h2 id="next">9. The simulator's truth, and next: the navigation fit and the clock</h2>
 <h3>D3 · the simulator's truth in the scenario <span class="badge written">done</span></h3>
 <p>The fast simulator shifts each sub-integration's pulse by the phase offset from <code>trueResiduals</code>: <code>runScenario</code> with
 <code>motion.on</code> (<a href="scripts.html#scenario">run scripts</a>). For a 100 km offset the residual changes by 1.4·10⁻⁸ s per second. Over a 120 s sub-integration that is 1.7 ns, far below a phase bin. One
@@ -431,7 +487,7 @@ only what it can physically do.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Step</th><th>What</th><th>Status</th></tr>
 <tr><td>D4a</td><td><code>navFit</code>: a robust batch fit for a fixed site with a perfect clock, on the 30-day motion run. It also
-predicts the precision for any TOA schedule, to choose pulsars without simulating.</td><td><span class="badge todo">next</span></td></tr>
+predicts the precision for any TOA schedule, to choose pulsars without simulating (<a href="#navfit">section 8</a>).</td><td><span class="badge written">done 22 Oct (Claude's run)</span></td></tr>
 <tr><td>D4b</td><td>The clock in the fit, as correlated noise; the fitted clock fed back as the observer's estimate.</td><td><span class="badge todo">todo</span></td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
 the per-pulsar offsets.</td><td><span class="badge todo">todo</span></td></tr>
