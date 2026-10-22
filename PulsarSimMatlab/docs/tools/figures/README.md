@@ -68,6 +68,18 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_scint.py` | scintillation as simulateFold draws it: dynamic spectra (J0437, 50 MHz scintles), J0437's band-averaged flux | physics.html (10) |
 | `gen_scen.py` | time per TOA vs precision of the candidate pulsars | scenario.html |
 | `gen_clock.py` | the receiver clock's "crystal" preset: σ_y(τ) and its three noise parts from `makeClock`'s formula; the time error τ·σ_y(τ) against the TCXO and OCXO estimates and the pulse widths | clock.html |
+| `gen_clockdraw.py` | what `makeClock` draws: one day of each noise (white, flicker, random walk) as time error; eight crystal clocks over 30 days against τ·σ_y(τ) (a port of its three generators; numpy's random numbers) | clock.html (how it works) |
+| `gen_delays.py` | the delay terms for B0329+54 from 52° N: orbital Roemer over 2026, rotational Roemer over two days, Einstein, Shapiro; every term's size on one log scale against the TOA noise (uses `delaymodel.py`) | localisation.html (4) |
+| `gen_timesys.py` | TAI, UTC, TDB and TCB as offsets from TT, 1972–2030 (leap-second table of IERS Bulletin C; IAU L_B) | localisation.html (3) |
+| `gen_dopsmear.py` | why the phase must be predicted: B0329+54's pulse stack in a 120 s sub-int with a Doppler factor of 10⁻⁴, and the smeared fold | prediction.html (1) |
+| `gen_predseg.py` | `makePredictor`'s segments around a ship's turn: testMakePredictor test 5 replayed with a port of its loop (15 segments, the shortest 7 s; uses `delaymodel.py`) | prediction.html (4) |
+| `gen_simdraw.py` | how `simulateFold` draws a sub-int: the mean with its noise band, three drawn sub-ints, the neighbour correlation ¼ (illustrative: 128 bins) | simulator.html (how a fold is drawn) |
+| `gen_adaptive.py` | `adaptiveSubints`' rule under scintillation: the flux factor and the T0 of each group closing at 7 (illustrative, SNR 1.2 per sub-int) | simulator.html (adaptive sub-ints) |
+| `gen_pulls.py` | why long runs are judged by fixed-time pulls over many runs: eight correlated runs, and the rms each method measures over 2000 repetitions (illustrative) | validation.html (long runs) |
+
+`delaymodel.py` is not a figure: it ports `delayModel`'s analytic branch and `makeTrajectory`'s `'fixed'` and linear `'track'` types
+to Python, for `gen_delays.py` and `gen_predseg.py`. It reproduces the tests' numbers: 7.607 ms daily at 52° N, Shapiro −17.1 to
++5.8 µs, and test 5 of `testMakePredictor` (15 segments, the shortest 7 s).
 
 The flowcharts (pipeline run control, ground-truth rule, info chain, receiver blocks,
 overlap-save, overlap-add (sky.html), excision chain (excision.html), bin stamps, filterbank, good TOAs, test data, the chain of stage 7a

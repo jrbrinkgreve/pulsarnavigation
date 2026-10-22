@@ -220,6 +220,12 @@ record, limitations) brought to blocks C and D closed; stage pages (simulator, n
 updated to the reruns and the code; record and reference pages (tests, scripts, parameters, conventions, pipeline, history, lessons,
 formulas, glossary) completed; figures checked against their data and regenerated or added. Per page, with sources:
 <code>.claude/runs/2026-10-22_docs_update.md</code>. No code change.</td></tr>
+<tr><td>22 Oct 2026</td><td>after <code>0e575c4</code></td><td>Eight new figures on the pages that had one or none (Jasper: "add more
+visualisations to the docs pages which are lacking them"): localisation (the delay terms, the time scales), phase prediction (the
+Doppler smear without a predictor, the predictor's segments at a ship's turn), receiver clock (what <code>makeClock</code> draws),
+fast simulator (how a fold is drawn, adaptive sub-ints), validation (pulls at fixed times). Generators in <code>tools/figures/</code>
+(README); <code>delaymodel.py</code> ports <code>delayModel</code>'s analytic branch and reproduces its tests' numbers. No code
+change.</td></tr>
 </table></div>
 
 </main>
