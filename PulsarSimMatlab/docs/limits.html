@@ -134,7 +134,7 @@ measured +2.19 %). With a realistic receiver, which applies the bandpass to puls
 <h2 id="timing">Timing and pulse</h2>
 <ul>
 <li><b>Clock errors: a model clock, not the real one.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, about 6× the J0437 TOA
-precision. The simulator's truth therefore has a clock process with offset, rate and noise (<a href="receiver.html#clock">the receiver's
+precision. The simulator's truth therefore has a clock process with offset, rate and noise (<a href="clock.html">the receiver's
 clock</a>). The observer folds with its own clock estimate, and the navigation state holds the clock's offset and rate
 (<a href="navigation.html">navigation</a>). The noise is that of the paper's crystal. The real SDR's oscillator is not characterised
 yet; its noise is best measured on the device. The ADC's sampling jitter is left out: 1 ps adds only 10⁻⁴ of the input power as

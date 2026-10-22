@@ -11,8 +11,8 @@
 
 <h1>Pipeline overview</h1>
 <p class="lede">Every stage of <code>main.m</code>, the files it writes, and how the two front ends branch and join. Two more stages
-serve a moving receiver: the phase prediction before the fold (7a) and navigation at the end (10). For runs of hours to days, the fast
-simulator draws stages 1–7 in one step. Click a box to open its page.</p>
+serve a moving receiver: the phase prediction before the fold (7a) and navigation at the end (10). A third, the receiver's clock (4a),
+matters for runs of hours to days. For such runs, the fast simulator draws stages 1–7 in one step. Click a box to open its page.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p>The pipeline first simulates what an antenna would record (sky, then receiver). It then processes that recording the way it would
@@ -159,6 +159,7 @@ prediction (7a) feeds the fold, and the fast simulator (blue) feeds the TOA fit 
 <ol>
 <li><b>Sky (stages 1–2):</b> make the pulsar's voltage at RF, then send it through the interstellar plasma (dispersion).</li>
 <li><b>Receiver (3–4):</b> add receiver noise and interference, then convert to complex baseband (IQ) at 800 MHz.</li>
+<li><b>Receiver clock (4a):</b> the oscillator that stamps every sample. Its error matters over hours and days.</li>
 <li><b>Front end (5–6):</b> undo the dispersion and square the voltages to power. Either for the whole band at once (left), or per
 channel after a filterbank (middle), with RFI excision in between (right).</li>
 <li><b>Phase prediction (7a):</b> for a moving receiver, compute the pulse phase it should see.</li>
@@ -269,7 +270,7 @@ page</a> explains each step.</p>
 
 <h3>The truth, and navigation (stage 10)</h3>
 <p>The simulator places the pulses where a true trajectory and a clock put them (<a href="simulator.html#truth"><code>trueResiduals</code></a>,
-with the clock from <a href="receiver.html#clock"><code>makeClock</code></a>). The observer keeps folding with the assumed trajectory,
+with the clock from <a href="clock.html"><code>makeClock</code></a>). The observer keeps folding with the assumed trajectory,
 which is its own knowledge and not the truth. The difference between the two is the navigation signal. Navigation turns the TOAs into
 the receiver's position and clock offset (<a href="navigation.html">stage 10</a>). <code>navFit</code> does it for a fixed site, and
 <code>navFilter</code>, a Kalman filter, for a moving ship. Later the filter will feed its estimated trajectory back into
@@ -287,6 +288,7 @@ shortcut for stages 1–7.</p></details>
 <tr><td>2</td><td><a href="sky.html#disp"><code>applyDispersionStream</code></a></td><td><code>test_dispersed.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>3</td><td><a href="receiver.html#noise"><code>addNoiseAndRFI</code></a></td><td><code>test_rx.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>4</td><td><a href="receiver.html#iq"><code>applyIQmodulation</code></a></td><td><code>test_rx_IQ.dat</code></td><td>complex, fs = 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>4a</td><td><a href="clock.html"><code>makeClock</code></a></td><td>(in memory: <code>clk</code>)</td><td>the receiver clock's error over time, for the fast simulator's truth</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Full-band front end (<code>frontEnd = 'fullband'</code>)</th></tr>
 <tr><td>5</td><td><a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a></td><td><code>test_IQ_dedispersed.dat</code></td><td>complex, 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>6</td><td><a href="fullband.html#detect"><code>detectPower</code></a></td><td><code>test_envelope.dat</code></td><td>power, 1 µs bins</td><td><span class="badge validated">validated</span></td></tr>
@@ -313,7 +315,6 @@ shortcut for stages 1–7.</p></details>
 <tr><td>1–7</td><td><a href="simulator.html#how"><code>simulateFold</code></a></td><td>(in memory: <code>fold</code>, <code>info</code>, <code>truth</code>)</td><td>profiles + weights, like <code>foldProfile</code>'s</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#adaptive"><code>adaptiveSubints</code></a>, <code>mergeSubints</code></td><td>(in memory)</td><td>merged sub-ints, SNR ≈ 7 each</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#truth"><code>trueResiduals</code></a></td><td>(in memory: <code>res</code>)</td><td>each pulse's true lateness against the prediction, and its phase in the fold</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>–</td><td><a href="receiver.html#clock"><code>makeClock</code></a></td><td>(in memory: <code>clk</code>)</td><td>the receiver clock's error over time</td><td><span class="badge validated">validated</span></td></tr>
 </table></div>
 <p>The tests of the phase prediction, the simulator's truth, the clock and navigation pass in Jasper's run of 22 Oct.</p>
 

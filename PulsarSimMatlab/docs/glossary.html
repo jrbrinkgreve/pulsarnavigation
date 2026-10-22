@@ -18,7 +18,7 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 
 <dl class="facts">
 <dt>adaptive sub-ints (<code>adaptiveSubints</code>)</dt><dd>Short sub-ints merged until each reaches an SNR of about 7. The sub-int length then follows the pulsar's flux, which scintillation changes from hour to hour.</dd>
-<dt>Allan deviation σ<sub><var>y</var></sub>(τ)</dt><dd>An oscillator's stability: the typical change of its average fractional frequency from one interval of length τ to the next. White frequency noise makes it fall with τ, flicker keeps it flat, and a random walk makes it grow (<a href="receiver.html#clock"><code>makeClock</code></a>).</dd>
+<dt>Allan deviation σ<sub><var>y</var></sub>(τ)</dt><dd>An oscillator's stability: the typical change of its average fractional frequency from one interval of length τ to the next. White frequency noise makes it fall with τ, flicker keeps it flat, and a random walk makes it grow (<a href="clock.html"><code>makeClock</code></a>).</dd>
 <dt id="bnoise"><var>B</var><sub>n</sub>, <code>Bnoise</code></dt><dd>Noise-equivalent bandwidth (∫<var>W</var>²)²/∫<var>W</var>⁴: the bandwidth that sets the variance of detected power. 391.6 MHz full band, 3.0596 MHz per channel.</dd>
 <dt>barycentre (SSB)</dt><dd>The centre of mass of the solar system: the origin of the frame in which a pulsar's timing model holds. SSB stands for solar-system barycentre.</dd>
 <dt>baseline</dt><dd>The off-pulse level of a profile (noise power plus any steady RFI). Fitted, never taken from the truth.</dd>
