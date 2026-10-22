@@ -14,7 +14,7 @@
 Earth and with its ship, so the pulses reach it early or late by up to ±500 s over a year and ±8 ms over a day. This stage predicts
 that motion, so that the fold (stage 7) stays aligned over hours and days. What the prediction does not explain becomes the position,
 in stage 10.</p>
-<p class="meta">Functions: <code>makeTrajectory</code> → <code>delayModel</code> → <code>makePredictor</code>, run by the observer
+<p class="meta">Functions: <code>makeTrajectory</code> → <code>delayModel</code> (with <code>loadEphemeris</code>) → <code>makePredictor</code>, run by the observer
 from the ephemeris and the trajectory it assumes · the fold follows the result: <a href="fold.html#predictor"><code>foldProfile('Predictor',
 …)</code></a> · the simulator's truth: <a href="simulator.html#truth"><code>trueResiduals</code></a> and the receiver's clock
 <a href="clock.html"><code>makeClock</code></a> · frames, time scales and relativity: <a href="localisation.html">localisation</a>
@@ -168,8 +168,9 @@ the line of sight.</li>
 <div class="callout why"><span class="ttl">An analytic Earth first, the exact one at the end of block D</span>
 <p>The analytic orbit is off by about 10⁴ km in absolute terms. In the simulator that does not matter, because the true delays and the
 predicted ones come from the same model. Only their difference reaches the navigation fit, and that difference is exact. Real data
-will need JPL's planetary ephemeris DE440, which is accurate to centimetres, plus precession and nutation of the Earth's axis. They will
-go behind the same interface at the end of block D.</p></div>
+need JPL's planetary ephemeris DE440, which is accurate to centimetres, plus precession and nutation of the Earth's axis.
+<code>loadEphemeris</code> reads DE440 (<a href="#ephemeris">below</a>); <code>delayModel</code> takes it behind the same interface in the
+next step.</p></div>
 <h3>Tests (<code>tests/testDelayModel.m</code>)</h3>
 <p>Each term agrees with a closed form computed independently in the test.</p>
 <div class="table-wrap"><table>
@@ -192,6 +193,43 @@ rate equals <var>v</var>·<var>n̂</var>/<var>c</var>. A probe's terms match the
 <p>Added 21 Oct 2026 as step D1b. Three corrections were made to the test while writing it, none to the model. The annual closed form
 needs the eccentricity at the date of each extreme. The extremes had to be found on a grid finer than one hour. The amplitude
 tolerance had to allow for the one-minute grid.</p></details>
+
+<h2 id="ephemeris">3b · <code>loadEphemeris</code>: JPL's DE440 <span class="badge written">passes in Claude's run</span></h2>
+<div class="sig">eph = loadEphemeris(file);  [r, v] = eph.earth(t)</div>
+<p class="meta"><a href="api.html#loadephemeris">Full interface and help text of <code>loadEphemeris</code> →</a></p>
+<h3>In short</h3>
+<p>JPL's planetary ephemeris DE440 gives the positions of the Sun, the Earth and the Moon relative to the barycentre. For the Earth
+today it is accurate to well below a metre. <code>loadEphemeris</code> reads JPL's binary file once. It returns functions that evaluate
+it, in the same way as a trajectory from <code>makeTrajectory</code>.</p>
+<h3>How it works</h3>
+<ol>
+<li><b>The file:</b> <code>de440s.bsp</code> from JPL's NAIF server, 32.7 MB, covering 1850 to 2150. It lives in
+<code>data/ephem/</code>.</li>
+<li><b>The segments:</b> each body has a sequence of equal time intervals. Each interval holds Chebyshev polynomial coefficients for
+<var>x</var>, <var>y</var> and <var>z</var>.</li>
+<li><b>Evaluation:</b> the time selects the interval. The polynomials give the position, and their derivatives give the velocity.</li>
+<li><b>The chain:</b> the file stores the Earth relative to the Earth–Moon barycentre, and that barycentre relative to the solar-system
+barycentre. The function adds the links up.</li>
+</ol>
+<p>The time is TDB, the ephemeris' own time scale. The frame is ICRF, which is the J2000 equator and equinox to 0.02″.</p>
+<div class="callout why"><span class="ttl">Reading JPL's file directly</span>
+<p><b>Alternative:</b> MATLAB's <code>planetEphemeris</code> from the Aerospace Toolbox, or JPL's SPICE toolkit.</p>
+<p><b>Why not:</b> the toolbox is not installed, and SPICE is a large external dependency. The file format is simple: about 60 lines of
+MATLAB read it. JPL's own Horizons service then checks the result to centimetres.</p></div>
+<h3>Tests (<code>tests/testLoadEphemeris.m</code>)</h3>
+<p>The Earth from the file agrees with JPL's Horizons service to a few centimetres.</p>
+<div class="table-wrap"><table>
+<tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
+<tr><td>1 · Horizons</td><td>The geocentre relative to the barycentre at three dates between 2000 and 2045, against JPL's Horizons
+service (DE441).</td><td>Within 4.5 cm and 1.1·10⁻⁷ m/s.</td></tr>
+<tr><td>2 · Velocity</td><td>The velocity against a central difference of the position.</td><td>Within 1.1·10⁻⁶ m/s.</td></tr>
+<tr><td>3 · Earth and Moon</td><td>The two balance about their barycentre with the Earth/Moon mass ratio.</td><td>81.300568, the same at
+every time to 10⁻¹².</td></tr>
+<tr><td>4 · Inputs</td><td>A missing file, a file that is not SPK, an unknown body, a time outside the file.</td><td>Refused.</td></tr>
+</table></div>
+<details><summary>History</summary>
+<p>Added 22 Oct 2026 as step D5a, the first step of block D's last part. The file was downloaded from NAIF the same day, after Jasper's
+go-ahead for D5.</p></details>
 
 <h2 id="predictor">4 · <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h2>
 <div class="sig">pred = makePredictor(psr, traj, [t1 t2], ...)</div>

@@ -18,7 +18,7 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all twenty-four in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
+<p><code>tests/runAllTests.m</code> runs all twenty-five in one session (about 10 min), on their own frozen data. So a <code>main.m</code> run
 can never change what they check. A twenty-fifth, the slow <code>testRFIChain</code>, runs only when named.</p></div>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision) and C (fast simulator) were built in
 numbered steps (A1–A4, B1–B6, C1–C4); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2" and similar mean "the code before that
@@ -297,6 +297,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~40 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#loadeph"><code>testLoadEphemeris</code></a></td><td><code>loadEphemeris</code> D5a (JPL's DE440)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge validated">all pass on the new code, narrow Inmarsat included (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
@@ -700,6 +701,11 @@ fitted clock is honest too. The ten checks are on the <a href="navigation.html#n
 <h2 id="navfilter"><code>testNavFilter</code> (22 Oct)</h2>
 <p>For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with
 honest error bars, also with outliers. With a calibrated start the port clock's uncertainty keeps the clock honest. The six checks are on the <a href="navigation.html#navfilter">navigation page</a>.</p>
+
+<h2 id="loadeph"><code>testLoadEphemeris</code> (22 Oct)</h2>
+<p>The Earth from JPL's DE440 file agrees with JPL's Horizons service to 4.5 cm at three dates. The velocity is the derivative of the
+position. The Earth and the Moon balance about their barycentre with DE440's mass ratio. The four checks are on the
+<a href="prediction.html#ephemeris">phase-prediction page</a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic
