@@ -579,7 +579,7 @@ and to catch bad data (notes §12).</p></div>
 
 <h2>Options and outputs</h2>
 <dl class="facts">
-<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>Predictor</code> (none; <a href="#predictor">above</a>), <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
+<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>Predictor</code> (none; <a href="#predictor">above</a>), <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>ChannelNoise</code> (none; the measured noise of every channel, e.g. <code>processIQ</code>'s noise calibration: the error bars and χ² then follow each channel's real noise), <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
 <dt>Fold</dt><dd><code>sum</code>, <code>weight</code>, <code>weight2</code>, <code>weightX</code>, <code>prof</code>, <code>profTotal</code>, per sub-int <code>turnRef</code>, <code>tRef</code>, <code>fRef</code>, <code>tMean</code>, <code>nTimeBins</code></dd>
 <dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
 </dl>

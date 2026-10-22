@@ -201,8 +201,9 @@ It is a Kalman filter around the dead-reckoning track, followed by a smoother th
 <h3>How it works</h3>
 <ol>
 <li><b>The state:</b> the position error and the velocity error in the ship's own east and north directions; the clock's offset and
-rate; with <code>"self"</code> one constant per pulsar. Everything is in metres, the clock as the speed of light times its offset, as in
-GNSS receivers.</li>
+rate; with <code>"self"</code> one constant per pulsar. With <code>"calibrated"</code> the constants are known, and the clock starts from
+the port calibration, with that calibration's uncertainty (<code>'ClockPrior'</code>). Everything is in metres, the clock as the speed of
+light times its offset, as in GNSS receivers.</li>
 <li><b>Between TOAs:</b> the position error grows with the velocity error. The velocity error is an unknown current that changes slowly
 (a random walk). The clock follows the two-state model of <code>makeClock</code>.</li>
 <li><b>At each TOA:</b> the residual is the position error projected onto the pulsar's direction, plus the clock and the pulsar's
@@ -216,6 +217,11 @@ component that rotates with the Earth then fixes north.</p>
 <p><b>Why not:</b> a current pushes the ship along its own east and north, and those directions turn as the ship moves. Over 35° of
 longitude a fixed Earth-fixed east vector gets a 37 % vertical part. The first version did this: the height constraint then forbade the
 east error, and the filter was 30 times overconfident in east. In the ship's own frame a constant current is a constant state.</p></div>
+<div class="callout why"><span class="ttl">The port clock with its uncertainty</span>
+<p><b>Alternative:</b> take the port calibration of the clock as exact.</p>
+<p><b>Why not:</b> a port calibration is never exact. An offset error of 1 ms is 300 km in the filter's units, more than one TOA's error.
+Test 6 shows what an exact prior does: the clock's error bars become 2.6 times too small. The position hardly suffers, because the
+clock's own wander takes up the offset within a day.</p></div>
 <div class="callout why"><span class="ttl">A filter, and the same answer as the batch fit</span>
 <p>For a fixed site the filter and <code>navFit</code> are the same estimator: test 1 shows they agree to 10⁻⁴ of the errors. The filter
 adds what the batch fit cannot do: a state that changes in time, and an estimate at any moment that can be fed back to the predictor.</p></div>
@@ -240,13 +246,17 @@ alone.</td></tr>
 <tr><td>3 · Outliers</td><td>2 % of the TOAs moved by 5–10σ.</td><td>95 % caught; pulls 1.05 east and 0.74 north. Without the mixture
 the east pulls are 1.32.</td></tr>
 <tr><td>4–5 · Predict, inputs</td><td>The planning mode; bad inputs.</td><td>Predict exact; bad inputs refused.</td></tr>
+<tr><td>6 · Port clock</td><td>The ships of test 2 with a calibrated start whose port clock is off by a drawn 1 ms and 10⁻⁹, given as
+<code>'ClockPrior'</code>.</td><td>Honest: pulls 1.04 east, 0.91 north and 0.90 for the clock. With the port clock taken as exact, the
+clock pulls are 2.6.</td></tr>
 </table></div>
 <!-- The ship scenario (runShip) goes here: an h3 after the tests, like navFit's "The first result". -->
 <details><summary>History</summary>
 <p>Added 22 Oct 2026 as step D4d-1, after Jasper agreed to the ship design (dead reckoning still unknown, a general route, a separate
 run script). The first version kept the errors in Earth-fixed coordinates, which failed for the east error over a long track (above).
 Test 2's first criteria pooled the pulls of all TOAs, which are strongly correlated along a smoothed track; they now use four fixed times
-per realization.</p></details>
+per realization. <code>'ClockPrior'</code> and test 6 were added the same day for the calibrated ship start (step D4c-1); test 6 passed
+in Claude's run.</p></details>
 
 <h2 id="next">5. Status and next steps</h2>
 <div class="table-wrap"><table>
