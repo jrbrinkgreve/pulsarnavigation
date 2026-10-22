@@ -57,6 +57,7 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_excision.py` | one channel through detectRFI, blanking, dedispersion, W | excision.html |
 | `gen_fold.py` | folding in three steps | fold.html |
 | `gen_toa.py` | FFTFIT: profile, cross-correlation, weights | toa.html |
+| `gen_navsignal.py` | the navigation signal: three days of simulated B0329+54 TOAs and 30 days by hour angle against the 193 µs daily sine (reads `data/scenario/pre-22oct-tag/…_30d_motion_perfect.mat`, local only; needs scipy) | navigation.html (1) |
 | `gen_navavg.py` | a TOA is a time-average: the daily signal of a 100 km offset, a 10 h TOA and a two-pass TOA against one time per TOA | navigation.html (2, averaged) |
 | `gen_navplan.py` | the planning study: the polar error with a crystal clock per pulsar set, 30 and 100 days (logged numbers) | navigation.html (3) |
 | `gen_det.py` | T0 and Tmax under H0 / H1 (simulated, ~1 min) | detection.html |
