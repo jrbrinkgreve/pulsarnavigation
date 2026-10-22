@@ -788,6 +788,9 @@ band-edge taper (0.023, 0.417 and 0.960 in the outer channels); observer gain 1.
 <p>With all gains set to 1, the χ² excess and the <code>pChi2</code> skew vanish: the band-edge taper (roadmap item 3) is their whole
 cause. At −15 dB the simulator gives χ² 0.9991 and a mean <code>pChi2</code> of 0.533; the chain 0.9987 and 0.537. The experiment needs
 <code>main</code>'s full-band files, its channel power info, and the two sweep files.</p>
+<p><b>At the new defaults</b> (DM 25, 0.2 s; in the validation run of 21 Oct, Claude's run) the agreement is the same. On the full band at
+−5 dB the median σ is 2.907 µs on the chain and 2.916 µs in the simulator. On the channel path rms/pred is 1.039 in the simulator against
+0.956 ± 0.035 on the chain, and χ² is 1.0069 against 1.0063.</p>
 
 <h2 id="simrfi"><code>expSimRFI</code> (experiment, 20 Oct)</h2>
 <p>The simulator with RFI profiles matches the voltage chain within about 1 %. Part 2 gives the production numbers for what RFI

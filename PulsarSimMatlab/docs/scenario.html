@@ -324,9 +324,10 @@ data.</p></div>
 <dt>+ scintillation</dt><dd>also interstellar scintillation (B0329+54: scintles ~7 MHz, 780 s; J0437: ~740 MHz, 2290 s)</dd>
 <dt>fixed groups</dt><dd>the same, with groups of the median adaptive length instead of adaptive ones</dd>
 </dl>
-<p>B0329+54 is at NBin 2048 with five components. J0437 is still the single Gaussian: with its real profile all its times are about 5×
-longer (above), and the relative costs carry over. "rms/pred" is the standard deviation of (TOA − truth)/σ; in brackets, without the rare
-outliers with |z| &gt; 4. (Claude's run, 20–21 Oct 2026, 6.6 h.)</p>
+<p>B0329+54 is at NBin 2048 with five components. J0437 appears twice: with the single Gaussian of the first runs, and with its
+measured profile (eight components, NBin 1024), which takes about 5× longer per TOA. "rms/pred" is the standard deviation of
+(TOA − truth)/σ; in brackets, without the rare outliers with |z| &gt; 4. (Claude's runs: 20–21 Oct 2026, 6.6 h; the measured J0437
+profile in the validation run of 21–22 Oct.)</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>Variant</th><th>TOAs per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
 <tr><td>B0329+54, nominal</td><td>clean</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs</td><td>1.05</td><td>1.00</td><td>6 %</td><td>1021</td></tr>
@@ -349,7 +350,21 @@ outliers with |z| &gt; 4. (Claude's run, 20–21 Oct 2026, 6.6 h.)</p>
 <tr><td></td><td>RFI + calibration</td><td>0.57</td><td>21.3 (14.8–26.3)</td><td>11.5 µs</td><td>1.01</td><td>1.00</td><td>0 %</td><td>53.0</td></tr>
 <tr><td></td><td>+ scintillation</td><td>0.53</td><td>24.5 (7.2–35.2)</td><td>11.4 µs</td><td>0.85</td><td>1.00</td><td>0 %</td><td>56.6</td></tr>
 <tr><td></td><td>fixed groups</td><td>0.50</td><td>24.5</td><td>11.8 µs</td><td>0.99</td><td>1.00</td><td>0 %</td><td>58.6</td></tr>
+<tr><td>J0437, nominal (measured profile)</td><td>clean</td><td>0.73</td><td>15.5 (13.6–20.0)</td><td>13.0 µs</td><td>1.10</td><td>1.00</td><td>9 %</td><td>51.3</td></tr>
+<tr><td></td><td>RFI</td><td>0.57</td><td>20.1 (15.1–26.0)</td><td>13.1 µs</td><td>0.78</td><td>1.07</td><td><b>100 %</b></td><td>58.5</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>18.8 (15.2–26.8)</td><td>13.1 µs</td><td>0.87</td><td>1.00</td><td>6 %</td><td>56.7</td></tr>
+<tr><td></td><td>+ scintillation</td><td>0.57</td><td>21.4 (6.4–32.4)</td><td>12.9 µs</td><td>0.87</td><td>1.00</td><td>6 %</td><td>59.7</td></tr>
+<tr><td></td><td>fixed groups</td><td>0.57</td><td>21.4</td><td>13.4 µs</td><td>1.31</td><td>1.00</td><td>6 %</td><td>62.1</td></tr>
+<tr><td>J0437, worst case (measured profile)</td><td>clean</td><td>0.13</td><td>87 (60–105)</td><td>13.1 µs</td><td>0.61</td><td>1.00</td><td>25 %</td><td>123</td></tr>
+<tr><td></td><td>RFI</td><td>0.10</td><td>82 (77–110)</td><td>13.2 µs</td><td>1.47</td><td>1.06</td><td><b>100 %</b></td><td>119</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>0.10</td><td>76 (66–109)</td><td>13.2 µs</td><td>1.26</td><td>1.00</td><td>0 %</td><td>115</td></tr>
+<tr><td></td><td>+ scintillation</td><td>0.10</td><td>131 (90–136)</td><td>13.1 µs</td><td>0.28</td><td>1.00</td><td>0 %</td><td>150</td></tr>
+<tr><td></td><td>fixed groups</td><td>0.07</td><td>131</td><td>12.0 µs</td><td>0.60</td><td>1.00</td><td>0 %</td><td>137</td></tr>
 </table></div>
+<p>With its measured profile, J0437 gives 22 TOAs in 30 days at nominal flux, and only 2–4 in the worst case. The worst-case rows are
+therefore statistics of a handful of TOAs. The RFI still costs about 22 % of the TOAs, and the calibration still brings χ² to 1.00. The
+gain from scintillation is gone: each TOA now needs about 20 h of data, which averages over roughly 30 scintles of 40 min, so there are
+no bright spells left to ride.</p>
 <ul>
 <li><b>RFI</b> costs about 21 % of the TOAs for B0329+54, and 20–24 % for J0437. That is the SNR loss of the measured profile
 (×0.895, <code>expSimRFI</code>), squared.</li>

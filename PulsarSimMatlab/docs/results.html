@@ -35,6 +35,7 @@ destroys TOAs unless it is excised.</p></div>
 <li><a href="#threshold">TOA threshold sweep and the SNR ≥ 6–7 rule</a></li>
 <li><a href="#blockA">Block A and B results</a></li>
 <li><a href="#dm25">New default: DM 25, L 0.2 s</a></li>
+<li><a href="#val21">Validation run of 21–22 Oct</a></li>
 <li><a href="#other">Algorithm ports and run times</a></li>
 </ol></div>
 
@@ -423,7 +424,26 @@ kept in <code>data/ref_DM5_L0.1/</code>. Same seeds, −5 dB, channel path with 
 <p>Per turn nothing changes: coherent dedispersion at DM 25 recovers the pulse as well as at DM 5, and a run now gives 15 instead of 8
 TOAs (Claude's run, 20 Oct). Results above this section are at DM 5.</p>
 
-<h2 id="other">12. Algorithm ports and run times</h2>
+<h2 id="val21">12. Validation run of 21–22 Oct (frozen code)</h2>
+<p>Jasper's MATLAB would not open on 21 Oct, so Claude ran his eight validation steps on a frozen copy of the code (commit 171a716,
+in <code>~/Documents/pulsarnavigation-validation/2026-10-21/</code>, 14 h with other runs in parallel). Every step gave what it
+should. Each step and its result:</p>
+<div class="table-wrap"><table>
+<tr><th>Step</th><th>What</th><th>Result</th></tr>
+<tr><td>1</td><td>All unit tests</td><td>16 of 16 pass.</td></tr>
+<tr><td>2</td><td><code>main</code> at the defaults</td><td>Identical to before: 15 TOAs, SNR 92.0, σ 2.951 µs, χ² 1.003.</td></tr>
+<tr><td>3</td><td>Simulator against the voltage chain at DM 25</td><td>Agrees, after <code>main</code> on the full band (the first attempt
+lacked that run).</td></tr>
+<tr><td>4–5</td><td><code>expSimRFI</code>, <code>expSamplingRate</code></td><td>Run without errors.</td></tr>
+<tr><td>6</td><td><code>testRFIChain</code> on the old code</td><td>Exactly the two diagnosed narrow-carrier failures; every number as in the
+run of 20 Oct. On the new code both cases pass (<a href="tests.html#rfichain">tests</a>).</td></tr>
+<tr><td>7</td><td><code>runRFITest</code> with the calibration pass</td><td>χ² 1.00 and σ 3.324 µs in the realistic case; 0.99 and 3.419 µs with
+narrow carriers: the reference values.</td></tr>
+<tr><td>8</td><td><code>runScenario</code>, 20 cases of 30 days</td><td>B0329+54: all ten cases identical to the earlier runs. J0437: the first
+30-day results with its measured profile, in all variants (<a href="scenario.html#rfivariants">scenario</a>).</td></tr>
+</table></div>
+
+<h2 id="other">13. Algorithm ports and run times</h2>
 <p><b>NumPy ports</b>, made before the MATLAB runs, checked the algorithms:</p>
 <ul>
 <li>dispersion kernel: group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add equal to direct convolution;</li>

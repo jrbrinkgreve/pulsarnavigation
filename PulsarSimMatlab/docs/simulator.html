@@ -120,7 +120,8 @@ the error bars are too small in the partly covered channels.</p>
 <p>These are time-domain numbers, so a profile transfers to any pulsar, phase-bin count and sub-int length. The profiles are in
 <code>data/rfi/profile/rfiProfile_&lt;case&gt;_&lt;L&gt;s.mat</code>, for three cases: the realistic scenario, the narrow-Inmarsat worst
 case, and noise only. Each exists at 0.1 s (<code>runRFITest</code>'s exact settings) and at 1 s (the steady part, with the rotating
-radar's beam passage outside the run).</p>
+radar's beam passage outside the run). The 1 s profiles were measured again on 21 Oct with the new excision code: per-channel
+<code>detectRFI</code> thresholds and 30 lags. They are in <code>data/rfi/profile_21oct/</code>, and the 100-day scenario runs use them.</p>
 <p><b>Per-channel noise calibration</b> (<code>'ObserverNoise'</code>). By default the fold carries the observer's clean, flat-channel
 model. So the observer's error bars and χ² are off in the channels that RFI reshapes, as on real data without calibration. With
 <code>'ObserverNoise', 'measured'</code>, the fold's noise weights use the profile's measured coefficients per channel instead. This is an
