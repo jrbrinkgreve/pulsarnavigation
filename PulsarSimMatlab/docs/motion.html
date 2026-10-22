@@ -14,7 +14,7 @@
 Earth and with its ship, so the pulses reach it early or late by up to ±500 s over a year and ±8 ms over a day. Block D predicts that
 motion, so that a fold stays aligned over hours and days. Later, what the prediction does not explain becomes the position.</p>
 <p class="meta">Functions: <code>makeTrajectory</code> → <code>delayModel</code> → <code>makePredictor</code> →
-<code>foldProfile('Predictor', …)</code>; truth side <code>trueResiduals</code>, <code>makeClock</code> · status: D1, D2 and D3 done (Claude's runs); D4 (navigation fit
+<code>foldProfile('Predictor', …)</code>; truth side <code>trueResiduals</code>, <code>makeClock</code> · status: D1, D2 and D3 done; their tests validated in Jasper's run of 22 Oct; D4 (navigation fit
 with clock synchronisation) designed, D4a next ·
 block D, since 21 Oct 2026</p>
 
@@ -90,7 +90,7 @@ line of sight</td></tr>
 <tr><td>Binary orbit (D5)</td><td>J0437 orbits a companion</td><td>±3.4 s per 5.74 days</td></tr>
 </table></div>
 
-<h2 id="trajectory">2 · <code>makeTrajectory</code>: where the receiver is <span class="badge written">done</span></h2>
+<h2 id="trajectory">2 · <code>makeTrajectory</code>: where the receiver is <span class="badge validated">validated</span></h2>
 <div class="sig">traj = makeTrajectory(type, ...)</div>
 <p class="meta"><a href="api.html#maketrajectory">Full interface and help text of <code>makeTrajectory</code> →</a></p>
 <h3>In short</h3>
@@ -129,7 +129,7 @@ bad inputs are refused.</td></tr>
 <p>Added 21 Oct 2026 as step D1a. The <code>'spline'</code> option was added while writing the test: <code>pchip</code> leaves metres of
 error on an hourly orbit, the spline 1 mm.</p></details>
 
-<h2 id="delay">3 · <code>delayModel</code>: from the receiver to the barycentre <span class="badge written">done</span></h2>
+<h2 id="delay">3 · <code>delayModel</code>: from the receiver to the barycentre <span class="badge validated">validated</span></h2>
 <div class="sig">d = delayModel(t, traj, psr, ...)</div>
 <p class="meta"><a href="api.html#delaymodel">Full interface and help text of <code>delayModel</code> →</a></p>
 <h3>In short</h3>
@@ -186,7 +186,7 @@ rate equals <var>v</var>·<var>n̂</var>/<var>c</var>. A probe's terms match the
 needs the eccentricity at the date of each extreme. The extremes had to be found on a grid finer than one hour. The amplitude
 tolerance had to allow for the one-minute grid.</p></details>
 
-<h2 id="predictor">4 · <code>makePredictor</code>: the predicted pulse phase <span class="badge written">done</span></h2>
+<h2 id="predictor">4 · <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h2>
 <div class="sig">pred = makePredictor(psr, traj, [t1 t2], ...)</div>
 <p class="meta"><a href="api.html#makepredictor">Full interface and help text of <code>makePredictor</code> →</a></p>
 <h3>In short</h3>
@@ -236,7 +236,7 @@ turn.</td></tr>
 absolute times, and a ship's turn that fell on a segment boundary. The option <code>'Clock'</code> was added the same day as the first
 part of D3c, after Jasper chose to fold with the observer's own clock estimate.</p></details>
 
-<h2 id="fold">5 · Folding with a predictor <span class="badge written">done</span></h2>
+<h2 id="fold">5 · Folding with a predictor <span class="badge validated">validated</span></h2>
 <p><code>foldProfile</code> takes the predictor with the option <code>'Predictor'</code>. Each time bin then gets its phase from the
 predictor instead of from a constant spin rate. The predictor must be built with its start at the recording's time zero.</p>
 <p>Each sub-integration still gets a reference time and frequency, so that a TOA is the reference time plus the fitted phase offset
@@ -259,7 +259,7 @@ partial last one.</td></tr>
 <p>Added 21 Oct 2026 as step D2b. The first version clamped the reference time to the predictor's span, which left the partial last
 sub-integration 0.39 turns off. It now extrapolates linearly.</p></details>
 
-<h2 id="truth">6 · <code>trueResiduals</code>: how late the pulse really is <span class="badge written">done</span></h2>
+<h2 id="truth">6 · <code>trueResiduals</code>: how late the pulse really is <span class="badge validated">validated</span></h2>
 <div class="sig">res = trueResiduals(t, psr, trajTrue, trajAssumed, ...)</div>
 <p class="meta"><a href="api.html#trueresiduals">Full interface and help text of <code>trueResiduals</code> →</a></p>
 <h3>In short</h3>
@@ -317,7 +317,7 @@ rounding: the Earth's mean longitude is about 9500° in 2026, and its rounding i
 left out the Doppler factor, which is −8.3·10⁻⁵ on 1 March. The observer's clock estimate and check 7 were added as the second part of
 D3c. Check 7 also exposed a constant rounding of up to 60 ns in the predictor's clock origin, which was fixed.</p></details>
 
-<h2 id="clock">7 · <code>makeClock</code>: the receiver's clock <span class="badge written">done</span></h2>
+<h2 id="clock">7 · <code>makeClock</code>: the receiver's clock <span class="badge validated">validated</span></h2>
 <div class="sig">clk = makeClock([t1 t2], ...)</div>
 <p class="meta"><a href="api.html#makeclock">Full interface and help text of <code>makeClock</code> →</a></p>
 <h3>In short</h3>

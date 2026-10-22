@@ -277,12 +277,12 @@ and the predictor. This section was added to the overview the same day.</p></det
 <tr><td>1–7</td><td><a href="simulator.html#how"><code>simulateFold</code></a></td><td>(in memory: <code>fold</code>, <code>info</code>, <code>truth</code>)</td><td>profiles + weights, like <code>foldProfile</code>'s</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#adaptive"><code>adaptiveSubints</code></a>, <code>mergeSubints</code></td><td>(in memory)</td><td>merged sub-ints, SNR ≈ 7 each</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Motion (block D), into stage 7</th></tr>
-<tr><td>–</td><td><a href="motion.html#trajectory"><code>makeTrajectory</code></a></td><td>(in memory: <code>traj</code>)</td><td>position and velocity of the receiver</td><td><span class="badge written">written</span></td></tr>
-<tr><td>–</td><td><a href="motion.html#delay"><code>delayModel</code></a></td><td>(in memory)</td><td>delay to the barycentre, per term</td><td><span class="badge written">written</span></td></tr>
-<tr><td>–</td><td><a href="motion.html#predictor"><code>makePredictor</code></a></td><td>(in memory: <code>pred</code>)</td><td>phase and frequency as Chebyshev segments</td><td><span class="badge written">written</span></td></tr>
-<tr><td>7</td><td><a href="motion.html#fold"><code>foldProfile</code> <code>'Predictor'</code></a></td><td>as stage 7</td><td>profiles folded at the predicted phase</td><td><span class="badge written">written</span></td></tr>
+<tr><td>–</td><td><a href="motion.html#trajectory"><code>makeTrajectory</code></a></td><td>(in memory: <code>traj</code>)</td><td>position and velocity of the receiver</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="motion.html#delay"><code>delayModel</code></a></td><td>(in memory)</td><td>delay to the barycentre, per term</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>–</td><td><a href="motion.html#predictor"><code>makePredictor</code></a></td><td>(in memory: <code>pred</code>)</td><td>phase and frequency as Chebyshev segments</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7</td><td><a href="motion.html#fold"><code>foldProfile</code> <code>'Predictor'</code></a></td><td>as stage 7</td><td>profiles folded at the predicted phase</td><td><span class="badge validated">validated</span></td></tr>
 </table></div>
-<p>A <span class="badge written">written</span> function passes its tests in Claude's runs and is validated once Jasper has run them.</p>
+<p>The motion functions' tests pass in Jasper's run of 22 Oct.</p>
 
 <h2 id="why">Design choices: why the pipeline has this order</h2>
 <div class="callout why"><span class="ttl">Sky → receiver → processing, in physical order</span>

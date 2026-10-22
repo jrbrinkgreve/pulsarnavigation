@@ -283,6 +283,16 @@ extra pulsars; D4a is next.</li>
 <li>These docs rewritten for readability (Jasper: the text was "compact and comprehensive, but very hard to comprehend").</li>
 </ul>
 
+<h3>22 October — results and validation</h3>
+<ul>
+<li><b>Overnight runs</b> (Claude's): the validation run on a frozen copy of the code (all eight steps as expected); the first 30-day run
+with a moving receiver (the 100 km daily sine, 302 TOAs); the 100-day scenario runs (the budgets hold; B0329+54's pulls have an honest
+core but 1.9 % beyond 3σ, for the navigation fit's outlier model).</li>
+<li><b>Jasper's run</b> of all 22 unit tests and of <code>testRFIChain</code>: all pass, with the same numbers. Block D's functions, the
+per-channel <code>detectRFI</code> thresholds and the extra RFI-profile lags are therefore validated.</li>
+<li>The receiver chain became concrete: antenna, mixer and a commercial SDR with 18 coherent channels of 400 MHz.</li>
+</ul>
+
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
 agreed.</p>

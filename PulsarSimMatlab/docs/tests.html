@@ -273,30 +273,30 @@ by chance. Each physics check therefore first predicts the scatter of what it me
 and passes when the measurement lies within a few of those σ. The algebra checks compare with an exact formula, to rounding error.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>Unit</th><th>Time</th><th>Status</th></tr>
-<tr><td><a href="#gen"><code>testGeneratePulsarSignal</code></a></td><td><code>generatePulsarSignal</code> (stage 1; review R1)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 13 Oct)</span> <span class="badge written">test 7 (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#gen"><code>testGeneratePulsarSignal</code></a></td><td><code>generatePulsarSignal</code> (stage 1; review R1)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 13 Oct)</span> <span class="badge validated">test 7 (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#foldw"><code>testFoldWeights</code></a></td><td><code>foldProfile</code> A1a, A1b, coverage warning</td><td>~7 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span></td></tr>
-<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~15 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span> <span class="badge written">test 7 revised 20 Oct (Claude's run)</span></td></tr>
+<tr><td><a href="#chtoa"><code>testChannelTOA</code></a></td><td><code>estimateTOA</code> A2a, <code>detectPulsar</code> A2b, resolution warning</td><td>~15 s</td><td><span class="badge validated">passes, 7 Oct; test 7: 9 Oct</span> <span class="badge validated">test 7 revised 20 Oct (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a; long time bins (test 4, 12 Oct)</td><td>~110 s</td><td><span class="badge validated">passes, 7 Oct; test 4: 12 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
-<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~2.5 min</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span> <span class="badge written">test 4 (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~2.5 min</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span> <span class="badge validated">test 4 (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
-<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span> <span class="badge written">test 16 (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~30 s</td><td><span class="badge validated">tests 1–5 pass (Jasper's run, 20 Oct)</span> <span class="badge written">test 6 (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#maketraj"><code>testMakeTrajectory</code></a></td><td><code>makeTrajectory</code> D1a (where the receiver is)</td><td>~1 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#delaymodel"><code>testDelayModel</code></a></td><td><code>delayModel</code> D1b (receiver → barycentre)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge written">passes (Claude's run, 21 Oct)</span></td></tr>
-<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge written">all pass on the new code, narrow Inmarsat included (Claude's run, 21 Oct)</span></td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span> <span class="badge validated">test 16 (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~30 s</td><td><span class="badge validated">tests 1–5 pass (Jasper's run, 20 Oct)</span> <span class="badge validated">test 6 (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#maketraj"><code>testMakeTrajectory</code></a></td><td><code>makeTrajectory</code> D1a (where the receiver is)</td><td>~1 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#delaymodel"><code>testDelayModel</code></a></td><td><code>delayModel</code> D1b (receiver → barycentre)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge validated">all pass on the new code, narrow Inmarsat included (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge written">agrees (Claude's run, 20 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge written">agrees within ~1 %; part 2 production numbers (Claude's runs, 20 Oct)</span></td></tr>
 <tr><td><a href="#compchain"><code>expComponentsChain</code></a></td><td>experiment: a multi-component pulse on the voltage chain vs <code>simulateFold</code></td><td>~30 min</td><td><span class="badge written">agrees within ~1 % (Claude's run, 21 Oct)</span></td></tr>
@@ -463,7 +463,7 @@ PFA they flag 1 and 0 windows, instead of 432 and 386. All 19 radar pulses on th
 give the old mask bit for bit, and pure noise gets no thresholds of its own. Tests 1–3 are unchanged, except that 3d's unguarded blanked
 fraction went from 0.6487 to 0.6484 %: the constant-envelope channels flag slightly less.</li>
 </ol>
-<p>Claude's run, 21 Oct: all passed. The test uses its own temporary folder per run.</p>
+<p>Claude's run of 21 Oct and Jasper's run of 22 Oct: all passed. The test uses its own temporary folder per run.</p>
 
 <h2 id="edges"><code>testRadarEdges</code></h2>
 <p>The radar edges are modelled exactly, and change nothing when switched off.</p>
@@ -607,7 +607,8 @@ standard deviation is 1.042 (Claude's run).</li>
 <ol>
 <li value="16"><code>'PhaseOffset'</code> as a function of time. A constant function equals the scalar, bit for bit. A function of time on
 a two-pass schedule equals the same values given per sub-integration, bit for bit, and the truth holds the function's values at each
-sub-integration's reference time. A function that returns the wrong number of values is refused (Claude's run, 21 Oct).</li>
+sub-integration's reference time. A function that returns the wrong number of values is refused (Claude's run of 21 Oct, Jasper's run of
+22 Oct).</li>
 </ol>
 
 <h2 id="rfimodel"><code>testRFIModel</code> (20 Oct)</h2>
@@ -658,7 +659,7 @@ recovers the closed-form sum rule: 14.04 against 14.13 (2.95 with 2 lags). And t
 relative to the model is 5.468 real and 5.492 simulated (z −0.2; 1.658 with 2 lags).</li>
 </ol>
 <p>Runs: tests 1–4 passed in Claude's run (20 Oct, 21 s) and in Jasper's run (20 Oct). Test 5 passed in Claude's run and in Jasper's run
-of 20 Oct. Test 6 passed in Claude's run of 21 Oct. The test now uses its own temporary folder per run. The same comparison on the
+of 20 Oct. Test 6 passed in Claude's run of 21 Oct and in Jasper's run of 22 Oct. The test now uses its own temporary folder per run. The same comparison on the
 voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="maketraj"><code>testMakeTrajectory</code> (21 Oct)</h2>
@@ -736,7 +737,8 @@ channels and of channel 61 averages out as 1/turns.</li>
 simulated (pooled z +3.3; channel 105: 3.72 against 3.49, z +6.7). The neighbour correlation is 0.2552 against 0.2541 (pooled +3.1;
 channel 105: 0.287 against 0.266). At 10 turns the excess is the same size (1.2853 against 1.2696), but 3 sub-ints cannot resolve it.</li>
 </ul></li>
-<li><b>Rerun on the new code</b> (per-channel <code>detectRFI</code> thresholds, 30 lags; 21 Oct, Claude's run, 61 + 114 min): <b>all
+<li><b>Rerun on the new code</b> (per-channel <code>detectRFI</code> thresholds, 30 lags; Claude's run of 21 Oct, 61 + 114 min, and Jasper's run
+of 22 Oct, 24 + 41 min, with the same numbers): <b>all
 pass</b>, in both cases at 1 and 10 turns. In the narrow-Inmarsat case at 1 turn the noise relative to the model is 1.3286 real against
 1.3292 simulated (pooled z +0.30, no channel flagged; before: z +3.3, channel 105 z +6.7). The neighbour correlation is 0.2564 against
 0.2566 (z −0.56; before +3.1). The realistic case gives 1.0729 against 1.0729. Kurtosis and tails still flag the carrier channels
