@@ -32,7 +32,14 @@ standard formulas). Times in 2026 (s since J2000 TT).
      term included); the site term at 52 N between 0.5 and 2.1 us (|v_E| |r_site| / c^2 = 2.1 us).
   8. Shapiro for B0329+54 over a year between -20 and +8 us (expected -17 ... +6 us).
   9. A trajectory with an unknown frame is refused.
-Errors at the end if any check fails. (21 Oct 2026, block D1b.)
+ 10. JPL's DE440 behind the same interface ('Ephemeris', block D5b; data/ephem/de440s.bsp): the
+     geocentre is the file's at TDB = TT + 1.657 ms sin g + 14 us sin 2g (1 cm: the time's last
+     bit, 1.2e-7 s at 8e8 s, is 4 mm of the Earth's motion; velocity 1e-5 m/s); the analytic
+     orbit against it over a year: the Earth relative to the Sun within 2e4 km, relative to the
+     SSB within 4e5 km (the analytic Sun leaves out Uranus and Neptune); the navigation's
+     measurement (the site 100 km east minus the site, all terms, two days) is the same with both
+     to 1e-11 s; Shapiro for B0329+54 within -20 ... +8 us; a bad 'Ephemeris' refused.
+Errors at the end if any check fails. (21 Oct 2026, block D1b; check 10 22 Oct, D5b.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -187,6 +194,26 @@ bad = site; bad.frame = 'GALACTIC';
 ok9 = strcmp(errId(@() delayModel(t0, bad, b0329)), 'delayModel:frame');
 fprintf('9. unknown frame refused %d: %s\n', ok9, passStr(ok9));
 if ~ok9, fails{end+1} = 'input check'; end
+
+% 10. JPL's DE440
+% ---------------------------------------------------------------------------------
+eph = loadEphemeris(fullfile(root, 'data', 'ephem', 'de440s.bsp'));
+dJ = delayModel(ty, geo, b0329, 'Ephemeris', eph);
+dA = delayModel(ty, geo, b0329);
+g = deg2rad(357.53 + 0.98560028 * (ty / 86400));
+[rF, vF] = eph.earth(ty + 1.657e-3 * sin(g) + 1.4e-5 * sin(2*g));
+eF = max(vecnorm(dJ.rEarth - rF)); eV = max(vecnorm(dJ.vEarth - vF));
+eHel = max(vecnorm((dA.rEarth - dA.rSun) - (dJ.rEarth - dJ.rSun)));
+eBar = max(vecnorm(dA.rEarth - dJ.rEarth));
+navJ = delayModel(td, siteE, b0329, 'Ephemeris', eph).total - delayModel(td, site, b0329, 'Ephemeris', eph).total;
+eNav = max(abs(navJ - dAll));
+shJ = delayModel(ty, site, b0329, 'Ephemeris', eph, 'Terms', "shapiro").shapiro;
+ok10 = eF < 1e-2 && eV < 1e-5 && eHel < 2e7 && eBar < 4e8 && eNav < 1e-11 && min(shJ) > -20e-6 && max(shJ) < 8e-6 && ...
+       strcmp(errId(@() delayModel(t0, site, b0329, 'Ephemeris', struct('x', 1))), 'delayModel:ephemeris');
+fprintf(['10. DE440: geocentre = the file''s to %.1e m, %.1e m/s; the analytic Earth off by %.0f km from the Sun, %.0f km from the SSB; ' ...
+         'the 100 km measurement the same to %.1e s; Shapiro %.1f ... %.1f us: %s\n'], eF, eV, eHel / 1e3, eBar / 1e3, eNav, ...
+    1e6 * min(shJ), 1e6 * max(shJ), passStr(ok10));
+if ~ok10, fails{end+1} = 'DE440'; end
 
 if isempty(fails)
     fprintf('testDelayModel: ALL PASSED\n');

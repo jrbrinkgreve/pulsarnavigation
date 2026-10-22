@@ -22,6 +22,9 @@ Name-value options:
   'Moon'     true (default): the Earth's offset from the Earth-Moon barycentre (EMB).
   'Planets'  true (default): the Sun's offset from the SSB (Jupiter, Saturn). Moon and Planets
              false leave the EMB on its Keplerian orbit around a Sun at the SSB (for tests).
+  'Ephemeris' [] (default): the analytic Earth below. A loadEphemeris struct (JPL's DE440): the
+             geocentre, its velocity and the Sun from the file, read at TDB = TT + the Einstein
+             term (block D5b); 'Moon' and 'Planets' then do not apply.
 
 The terms (signs: contributions to t_SSB - t_obs):
   roemer     r_obs . n / c: the light-travel time across the observer's offset from the SSB
@@ -38,15 +41,18 @@ The terms (signs: contributions to t_SSB - t_obs):
              Sun is near the line of sight (B0329+54: -17 ... +6 us over a year).
 
 Earth model (analytic; decision 1 of block D, 21 Oct 2026: DE440 behind the same interface at
-the end of D): the EMB on a Keplerian orbit with JPL's approximate elements and their rates
+the end of D, now 'Ephemeris'): the EMB on a Keplerian orbit with JPL's approximate elements and their rates
 (Standish, "Keplerian Elements for Approximate Positions of the Major Planets", 1800-2050,
 ~20" for the EMB); the Sun around the SSB from Jupiter and Saturn on the same kind of orbits
 (the Sun moves ~0.007 AU, +-2.5 s and +-1.4 s); the Earth around the EMB from a low-precision
 lunar series (+-4671 km, +-15.6 ms; ~0.3 deg). Ecliptic J2000 -> equator J2000 (obliquity
 23.439281 deg). Earth rotation: the Earth rotation angle from UT1 ~ TT - 69.184 s, without
 precession, nutation and polar motion (they matter against real data, not between the
-simulator's truth and prediction, which share this model). Absolute accuracy ~1e4 km (~30 ms);
-the differences that the navigation uses are exact within the model.
+simulator's truth and prediction, which share this model). Absolute accuracy (against DE440, 22
+Oct 2026): the Earth relative to the Sun within ~1.5e4 km, but the Sun relative to the SSB is off
+by up to ~3e5 km, as Uranus and Neptune are left out; so the Earth is up to 3.2e5 km from where
+DE440 puts it, and B0329+54's Roemer delay is off by up to 0.66 s, 71 ms of it varying within two
+years. The differences that the navigation uses are exact within the model.
 
 Output d: total, roemer, curvature, einstein, shapiro [1 x N] (s); rObs, vObs [3 x N] (the
 receiver relative to the SSB, equatorial J2000, m and m/s); rEarth, vEarth (geocentre), rSun
@@ -60,6 +66,7 @@ arguments
     opts.Terms (1,:) string = ["roemer" "curvature" "einstein" "shapiro"]
     opts.Moon (1,1) logical = true
     opts.Planets (1,1) logical = true
+    opts.Ephemeris = []
 end
 
 c = 299792458; AU = 149597870700; Tsun = 1.32712440018e20 / c^3;
@@ -68,9 +75,18 @@ a = deg2rad(psr.raDeg); dl = deg2rad(psr.decDeg);
 n = [cos(dl) * cos(a); cos(dl) * sin(a); sin(dl)];
 N = numel(t);
 
-[rE, rS] = earthAndSun(t, opts.Moon, opts.Planets);   % geocentre and Sun wrt the SSB
-h = 60;                                               % velocity by central difference
-vE = (earthAndSun(t + h, opts.Moon, opts.Planets) - earthAndSun(t - h, opts.Moon, opts.Planets)) / (2*h);
+if isempty(opts.Ephemeris)
+    [rE, rS] = earthAndSun(t, opts.Moon, opts.Planets);   % geocentre and Sun wrt the SSB
+    h = 60;                                               % velocity by central difference
+    vE = (earthAndSun(t + h, opts.Moon, opts.Planets) - earthAndSun(t - h, opts.Moon, opts.Planets)) / (2*h);
+else
+    eph = opts.Ephemeris;
+    if ~isstruct(eph) || ~isfield(eph, 'earth') || ~isfield(eph, 'sun')
+        error('delayModel:ephemeris', '''Ephemeris'' must be a loadEphemeris struct, or [] for the analytic orbit.');
+    end
+    tdb = t + tdbMinusTT(t);                              % the ephemeris' time scale (1.7 ms: 50 m of the Earth's motion)
+    [rE, vE] = eph.earth(tdb); rS = eph.sun(tdb);
+end
 
 switch upper(traj.frame)
     case 'ECEF'
@@ -97,8 +113,7 @@ if use("curvature") && isfield(psr, 'distance') && ~isempty(psr.distance)
     d.curvature = -(sum(rObs.^2, 1) - rn.^2) / (2 * c * psr.distance);
 end
 if use("einstein") && strcmpi(traj.frame, 'ECEF')
-    g = deg2rad(357.53 + 0.98560028 * (t / 86400));   % Earth's mean anomaly
-    d.einstein = 1.657e-3 * sin(g) + 1.4e-5 * sin(2*g) + sum(vE .* rSite, 1) / c^2;
+    d.einstein = tdbMinusTT(t) + sum(vE .* rSite, 1) / c^2;
 end
 if use("shapiro")
     rs = rObs - rS;                                    % observer relative to the Sun
@@ -107,8 +122,21 @@ end
 d.total  = d.roemer + d.curvature + d.einstein + d.shapiro;
 d.rObs   = rObs; d.vObs = vObs; d.rEarth = rE; d.vEarth = vE; d.rSun = rS;
 d.nHat   = n; d.frame = upper(traj.frame);
-d.model  = sprintf(['analytic (Keplerian EMB, Moon %d, planets %d; Earth rotation angle, no ' ...
-                    'precession/nutation)'], opts.Moon, opts.Planets);
+if isempty(opts.Ephemeris)
+    d.model = sprintf(['analytic (Keplerian EMB, Moon %d, planets %d; Earth rotation angle, no ' ...
+                       'precession/nutation)'], opts.Moon, opts.Planets);
+else
+    d.model = sprintf('JPL ephemeris %s; Earth rotation angle, no precession/nutation', opts.Ephemeris.file);
+end
+end
+
+
+% =====================================================================================
+function dt = tdbMinusTT(t)
+%TDBMINUSTT  TDB - TT at the geocentre [s]: its two largest terms (the clock's varying rate along the
+% Earth's eccentric orbit; g the Earth's mean anomaly).
+g = deg2rad(357.53 + 0.98560028 * (t / 86400));
+dt = 1.657e-3 * sin(g) + 1.4e-5 * sin(2*g);
 end
 
 
