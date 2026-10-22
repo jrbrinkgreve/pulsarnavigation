@@ -59,6 +59,7 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_toa.py` | FFTFIT: profile, cross-correlation, weights | toa.html |
 | `gen_navsignal.py` | the navigation signal: three days of simulated B0329+54 TOAs and 30 days by hour angle against the 193 µs daily sine (reads `data/scenario/pre-22oct-tag/…_30d_motion_perfect.mat`, local only; needs scipy) | navigation.html (1) |
 | `gen_navship.py` | the ship: one ship's drift (truth against the smoothed filter, east and north); the track errors of eight ships, dead reckoning against both starts (reads `data/scenario/ship_14d_nominal*.mat`, local only; needs scipy) | navigation.html (4, ship) |
+| `gen_navfit.py` | navFit converging: the east offset fitted to the first N of 100 days (reads `data/scenario/scenario_B0329_nominal_clean_100d_motion_perfect.mat`, local only; needs scipy) | navigation.html (2) |
 | `gen_navavg.py` | a TOA is a time-average: the daily signal of a 100 km offset, a 10 h TOA and a two-pass TOA against one time per TOA | navigation.html (2, averaged) |
 | `gen_navplan.py` | the planning study: the polar error with a crystal clock per pulsar set, 30 and 100 days (logged numbers) | navigation.html (3) |
 | `gen_det.py` | T0 and Tmax under H0 / H1 (simulated, ~1 min) | detection.html |
