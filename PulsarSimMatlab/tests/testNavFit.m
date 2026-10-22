@@ -23,9 +23,21 @@ times over 30 days (2026-03-01 on), sigma 734 us each - the scenario's nominal c
      (1e-12 relative).
   6. Two pulsars (B0329+54 and one at RA 120, Dec +20), noise-free: both starts recover the truth
      within 50 m, with one constant per pulsar in "self".
-  7. A site that is not a fixed trajectory, and missing residuals, are refused ('navFit:site',
-     'navFit:toa').
-Errors at the end if any check fails. (22 Oct 2026, block D4a.)
+  7. A site that is not a fixed trajectory, missing residuals and a bad clock are refused
+     ('navFit:site', 'navFit:toa', 'navFit:clock').
+  The clock (block D4b):
+  8. 'Clock' [0 0 0] (no wander), "calibrated" (no rate column), gives the fit without a clock (1e-9
+     relative).
+  9. A crystal clock (makeClock "crystal", plus a 1 ms offset and a 1e-9 rate the fit does not
+     know) on the residuals of the site 100 km east, 200 realizations, "self": with 'Clock' the
+     east estimate is unbiased with pulls of std 1 (+- 0.2) and an error close to +-31 km; without
+     it the clock's milliseconds of wander make the robust fit flag a large part of the TOAs
+     (shown: the fraction and the core chi2).
+ 10. The clock estimate, "calibrated", a clock without flicker (h_1 = 0: the fit's covariance model is
+     then exact), 200 realizations: the fitted wander at the TOAs and the prediction one day after
+     the last TOA match the true clock within their stated errors (pulls of std 1 +- 0.2). Shown
+     for information: the same with the full crystal (flicker left out of the fit's model).
+Errors at the end if any check fails. (22 Oct 2026, block D4a; tests 8-10 block D4b.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -134,9 +146,60 @@ if ~ok6, fails{end+1} = 'two pulsars'; end
 
 % 7. Input checks
 ok7 = strcmp(errId(@() navFit(toa, b0329, struct('type', 'track'))), 'navFit:site') && ...
-      strcmp(errId(@() navFit(struct('t', t, 'sigma', sig * ones(1, N)), b0329, siteA)), 'navFit:toa');
-fprintf('7. bad site and missing residuals refused %d: %s\n', ok7, passStr(ok7));
+      strcmp(errId(@() navFit(struct('t', t, 'sigma', sig * ones(1, N)), b0329, siteA)), 'navFit:toa') && ...
+      strcmp(errId(@() navFit(toa, b0329, siteA, 'Clock', [1 -1 0])), 'navFit:clock');
+fprintf('7. bad site, missing residuals and a bad clock refused %d: %s\n', ok7, passStr(ok7));
 if ~ok7, fails{end+1} = 'input checks'; end
+
+% 8. A clock without wander = no clock
+f8a = navFit(toa, b0329, siteA, 'Start', "calibrated"); f8b = navFit(toa, b0329, siteA, 'Start', "calibrated", 'Clock', [0 0 0]);
+e8 = max(abs(f8b.p - f8a.p) ./ sqrt(diag(f8a.cov)));
+ok8 = e8 < 1e-9 && max(abs(f8b.clock)) == 0;
+fprintf('8. ''Clock'' [0 0 0] = no clock: %.1e of the errors, wander 0 %d: %s\n', e8, max(abs(f8b.clock)) == 0, passStr(ok8));
+if ~ok8, fails{end+1} = 'clock off'; end
+
+% 9. A crystal clock with an unknown offset and rate, "self"
+hCr = [1.8e-21 6.492e-22 1.37e-24];
+nC = 200; tEnd = t(end) + 2 * 86400;
+[e9, s9, flagged, chi2No, noConv] = deal(zeros(nC, 1));
+ws = warning('off', 'navFit:converge');                % the fit without the clock model may not settle
+for m = 1:nC
+    clk = makeClock([t(1), tEnd], 'Preset', "crystal", 'Offset', 1e-3, 'Rate', 1e-9, 'Seed', 300 + m);
+    rr = rE + clk.offset(t) + sig * randn(rs, 1, N);
+    tq = struct('t', t, 'r', rr, 'sigma', sig * ones(1, N));
+    f = navFit(tq, b0329, siteA, 'Clock', hCr);
+    e9(m) = f.east; s9(m) = f.eastErr;
+    fN = navFit(tq, b0329, siteA);
+    flagged(m) = mean(fN.outlier); chi2No(m) = fN.chi2Core; noConv(m) = fN.nIter == 50;
+end
+warning(ws);
+p9 = (e9 - truthE) ./ s9;
+ok9 = abs(mean(p9)) < 4 / sqrt(nC) * std(p9) && abs(std(p9) - 1) < 0.2 && median(s9) < 1.2 * median(err(:, 1));
+fprintf(['9. crystal clock + 1 ms + 1e-9, "self", %d realizations: east %.1f km, pulls mean %+.2f std %.3f, error %.1f km ' ...
+         '(no clock %.1f); without ''Clock'': %.0f %% of the TOAs flagged, core chi2 %.1f, not settled in %.0f %%: %s\n'], nC, mean(e9) / 1e3, ...
+    mean(p9), std(p9), median(s9) / 1e3, median(err(:, 1)) / 1e3, 100 * median(flagged), median(chi2No), 100 * mean(noConv), passStr(ok9));
+if ~ok9, fails{end+1} = 'clock in the fit'; end
+
+% 10. The clock estimate and its prediction, "calibrated"
+[zc, zp, zcF, zpF] = deal([]);
+for m = 1:nC
+    for full = [false true]
+        hT = hCr; if ~full, hT(2) = 0; end
+        clk = makeClock([t(1), tEnd], 'H', hT, 'Seed', 600 + m);
+        rr = rE + clk.offset(t) + sig * randn(rs, 1, N);
+        f = navFit(struct('t', t, 'r', rr, 'sigma', sig * ones(1, N)), b0329, siteA, 'Start', "calibrated", 'Clock', hCr);
+        tp = t(end) + 86400;
+        known = f.clockErr == 0;                        % the start: the clock is known exactly there
+        z1 = (clk.offset(t(~known)) - f.clock(~known)) ./ f.clockErr(~known);
+        z2 = (clk.offset(tp) - f.clockAt(tp)) / f.clockAtErr(tp);
+        if full, zcF = [zcF, z1]; zpF = [zpF, z2]; else, zc = [zc, z1]; zp = [zp, z2]; end %#ok<AGROW>
+    end
+end
+ok10 = abs(std(zc) - 1) < 0.2 && abs(std(zp) - 1) < 0.2;
+fprintf(['10. clock estimate, "calibrated", %d realizations: at the TOAs pulls std %.3f (error median %.0f us), one day ' ...
+         'ahead std %.3f (error %.0f us); with flicker in the true clock: %.3f, %.3f: %s\n'], nC, std(zc), ...
+    1e6 * median(f.clockErr), std(zp), 1e6 * f.clockAtErr(t(end) + 86400), std(zcF), std(zpF), passStr(ok10));
+if ~ok10, fails{end+1} = 'clock estimate'; end
 
 if isempty(fails)
     fprintf('testNavFit: ALL PASSED\n');
