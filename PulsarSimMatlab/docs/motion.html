@@ -462,6 +462,25 @@ slope −0.05 ± 0.03.</td></tr>
 </table></div>
 <p>A calibrated start also gives the polar component: −10.7 ± 9.1 km over 100 days, against a truth of 0. At worst-case flux 30 days give
 only 59 TOAs and ±82 km.</p>
+<h3>With the SDR clock, tracked day by day</h3>
+<p>The same 30 days with the SDR clock: a rate of −1.17·10⁻⁶ and the crystal's wander, which the observer does not know. Each day it refits
+its clock from all TOAs so far and folds the next day with the prediction (<a href="scripts.html#scenario">run scripts</a>):</p>
+<div class="table-wrap"><table>
+<tr><th>SDR clock, 30 days</th><th>Good TOAs</th><th>Clock not estimated</th><th>East, final fit with the clock model</th></tr>
+<tr><td>tracked daily</td><td class="num">300</td><td>0.1–0.6 ms on most days, up to 1 ms</td><td class="num">35.0 ± 29.7 km</td></tr>
+<tr><td>not tracked</td><td class="num">213</td><td>drifting to 6.7 ms, one pulse width</td><td class="num">98.1 ± 31.0 km</td></tr>
+<tr><td>perfect clock, for comparison</td><td class="num">302</td><td>0</td><td class="num">35.9 ± 29.6 km</td></tr>
+</table></div>
+<ul>
+<li><b>Tracking keeps every TOA.</b> The tracked run has 300 TOAs against 302 with a perfect clock, and the same position, with the same
+error. The tracked run shares the perfect-clock run's noise, and with it the −2.2σ draw.</li>
+<li><b>Without tracking the pulse drifts off the prediction.</b> The groups then need more data to reach SNR 7 at the predicted phase: 29 %
+fewer TOAs, each more precise. Over 30 days the position barely suffers (±31.0 km), but the loss grows as the clock drifts further.</li>
+<li><b>What limits the tracking:</b> the error is mostly a constant per day. B0329+54's TOAs pin the clock's rate to about 2·10⁻⁹, and the
+crystal's rate itself wanders by about 1.5·10⁻⁹ a day. Extrapolated to the next day that gives a few hundred µs. That is harmless next to
+B0329+54's 6.6 ms pulse, but not for J0437's 0.14 ms: a millisecond pulsar needs a better oscillator, or extra pulsars to synchronise the
+clock (D4c).</li>
+</ul>
 <details><summary>History</summary>
 <p>Added 22 Oct 2026 as step D4a, with Jasper's switch between a calibrated start and self-calibration. The first version solved the
 normal equations in metres and seconds at once, which differ by 18 orders of magnitude; the columns are now scaled before solving. The
@@ -526,7 +545,7 @@ predicts the precision for any TOA schedule, to choose pulsars without simulatin
 <tr><td>D4b</td><td>The clock in the fit, as correlated noise; the fitted clock fed back as the observer's estimate in the scenario,
 day by day (<code>runScenario</code> <code>motion.track</code>).</td><td><span class="badge written">done 22 Oct (Claude's runs)</span></td></tr>
 <tr><td>D4c</td><td>Clock synchronisation: several pulsars in simultaneous beams on one timeline with one shared clock, and the switch for
-the per-pulsar offsets.</td><td><span class="badge todo">todo</span></td></tr>
+the per-pulsar offsets.</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>D4d</td><td>The Kalman filter for a moving ship: dead reckoning in, trajectory and clock fed back.</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 <h3>The clock</h3>

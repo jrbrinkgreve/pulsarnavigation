@@ -220,7 +220,8 @@ the scenario runs with all variants, and the 100-day runs
 clock), D3c (the observer's clock estimate; the simulator's truth with a moving receiver and a clock in <code>runScenario</code> is
 checked in Claude's runs). D4 designed: the navigation fit with clock synchronisation by extra pulsars in simultaneous beams. D4a done in Claude's run
 (<code>navFit</code>: the robust batch fit for a fixed site, with the calibrated/self switch; its first result on the 30-day motion run
-is being checked). Next: D4b (the clock in the fit). See <a href="motion.html">block D</a>.</td></tr>
+is confirmed: 100 days find the 100 km offset at 4.9σ) and D4b (the clock as correlated noise, and the SDR clock tracked day by day: no TOAs
+lost). Next: D4c (clock synchronisation with extra pulsars in simultaneous beams). See <a href="motion.html">block D</a>.</td></tr>
 <tr><td><b>E</b></td><td>Several pulsars, navigation solution, 3×3 array, second polarization; real IQ recordings from the hardware into <code>processIQ</code>; the FPGA/GPU port of the processing, checked stage by stage against <code>processIQ</code> (the MATLAB reference)</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 
@@ -349,7 +350,7 @@ and the pulse's phase in the observer's fold); D3b <code>makeClock</code>; D3c t
 <code>runScenario</code></td><td><span class="badge validated">D3a, D3b validated 22 Oct</span> <span class="badge written">D3c in <code>runScenario</code>: Claude's runs</span></td></tr>
 <tr><td>D4</td><td>The navigation fit, with the clock synchronised by extra pulsars: D4a <code>navFit</code> (robust batch fit, fixed site,
 perfect clock); D4b the clock as correlated noise; D4c several pulsars in simultaneous beams with one clock, and a switch between a
-calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge written">D4a done 22 Oct (Claude's run)</span> <span class="badge todo">D4b next</span></td></tr>
+calibrated start and self-calibration of the per-pulsar offsets; D4d the Kalman filter for the ship</td><td><span class="badge written">D4a, D4b done 22 Oct (Claude's runs)</span> <span class="badge todo">D4c next</span></td></tr>
 <tr><td>D5</td><td>J0437's binary orbit, DE440, real ship and probe trajectories</td><td><span class="badge todo">todo</span></td></tr>
 </table></div>
 <p>Details: <a href="motion.html">motion and phase (block D)</a>.</p>

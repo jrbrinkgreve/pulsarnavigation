@@ -12,9 +12,14 @@ Prints the estimates with their errors against the truth, the outliers found, an
 the input: the fit to the TRUE residuals (no noise) gives the offset itself, and the fit's
 'Predict' error equals the one of the fit.
 
+With the SDR clock (block D4b; files ..._motion_sdr.mat, tracked daily, and ..._sdr_notrack.mat, if
+present): the good TOAs against the perfect clock, the clock the observer had not estimated (rms per
+week), and its final fit with the clock model ('Clock', the crystal's h) on its residuals with its
+own clock estimate added back - what a real observer would compute.
+
 Needs data/scenario/scenario_B0329_<flux>_clean_30d_motion_perfect.mat (runScenario with motion.on
-= true, pulsars "B0329"). Run from the PulsarSimMatlab folder: run('tests/expNavFit.m'). ~1 s.
-(22 Oct 2026, block D4a.)
+= true, pulsars "B0329"). Run from the PulsarSimMatlab folder: run('tests/expNavFit.m'). ~1 s
+(+ ~10 s per SDR file). (22 Oct 2026, blocks D4a and D4b.)
 %}
 
 scriptDir = fileparts(mfilename('fullpath'));
@@ -46,4 +51,21 @@ for fl = ["nominal", "worst"]
     fprintf('  checks: the true residuals give east %.3f km, radial %+.3f km; Predict error %.1f km (fit %.1f km)\n', ...
         fT.east / 1e3, fT.radial / 1e3, fP.eastErr / 1e3, fS.eastErr / 1e3);
     fprintf('  detection of the 100 km offset: %.1f sigma\n', fS.east / fS.eastErr);
+end
+
+% the SDR clock, tracked daily and not tracked
+hCr = makeClock([0 1], 'Preset', "crystal").h;
+for tg = ["sdr", "sdr_notrack"]
+    fIn = fullfile(dataDir, sprintf('scenario_B0329_nominal_clean_30d_motion_%s.mat', tg));
+    if ~isfile(fIn), continue, end
+    R = load(fIn).R; G = R.groups([R.groups.good]); M = R.motionTruth;
+    psr = struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg);
+    toa = struct('t', [G.tAbs], 'r', [G.resid] + [G.clockUsed], 'sigma', [G.sigma]);
+    f = navFit(toa, psr, M.trajAssumed, 'Clock', hCr, 'ClockStart', M.t0);
+    fprintf('\nexpNavFit: B0329+54, nominal flux, 30 days, SDR clock (rate %.2e), %s: %d good TOAs (perfect clock 302)\n', ...
+        M.clockRate, strrep(tg, '_', ' '), numel(G));
+    wk = ceil([G.day] / 7);
+    fprintf('  the clock not estimated, rms per week: %s us\n', mat2str(round(1e6 * arrayfun(@(w) rms([G(wk == w).trueClock]), 1:max(wk)))));
+    fprintf('  the fit with the clock model: east %6.1f +- %4.1f km (%+.1f sigma), radial %+6.1f +- %4.1f km; outliers %d; chi2 core %.3f\n', ...
+        f.east / 1e3, f.eastErr / 1e3, (f.east - 100e3) / f.eastErr, f.radial / 1e3, f.radialErr / 1e3, nnz(f.outlier), f.chi2Core);
 end
