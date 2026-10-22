@@ -836,6 +836,29 @@ errors are correlated along the whole track; the twin was added to judge the fil
 of the filter's prior, is pulled towards zero even with ideal data. The calibrated start, the mean-reverting current and these eight
 ships followed the same day.</p></details>
 
+<h4 id="ship-worst">At worst-case flux <span class="badge written">Claude's run</span></h4>
+<p>The ship results above are at nominal flux. The design point is the worst case, an SEFD of 7.4·10<sup>5</sup> Jy instead of
+3.2·10<sup>5</sup> Jy. The same eight ships were sailed again at worst flux, with the same tracks, currents and clocks. At worst flux
+the ship barely beats dead reckoning.</p>
+<div class="table-wrap"><table>
+<tr><th>Eight ships, 14 days</th><th class="num">2-D rms error, median</th><th class="num">range over the ships</th><th class="num">error at the end, median</th></tr>
+<tr><td>Dead reckoning</td><td class="num">372 km</td><td class="num">165–510 km</td><td class="num">644 km</td></tr>
+<tr><td>Self-calibrated start, worst flux</td><td class="num">358 km</td><td class="num">171–514 km</td><td class="num">622 km</td></tr>
+<tr><td>Calibrated start, worst flux</td><td class="num">298 km</td><td class="num">152–520 km</td><td class="num">499 km</td></tr>
+<tr><td>Calibrated start, nominal flux</td><td class="num">73 km</td><td class="num">55–101 km</td><td class="num">141 km</td></tr>
+</table></div>
+<p>The cause is the number of TOAs. B0329+54 gives 18–23 TOAs in 14 days instead of about 115. B0950+08 gives 1–3 instead of about 12.
+Each B0329+54 TOA then spans 13–19 hours of data. The daily filter needs ten TOAs before it corrects the track, so the ship sails on
+dead reckoning until day 6–9. The smoothed track is worse than dead reckoning in four of the eight ships. The real-time track at day 14
+is worse than dead reckoning in four to five of the eight.</p>
+<p>The stated errors are too small at worst flux. The pull spread at days 3, 7, 10 and 14 is 1.6 east and 1.2–1.5 north, against
+0.85–1.1 for the twin. Most of the excess is therefore in the TOA chain. The per-run pulls that <code>runShip</code> prints are larger
+still, because <code>navFilter</code> puts the port's 1 km position prior at the first TOA. At worst flux that TOA comes 9–14 hours after
+departure, when the ship has already drifted 14–41 km.</p>
+<details><summary>History</summary><p>Run on 22 Oct 2026, evening (16 runs, 19:48–21:49; logs in <code>.claude/runs/</code>,
+results in <code>data/scenario/ship_14d_worst*.mat</code>). A context check of block E's plan had found that the ship had only been run
+at nominal flux. Not yet validated by Jasper's own run.</p></details>
+
 <h2 id="next">5. Status and next steps</h2>
 <div class="table-wrap"><table>
 <tr><th>Step</th><th>What</th><th>Status</th></tr>

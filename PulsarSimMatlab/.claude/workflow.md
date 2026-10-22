@@ -1,4 +1,9 @@
-# Agent workflow (first trial 20 Oct 2026, stopped for lack of visibility; second trial from 22 Oct)
+# Agent workflow (not in use)
+
+**Status: not in use.** First trial 20 Oct 2026, stopped for lack of visibility. Second trial 22 Oct, evening,
+stopped the same evening. Jasper: "i think i can then better keep to 1 session for the potential loss of work
+quality". Development is back in one visible session. The rest of this file describes the trial set-up, kept for
+reference.
 
 One interactive **main session** (Jasper + Claude as manager) and one **linked session per role**,
 which the main session starts and instructs (since 22 Oct evening; before that, in-process

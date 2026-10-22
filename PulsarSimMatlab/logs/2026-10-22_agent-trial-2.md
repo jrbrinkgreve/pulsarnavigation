@@ -128,4 +128,38 @@ page, but it regenerated `api.html`, and the job now fixes the pages.
   missing from them. This is the overview's job (board task 1d), and it waits for Jasper's OK.
 - Jasper's decisions for E are open: route, flux and oscillator first (context check, §4). The worst-flux ship baseline
   (evaluator, 1b) and the oscillator and profile values (researcher, 1c) wait for them.
-- Uncommitted: `workflow.md`, `overview.md`, `docs/api.html` and this note. Main makes the commits.
+- (Committed later: see below.)
+
+## Later the same evening: what happened, and the trial stopped
+
+Written by the main session after the role sessions' work.
+
+- **Commits.** `0717f20` holds the workflow, the overview role and this note. `aa4bd59` holds the docs review: 30 pages,
+  `style.css`, 19 generators, the new `gen_clock.py` and `api.html`. Both are pushed. Main reviewed the docs only by
+  spot checks (roadmap, limits, the clock figure in the preview).
+- **The worst-flux ship baseline** was approved by Jasper ("Yes: once the evaluator's prep is in, start the worst-flux
+  ship baseline (8 seeds x {self, calibrated})"). Claude's run, 19:48–21:49, two waves of four processes (peak 10.4 GB in
+  one process). All 16 runs were clean. The median 2-D rms is 358 km self-calibrated and 298 km calibrated, against 372 km
+  dead reckoning (nominal: 102 and 73 km). Details and conclusions: the update at the top of `2026-10-22_handover-E.md`.
+  The docs got the result on navigation#ship-worst, limits, index, results and the roadmap.
+- **The coder's code map** (`.claude/runs/2026-10-22_coder_E-code-map.md`) found four points for E:
+  - `navFilter` and `navFit` leave the clock's flicker out. The reason (navFit :41) holds for the crystal only.
+  - `runShip`'s file tag would overwrite D's `ship_14d_nominal*` files in any run with another clock, RFI or
+    scintillation.
+  - The real-time navigation error needs no filter change; runShip only has to keep what it computes.
+  - It maps where ship sensors would enter `navFilter`.
+- **The trial stopped.** Jasper asked whether the set-up worked well, then whether work quality was lost compared with
+  one session. Main's answer named these risks:
+  - Jasper's own understanding suffers when work arrives in large batches (52 files in one docs commit).
+  - Code, tests and docs no longer come from one understanding.
+  - Main reviews other sessions' work only by sampling.
+  - The gain was an independent second check: the context check found three blind spots in D's handover.
+
+  Jasper: "i think i can then better keep to 1 session for the potential loss of work quality."
+
+  Development is back in one visible session from now on. `workflow.md` is marked "not in use".
+- **Open after the trial:**
+  - The ship batch's results.
+  - Jasper's decisions for E: route, flux, oscillator.
+  - The notes catch-up for C and D.
+  - The docs session's 11 open questions (`.claude/runs/2026-10-22_docs_update.md`, end).

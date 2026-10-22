@@ -2,6 +2,45 @@
 
 Session note for 22 Oct and the starting point for block E. Jasper: "let's start with block E tomorrow".
 
+## Update, 22 Oct late evening: read this first
+
+Three things happened after this note was written. They change where E should start.
+
+1. **A context check of this plan** (`.claude/runs/2026-10-22_overview_E-context.md`) found that E1 as drafted is off the
+   critical path:
+   - The planning study `expNavPlan` already answers what extra northern pulsars add.
+   - The 'crystal' clock preset is the paper's 3e-11 oscillator, steadier than a stock SDR TCXO (0.65 against ~3.6 µs per
+     hour, log estimate).
+   - D's 73 km is a smoothed (hindsight) number.
+   - runShip has no RFI or scintillation, and B0950+08 is a single Gaussian.
+2. **The ship at worst-case flux** (Claude's run, 22 Oct 19:48–21:49; `.claude/runs/2026-10-22_evaluator_ship-worst.md`;
+   `data/scenario/ship_14d_worst*.mat`):
+
+   | 8 ships, 14 days | 2-D rms error, median | end error, median |
+   |---|---|---|
+   | dead reckoning | 372 km | 644 km |
+   | self-calibrated, worst flux | 358 km | 622 km |
+   | calibrated, worst flux | 298 km | 499 km |
+   | calibrated, nominal flux | 73 km | 141 km |
+
+   - The cause: B0329+54 gives 18–23 TOAs instead of ~115, and B0950+08 gives 1–3. The daily filter starts on day 6–9.
+   - The pull spread is 1.6 east and 1.2–1.5 north, against ~1 for the twin, so the TOA chain loses most of it.
+   - A start-up artefact: navFilter puts the port's 1 km prior at the first TOA (`navFilter.m:134`), which comes 9–14 h
+     after departure at worst flux. Small fix, for Jasper to decide.
+   - **Conclusion: at the design point, from 52° N, B0329+54 + B0950+08 do not navigate a ship.** The levers come before
+     E1: collecting area or flux, the oscillator, the route and the pulsar set.
+3. **The code map for the open decisions** (`.claude/runs/2026-10-22_coder_E-code-map.md`):
+   - navFilter and navFit leave the clock's flicker out (navFit :41), which holds for the crystal only.
+   - runShip's file tag would overwrite D's files in runs with another clock, RFI or scintillation.
+   - The real-time error needs no filter change.
+
+**Decisions for Jasper, in the order they block work:** route (52° N only, or south too), flux (the worst case is the
+6 Oct rule), oscillator (TCXO, OCXO, Rb or CSAC). Then measured profiles, RFI and scintillation in runShip, the navigation
+metric, and how much fusion goes into E.
+
+Also open: the notes catch-up for C and D (header still 13 Oct), and the docs review's 11 questions
+(`.claude/runs/2026-10-22_docs_update.md`, end).
+
 ## Where things stand
 
 - Blocks A, B, C, D are closed. D closed 22 Oct evening; its handover with results and the ten parked items:

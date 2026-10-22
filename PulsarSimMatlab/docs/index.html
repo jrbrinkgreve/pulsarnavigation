@@ -107,7 +107,8 @@ with its own oscillator. Block D predicts the pulse phase the receiver should se
 the simulator a true trajectory and clock, against which the observer's assumed ones are wrong. The difference is the navigation signal,
 and the navigation fit turns it into a position. A simulated ship times B0329+54 and B0950+08 for 14 days with a drifting SDR clock.
 With a calibrated start it stays within 73 km rms of its true track (the median of eight ships). Dead reckoning alone is 379 km rms
-off. The <a href="prediction.html">phase-prediction</a>,
+off. That is at nominal flux. At worst-case flux, the design point, the same ship is at 298 km rms and barely beats dead reckoning
+(<a href="navigation.html#ship-worst">navigation</a>). The <a href="prediction.html">phase-prediction</a>,
 <a href="clock.html">clock</a> and <a href="navigation.html">navigation</a> pages have the functions, and the
 <a href="localisation.html">localisation page</a> the frames, time scales and relativistic corrections behind them.</p>
 <p><b>Before that: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
