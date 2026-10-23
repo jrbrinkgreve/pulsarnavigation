@@ -7,7 +7,12 @@ step, what has been validated (with numbers), what went wrong along the way, and
 still to do.
 
 This file tracks the **current state** of the code (started 30 September 2026 as
-`2026-09-30_project_notes.md`). **Last updated: 13 October 2026** (code review: minor fixes,
+`2026-09-30_project_notes.md`). **Last updated: 23 October 2026** (catch-up of 19–23 Oct after an audit,
+`.claude/runs/2026-10-23_notes-audit.md`: processIQ/foldToTOA, block C (fast simulator) and block D (motion,
+prediction, clock, navigation) as new §5.22–5.39 entries, their results in §7.1–7.6, new bugs in §8, statuses in
+§3, §4, §5, §9, §10 and §11 brought up to date; superseded numbers marked, not removed. State on 23 Oct: blocks
+A–D closed (C and D on 22 Oct), block E revised on 23 Oct (§11), review of C and D under way,
+`2026-10-23_review-C-D.md`). Before: 13 October 2026 (code review: minor fixes,
 reuse checks in `main`, `runAllTests`, generator test, frozen test data in `data/test/`;
 §10 item 12, `2026-10-13_code-review.md`; docs: 19 diagrams; then the full read-through
 `2026-10-13_full-review.md`: all sky and receiver parameters in the reuse check (`checkSkyFiles`),
@@ -30,7 +35,8 @@ periodic mask default off); 9 October also: f_out study with the `foldProfile:co
 `estimateTOA:resolution` warnings (§5.7, §5.8; `2026-10-09_fout-study.md`) and the
 dispersed-domain idea (§10, deferred; `2026-10-09_dispersed-domain.md`). Status markers: **[validated]** = run in MATLAB and
 checked against ground truth; **[written]** = code exists, not yet run;
-**[todo]** = not implemented.
+**[todo]** = not implemented. Rule since the review week (`2026-10-22_handover-E.md`, "How to resume"): Claude may
+run the tests, but "validated" only after Jasper's own run; results checked only by Claude's runs say so.
 
 ---
 
@@ -47,6 +53,10 @@ position. This project builds, in MATLAB:
    uncertainties, and later into a navigation solution,
 
 and validates every processing stage against the ground truth.
+
+Since 22 Oct a navigation solution exists in simulation (`navFit`, `navFilter`, block D). The endpoint of the
+development for now (Jasper, 23 Oct; §11): a fixed position in the Netherlands from several pulsars, at the
+worst-case flux, with the shortest integration time.
 
 ---
 
@@ -79,12 +89,22 @@ and validates every processing stage against the ground truth.
   precision would round to ~60 ns at t = 1 s). Phases of oscillators/chirps are
   computed from the absolute index, never accumulated.
 - Sample k (0-based) of a stream at rate fs is at time k/fs (+ T0, currently 0).
+- Block D (added 23 Oct; makeTrajectory.m:17–24, trueResiduals.m:15–29, makeClock.m:4–7, delayModel.m:4–8):
+  absolute times t in s since J2000.0 (2000-01-01 12:00 TT); positions in 'ECEF' (Earth-fixed, WGS84) or 'SSB'
+  (barycentric, equatorial ICRS axes); delays δ = t_SSB − t_obs; a predictor works in local time τ after its
+  `tOrigin`, phases counted from its integer turn N0; the clock error eps = clock reading − true time (the data's
+  time stamps are clock readings); a timing residual = observed − predicted arrival (positive = late; a receiver
+  closer to the pulsar than assumed gives r < 0); DE440 and TDB − TT in TDB.
 
 **Ground-truth rule**
 - **Processing stages only use what a real observer would know**: the ephemeris
   (`ephem` struct in main: f0, F1, TRef, DM, profile width) and receiver settings
   (band, fLO, fs, from `info_IQ`). Ground truth (`info_gen`, `info_disp`, `info_rx`) is
   used only by the synthetic stages and by the check/plot functions.
+  Since 19–22 Oct the rule holds by signature for `processIQ` / `foldToTOA` (IQ file or fold, receiver settings,
+  ephemeris, processing settings). Truth side as well: `simulateFold` (its `truth` struct), `trueResiduals`,
+  `makeClock`; the observer's side gets the predictor from the trajectory it ASSUMES (`makePredictor`) and its own
+  clock estimate, and `navFit` / `navFilter` see only TOAs and their residuals.
 
 **Reproducibility**
 - Private `RandStream`s: pulsar signal (`mt19937ar`, `seed`), receiver noise
@@ -111,6 +131,12 @@ and validates every processing stage against the ground truth.
   per-channel noise check, and the periodic mask as in `main.m`.
 - `runLockedRadar.m`: B5b, radar locked to the pulsar: leftover in baseline units, TOA
   bias vs SNR, frequency guard and periodic mask cases (files in `data/locked`; §7).
+- Added 19–22 Oct (blocks C and D; §5.28, §5.37–5.39): `runRFIProfile.m` (per-channel RFI statistics for the fast
+  simulator, `data/rfi/profile/`), `runScenario.m` (TOA budgets and the fixed-site motion runs with the fast
+  simulator, `data/scenario/`), `runShip.m` (the ship's closed loop, navFilter; parked since 23 Oct), and the
+  experiments `tests/expSimVsChain.m`, `expSimRFI.m`, `expComponentsChain.m`, `expNavFit.m`, `expNavPlan.m`.
+  Since 19 Oct `runMonteCarlo`, `runSNRSweep`, `runH0` and `runRFITest` call `processIQ` / `foldToTOA` (both front
+  ends; §5.11, §5.12, §5.14), so only main and the run scripts call the stages (`2026-10-19_processIQ.md`).
 
 ```
 SKY (synthetic)                      runStage.sky
@@ -146,13 +172,20 @@ PROCESSING, channelized (frontEnd = 'channels' in main.m since A4, 8 Oct; fold
       blankingWeights → foldProfile 'DataWeights' (instead of NoiseCoeffs) [validated]
       periodicRFI: periodic emitters from detectRFI's events → mask of every predicted
       pulse, merged before blankChannels (B6; periodicMask, default false since 9 Oct) [validated]
-      (block B closed 9 Oct; block C, the fast simulator, started 20 Oct: simulateFold & co., §10 item 3)
+      (block B closed 9 Oct; block C, the fast simulator, started 20 Oct: simulateFold & co., §10 item 3;
+       C and D closed 22 Oct: §5.22–5.39, §10 items 3 and 14)
 VALIDATION
   9. validateTOA            (val struct + figure)                         [validated]
 CHECKS (ground truth, optional via plots.*)
   plotDispersionCheck, plotIQCheck, plotDetectedPower, plotFoldCheck,
   expectedPowerModel (shared model)
 ```
+Since 19 Oct steps 5–7 (5b–7b, with excision) are one function, `processIQ` (IQ in, fold out; §5.22), and step 8
+with the good-TOA rule is `foldToTOA` (§5.23). Around the chain (docs `pipeline.html`, "Around the chain"): the fast
+simulator `simulateFold` (block C, §5.24) draws the fold directly and feeds `foldToTOA`; block D's predictor
+(`makePredictor`, §5.33) goes into `foldProfile` 'Predictor', and the TOAs go into the navigation fit (`navFit`,
+`navFilter`, §5.35–5.36).
+
 \* validated on noise-free data. The receiver stage (3) and the noise-aware check
 functions are validated with noise: reference run −5 dB, L = 0.1 s, fLO 1.3 GHz,
 fs 800 MHz, noise seed 43 (SNR 93.4, σ 2.880 µs), Monte Carlo over noise seeds, SNR and
@@ -175,7 +208,11 @@ from the file before it, via `inFile` / `rawFile` / `powerFile`, and its info fi
 new as its input's; f_out (samples per bin), DM, refFreq, band, chanWidth; weight file vs power
 file) and `checkFold` (power file, age, nBin, subintPeriods, ephemeris, data-weight file);
 warnings `main:staleProcessing` / `main:staleFold`. Not checked: the excision and periodic-mask
-options (not stored in the infos).
+options (not stored in the infos). **Moved 19 Oct:** `checkProcessing` and `checkFold` are now in `processIQ`
+(its `'Reuse'` path), with the warnings `processIQ:staleProcessing` / `processIQ:staleFold` (processIQ.m:57–58,
+297, 320; `2026-10-19_processIQ.md`, "Step 1 written"); `checkFold` also warns when a reused fold has another
+noise-calibration state (20 Oct). main keeps `checkConsistency` (sky and receiver files); since 21 Oct it also
+compares `profileComponents` (fixed 23 Oct, §8 #12).
 Since 14 Oct: warning `main:brightExcision` on the channel path when `excision` is on and
 `snrDB` > −5 (or Inf, noise-free): `detectRFI` then blanks the pulse itself (§5.20). A
 driver-level check of a simulation setting, like the reuse checks; processing unchanged.
@@ -183,11 +220,14 @@ driver-level check of a simulation setting, like the reuse checks; processing un
 
 **Helpers** (in `functions/`, shared by main and the MC script): `loadInfo(dataFile)`
 (reload `<name>_info.mat`), `gaussianTemplate(nBin, fwhmTurns)` (periodic Gaussian,
-peak 1 at bin 1), `noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
+peak 1 at bin 1; since 20 Oct also `gaussianTemplate(nBin, components)` with [amplitude, centre, FWHM] rows in
+turns: their sum, maximum 1, phase 0 = the components' reference point, gaussianTemplate.m:1–25),
+`noiseBandwidth(fLow, fHigh, edgeWidths)` (= (∫W²)²/∫W⁴ for a
 product of raised-cosine edge tapers), `checkSkyFiles(info_gen, info_disp, ...)` (13 Oct:
 the sky parameters in which the files on disk differ from `pipelineParams`; `main` warns,
-`runMonteCarlo`, `runRFITest` and `runLockedRadar` stop). **Local functions in main**: `checkConsistency`,
-`checkProcessing`, `checkFold`, `infoTime`.
+`runMonteCarlo`, `runRFITest` and `runLockedRadar` stop; since 21 Oct an optional 14th input, the profile
+components, checkSkyFiles.m:1). **Local functions in main**: `checkConsistency` only since 19 Oct (main.m:194;
+`checkProcessing`, `checkFold`, `infoTime` moved into `processIQ`).
 **Detection** (processing, after `estimateTOA` in main and `runSNRSweep`):
 `detectPulsar` (§5.13); main defines `toa.good = valid & detectedUnknown & ~flagChi2`
 and runs `validateTOA` also on the good TOAs only.
@@ -200,6 +240,8 @@ or power file, plus 128 channel files, their dedispersed copies and the channel 
 f_out 1 MHz (main's printed estimate counts this since 13 Oct; before it also added the
 full-band files). `test.dat` can be deleted after dispersion (only `plotDispersionCheck` needs it).
 The MC adds rx + IQ + dedispersed files in `data/mc/` (≈ 2.9 GB at L = 0.1 s, 800 MHz).
+(These sizes are for L = 0.1 s. Since 20 Oct the default is L = 0.2 s at DM 25: ~12 GB of full-band files,
+`2026-10-20_blockC.md`, "L → 0.2 s"; the DM-5 / 0.1 s dataset is kept in `data/ref_DM5_L0.1/`.)
 
 ---
 
@@ -212,6 +254,12 @@ tests have it frozen in `tests/testParams.m` (data in `data/test/`, 13 Oct); it 
 with the original plan of 30 Sep (end of this section). (Rewritten 13 Oct, full read-through
 item 7: this section used to show the 30 Sep plan as "the reference" and the set below as
 deviations from it.)
+
+**Two sets since 20 Oct.** `pipelineParams.m` is no longer the 13 Oct set: DM 25 and L = 0.2 s since 20 Oct
+(Jasper; pipelineParams.m:24, 28), plus new switches (rows at the end of the table). The unit tests keep the 13 Oct
+set frozen in `tests/testParams.m` (DM 5 at line 20, L = 0.1 s at line 24), and all results in §7 before
+20 Oct are at DM 5 / 0.1 s. In the table, the DM and L rows give the current defaults in bold; the text of those
+rows describes the 0.1 s / DM 5 set.
 
 | Group | Parameter | Value | Notes |
 |---|---|---|---|
@@ -238,9 +286,16 @@ deviations from it.)
 | | chanWidth, weighting | 3.125 MHz (128 channels), `'optimal'` | channel path only |
 | | excision, excisionArgs | true, `{}` | since B3, 8 Oct (Jasper); `detectRFI` defaults |
 | | periodicMask, periodicArgs | false, `{}` | true 8–9 Oct (B6-3: `periodicRFI`'s predicted pulses added to the mask); off since 9 Oct (false emitters with dense detections, §9; Jasper) |
+| Added 19–21 Oct (pipelineParams only, not in testParams) | profileComponents | `[]` | [amplitude, centre, FWHM] rows (turns; 21 Oct): a multi-component pulse for the generator and the template; `[]` = the single Gaussian of dutycycle (pipelineParams.m:21) |
+| | noiseCal | false | channel path: per-channel noise calibration in `processIQ` (20 Oct; §5.22) (pipelineParams.m:139) |
+| | scintOn, scint, scintSim | false; J0437 740 MHz / 2290 s; `[]` | for `simulateFold` scenario runs only; the voltage chain ignores them (20 Oct; pipelineParams.m:105–111) |
+| | rx, proc, files | structs | built from the variables above for `processIQ` (19 Oct; pipelineParams.m:181–186); optional fields `proc.weightsArgs`, `proc.noiseCal`, `proc.noiseCalOnPulse` |
 
 Printed by `main.m` for this set: full band 9 TOAs, median σ 2.880 µs, SNR 93.4; channel
-path 8 TOAs, 2.943 µs, SNR 92.3; with excision 2.956 µs, 91.9 (§7).
+path 8 TOAs, 2.943 µs, SNR 92.3; with excision 2.956 µs, 91.9 (§7). **These are the DM 5 / 0.1 s numbers.** At
+the current defaults (DM 25, L = 0.2 s, channel path, excision; Jasper's run 23 Oct, identical to 21 Oct): 15 of
+17 sub-ints fitted, 15 good TOAs, median SNR 92.0, σ 2.951 µs, red. χ² 1.003; validateTOA ratio 0.861, total fold
++0.2135 ± 0.7142 µs (`2026-10-23_review-C-D.md`, "main.m failed since 21 Oct: fixed"; §7.6).
 
 **Original plan (30 Sep 2026, superseded on 1 Oct).** As above except L = 1 s (100 pulse
 centres), fLO = 1.4 GHz, fs = 500 MHz (D = 8), snrDB = −20 dB, nBin = 1024 (9.77 µs phase
@@ -284,6 +339,15 @@ Progress (with `Verbose`) is printed about every 10 % of the blocks.
 **Tests (`tests/testGeneratePulsarSignal.m`, 13 Oct, review item R1; ~4 s; validated: Jasper's run 13 Oct: the 13 tests and testGeneratePulsarSignal all passed;
 test 4 then changed from 40 % to 20 % and the warning lowered to > 20 %: Jasper's run of `runAllTests` 13 Oct, passed).** (1) format and ground truth (binary-exact T = 1/1024 s, f_in = 2^27 Hz: the 13th pulse centre on the last sample); (2) power profile, 5 %, 200 pulses at 100 MHz: folded mean x² in 1 µs bins vs A²·G from an independent exact periodic sum (21 images), exact per-bin σ: residuals mean +0.11 ± 0.08, std 0.97 ± 0.06; centre 0.500015 ± 0.000017 turns; width −0.3σ (FWHM 49.92 µs, nominal 50); (3) 'amplitude' mode, power FWHM / √2; (4) 20 % duty, the widest real pulses (Jasper: pulsars stay below ~20 %; was 40 %), all bins: the bins halfway between pulses check the neighbour sum (a generator copy without it fails test 4 only: residual std 5.3); (5) same seed identical, BlockSize 333,333 / 7,919 = one block bit for bit, A = 4 exactly 4 × A = 1 for normal floats (subnormals far off-pulse differ by ≤ 3e-45), another seed differs, global RNG untouched, clock seed reproduces; (6) bad mode / seeds refused; 25 % warns, 20 % does not (threshold lowered from 50 % to 20 % on 13 Oct, Jasper; Claude's run: all passed, tests 1–5 unchanged). `randn` drawn in pieces gives the same numbers as in one piece
 (checked for single and double, any split), so the file does not depend on `BlockSize`.
+
+**Multi-component pulse: option `Components` (21 Oct 2026; validated, Jasper's run 22 Oct).** [nComp × 3] rows
+[amplitude, centre, FWHM] in turns: the power profile is their sum, scaled to peak 1 (its continuous maximum);
+the components' phase 0 sits at (k + 0.5)·T, so `pulseCenters` are the times of that reference point, not
+necessarily the peak; 'power' mode only (dutycycle then ignored); one component [1 0 dutycycle/100] = the single
+Gaussian bit for bit (generatePulsarSignal.m:35–43). `pipelineParams` `profileComponents` (default `[]`) feeds it
+and `ephem.profileFWHM` (the template). Test 7 of `testGeneratePulsarSignal`: 3 components, residual/σ mean
++0.004, std 1.025, centroid and width within 0.3σ, [1 0 0.05] bit for bit, amplitude mode refused; tests 1–6
+unchanged (`2026-10-20_blockC.md`, 21 Oct "Step 1 of (3)"; Jasper's runAllTests 22 Oct).
 
 ### 5.2 `applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, ...)` [validated]
 
@@ -695,6 +759,29 @@ noise all off-pulse: variance −1.8σ, lag 1 −0.0σ, lag 2 −0.1σ; window a
 −0.8σ, lag 1 +0.6σ. (Tests 3 and 6 use the same noise realization, so their slightly
 negative variance offsets are correlated, not independent.)
 
+**Per-channel noise calibration: option `ChannelNoise` (20 Oct 2026; validated via testRFIModel 5, Jasper's run
+20 Oct).** [nChan × (1+Lmax)] measured V, X(1..Lmax) per channel (e.g. `rfiProfile` on the observation itself,
+`processIQ` `proc.noiseCal`): the noise sums use them instead of the clean flat-channel model, so error bars and
+χ² follow each channel's real noise. With `DataWeights` the per-bin V and X(L) are scaled per channel by measured /
+model (exact for unblanked bins, proportional near blanks); without, they replace `NoiseCoeffs` per channel; the
+weights are then kept per channel; `info.channelNoise` (foldProfile.m:76–83). testRFIModel 5: noise / own model
+0.988–1.018 in all channels (clean model: carrier 0.485, narrowband 1.143), TOA χ² 1.0099 ± 0.0068 (clean
+0.8746); model coefficients as ChannelNoise = the uncalibrated fold bit for bit (`2026-10-20_blockC.md`, "B2–B4").
+
+**Phase predictor: option `Predictor` (21 Oct 2026, block D2b; validated, Jasper's runs 22 Oct, and test 6 on
+23 Oct).** A `makePredictor` struct (§5.33), built with its start at the file's time zero: each time bin gets its
+phase from `pred.phase` instead of f0·(t − TRef) (f0, F1, TRef, Phi0 then unused; f0 only labels the output). Each
+sub-int's tRef solves pred.phase(tRef) = turnRef (Newton; just outside the span, as for a partial last sub-int,
+the phase continues linearly with the edge frequency), fRef = pred.freq(tRef), so TOA = tRef + Δφ/fRef as before
+(foldProfile.m:27–38). Without the option the fold is bit-identical; `info.predictor` holds the summary (`[]`
+without). **Tests (`tests/testFoldPredictor.m`, 6 checks):** a 50 Hz pulsar seen from a probe at 300 km/s
+(Doppler 1e-3, one full turn of drift in 20 s): the predictor fold equals the fold with the data's true phases to
+1.1e-8 of the peak; folded with f0 alone the peak drops to 0.022; with an empty delay model the predictor
+reproduces the f0/TRef fold to 5e-11 (`2026-10-20_blockC.md`, "D2b"); test 6 (23 Oct, A-1): the 100-turn predictor
+fold merged in pairs by `mergeSubints` = the 200-turn fold, tRef to 1.0e-11 s, fRef 1.5e-11 relative (the f0 model
+would be off by 1.7e-2 s), a gap refused (`2026-10-23_review-C-D.md`, "A-1 fixed"). Gap: the voltage generator
+has a fixed period, so predictor folding is checked on synthetic power series only (`2026-10-22_doppler-dispersion.md`).
+
 ### 5.8 `estimateTOA(fold, info_fold, template, ...)` [validated: noise-free, −5 dB MC; A2a, A2c-1 7 Oct 2026]
 
 **Model.** p(φ) = a + b·s(φ − τ) + noise; s = template (peak 1 at phase 0); τ = phase
@@ -768,7 +855,9 @@ weighting (centroid) is better: 0.28 µs vs 0.47 µs per pulse in the noise-free
 the reduced χ² comes out ~1.06–1.09 (reproduced by simulation with a perfect noise
 model; excess from low-level tail bins). Both effects should disappear once receiver
 noise dominates. A weighted fit using the radiometer model would be optimal in both
-regimes (todo).
+regimes (todo). (19 Oct: on the channel path the 'optimal' fit's 1/variance weighting acts like it in the
+self-noise regime: +10 dB σ 0.360 µs against the full band's 0.537 µs, runSNRSweep smoke test, Claude's run;
+`2026-10-19_processIQ.md`, "Checks of runSNRSweep / runRFITest".)
 
 **One TOA vs many:** one profile of all pulses has the same precision as the weighted
 mean of per-pulse TOAs (constant profile, exact phase model). Sub-integrations are needed
@@ -793,6 +882,18 @@ w/15 → 1.03; **phase bins only** (1 µs time bins) of w/1.2–1.6 → 1.14–1
 1.05–1.06, w/12.8 → 1.04 (red. χ² 1.45 → 1.06 → 1.007 at SNR 92). So coarse time bins are
 the critical side; the w/5 rule covers both conservatively. Main's settings: r = w/102.
 Later, if coarse bins are ever needed: a bin-smoothed template.
+**Changed 20 Oct 2026 (Jasper: "tighten the resolution warning to FWHM/10", then "go ahead with the spectral
+effective width"; validated by testChannelTOA 7 revised, Jasper's run 22 Oct).** The rule above (w/5, width at half
+maximum, `halfMaxWidth`) is superseded: the warning fires when r > w/10, and w is now the **spectral width**
+w = √(3 ln 2)/π / k_t = 0.459/k_t, k_t² = Σk⁴|S_k|² / Σk²|S_k|² over the fit's harmonics (local function
+`spectralWidth`, estimateTOA.m:30–32, 201–210, 681): a Gaussian's FWHM exactly (so the 9 Oct calibration carries
+over), but it also sees narrow features below half maximum. Why: at low SNR coarse bins cost more than the 9 Oct
+high-SNR sweep showed (B0329+54's five components: pull width 1.18 at SNR 7 with NBin 1024, 1.08 with 2048; §7.2).
+B0329+54: w = 0.00774 turns (half-maximum width 0.0104) → NBin 1024 warns (1/7.9), 2048 passes (1/15.8); J0437
+single Gaussian 0.0245 (1/12.5 at NBin 512). Caveat: a noisy template has a white harmonic floor (smooth it or set
+`MaxHarmonic`). testChannelTOA 7: Gaussian 0.05000, two components 0.01139 and B0329+54 0.00774 against their
+analytic harmonics (1e-6); the six warning cases unchanged (`2026-10-20_blockC.md`, "Resolution warning
+tightened", "Spectral template width in estimateTOA").
 
 **Channels combined: A2a (7 Oct 2026; validated, Jasper's run).**
 For a fold with several channels (nChan > 1) the profile is p = Σ_c prof_c (equal
@@ -923,6 +1024,14 @@ z = (TOA − truth)/toaErr must be N(0,1), to within ~1/√(number of TOAs).
   prediction is printed at the end.
 - Cost at L = 0.1 s: roughly 15–20 s per seed.
 
+**Superseded 19 Oct (step 2 of the processIQ plan; `2026-10-19_processIQ.md`):** per seed `addNoiseAndRFI` →
+`applyIQmodulation`, then `processIQ` (own files in `data/mc/`, channel files in `data/mc/chan/`) and `foldToTOA`;
+the front end comes from `pipelineParams` (default: channels, excision, 'optimal'), so the "full-band path only"
+text above no longer holds; the warning `runMonteCarlo:fullBandOnly` was removed, `runMonteCarlo:noExcision` stays
+for the full band with RFI (runMonteCarlo.m:66). Per-seed line adds good TOAs, median χ², min pChi2, blanked
+fraction; pooled pChi2 (mean, fraction < 0.05, KS D). Seed 43 = main on the channel path (8 TOAs, 2.9559 µs).
+Results (A3b, 50 seeds; full band reproduces the old 0.950): §7.1.
+
 ### 5.12 `runSNRSweep.m` [validated, 5 Oct 2026]
 
 **Idea.** Phase D: how TOA precision and error-bar honesty change with SNR, against the
@@ -956,6 +1065,12 @@ every realization and missing from the scatter.
   known/unknown vs theory Q(η − SNRopt), χ² flags, good TOAs, outliers and rms/pred among
   good TOAs, H0 line. Figure 2×2 with a detection panel (H0 false alarms in its title).
   Full run 13.0 min.
+- **Superseded 19 Oct (step 3b; `2026-10-19_processIQ.md`):** per (realization, SNR) `processIQ` + `foldToTOA`
+  (files `data/mc/sweep_*`, `data/mc/chan/sweep_*`), H0 pass `processIQ` + `detectPulsar`; front end from
+  `pipelineParams`; warning `runSNRSweep:fullBandOnly` removed (`:noExcision` stays, runSNRSweep.m:90). Channel
+  path: `excisionMaxSNR = -5` (excision off above it: bright pulsar); no channel-path optimum (full-review item 8), so
+  optSigma / optSNR are NaN and the detection theory and SNR axes use the measured mean T0 (`res.xSNR`). Full band
+  old vs new bit-identical (1 realization, −5 / +10 dB). The weak-regime channel sweep (−25 … −11 dB, 20 Oct): §7.1.
 
 ### 5.13 `detectPulsar(fold, info_fold, template, ...)` [validated, 6 Oct 2026; A2b 7 Oct; A2c-2 8 Oct]
 
@@ -1043,6 +1158,14 @@ from the measured correlation: √(Σ R_c·r / Σ R_c·r_model), R_c = template
 autocorrelation. Exceedances at P_FA 1e-1, 1e-2, 1e-3 (Φ⁻¹ and Rice thresholds). Saves
 `data/mc/h0Run.mat`; figure: T0 histogram vs N(0,1), P(statistic > η) vs theory (log),
 correlation vs lag. Files `data/mc/h0_*`; ~8 s per pass (100 passes ≈ 14 min).
+
+**Superseded 19 Oct (step 3a; `2026-10-19_processIQ.md`):** per pass zero sky + noise as before, then `processIQ`
+(files `data/mc/h0_*`, `data/mc/chan/h0_*`) and `detectPulsar` with out.Bnoise / out.weighting; front end from
+`pipelineParams`; warning `runH0:fullBandOnly` removed (`:noExcision` stays, runH0.m:63). The model correlation of
+normProfile on the channel path comes from a new local function `modelCorr` (lags 1..3 of the combination
+detectPulsar uses; one channel reduces to WX/√(W2·W2′)); with excision the blanked fraction per pass. Full band
+old vs new bit-identical (10 passes). `data/mc/h0Run.mat` now holds the 19 Oct channel-path 100-pass run (the 6 Oct
+full-band result is only in §7 and docs `scripts.html`). Channel-path results: §7.1.
 
 ### 5.15 `channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, ...)` [validated 6 Oct 2026 (Jasper's run); channelized front end, unit 1]
 
@@ -1244,6 +1367,8 @@ each blanked channel is processed whole (FFT size ≥ number of samples) and the
 L = 1 s stops with an error)**. Design (§9): time blocks with an overlap of the filter reach
 (nF + nP + nR samples; exact, since C(a, a+τ) only uses the mask near a), block-outer /
 channel-inner loop, `Y` written per block, clean blocks skipped.
+Workaround since 20 Oct: `processIQ` passes the optional `proc.weightsArgs` to blankingWeights; `runRFIProfile`'s
+1 s runs set `{'MaxMemoryGB', 8}` (processIQ.m:38–39; `2026-10-20_blockC.md`, "runRFIProfile, 1 s").
 
 ### 5.19 `blankChannels(info_chan, mask, outBase, ...)` [B1, validated 8 Oct 2026 (Jasper's run)]
 
@@ -1328,6 +1453,24 @@ energy left over all channels (steady level subtracted) zero within ~1e-6 (1.0e-
 without the guard), radar flagged in channels 24–41; impulses (1000/s) 99.84 % removed
 (98.65 %), blanked 0.81 % (0.65 %).
 
+**Per-channel thresholds: option `ChannelThresholds` (21 Oct 2026, default true; validated, Jasper's run of
+testDetectRFI 4, 22 Oct).** The thresholds above assume each channel's noise has the channelizer's (flat)
+spectrum. Continuous noise-like RFI narrower than a channel (a 200 kHz carrier, an LTE edge) is still complex
+Gaussian but correlated over ~20 samples, so its window means fluctuate more and the white thresholds flag its own
+power peaks (~1400 false windows per carrier channel per second on the chain, against ~2): those cuts made the
+blanked phase bins 4–9 % noisier than any model of independent blanking (testRFIChain, 21 Oct; §7.2). From pass 2
+each channel's own complex autocorrelation r_c(d), d = 0 … max(Scales) − 1, is measured on all supported samples
+except the previous pass's strong intervals (peak ≥ 30 × baseline: pulsed RFI), and its thresholds come from the
+eigenvalues of the Hermitian toeplitz(r_c) with the exact method above (helper `windowThresholds`); such a channel
+also takes its baseline from those samples. A channel keeps the white thresholds unless its own move one by more
+than 1 % (estimation noise ~1e-4): clean channels bit for bit (detectRFI.m:60–80, 129, 171; memory 48 + 16 bytes
+per channel sample, detectRFI.m:181). Test 4 (3 carriers 200 kHz at −21 dB, +20 dB radar on the middle one):
+flagged / expected at PFA 1e-3 1.07, 1.06, 1.12, 1.15, 0.96 (± 0.05–0.14) against 1.8 … 63 with white thresholds;
+default PFA 1 / 0 windows instead of 432 / 386; 19 / 19 radar pulses on the carrier blanked; tests 1–3 identical
+except 3d's unguarded blanked fraction 0.6487 → 0.6484 % (`2026-10-20_blockC.md`, 21 Oct "(b) part 2"). Effect on
+§9's periodicRFI false emitters (dense false flags): not rerun (runRFITest cases 14–15 still at the white thresholds;
+docs `limits.html`).
+
 ### 5.21 `periodicRFI(info_chan, info_rfi, ...)` → `[rows, info]` [B6, validated 8 Oct 2026 (Jasper's run of testPeriodicRFI)]
 
 **Idea.** What makes periodic RFI dangerous — regular timing, so it can pile up at fixed
@@ -1371,6 +1514,386 @@ for periodic RFI (dispersed: its pulse arrives 59 µs later per channel at 1.3 G
 neighbouring channels do not combine into one simultaneous pulse, and its detections
 jitter across the 0.5 ms pulse, far outside ±1 µs).
 
+*(§5.22–5.39 added 23 Oct 2026 in the notes catch-up: the processing boundary of 19 Oct, block C (fast simulator,
+20–22 Oct) and block D (motion, prediction, clock, navigation, 21–22 Oct). Facts from the help headers and the
+logs `2026-10-19_processIQ.md`, `2026-10-20_blockC.md` (history of C and D), `2026-10-22_handover-D.md`,
+`2026-10-23_review-C-D.md`; docs pages pipeline, simulator, prediction, clock, navigation, scenario.)*
+
+### 5.22 `processIQ(info_IQ, rx, ephem, proc, files, ...)` → `out` [validated 19 Oct 2026 (Claude's batch run at Jasper's request; Jasper: "this one time consider it validated by me"); IQ in, fold out]
+
+**Idea.** What an observer does with the receiver's IQ data up to the fold, as one function: front end (full band,
+or channelized with excision), detection, fold (§10 item 7, redesigned 16–19 Oct). The input is the IQ file the
+receiver writes (in simulation `applyIQmodulation`; later a real recording), so the ground-truth rule holds by the
+signature: IQ file, receiver settings, ephemeris, processing settings. MATLAB reference ("golden model") for a
+later FPGA/GPU port: the same stage boundaries and intermediate files. The TOAs follow in `foldToTOA` (§5.23).
+**Code.** `out = processIQ(info_IQ, rx, ephem, proc, files, 'Reuse', tf, 'Verbose', v)`. info_IQ: file,
+actualFsOut, fLO, t0; rx: fLow, fHigh; ephem: f0, F1, TRef, DM (profileFWHM is for foldToTOA); proc: frontEnd,
+refFreq, f_out, nBin, subintPeriods, chanWidth, weighting, excision, excisionArgs, periodicMask, periodicArgs, and
+the optional fields weightsArgs (blankingWeights options, e.g. `{'MaxMemoryGB', 8}`), noiseCal (20 Oct, default
+false: `rfiProfile` on this observation's off-pulse bins → `foldProfile` 'ChannelNoise'), noiseCalOnPulse (default
+1.5 FWHM around each component); files: the output names of both front ends (processIQ.m:21–51). Steps: (1) front
+end — full band `applyInverseDispersion`, `detectPower`; channels `channelizeIQ`, with excision `detectRFI`
+[+ `periodicRFI`] → `blankChannels`, `dedisperseChannels`, `detectChannels`, with excision `blankingWeights`;
+(2) `foldProfile` (NoiseCoeffs, or DataWeights with excision); (3) Bnoise and weighting for foldToTOA. 'Reuse'
+true (main: `runStage.process = false`): saved files and fold after `checkProcessing` / `checkFold` (warnings
+`processIQ:staleProcessing` / `processIQ:staleFold`); input checks `processIQ:fields`.
+**Outputs.** out: frontEnd, fold, info_fold, Bnoise, weighting, info_det, info_dedisp (full band) or info_chan,
+info_dc, info_w (channels); with excision rfiMask, info_rfi, info_per, info_chanD (added 19 Oct for runRFITest);
+info_cal with noiseCal (processIQ.m:76–83).
+**Validation (19 Oct).** Old main (HEAD) vs new main, both front ends and the reuse path: fold, toa, detection and
+data files (md5) identical, no warnings. Full band 9 TOAs, median σ 2.8799 µs, SNR 93.36, χ² 0.963; channels 8 TOAs,
+2.9559 µs, SNR 91.86, χ² 1.008, total +0.0564 ± 0.9826 µs (= 16 Oct). Then the run scripts on it: runMonteCarlo
+(A3b, §7.1), runH0, runSNRSweep, runRFITest (full band old vs new bit-identical; runRFITest cases 1 and 3
+bit-identical); runLockedRadar stays on the stages (difference channels by superposition)
+(`2026-10-19_processIQ.md`). Since then on every main.m run (current numbers: §4).
+
+### 5.23 `foldToTOA(fold, info_fold, profileFWHM, Bnoise, ...)` → `[toa, detection, info]` [validated 19 Oct with processIQ; component templates 20 Oct (testSimulateFold 14, Jasper's run 20 Oct)]
+
+**Idea.** The back end of the processing as its own function (Jasper 19 Oct: "keep runTOA as a separate
+function"), so a fold from elsewhere — `simulateFold` — goes through exactly the same code. Observer information
+only: the fold, the template from the ephemeris, the noise bandwidth of the observer's own filters.
+**Code.** (1) template = `gaussianTemplate(NBin, profileFWHM)`: a FWHM in turns, or [nComp × 3] components (20 Oct);
+(2) `estimateTOA`; (3) `detectPulsar`; (4) `toa.good = valid & detected (unknown phase) & ~flagChi2` (MaxRedChi2 2;
+pChi2 reported, it does not decide; §5.8). Options 'Weighting' ('equal' default, 'optimal'), 'Verbose'; the full
+band passes 'equal' explicitly. Bnoise: full band the noise bandwidth of the dedispersion taper; channels BnoiseChan
+of one channel; with the simulator's NPol the observer passes Bnoise × NPol. Outputs toa (+ good), detection, info
+(template, Bnoise, weighting, toa, detect) (foldToTOA.m:1–48).
+
+### 5.24 `simulateFold(f0, rhoDB, nTurns, ...)` → `[info, fold, truth]` [block C, the fast simulator; validated: testSimulateFold 1–15 Jasper's run 20 Oct, 16 Jasper's run 22 Oct, all in runAllTests 23 Oct; against the voltage chain expSimVsChain, expSimRFI, expComponentsChain, Jasper's runs 23 Oct]
+
+**Idea.** Hours of observation cannot be simulated at voltage level (~61 GB per second). This draws the fold that
+`foldProfile` would make (linear assignment) straight from its statistics, so foldToTOA / estimateTOA /
+detectPulsar run on it unchanged. Truth side: the observer gets only fold and info, which hold nothing
+foldProfile's would not; the truth is a separate struct (simulateFold.m:4–20). The simulator works in the
+predictor's frame: all physics of block D (geometry, motion, clock) enters through 'PhaseOffset' (review 22 Oct).
+Built 20 Oct in the order C1 (one channel) → C2 (validation) → C4a (channels) → C4b (RFI) → C3a–c (schedule,
+scintillation, adaptive sub-ints); NPol, Components, ObserverNoise 20 Oct; PhaseOffset as a function of time 21 Oct.
+**Model** (per sub-int, phase bin j at φ_j = (j−1)/NBin; simulateFold.m:129–161):
+- mean m_cj = 1 + g·g_c·ρ·p̃(φ_j − PhaseOffset) in channel c (baseline 1 = the receiver-noise power; g =
+  SignalGain, g_c = ChannelGain); p̃ the unit-peak periodic Gaussian (or the peak-normalized sum of 'Components')
+  averaged over a time bin and the assignment triangle, exact in Fourier space: p̃_k = p_k·sinc(k·BinDt·f0)·sinc²(k/NBin);
+- asymptotic weights for time bins spread uniformly in phase, n = SubintPeriods/(NBin·f0·BinDt) time bins per
+  phase bin: weight n, weight2 2n/3, weightX n/6 (neighbour correlation 0.25); with correlated time bins
+  (c(0) = V, c(±L) = X(L), consecutive bins δ = f0·BinDt·NBin phase bins apart): weight2 = n·Σ_L c(L)K(Lδ),
+  weightX(d) = n·Σ_L c(L)K(d − Lδ), K(s) = 2/3 − s² + |s|³/2 for |s| < 1, (2 − |s|)³/6 for 1 ≤ |s| < 2;
+- noise Gaussian: var(prof_j) = m_j²/(Bnoise·BinDt)·weight2/weight², neighbour covariance
+  m_j·m_j+1/(Bnoise·BinDt)·weightX/(weight_j·weight_j+1), circular, lags 1..D — the model of estimateTOA and
+  detectPulsar (m², so the pulsar's own noise is in); channels independent; asymptotic weights give a circulant
+  correlation matrix, drawn by FFT (eigenvalues 1 + 2Σ_d r_d cos(2πkd/NBin)); copied weights: a sparse Cholesky factor;
+- RFI (C4b): mean L_c + pulse, weights × v_c per channel; the fold's weight2/weightX from the clean model (what the
+  observer assumes), the noise drawn with the measured coefficients ('ObserverNoise' 'measured' = the calibrated
+  observer, whose weights use them too); blanked bins taken as spread evenly over pulse phase.
+**Options** (simulateFold.m:42–127). 'FWHM' (0.05 turns) or 'Components' [amplitude, centre, FWHM]; 'PhaseOffset'
+(scalar, per sub-int, or a handle @(t) of the sub-ints' tRef: trueResiduals' phaseOffset); 'NBin' (2048);
+'SubintPeriods' / 'SubintTime'; 'Passes' [nPass × 2] s (absolute times; complete turns and sub-ints inside passes);
+'FluxScale' or 'Scintillation' (bandwidth HWHM, timescale 1/e, band; own random stream, the noise draws unchanged;
+warning above timescale/5); 'Bnoise' (391.6e6; channel path 3.0596e6); 'NPol' (the average of NPol polarizations =
+Bnoise × NPol for the observer; works with 'RFI'); 'BinDt' (1e-6; channels 0.96e-6); 'NChan', 'ChannelGain' (truth:
+e.g. the forward band-edge taper), 'NoiseCoeffs'; 'MaxMemoryGB' (2); 'RFI' (an rfiProfile struct); 'ObserverNoise';
+'SignalGain'; 'TRef'; 'Weights' (copied from a voltage fold); 'Seed'; 'Verbose'. ρ convention: pulse-peak signal PSD
+over receiver-noise PSD per polarization (the simulator's snrDB convention; the scenario page's W_eq = 2·W50 rule is
+2.7 dB lower for the same pulsar).
+**Outputs.** info (foldProfile's fields; predictor [], channelNoise; sourceFile 'simulateFold', simulated true,
+weights 'asymptotic' / 'copied'); fold (foldProfile's fields and conventions); truth (T, pulseCenters, phaseOffset,
+rhoDB, rho, signalGain, channelGain, FWHM, components, Bnoise, nPol, seed, peak; with RFI level, validFraction,
+noiseRatio; pass; fluxScale) (simulateFold.m:163–179).
+**Tests (`tests/testSimulateFold.m`, 16 tests, ~1 min).** (1) noise-free mean vs foldProfile on a synthetic
+erf-averaged power series: 5.33e-5 of the peak (limit 5e-4); (2) asymptotic noise, 4000 sub-ints: var 0.9999, lag 1
+0.2497; (3) copied weights: var 0.9996; (4) foldToTOA at −5 dB, 400 one-turn sub-ints: SNR 93.5, σ 2.907 µs, pulls
+std 0.997; H0 3000 sub-ints T0 std 1.000, 3 false alarms (3.0 expected); (5) 20 h in 60 s sub-ints in 0.05 s;
+(6) closed-form correlated weights vs foldProfile with NoiseCoeffs: 1.9e-5; (7) 16 channels H0: var 0.9993, lags
+0.2583 / 0.0012 / 0.0002 (model 0.2586 / 0.0012 / 0); (8) 128 channels −5 dB 'optimal', 180 TOAs: pulls 1.005,
+σ 2.881 µs vs 2.907 µs of one channel (0.991: the 1/variance weighting beats FFTFIT by ~1 % at −5 dB); (9) RFI, an
+8-channel synthetic profile: means = levels, variance / observer model 1.001, 1.002, 1.301, 1.001, 0.361 … (expected
+1, 1, 1.3, 1, 0.36); (10) one pass = the nTurns interface bit for bit, two passes with absolute tRef; (11) FluxScale
+0.25 → amplitude ratio 0.250; scintillation field ACF 0.363 at Δt_d (1/e), 0.490 at Δν_d (½); 2 MHz scintles in 128
+channels variance 0.801 vs 0.791 expected (grid fix, 20 Oct); (12) mergeSubints = foldProfile's 5-turn fold to
+1e-12; adaptiveSubints at −25 dB (§5.26); (13) NPol 1 = no option bit for bit, NPol 2 = Bnoise × 2 exactly;
+AcrossGaps; (14) components: [1 0 FWHM] = 'FWHM' bit for bit, three components vs foldProfile 8.6e-5 of the peak,
+foldToTOA pulls −0.041 / 0.998; (15) 'ObserverNoise' 'measured': χ² 0.9576 → 1.0000 ± 0.0017; (16) 'PhaseOffset'
+handle = scalar and per-sub-int values bit for bit (`2026-10-20_blockC.md`, C1 to D3c step 3). Kinds of check
+(review 23 Oct): against foldProfile 1, 3, 6, 12, 14; self-consistency 2, 4, 7, 8, 9, 11, 13, 15; bookkeeping 5, 10,
+16; against the voltage chain only the experiments (§5.39, §7.2); gaps T2-1 … T2-4 (§10 item 15).
+
+### 5.25 `mergeSubints(fold, info_fold, group)` → `[foldM, infoM]` [C3c, 20 Oct; validated: testSimulateFold 12 (Jasper's run 20 Oct); predictor branch 23 Oct, testFoldPredictor 6 (Jasper's run 23 Oct)]
+
+**Idea.** Sums and weights of a fold add, so sub-ints can be merged after folding without loss: the merged sum,
+weight, weight2, weightX are the sums over the members, prof = sum ./ weight. Works for foldProfile's and
+simulateFold's folds (one or more channels, shared or per-channel weights).
+**Code.** group [nSub × 1]: runs of consecutive sub-ints numbered in order (0 or NaN leaves one out). subint:
+turnFirst / turnLast of the first / last member, turnRef = round((turnFirst + turnLast)/2) as foldProfile, tMean
+weighted, nTimeBins summed; tRef / fRef from the f0 / F1 phase model at turnRef. **Predictor folds (23 Oct, review
+item A-1, Jasper: "okay, go ahead and fix it"):** tRef = tRef_m + (turnRef − turnRef_m)/fRef_m and fRef = fRef_m,
+from the member m that holds turnRef (exact but for ½(ḟ/f)Δt²: ~45 ns for 60 s sub-ints on the Earth; the f0 model
+was off by ≈ (v·n̂/c)·t, 0.3 s per hour for B0329+54); a group whose turnRef falls in a gap is refused
+(`mergeSubints:predictor`); non-predictor folds bit-identical. infoM: nSub, subintPeriods NaN, subintGroup. Exact
+except the covariance across internal sub-int boundaries, which foldProfile does not store either
+(mergeSubints.m:1–41; `2026-10-23_review-C-D.md`, "A-1 fixed").
+
+### 5.26 `adaptiveSubints(fold, info_fold, template, Bnoise, ...)` → `[foldM, infoM, sel]` [C3c, 20 Oct; validated: testSimulateFold 12–13 (Jasper's runs 20 Oct)]
+
+**Idea.** Choose the sub-int length from the data (§10 item 6). Scintillation changes the SNR of a sub-int by large
+factors from hour to hour, so short sub-ints are merged until the merged profile reaches the target SNR of the
+design rule (~7), where every TOA is good (adaptiveSubints.m:4–9).
+**Code.** Runs = consecutive sub-ints without a turn gap; within a run, add sub-ints until detectPulsar's
+known-phase T0 of the running sum, at the predicted phase, reaches 'TargetSNR' (7) or 'MaxSubints' sub-ints; the
+leftover at a run's end is kept (sel.complete false); mergeSubints makes the fold. 'AcrossGaps' (20 Oct; default
+false): all sub-ints one run, groups continue over gaps (a worst-case J0437 TOA is longer than a pass; needs a phase
+model coherent over the gap — exact in the simulator); 'TargetSNR' Inf + 'MaxSubints' k = fixed groups; 'Weighting'.
+sel: group, nMerged, T0, complete, run (adaptiveSubints.m:11–48).
+**Tests.** testSimulateFold 12: at −25 dB (4000 one-turn sub-ints, SNR ~1.2 per turn) 109 complete groups, median 36
+sub-ints, TOA pulls +0.152 ± 0.096, std 0.975: the stopping rule biases the closed groups' SNR up a little, not the
+arrival times; with 2 s scintles 147 groups, −0.081 / 1.039; two passes: no group spans the gap. Test 13:
+AcrossGaps true, 1 of 110 groups spans the gap, its TOA z 0.15; fixed groups of 10 (`2026-10-20_blockC.md`, C3c,
+"NPol and AcrossGaps"). The callers (runShip, runScenario) use AcrossGaps true with the open group carried to the
+next day. Review observations A-2 … A-4 (§10 item 15).
+
+### 5.27 `rfiProfile(info_det, info_w, ...)` → `prof` [C4b, 20 Oct; 'Lmax' 21 Oct; validated: testRFIModel 1–5 (Jasper's run 20 Oct), 6 (Jasper's run 22 Oct); on the chain testRFIChain (Jasper's run 22 Oct)]
+
+**Idea.** Measures, on a voltage-chain run without pulsar (zero sky + receiver noise + RFI, channel path with
+excision), what the RFI leaves in each channel's detected power, so `simulateFold` 'RFI' reproduces it in folds of
+any length: level L_c (mean power over the receiver-noise level), noise coefficients V_c, X_c(1..Lmax) relative to
+μ_c²/(BnoiseChan·binDt) (the normalization of detectChannels' clean model), valid fraction (1 − blanked). Time-domain
+quantities, so they transfer to any pulsar, NBin or sub-int length (rfiProfile.m:4–23).
+**Code.** Only fully valid bins (W ≥ 'MinValid', 1 − 1e-6) enter μ, V, X (lag pairs need both bins valid); the
+receiver-noise level is the median channel mean or 'RefLevel'; 'Lmax' (21 Oct; default the clean model's lags, 7 on
+the channel path; runRFIProfile measures 30: a 200 kHz carrier's power correlation has a sidelobe at lags 7–20 with
+5–7 % of its long-run noise); 'Ephem' + 'OnPulse' (20 Oct): time bins within a half-width around the predicted pulse
+left out of level, variance and lags (for `processIQ` proc.noiseCal on the observation itself); 'ChunkBins';
+'Label'. prof: label, nChan, chanFreqs, chanWidth, binDt, BnoiseChan, Lmax, level, noiseCoeffs [nChan × (1+Lmax)],
+modelCoeffs, validFraction, nValidBins, refLevel, duration, sourceFiles, made (rfiProfile.m:25–57). Assumptions of
+the RFI model: stationary RFI, correlations only over the measured lags, Gaussian folds, blanking not locked to the
+pulsar (`2026-10-20_blockC.md`, "Scenario design; RFI model validation").
+**Tests (`tests/testRFIModel.m`, 6, synthetic with closed-form truth, ~30 s).** (1) rfiProfile vs closed forms
+(channels noise, carrier I = 4, narrowband noise-like RFI J = 3, blanked impulses, carrier + impulses): within 2.1σ,
+valid fraction exact; (2) foldProfile with the weight file vs simulateFold with the measured profile: level, weight,
+noise/model (carrier 0.485 / 0.488, narrowband 1.143 / 1.136), neighbour correlation within 2.6σ; (3) foldToTOA:
+SNR 8.61 / 8.44, σ 31.9 / 32.5 µs, within 2.1σ; (4) negative control, AR(1) 0.98 RFI beyond the measured lags: the
+real fold noise 3.3× the simulated (z +41); (5) 'OnPulse' and foldProfile 'ChannelNoise' (§5.7); (6) 'Lmax' 300 on
+the control's channel: sum rule 14.04 (closed form 14.13), fold noise/model 5.468 real vs 5.492 simulated (z −0.2)
+(`2026-10-20_blockC.md`). Review observations P3-2 … P3-4 (§10 item 15).
+
+### 5.28 `runRFIProfile.m` (script) [C4b, 20 Oct; profiles Claude's runs; the 21 Oct profiles are the default since 23 Oct (P3-1)]
+
+Runs the voltage chain without pulsar through `processIQ` (channel path, excision) and `rfiProfile`. Cases
+'realistic' (`rfiRealistic`, 16 sources), 'inmarsatNarrow' (ten 200 kHz carriers in channels 105–114, runRFITest
+case 15), 'noiseOnly'; lengths 1 s (the steady part: the en-route radar's beam passage moved outside the run) and
+0.1 s (exactly runRFITest's settings). Saves `data/rfi/profile/rfiProfile_<case>_<L>s.mat`; `overwrite = false`
+skips existing files; 1 s runs need `proc.weightsArgs = {'MaxMemoryGB', 8}` (runRFIProfile.m:1–29, 40–50). Two
+generations of 1 s profiles: 20 Oct (white detectRFI thresholds, 7 lags) and 21 Oct (per-channel thresholds, 30
+lags). **23 Oct (P3-1, Jasper's option a):** the 21 Oct files moved to `data/rfi/profile/`, the 20 Oct ones to
+`data/rfi/profile_20oct/`; the 0.1 s profiles stay the 20 Oct ones (they match runRFITest's 12 Oct reference);
+`profile_21oct/` keeps only the intermediate `p_*_info.mat` files. Readers: runScenario (P0 = the noise-only
+channel settings, PR = realistic), runShip (P0), expSimRFI. 1 s profiles (21 Oct set): mean blanked fraction
+4.72e-5 (noise only), 1.93e-3 (realistic), 2.08e-3 (narrow); worst channel noise ratio 1.028 / 4.948 / 4.945. The new
+noise-only profile changes clean runs only at rounding level (Claude's check: first 8 coefficients equal, lags 8–30
+exactly 0) (`2026-10-23_review-C-D.md`, part 3 and "P3-1 done").
+
+### 5.29 `makeTrajectory(type, ...)` → `traj` [block D1a, 21 Oct; validated: testMakeTrajectory (7 tests), Jasper's run 22 Oct]
+
+**Idea.** The receiver's position at any time, as one struct with a position and a velocity function, whatever the
+receiver is: a fixed site, a ship (waypoints), a probe (barycentric positions), or anything that gives positions,
+e.g. a Kalman filter's propagated state ('custom': the entry point for sensor fusion, Jasper 21 Oct). delayModel
+turns it into delays; the simulator's truth and the observer's prediction are two trajectories (makeTrajectory.m:4–9).
+**Code.** 'fixed' (Lat, Lon, Height; 'OffsetENU' [east north up] m, e.g. the true site 100 km east); 'track' (Time,
+Lat, Lon, Height; 'Interp' linear / pchip / spline, in ECEF); 'barycentric' (Time, Pos [3 × K] m, SSB); 'custom'
+(Frame, PosFcn, VelFcn or a central difference). Conventions: t in s since J2000.0 (2000-01-01 12:00 TT); frame
+'ECEF' (rotates with the Earth) or 'SSB' (equatorial, ICRS axes); WGS84; velocity relative to the trajectory's own
+frame. Output: type, frame, pos, vel, tRange, params; 'fixed' also ecef and enu (makeTrajectory.m:11–42).
+**Tests.** 7 tests against closed forms and an independent ECEF → geodetic inverse; 'spline' added after the first
+draft (pchip leaves metres on an hourly-sampled orbit, the spline 1 mm) (`2026-10-20_blockC.md`, D1a).
+
+### 5.30 `delayModel(t, traj, psr, ...)` → `d` [D1b 21 Oct, 'Ephemeris' D5b–d 22 Oct; validated: testDelayModel (11 checks), Jasper's runs 22 Oct; its callers' tests in runAllTests, Jasper's run 23 Oct]
+
+**Physics.** The time to add to the receiver's arrival time to get the arrival at the SSB:
+δ(t) = t_SSB − t_obs = Roemer + curvature + Einstein + Shapiro (delayModel.m:4–8). Roemer r_obs·n/c (±499 s from the
+orbit, ±21 ms from the rotation); curvature −(|r_obs|² − (r_obs·n)²)/(2cD), only with psr.distance (~1 µs for
+B0329+54 at ~1 kpc); Einstein TDB − TT = 1.657 ms sin g + 14 µs sin 2g plus the site term v_E·r_site/c² (~1 µs,
+daily); Shapiro +2T☉ ln((|r| + r·n)/AU), T☉ = GM/c³ = 4.925 µs (B0329+54 −17 … +6 µs over a year) (delayModel.m:34–46).
+**Earth model.** Analytic by default (decision 1 of block D, 21 Oct): EMB on a Keplerian orbit (Standish's
+elements), the Sun around the SSB from Jupiter and Saturn, the Earth around the EMB from a lunar series, the Earth
+rotation angle from UT1 ≈ TT − 69.184 s, no precession or nutation. Against DE440 (22 Oct): the Earth relative to the
+Sun within ~1.5e4 km, but relative to the SSB up to 3.2e5 km off (Uranus and Neptune left out), so B0329+54's Roemer
+delay is off by up to 0.66 s; truth and observer share the model, so a 100 km offset is measured the same to
+2.1e-12 s (delayModel.m:48–60). 'Ephemeris' (a loadEphemeris struct, D5b–d): geocentre, its velocity and the Sun from
+DE440 at TDB = TT + (TDB − TT); TDB − TT integrated from the file (D5c); the site turned with IAU 2006 precession, the
+leading nutation terms and apparent sidereal time (D5d; without them ~40 km at the site in 2026). 'DeltaT' TT − UT1
+(default 69.184 s; UT1 − UTC < 0.9 s left out; real data: IERS Bulletin A). Other options 'Terms', 'Moon', 'Planets'.
+Output d: total, roemer, curvature, einstein, shapiro, rObs, vObs, rEarth, vEarth, rSun, nHat, frame, model.
+**Tests (`tests/testDelayModel.m`, 11 checks).** 1–9 closed forms (the daily term at 52° N for B0329+54 7.607 ms; 100
+km east = a 193.33 µs daily sine, exact to 1.5e-13 s; Shapiro over 2026 −17.1 … +5.8 µs); 10 'Ephemeris': geocentre =
+the file's to 3.6 mm, 7.4e-10 m/s; the analytic model off by 15,465 km (Sun) and 320,277 km (SSB); Einstein = the
+file's TDB − TT; 11 against JPL Horizons for a 52° N 5° E site: 28 m and 30 m at 2026-03-01 00:00 / 06:00 TT (UT1 −
+UTC left out), 9 m at J2000; without precession and nutation 16.0, 13.2, 0.2 km (`2026-10-20_blockC.md`, D1b, D5b,
+D5c, D5d). Not in the model: a dispersion term (§10 Open items) and the other terms of §10 item 13.
+
+### 5.31 `loadEphemeris(file)` → `eph` [D5a, D5c, 22 Oct; validated: testLoadEphemeris (5 checks), Jasper's run 22 Oct]
+
+Reads JPL's binary SPK file once (NAIF DAF format, type-2 Chebyshev segments; bodies chained to the SSB through their
+centres) and returns handles: `eph.earth / sun / moon / emb(t)` → [r, v] (m, m/s, ICRF), `eph.state(target, center,
+t)`, `eph.tdbMinusTT(t)`, span, segments; t in s TDB since J2000 (loadEphemeris.m:1–47). File
+`data/ephem/de440s.bsp` (NAIF, 32,726,016 bytes, 1849–2150; git-ignored; sha256 c1c7feea…, `2026-10-20_blockC.md`
+D5a). TDB − TT (D5c): d(TDB − TT)/dt = (v_E²/2 + U)/c² − L_C, L_C = 1.48082686741e-8 (IAU 2006 B3), U from the Sun,
+Moon and planets (DE440 GMs), trapezoid rule on a 6 h grid, cubic spline, the constant = the USNO series' mean over
+2000–2050. Tests: the geocentre against JPL Horizons (DE441) at three epochs 0.045 m and 1.1e-7 m/s; velocity =
+central difference to 1.1e-6 m/s; EMRAT 81.300568; TDB − TT against the USNO series 2000–2050 rms 2.25 µs, max 7.07 µs
+(bounds 5 / 10 µs; the analytic two terms rms 16.5, max 33.2 µs); bad inputs refused. (The help's first sentence still
+says the analytic orbit is good to ~1e4 km / ~30 ms; the measured values are in §5.30.)
+
+### 5.32 `makeClock(tSpan, ...)` → `clk` [D3b, 21 Oct; validated: testMakeClock (5 checks), Jasper's run 22 Oct]
+
+**Physics.** Every time stamp comes from the receiver's oscillator. eps(t) = clock reading − true time = Offset +
+Rate·(t − t1) + Drift·(t − t1)²/2 + x(t), x the integral of the fractional-frequency noise with one-sided spectrum
+S_y(f) = h0 + h_1/f + h_2/f² (white, flicker, random-walk FM); Allan variance σ_y²(τ) = h0/(2τ) + 2 ln2·h_1 +
+(2π)²/6·h_2·τ (Van Dierendonck, McGraw & Brown 1984, eqs. 6–8) (makeClock.m:4–19). Truth side (trueResiduals
+'Clock'); the observer never sees it.
+**Code.** 'Preset' "perfect" (default) or "crystal" (the paper's 3e-11 oscillator, h = [1.8e-21 6.492e-22 1.37e-24]),
+'H', 'Offset', 'Rate', 'Drift', 'Step' (60 s), 'Seed'. White FM exact steps; random-walk FM exact two-state process
+(q2 = 2π²h_2); flicker by FFT synthesis over twice the span (Allan variance within 3 % from 5 steps, 9 % high at 2);
+linear between nodes (left-out bridge 0.12 ns for the crystal). An SDR's TCXO (e.g. ±2 ppm) enters through 'Rate';
+its noise is not published (measure on the device). Output: offset, rate, sigmaY handles, tSpan, step, h, preset,
+deterministic, seed, grid, made (makeClock.m:20–58).
+**Tests.** Allan variance of 40 × 20,000-step clocks: white and random walk within 2× their scatter at 2–1000 steps;
+flicker within 3 % from 5 steps; the crystal within 5 %; without flicker, 200 s after a known start 8.46 ns against
+the paper's 8.50 ns (eq. 60) (`2026-10-20_blockC.md`, D3b). Note: the crystal preset is steadier than a stock SDR
+TCXO (0.65 against ~3.6 µs per hour, a log estimate; `2026-10-22_handover-E.md`, update) → step E5.
+
+### 5.33 `makePredictor(psr, traj, tSpan, ...)` → `pred` [D2a 21 Oct, 'Clock' D3c 21 Oct; validated: testMakePredictor (8 tests), Jasper's run 22 Oct]
+
+**Physics.** The pulsar's phase is defined at the SSB: φ(t_SSB) = Phi0 + f0(t_SSB − TRef) + F1(t_SSB − TRef)²/2. A
+pulse received at t arrives at the SSB at t + δ(t) (delayModel), so the receiver should see φ(t + δ(t)): the Earth's
+orbit changes the rate by up to 1e-4 (Doppler), its rotation by 1e-6, a ship by 3e-8. As at observatories (TEMPO's
+polycos) the phase is precomputed once per observation as short polynomials, and the fold only evaluates them; the
+trajectory is the only input about the receiver (decision 2 of block D, 21 Oct) (makePredictor.m:5–15).
+**Code.** `pred = makePredictor(psr, traj, [t1 t2], ...)`; psr: f0, F1, TRef (SSB), Phi0, raDeg, decDeg, distance.
+Adaptive Chebyshev segments: 'SegLength' 3600 s, 'Degree' 12, 'Tol' 1e-9 s checked halfway between nodes, split down
+to 'MinSeg' 1 s (a ship's turn is a kink in the delay); 'DelayArgs'; 'Clock' (D3c, option (a): the observer folds with
+its own clock estimate epsHat(c); the data's time stamps are clock readings, turned into t = c − epsHat(c) before the
+delays; an SDR's ±2 ppm would smear 240 µs in a 120 s sub-int). Precision: phases relative to N0, the integer turn at
+t1; only frac0 carries the double rounding (~1e-6 turns), one constant for the span. Output: tOrigin, tSpanLocal, N0,
+frac0, seg, coef, phase(τ), freq(τ) (the observed spin frequency), fRange, maxErr, psr, trajType, delayArgs, clock,
+tOriginTrue, made; outside the span error `makePredictor:range` (makePredictor.m:20–56).
+**Tests.** 8 tests; test 8 ('Clock'; 2.5 ms offset, rate 1.7e-6, ageing 1.5e-13/s): phase vs direct 2.6e-10 s, freq vs
+the phase's slope per clock second 2.6e-11, a zero estimate bit-identical, a bad clock refused. trueResiduals check 7
+found a 7 ns constant phase error (the true-time origin computed as one absolute number); fixed with an exact
+difference first, u0 = ((t0 − TRef) − e0) + δ0, bit-identical without a clock (`2026-10-20_blockC.md`, D2a, D3c steps
+1–2). Used by foldProfile 'Predictor' (§5.7).
+
+### 5.34 `trueResiduals(t, psr, trajTrue, trajAssumed, ...)` → `res` [D3a, 'ClockEstimate' D3c, 21 Oct; validated: testTrueResiduals (7 checks), Jasper's run 22 Oct]
+
+**Physics.** The observer folds with a predictor made from the trajectory it ASSUMES and stamps the data with its
+own clock; the pulses arrive where the TRUE trajectory puts them. A pulse passing the SSB at S arrives at true time
+t with t + δ_T(t) = S, and is expected at t_A with t_A + δ_A(t_A) = S; the clock reads c = t + eps(t) and the observer
+corrects it with epsHat(c). Residual r = (c − epsHat(c)) − t_A = x + eps(t) − epsHat(c), x = t − t_A =
+(δ_A − δ_T)/(1 + dδ_A/dt) to first order, solved by Newton steps in small differences. In the fold the pulse sits at
+f·r turns (f: the assumed prediction's observed frequency); positive = late; a receiver closer to the pulsar than
+assumed gives r < 0. A site 100 km east of the assumed one, B0329+54 at 52° N: a daily sine of 193.33 µs (2.7e-4
+turns). Unambiguous while |f·r| < 0.5 turns: ±107,000 km for B0329+54, ±863 km for J0437 (warning
+`trueResiduals:wrap`) (trueResiduals.m:15–32). Truth side.
+**Code.** Options 'Clock' (a handle or a makeClock struct), 'ClockEstimate' (the observer's epsHat, as makePredictor
+'Clock'), 'DelayArgs'. Output: t, residual, geometric, clock, clockEstimate, fObs, phaseOffset (→ simulateFold
+'PhaseOffset'), deltaTrue, deltaAssumed, solveErr (trueResiduals.m:34–57).
+**Tests.** 100 km east = the closed form −(R δr·n)/c to 2.9e-11 s (the full model adds the 31 ns Einstein site term);
+a probe at 300 km/s, 1000 km closer: −(1000 km/c)/(1 + v/c) to 4.9e-11 s; data from the true probe folded with the
+assumed predictor put the pulse at −0.16678 turns as predicted (4.7e-6 turns); check 7 (SDR-like clock 3 ms + 2e-6,
+estimate 10 µs and 2e-7 off): folded pulse 5.6e-6 turns from phaseOffset; a perfect estimate leaves residual =
+geometric to 1.2e-13 s (`2026-10-20_blockC.md`, D3a, D3c step 2).
+
+### 5.35 `navFit(toa, psrs, site, ...)` → `fit` [D4a, D4b-1, tSub, 22 Oct; validated: testNavFit (11 checks), Jasper's runs 22 Oct; on the scenario runs expNavFit, Jasper's run 23 Oct]
+
+**Model.** A TOA of pulsar k at t_i: r_i = a_i·dx + c_k + noise, a_i = −R_z(θ(t_i))'·n_k/c (θ the Earth rotation angle as
+delayModel; dx the site offset in ECEF; c_k the clock offset plus the pulsar's own offset). The Earth's rotation turns
+the two equatorial components into a daily sine; the polar component gives a constant −dZ·sin(dec_k)/c, the same as
+c_k. 'Start' (Jasper, 21 Oct): "self" (default; dX, dY and one c_k per pulsar; the polar component unobservable for a
+fixed site) or "calibrated" (a known start: c_k = 0; dX, dY, dZ). Left out: the factor 1/(1 + Doppler) (10 m on
+100 km) and the Einstein site term (navFit.m:19–31).
+**Clock ('Clock', D4b).** Generalized least squares with Cov(r_i, r_j) = σ_i²δ_ij + K_ij, K_ij = q1·min(τ_i, τ_j) +
+q2·(m²M/2 − m³/6) (m, M the smaller and larger of τ_i, τ_j since 'ClockStart'), q1 = h0/2, q2 = 2π²h_2; flicker left
+out (~3 µs against ~76 µs a day). "self" adds a rate column. The fit estimates the clock wander at every TOA and
+predicts it later (clockAt, clockAtErr; universal-kriging errors), which the observer feeds back to makePredictor
+'Clock' (navFit.m:33–47).
+**Robust.** Mixture (1 − ε)·N(0, σ²) + ε·N(0, (kσ)²), ε 0.02, k 4 (from the 100-day scenario tail: 1.9 % beyond 3σ),
+EM-IRLS until the step is < 1e-9 of its error; an outlier counts ~16× less (navFit.m:49–56).
+**TOAs as time-averages ('tSub', 22 Oct).** A TOA merges sub-ints over hours, sometimes two passes a day apart, so its
+row is the mean over its sub-ints' times; one time tag damps the daily sine to 0.79 over 9 h of hour angle, or flips
+its sign at the midpoint of two passes (found in runShip, D4d) (navFit.m:12–17).
+**Code.** toa: t, r, sigma, k, optional tSub; psrs: raDeg, decDeg; site: the ASSUMED `makeTrajectory('fixed', …)`.
+Options Start, Robust, OutlierFraction, OutlierScale, MaxIter, Clock, ClockStart, Predict (the covariance of a TOA
+schedule only, for planning). Output: p, cov, east / radial / polar and errors, covEq, enu and covENU (calibrated),
+resid, z, gamma, outlier, chi2Core, nIter, and with 'Clock' clock, clockErr, clockRate, clockAt, clockAtErr
+(navFit.m:58–85). Columns are scaled before solving (RCOND 1e-18 with metres and seconds).
+**Tests (`tests/testNavFit.m`, 11).** Noise-free [30 −20 10] km ENU to 2.8 m (calibrated) / 3.7 m (self); Monte Carlo
+400: east 101.0 ± 30.2 km (stated 30.5), pulls 0.991 / 0.973; 2 % outliers at 5–10σ: robust pulls 1.045 (99.1 %
+flagged, 0.09 % false), least squares 1.510; calibrated polar ±14.6 km (stated 15.7); Predict exact; checks 8–10 the
+clock (pulls 0.92 / 1.00 after the kriging fix; 1000 realizations per case 0.981–1.017); check 11 tSub: averaged east
+1002.2 ± 82.3 km, pull std 0.972, the point model at the circular-mean tag 844.9 km (`2026-10-20_blockC.md`, D4a,
+D4b-1, "TOAs as time-averages"). Results on the scenario runs: §7.4. Open for real data (parked): the rows use the
+Earth rotation angle only (with 'Ephemeris' data the axis has turned 0.37°: < ~6 km on the offsets).
+
+### 5.36 `navFilter(toa, psrs, traj, ...)` → `fit` [D4d-1, 22 Oct; validated: testNavFilter (7 checks), Jasper's runs 22 Oct; **parked 23 Oct** with runShip (§11)]
+
+Linear Kalman filter and Rauch–Tung–Striebel smoother around the dead-reckoning (DR) track. State (metres): position
+error dp (east, north, and up with 'Height' false) and velocity error dv in the LOCAL frame of the DR track (a
+current is then a constant dv), clock b, d (c × offset, c × rate; the two-state model as navFit), one J_k per pulsar
+("self"). Measurement c·r = a(t)·M(t)'·dp + b + J_k + noise, linear in the state. 'Start' self / calibrated;
+'ClockPrior' (D4c-1: sigmas of b and d at the first TOA with "calibrated"; taken as exact, the clock's error bars are
+2.6× too small, the position hardly suffers); robust mixture on the innovation, one pass; 'Predict'; predict(t) for
+the feedback; tSub rows. Defaults: PositionPrior 1e7 m, VelocityPrior 0.3 m/s, VelocityNoise 1.2e-7 m²/s³
+(navFilter.m:1–79). Bugs on the way: the velocity first kept in ECEF (a constant east current got a 37 % vertical
+part, east pulls 31) → the local frame; the smoother gain solved on a correlation matrix (covariances spanned 15
+orders). Tests: a fixed site = navFit to 1.9e-5 … 7.4e-5 of the errors; ship 14 d along 50° N, B0329+54 + B0950+08,
+crystal clock, 40 realizations: pulls east −0.20 / 1.029, north −0.11 / 0.911, DR 553 km → filter 95 km after 14 days;
+2 % outliers: robust 1.045 / 0.737, 95 % caught; check 6 ('ClockPrior'): pulls east 1.036, north 0.911, clock 0.896;
+check 7 (tSub): east +0.11 / 1.102, north −0.06 / 1.191 (`2026-10-20_blockC.md`, D4d-1, D4c-1, tSub). Open
+(`2026-10-22_handover-E.md`, update): in runShip the port's 1 km prior applies at the first TOA, 9–14 h after
+departure at worst flux.
+
+### 5.37 `runScenario.m` (script) [block C/D driver; budgets and motion runs: Claude's runs; the fit on its motion files (expNavFit) validated by Jasper's run 23 Oct]
+
+TOA budget of the reference scenario with the fast simulator, for B0329+54 from 52° N (passes above 20°, 19.6 h, one
+per sidereal day; five components at 1410 MHz, NBin 2048, 120 s sub-ints, 2 h chunks) and J0437 from 30° S (12.3 h
+passes; eight components fitted on 21 Oct to the Parkes 1369 MHz profile, NBin 1024, 300 s sub-ints), each at
+nominal and worst flux (ρ from S1400, SEFD 3.2e5 / 7.4e5 Jy and the pulse area: B0329+54 −45.0 / −48.6 dB, J0437
+−51.2 / −54.8 dB), NPol 2, 128 channels with the band-edge taper (truth), the channel settings of the 1 s noise-only
+RFI profile (P0). The observer: adaptiveSubints (TargetSNR 7, AcrossGaps, the open group carried into the next chunk
+and day) and foldToTOA with Bnoise × 2 (runScenario.m:1–75, 92–119). Variants (line 74): 'clean', 'rfi' (realistic
+profile, flat-channel observer), 'rfiCal' (ObserverNoise 'measured'), 'rfiCalScint', 'rfiCalScintFixed' (fixed groups
+of rfiCalScint's median length). Without motion the true pulse sits 0.1 FWHM from the prediction. With motion (D3c,
+D4b; `motion.on`): the true site offset (default 100 km east), clock "perfect" or "sdr" (crystal noise and a rate
+within ±2 ppm; the port calibration 1 ms / 1e-9), `motion.track` "daily" (from 20 TOAs on, navFit with the clock model
+after each day predicts the next day's clock) or "none"; per TOA tAbs, resid, trueResid and its parts, tSub; each TOA
+tagged by sideTag (the time nearest its mean time with the circular-mean sidereal phase of its sub-ints; until 22 Oct
+the middle turn). nDays 30, overwrite false; files `data/scenario/scenario_<psr>_<flux>_<variant>_<n>d[...].mat`
+(old results in `pre-22oct-tag/`, `profiles_20oct/`). Reruns need edits in the file (variants, motion settings); a
+settings hook as in runShip was proposed (`2026-10-23_review-C-D.md`, rerun plan R2). Results: §7.3, §7.4.
+
+### 5.38 `runShip.m` (script) [D4d-2, 22 Oct; Claude's runs; seed 1 at worst flux, calibrated start, reproduced by Jasper's run 23 Oct; **parked 23 Oct**]
+
+A ship that knows its route only by dead reckoning (a rhumb line from route.start with route.heading and route.speed)
+follows B0329+54 and B0950+08 in simultaneous digital beams (Jasper, 22 Oct). The truth adds a drawn mean current and
+a Gauss–Markov wander around it; the clock is the crystal with a rate drawn within ±2 ppm. The observer starts from
+port (position to 1 km, clock to 1 ms and 1e-9), folds each pulsar above 20° with its current track and clock
+estimate (simulateFold with trueResiduals' offsets), forms TOAs as runScenario, and after each day runs navFilter
+("self", or "calibrated" with the port's clock errors as 'ClockPrior') on all TOAs so far and predicts the next day.
+Per-sub-int bookkeeping and sideTag (the fix of 22 Oct: B0950+08's TOAs tagged between two passes carried none of the
+position signal); the ideal twin (the same smoother on ideal TOAs at the same tags) for evaluation; `shipOpts`
+(nDays, flux, seed, start) (runShip.m:1–40; `2026-10-20_blockC.md`, D4d-2, "runShip bug: the real cause", "runShip:
+fix, ideal twin, …"). Results: §7.4. Open (handover-E, update): no RFI or scintillation in runShip, B0950+08 a single
+Gaussian; its file tag would overwrite D's files in runs with another clock, RFI or scintillation.
+
+### 5.39 Experiments of blocks C and D (`tests/exp*.m`, no PASS/FAIL)
+
+| Experiment | What | Key numbers | Status |
+|---|---|---|---|
+| `expSimVsChain` (C2, C4a) | simulateFold against the saved full-band chain sweeps (−25 … +20 dB; threshold sweep −20 … −15 dB), H0, and the channel path; takes its sub-int count from main's current fold | §7.2; −5 dB 2.9148 µs / SNR 93.28 on 23 Oct (2.9146 / 93.25 on 20 Oct, main's fold since changed to DM 25 / 0.2 s) | validated, Jasper's run 23 Oct |
+| `expSimRFI` (C4b) | part 1: the 0.1 s profiles against runRFITest (reads its 12 Oct results); part 2: the 1 s profiles, −5 dB, 50 × 8 TOAs per case | §7.2 | validated, Jasper's run 23 Oct (with the 20 Oct profiles); part 2 with the 21 Oct profiles: Claude's run 23 Oct |
+| `expComponentsChain` | B0329+54's five components on the 10 ms pulsar: voltage chain at DM 2.6, −5 dB, channel path with excision, 6 seeds × 0.2 s, against simulateFold('Components') | chain 108 TOAs: SNR 48.1, σ 1.505 µs, rms/pred 1.026 ± 0.068, χ² 1.0027, pChi2 < 0.05 0.083; simulator 1800 TOAs: 48.4, 1.495 µs, 1.010 ± 0.017, 1.0030, 0.082 | validated, Jasper's run 23 Oct (45–60 min) |
+| `expNavFit` (D4a, D4b) | navFit on runScenario's 30-day motion files (perfect clock nominal / worst; SDR tracked / untracked) | §7.4 | validated, Jasper's run 23 Oct |
+| `expNavPlan` (D4c-0) | navFit 'Predict' on TOA schedules from the real passes above 20° at 52° N 5° E (B0329+54 from the scenario runs; B0950+08, B1642−03, B1929+10 from the scenario page's table) | §7.4 | validated, Jasper's run 23 Oct |
+
+expSimVsChain, expSimRFI and expComponentsChain are scripts sharing the base workspace; since 23 Oct each clears a
+leftover `restoreDir` before `cd(root)` (§8 #14) (`2026-10-23_review-C-D.md`).
+
 ---
 
 ## 6. Key formulas (quick reference)
@@ -1401,6 +1924,18 @@ jitter across the 0.5 ms pulse, far outside ±1 µs).
 | RFI window power (detectRFI) | Σ_n p/m = Σ λ_k E_k, λ = eig(toeplitz(ρ)); P(> x) = [1 0…0]·expm(Qx)·1 |
 | Robust baseline | m = median(|x|²)/ln 2 (exponential power) |
 | Periodic RFI significance (periodicRFI) | p = n·P(Bin(n−1, q) ≥ m−1), q = (2·TimeTol + 1)/P; accept if p·N_cand < 1e-6 |
+| *Added 23 Oct (blocks C and D; sources in §5.24–5.35; docs `formulas.html`)* | |
+| Template spectral width (estimateTOA, since 20 Oct) | w = √(3 ln 2)/π / k_t = 0.459/k_t, k_t² = Σk⁴\|S_k\|²/Σk²\|S_k\|²; warning when max(binDt·f0, 1/NBin) > w/10 |
+| Fast simulator mean (simulateFold) | m_j = 1 + g·g_c·ρ·p̃(φ_j − Δφ), p̃_k = p_k·sinc(k·BinDt·f0)·sinc²(k/NBin) |
+| Asymptotic fold weights | n = SubintPeriods/(NBin·f0·BinDt): W = n, W2 = 2n/3, WX = n/6; correlated bins W2 = n·Σ_L c(L)K(Lδ), WX(d) = n·Σ_L c(L)K(d − Lδ), K(s) = 2/3 − s² + \|s\|³/2 (\|s\| < 1), (2 − \|s\|)³/6 (1 ≤ \|s\| < 2), δ = f0·BinDt·NBin |
+| Delay to the SSB (delayModel) | δ = r_obs·n/c − (\|r_obs\|² − (r_obs·n)²)/(2cD) + (TDB − TT) + 2T☉ ln((\|r\| + r·n)/AU), T☉ = 4.925 µs |
+| Predicted phase (makePredictor) | φ(t + δ(t)), φ(t_SSB) = Phi0 + f0(t_SSB − TRef) + F1(t_SSB − TRef)²/2 |
+| Timing residual (trueResiduals) | r = x + eps(t) − epsHat(c), x = (δ_A − δ_T)/(1 + dδ_A/dt); phase offset in the fold f·r |
+| Clock (makeClock) | σ_y²(τ) = h0/(2τ) + 2 ln2·h_1 + (2π)²/6·h_2·τ; q1 = h0/2, q2 = 2π²h_2 |
+| Navigation row (navFit) | r_i = a_i·dx + c_k, a_i = −R_z(θ_i)'·n_k/c; clock covariance K_ij = q1·min(τ_i, τ_j) + q2·(m²M/2 − m³/6) |
+| Robust mixture (navFit, navFilter) | (1 − ε)·N(0, σ²) + ε·N(0, (kσ)²), ε 0.02, k 4 |
+| One-pulsar precision, east (formulas.html, corrected 23 Oct) | σ_east ≈ √(2/N)·σ_TOA·c / cos δ (B0329+54: 302 TOAs of 738 µs → 31.1 km) |
+| Figure of merit | σ_TOA·√(hours per TOA) (µs·√h; smaller is better) |
 
 ---
 
@@ -1848,6 +2383,234 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   of the table above and of B4 / B5d for cases 1 and 13 reproduced exactly. New row, case 15
   without excision: 0/8 good, SNR 79.2, red. χ² 17.6 (radar), 25 channels with r > 1.1.
 
+*(§7.1–7.6 added 23 Oct 2026 in the notes catch-up. Everything above is at DM 5 / L = 0.1 s; from 20 Oct the voltage
+chain runs at DM 25 / 0.2 s. Docs: `results.html` §§11–15.)*
+
+### 7.1 The default channel path over seeds (processIQ, 19–20 Oct)
+
+**Monte Carlo on processIQ (runMonteCarlo, −5 dB; `2026-10-19_processIQ.md`, step 2):**
+
+| Run | TOAs | rms / predicted | χ² | \|z\| < 1 | pChi2 | Whose run |
+|---|---|---|---|---|---|---|
+| channels, 10 seeds | 80, all good | 2.762 / 2.957 µs = **0.934** ± 0.074 | 69.9 / 80 | 66.2 % | mean 0.291, KS D 0.391 (not uniform) | Jasper's |
+| full band, 10 seeds | 90 | 0.950 (= the old script) | 81.8 / 90 | 72.2 % | uniform (KS D 0.059) | Claude's |
+| **A3b**: channels, 50 seeds | 400, all good | 2.821 / 2.950 µs = **0.956** ± 0.034; mean error −0.032 ± 0.148 µs | 366.2 / 400 | 67.0 % (< 2: 96.8 %) | mean 0.292, < 0.05: 0.205 | Claude's |
+| channels, 10 seeds, −15 dB | 80 | 0.971 ± 0.077 | 77.3 / 80 | 68.8 % | uniform (KS D 0.090) | Claude's |
+
+Seed 43 = main (8 TOAs, 2.956 µs); blanked 0.0126 % (A3b). → The default path's error bars are honest end to end over
+seeds (both paths slightly below 1 with the fixed pulsar: its self-noise is not resampled); **A3b done 19 Oct.** The
+pChi2 skew at −5 dB: off-pulse z² 0.9999 ± 0.0008 (noise model right), on-pulse 1.0046 ± 0.0021 rising with pulse
+height, channels 1 and 128 at 1.193 and 1.167 → full-review item 3 (the simulation tapers only the pulsar at the band
+edges, the fit assumes ChannelGain 1); ∝ SNR², gone at −15 dB. Item 3 and the per-channel calibration then parked as
+one block (Jasper, 19 Oct).
+
+**runH0, channel path, 100 passes (Claude's run at Jasper's request, 66 min):** 800 noise-only profiles: T0 mean
++0.033 (0 ± 0.035), std 1.023 (1 ± 0.025); exceedances at P_FA 0.1 / 0.01 / 0.001 known phase 87 / 10 / 2 (expected
+80 / 8 / 0.8), unknown phase 66 / 6 / 1; normProfile lag 1 0.2567 vs model 0.2580, lags 2–3 0.0003 / −0.001; noise
+ratio median 0.9966; blanked fraction on pure noise 0.0049 % (= detectRFI's false-flag rate) → detection statistics
+calibrated end to end on the default path (`2026-10-19_processIQ.md`).
+
+**Weak-regime channel sweep (runSNRSweep, 10 realizations, pulsar varied, default channel path with excision at every
+point; Claude's run 20 Oct, ~2.5 h; `2026-10-20_blockC.md`):**
+
+| ρ [dB] | SNR (mean T0) | P_D known / unknown | good TOAs (of 80) | \|z\| > 5 all / good | rms/pred all (good) |
+|---|---|---|---|---|---|
+| −25 | 1.11 | 0.013 / 0.000 | 0 | 53.8 % / – | 16.4 |
+| −23 | 1.78 | 0.050 / 0.013 | 1 | 35.0 % / 0 | 15.3 |
+| −21 | 2.83 | 0.525 / 0.087 | 7 | 18.8 % / 0 | 14.7 (1.03) |
+| −19 | 4.50 | 0.838 / 0.688 | 55 (69 %) | 1.2 % / 0 | 5.66 (1.06) |
+| −17 | 7.15 | 1 / 1 | 80 | 0 / 0 | 1.078 |
+| −15 … −11 | 11.3 – 28.4 | 1 / 1 | 80 | 0 | 1.072 – 1.076 |
+
+H0 (same seeds): T0 std 1.072 (± 0.079), no false alarms. → The design rule SNR ≥ 6–7 carries over to the channel path
+(~5 % more SNR needed for the same ρ: item 3's edge channels and mean T0 vs the optimum).
+
+### 7.2 Block C: the fast simulator against the voltage chain (20–23 Oct)
+
+**C2, without RFI (`expSimVsChain`; Claude's run 20 Oct, Jasper's run 23 Oct):** 2000 one-turn sub-ints per point
+against the full-band chain sweeps (90 TOAs per point), the chain's g 0.9958 and Bnoise 391.63 MHz:
+
+| ρ [dB] | median σ chain / sim | rms/pred chain / sim | \|z\| > 5 chain / sim | P_D unknown chain / sim |
+|---|---|---|---|---|
+| −25 | 102.8 / 99.3 µs | 11.2 / 16.4 | 0.567 / 0.625 | 0.011 / 0.004 |
+| −20 | 68.0 / 71.1 µs | 12.1 / 6.7 | 0.056 / 0.047 | 0.433 ± 0.052 / 0.361 |
+| −15 | 24.53 / 24.91 µs | 1.030 / 1.006 | 0 / 0 | 1 / 1 |
+| −5 | 2.907 / 2.916 µs | 1.053 / 1.002 | 0 | 1 |
+| +20 | 0.4721 / 0.4722 µs | 1.036 / 0.995 | 0 | 1 |
+
+H0: simulated T0 std 0.9925 ± 0.010, lag 1 0.2491 (chain runH0 1.008 ± 0.024, 0.2484). → The simulator reproduces the
+chain from the threshold to high SNR (`2026-10-20_blockC.md`, C2; full table there and in docs `results.html` §12).
+Jasper's run 23 Oct: every number as on 20 Oct; the −5 dB line 2.9148 µs / SNR 93.28 (main's fold now DM 25 / 0.2 s).
+
+**C4a, channel path (expSimVsChain channel section, Claude's runs):** sim with the forward-taper g_c: σ 2.943 µs, SNR
+92.3, rms/pred 1.039 ± 0.035, mean χ² 1.0069, pChi2 < 0.05 0.205; chain (A3b) χ² 1.0063, 0.205; with g_c = 1 the excess
+and the pChi2 skew vanish (χ² 1.0001, 0.043) → item 3 is the whole cause. testSimulateFold 8: 128 channels σ 2.881 µs
+vs one channel 2.907 µs.
+
+**C4b, with RFI (`expSimRFI`).** Part 1, 0.1 s profiles against runRFITest (−5 dB, excision; chain one seed, 8 TOAs;
+sim 160 TOAs; Jasper's run 23 Oct: identical to the last digit):
+
+| Case | SNR chain / sim | median σ chain / sim | median χ² chain / sim |
+|---|---|---|---|
+| noise only | 91.9 / 92.3 | 2.956 / 2.942 µs | 1.008 / 1.006 |
+| realistic (B5e) | 82.0 / 82.8 | 3.317 / 3.286 µs | 1.063 / 1.071 |
+| Inmarsat narrow | 80.5 / 81.2 | 3.382 / 3.351 µs | 1.223 / 1.245 |
+
+Part 2, 1 s profiles, 50 × 8 TOAs per case, the production numbers. **With the 21 Oct profiles (default since 23 Oct;
+Claude's run 23 Oct, R1):** noise only SNR 92.4, σ 2.940 µs, rms/pred 1.004, χ² 1.0068; realistic 82.6 (×0.895), 3.293 µs,
+**0.958**, **1.0778**; narrow 81.1 (×0.878), 3.359 µs, **1.083**, **1.3026**. With the 20 Oct profiles (Claude's run 20
+Oct, Jasper's run 23 Oct): realistic 0.957 / 1.0733, narrow 1.069 / 1.2455 (σ 3.357 µs) — superseded. RFI left after
+excision costs 10.5 / 12.2 % SNR (25 / 30 % more observing time for the same σ); the flat-channel observer's χ² excess
+does not shrink with SNR (`2026-10-20_blockC.md`, C4b, parallel trial; `2026-10-23_review-C-D.md`, R1).
+
+**The RFI model on the voltage chain (`testRFIChain`, slow, split halves of a 1 s pulsar-free run, DM 25).** Old code
+(white thresholds, 7 lags): realistic all pass (noise/model 1.0715 real / 1.0702 sim); narrow Inmarsat FAIL at 1 turn
+(channel 105 3.7248 / 3.4897, z +6.70; neighbour correlation 0.2873 / 0.2661), diagnosed 21 Oct as the lag-7 cut-off
+(neighbour correlation) and data-dependent blanking by detectRFI's false flags (noise: blanked bins +4–9 %). New code
+(per-channel thresholds, 30 lags): all pass — realistic 1.0729 / 1.0729, narrow 1.3286 / 1.3292 (Claude's run 21 Oct;
+**Jasper's run 22 Oct**, 65.3 min) (`2026-10-20_blockC.md`). Channel 61's extra kurtosis: kurtosis decay 0 of 128
+flagged (k4 0.0514 vs k1/4 0.0537) → harmless for long sub-ints, closed 20 Oct.
+
+**Per-channel noise calibration on the chain (runRFITest cases 14–15 with a calibration pass, DM 25, L 0.2 s, −5 dB,
+15 TOAs; Claude's run 20–21 Oct, saved as `runRFITest_results_cal_DM25_L0.2.mat`):**
+
+| Case | excision / calibration | SNR | σ | rms/pred | red. χ² |
+|---|---|---|---|---|---|
+| realistic | off / off | 81.1 | 3.357 µs | 1.731 | 3.46 (3 of 15 good) |
+| realistic | on / off | 82.0 | 3.319 µs | 0.789 | 1.07 |
+| realistic | on / on | 81.9 | 3.324 µs | 0.808 | **1.00** |
+| narrow Inmarsat | off / off | 79.4 | 3.433 µs | 1.983 | 3.65 (1 of 15 good) |
+| narrow Inmarsat | on / off | 80.6 | 3.379 µs | 0.931 | 1.24 |
+| narrow Inmarsat | on / on | 79.6 | 3.419 µs | 0.893 | **0.99** |
+
+Reproduced by validation step 7 on the frozen code (21–22 Oct). Not yet rerun with the per-channel detectRFI
+thresholds.
+
+**New dataset DM 25 / L 0.2 s vs DM 5 / 0.1 s (main, −5 dB, channel path, excision; Claude's run 20 Oct):** 15 TOAs,
+SNR 92.0, σ 2.951 µs, χ² 1.003, rms/pred 0.861 vs 8 TOAs, 91.86, 2.956 µs, 1.004, 0.825 → per turn identical
+(`2026-10-20_blockC.md`, "New dataset").
+
+**Multi-component profiles.** testSimulateFold 14 (§5.24); `expComponentsChain` (chain vs simulator within ~1 %, §5.39;
+Claude's run 21 Oct, Jasper's run 23 Oct). Error bars at SNR ~7 (scratch expPullsSNR, fixed sub-ints, Claude's runs
+20 Oct): B0329+54's five components at NBin 1024 pull std 1.822 / 1.190 / 1.092 / 1.028 / 0.987 at SNR 5 / 7 / 10 / 20 /
+40 (single Gaussians 1.0–1.1 from SNR 7); at NBin 2048, 600 TOAs: 1.078 ± 0.031 at SNR 7 → mostly bin resolution →
+the /10 rule (§5.8) and NBin 2048 for B0329+54. J0437's "too large error bars" retracted (40 simulated days: adaptive
+1.094 ± 0.067, fixed 1.153 ± 0.074) (`2026-10-20_blockC.md`).
+
+### 7.3 Scenario budgets (runScenario, 20–23 Oct; Claude's runs)
+
+**Clean, 30 days, current profiles** (`2026-10-20_blockC.md`, "B0329+54 clean at NBin 2048", "Validation run
+complete"):
+
+| Case | TOAs/day | hours of data per TOA (10–90 %) | σ_TOA | std z | σ·√h |
+|---|---|---|---|---|---|
+| B0329+54 nominal (five components, NBin 2048) | 9.97 | 1.93 (1.30–2.67) | 734 µs | 1.048 (robust 1.018) | 1021 |
+| B0329+54 worst | 1.97 | 10.0 (6.45–12.86) | 743 µs | 1.362 (1.100 without its one \|z\| > 4) | 2354 |
+| J0437 nominal (eight components, NBin 1024) | 0.73 | 15.5 | 13.0 µs | 1.10 | 51.3 |
+| J0437 worst | 0.07–0.13 | – | – | 2–4 TOAs: inconclusive | – |
+
+Superseded on the way: single Gaussians (20 Oct) B0329+54 28.43 / 5.50 TOAs/day, 0.67 / 3.50 h, σ 534 / 543 µs; J0437
+3.80 / 0.77, 3.17 / 15.17 h, 11.4 / 11.6 µs; five components at NBin 1024: 9.57 / 1.77 per day, 2.00 / 10.97 h, σ 729 /
+734 µs. J0437's measured profile (60-day scratch run): ×5.3 data per TOA, ×2.5 σ·√h against the single Gaussian.
+
+**100 days** (clean and rfiCalScint, the 21 Oct profiles; Claude's run 21–22 Oct; `2026-10-20_blockC.md`, "100-day runs
+complete"): B0329+54 nominal clean 978 good TOAs (9.78/day, 1.97 h, 733.5 µs, std z 1.156, merit 1029), rfiCalScint 765
+(7.65/day, 735.3 µs, 1155); worst clean 187 (1.87/day, 10.1 h, 740.5 µs, 2358), rfiCalScint 146 (1.46/day, 2695); J0437
+nominal clean 76 (0.76/day, 16.0 h, 13.03 µs, 52.1), rfiCalScint 68; worst clean 14 (0.14/day, 82 h, 13.06 µs, 118),
+rfiCalScint 12 (95 h). χ² 1.00 throughout. The core is honest (B0329+54 nominal MAD std 1.011); the tail is heavy:
+1.94 % beyond 3σ (Gaussian 0.27 %), 0.31 % beyond 4σ, all at SNR 7.1–8.1 → navFit's outlier model ε 0.02, k 4.
+
+**RFI variants, 30 days, rerun with the 21 Oct profiles (23 Oct, R2; old results in `data/scenario/profiles_20oct/`;
+`2026-10-23_review-C-D.md`):**
+
+| Case | TOAs/day old → new | σ old → new | σ·√h old → new | Note |
+|---|---|---|---|---|
+| B0329+54 nominal, RFI | 7.90 → 7.90 | 734 → 736 µs | 1130 → 1140 | χ² 1.07 → 1.08 |
+| B0329+54 nominal, + calibration | 7.87 → 7.83 | 736 → 736 | 1129 → 1148 | flagged 7 → 2 % |
+| B0329+54 nominal, + scintillation | 7.97 → 7.93 | 735 → 735 | 1139 → 1139 | |
+| B0329+54 nominal, fixed groups | 8.10 → 8.10 | 745 → 746 | 1154 → 1156 | |
+| B0329+54 worst, RFI | 1.53 → 1.53 | 741 → 740 | 2608 → 2607 | |
+| B0329+54 worst, + calibration | 1.53 → 1.53 | 741 → 740 | 2627 → 2644 | rms/pred 1.24 → 1.76 (without outliers 1.06 → 1.01) |
+| B0329+54 worst, + scintillation | 1.53 → 1.53 | 743 → 743 | 2649 → 2666 | rms/pred 1.04 → 1.83 (without outliers 1.05) |
+| B0329+54 worst, fixed groups | 1.53 → 1.50 | 739 → 730 | 2636 → 2621 | rms/pred 1.32 → 1.00 |
+| J0437 nominal, 4 variants | 0.57 → 0.57–0.60 | 13.0–13.5 µs | 57–62 → 57–61 | 17–18 TOAs |
+| J0437 worst, 4 variants | 0.07–0.10 → 0.10 | 12.0–13.2 µs | 115–150 → 132–149 | 2–3 TOAs: scatter only |
+
+Reading: the current profiles leave the budgets unchanged (B0329+54 within 2 %); realistic RFI costs ~21 % of the
+TOAs (= (×0.895 SNR)²); the calibration brings χ² 1.07 → 1.00 at no cost; scintillation does not help B0329+54 (7 MHz
+scintles average over 128 channels).
+
+### 7.4 Block D: from TOAs to a position (21–23 Oct)
+
+**A fixed site 100 km east, B0329+54 alone, 30 days from 52° N (runScenario motion, Claude's runs; navFit with averaged
+rows by `expNavFit`, Jasper's run 23 Oct: every number as logged; `2026-10-20_blockC.md`, "Fixed-site reruns"):**
+
+| Case | good TOAs | east (truth 100 km) | radial (truth 0) | polar, calibrated (truth 0) | Predict |
+|---|---|---|---|---|---|
+| nominal, perfect clock | 302 | 36.5 ± 29.6 km | +9.9 ± 37.2 km | −27.0 ± 16.7 km | 29.4 km |
+| nominal, SDR clock tracked daily | 300 | 35.1 ± 29.7 km | – | – | – |
+| worst, perfect clock | 59 | 82.2 ± 110.3 km | −123.8 ± 127.0 km | – | 109.1 km |
+
+The nominal east value is 2.1σ low: one noise draw (1000 km with the same seeds: 947.2 ± 29.8 km; 100 days: 80.3 ± 16.4
+km, days 31–100 alone 99.9 ± 19.7, the 4.9σ detection; the 100-day fit used point rows). The worst-case precision is
+**±110 km** with averaged rows (±71 / ±82 km in the point-row runs, superseded; `2026-10-22_handover-D.md`, "Closed").
+No motion = 299 good TOAs: the motion costs no TOAs.
+
+**The SDR clock (crystal noise, true rate −1.17e-6; Claude's runs):** tracked daily: 300 TOAs, the unestimated clock
+per week 151–855 µs rms (days 1–3 the port calibration ~1.05–1.29 ms), harmless for B0329+54's 6.6 ms pulse, too much
+for J0437's 0.14 ms; not tracked: 213 TOAs (longer groups, T0 at the predicted phase lower), the clock drifting to
+−6.65 ms (`2026-10-20_blockC.md`, "D4b results").
+
+**Which pulsars help (`expNavPlan`, navFit 'Predict' on real passes from 52° N, nominal flux; Claude's run 22 Oct,
+Jasper's run 23 Oct: every number as logged):**
+
+| Set | 30 d east / radial / polar (cal) | polar, crystal clock | 100 d east / radial / polar | polar, crystal |
+|---|---|---|---|---|
+| B0329+54 alone | 29.6 / 34.1 / 16.3 km | 63.7 km | 16.2 / 18.7 / 8.9 km | 63.6 km |
+| + B0950+08 | 28.6 / 28.9 / 16.0 | 49.1 | 15.8 / 15.7 / 8.8 | 34.3 |
+| + B0950+08, B1642−03, B1929+10 | 28.2 / 26.3 / 15.9 | 39.8 | 15.4 / 13.7 / 8.7 | 23.7 |
+
+Clock one day ahead 442–453 µs ("self") and 391–416 µs ("calibrated") in every set; the three without B0329+54: east
+93 km, polar 297 km (30 d). Worst flux, 30 d:
+B0950+08 4 TOAs, B1642−03 and B1929+10 none. → Extra pulsars add little to the 2-D position; their gain is the polar
+component with a real clock (`2026-10-20_blockC.md`, D4c-0).
+
+**The ship (runShip, 14 days, B0329+54 + B0950+08, SDR clock; Claude's runs):** nominal flux, 8 seeds × {self,
+calibrated}, pulls at days 3, 7, 10, 14 (real / ideal twin): calibrated east 0.86 / 0.81, north 0.84 / 0.81; self east
+0.80 / 0.86, north 1.27 / 0.67 (north worse than the twin in 4 of 8 ships: open, parked); median 2-D rms track error:
+dead reckoning 379 km (644 km at day 14), self 102 km, calibrated 73 km (`2026-10-22_handover-D.md`). **Worst flux**
+(22 Oct evening; `2026-10-22_handover-E.md`, update): median 2-D rms dead reckoning 372 km (end 644), self 358 (622),
+calibrated 298 (499) km; B0329+54 gives 18–23 TOAs instead of ~115, B0950+08 1–3 → at the design point B0329+54 +
+B0950+08 do not navigate a ship from 52° N. Jasper's run 23 Oct of seed 1, worst flux, calibrated: all 14 daily lines
+identical; east 414.2, north 182.6 km (DR 355.1), stated 155.0 / 142.1 km, pulls rms 4.23 / 3.37; twin 259.9 / 40.2 km.
+
+### 7.5 The exact Earth (D5, 22 Oct; testDelayModel 10–11, testLoadEphemeris; Jasper's runs 22 Oct)
+
+| Check | Result |
+|---|---|
+| DE440 vs JPL Horizons, the geocentre at three epochs | 4.5 cm, 1.1e-7 m/s |
+| a 52° N 5° E site with precession and nutation, 2026-03-01 00:00 / 06:00 TT | 28 m and 30 m (UT1 − UTC left out); 16.0 / 13.2 km without them |
+| TDB − TT from DE440 vs the USNO series, 2000–2050 | rms 2.25 µs, max 7.07 µs (the analytic two terms: rms 16.5 µs) |
+| the analytic Earth orbit vs DE440 | Earth–Sun within 15,465 km; Earth–SSB up to 3.2e5 km (Uranus, Neptune left out); a 100 km offset measured the same to 2.1e-12 s |
+
+### 7.6 Validation status, 22–23 Oct
+
+- **Jasper's run 22 Oct (~10:00–11:20):** runAllTests 22 of 22 (8.3 min) and runAllTests("testRFIChain") (65.3 min);
+  every number identical to Claude's runs → validated the D1–D3 tests, testSimulateFold 16, testRFIModel 6,
+  testDetectRFI 4, testGeneratePulsarSignal 7, testChannelTOA 7, testRFIChain (new code). Afternoon: testNavFit,
+  testNavFilter (incl. check 6, tSub checks 11 / 7), testDelayModel (11), testLoadEphemeris (5): all passed
+  (`2026-10-20_blockC.md`).
+- **Validation run on the frozen commit 171a716 (Claude's run, 21–22 Oct, Jasper's MATLAB down):** 8 steps, all as
+  expected (16 / 16 tests; main identical; expSimVsChain after a full-band main run; testRFIChain old code: the two
+  diagnosed failures; runRFITest calibration pass; runScenario 20 cases).
+- **Jasper's runs 23 Oct (`2026-10-23_review-C-D.md`):** runAllTests **25 of 25** (9.6 min; slowest testOptimalTOA
+  141 s, testDetectRFI 123 s, testBlankingWeights 114 s, testSimulateFold 53 s, testNavFit 41 s); expNavFit,
+  expNavPlan, expSimVsChain, expSimRFI (after the restoreDir fix), expComponentsChain, runShip worst flux seed 1:
+  all reproduce → validated; testFoldPredictor 6 + testSimulateFold (A-1): identical to Claude's run; main.m after
+  its fix: identical to 21 Oct (§4).
+- Not rerun by Jasper: runShip with the self-calibrated start; runScenario's 30-day motion runs (expNavFit checks the
+  fit on their files); the 21 Oct-profile reruns R1, R2 (Claude's runs). Nothing automatic runs main.m (§10 item 15).
+
 ---
 
 ## 8. Bugs found and fixed (lessons)
@@ -1891,6 +2654,46 @@ r = (1 − f + f(1 + R)²)/L² (§9).
     item 3) the tests share `data/test/chan/` instead; the rule stands, but `main.m` at
     the same time is now safe (it does not touch `data/test/`).
 
+*(Added 23 Oct 2026, from the logs of 20–23 Oct.)*
+
+12. **main.m stopped after the IQ stage from 21 to 23 Oct** ("Unrecognized function or variable
+    'profileComponents'" in `main>checkConsistency`): commit `95a93bc` (21 Oct) added `profileComponents` to the
+    `checkSkyFiles` call inside main's *local function*, which does not see the script's variables; runMonteCarlo and
+    runRFITest make the call at script level and were fine. Not noticed because `runAllTests` does not run main.m.
+    Fix 23 Oct: passed as an input; Jasper's run identical to 21 Oct (`2026-10-23_review-C-D.md`). Lesson: a driver
+    change is only seen when someone runs the driver (open, §10 item 15).
+13. **mergeSubints tagged merged predictor folds with the f0 model** (review item A-1): off by ≈ (v·n̂/c)·t, 0.3 s per
+    hour of recording for B0329+54; no current result affected (every merged fold came from simulateFold or the chain
+    without a predictor). Fix 23 Oct: tRef from the member sub-int that holds turnRef; testFoldPredictor 6 (§5.25).
+14. **The experiment scripts leaked `restoreDir` through the base workspace** (23 Oct: expSimRFI stopped after
+    expSimVsChain, "Unrecognized function or variable 'pipelineParams'"): the same mechanism as #11, which made the
+    *tests* functions; the `exp*` scripts kept the pattern. Fix: `clear restoreDir` before `cd(root)` in expSimVsChain,
+    expSimRFI, expComponentsChain; checked by expComponentsChain running with a leftover in the workspace.
+15. **runShip's merged TOAs tagged between their data** (22 Oct): mergeSubints tags a group at its middle turn; a
+    B0950+08 TOA spanning two passes a day apart was tagged near anti-transit, where the daily position signal has the
+    opposite sign, and the bookkeeping was evaluated there too → B0950+08's TOAs carried none of the position signal.
+    Fix: per-sub-int bookkeeping and `sideTag` (runShip, runScenario), then navFit / navFilter rows averaged over the
+    sub-ints (`tSub`). The first diagnosis ("straddling" the evening update) was too small to explain it
+    (`2026-10-20_blockC.md`, "runShip bug: the real cause").
+16. **navFilter's first velocity state in ECEF** (22 Oct): over 35° of longitude a constant east current got a 37 %
+    vertical part, which the height constraint forbade → east pulls 31; fixed with states in the local frame of the
+    DR track. Also the smoother gain divided by covariances spanning 15 orders → solved on a correlation matrix.
+17. **foldProfile 'Predictor' clamped tRef to the span** (21 Oct, found by testFoldPredictor): a partial last
+    sub-int was 0.39 turns off; now the phase continues linearly with the edge frequency.
+18. **makePredictor's true-time origin computed as one absolute number** (21 Oct, found by trueResiduals check 7):
+    a 7 ns constant phase error (rounding ~6e-8 s); fixed with the exact difference first.
+19. **Two runs in one temp folder** (20 Oct): a smoke run of testRFIChain overwrote the running full run's
+    `p_zero.dat` ("Unexpected end of p_zero.dat"), twice; testRFIChain, testRFIModel and testDetectRFI now make their
+    own folder per run (`tempname`).
+20. **simulateFold's info lacked fields foldProfile had gained** (`channelNoise` 20 Oct, `predictor` 21 Oct):
+    testSimulateFold 1 checks that the field names match and failed (Jasper's run 20 Oct; Claude's regression run
+    21 Oct); fixed both times by adding the
+    field. Lesson: a change to foldProfile's info needs the same change in simulateFold.
+21. **detectRFI's first per-channel version took the pass-2 baseline without the pass-1 flags** (21 Oct): the
+    carrier channels then flagged ~2× at PFA 1e-3 (baseline ~9 % low); fixed before commit (§5.20).
+22. **Docs formula:** formulas.html's one-pulsar precision lacked 1/cos δ (18.0 km written vs the row's own 31.1 km;
+    fixed 23 Oct). The notes' §6 now has the corrected row.
+
 ---
 
 ## 9. Known limitations and modelling gaps
@@ -1911,7 +2714,8 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   (equatorial and high-latitude sites): fading of signal amplitude. (4) Refraction: small
   apparent source-position shift. To do: size each effect for the target hardware and
   site, decide what the simulator and the processing must include (likely block D or
-  later).
+  later). (23 Oct: not in block D; it is in the sub-µs list of §10 item 13 = step E2 of the revised block E, and for
+  real data block F; docs `roadmap.html` open items.)
 - **Propagation**: no scattering (irreversible pulse broadening), no DM variations, no
   higher-order frequency terms, no scintillation.
   - DM variations: δDM = 1e-3 pc cm⁻³ shifts TOAs by ≈ 2.1 µs at 1.4 GHz (chromatic;
@@ -1934,6 +2738,8 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   (3 m, T_sys ≈ 30 K, SEFD ≈ 2e4 Jy): ρ ≈ −27 dB (Vela, peak ~40 Jy), ≈ −35 dB (J0437,
   peak ~6 Jy), ≲ −50 dB (typical MSP) → per-pulse SNR ≪ 1, TOAs need minutes–hours of
   folding, where motion, DM(t) and scintillation matter. Phase D should sweep below −30 dB.
+  (Since 20 Oct the fast simulator covers this regime: the scenario runs at ρ −45.0 / −48.6 dB (B0329+54) and
+  −51.2 / −54.8 dB (J0437), hours to days per TOA, §5.37, §7.3.)
 - **Spectrum**: generator is white; real pulsars S ∝ f^α, mean α ≈ −1.6 (factor ≈ 1.6
   across 1.2–1.6 GHz) → pulsar B_n below the noise B_n; combined with profile evolution
   and a DM error this biases wideband TOAs.
@@ -1954,17 +2760,34 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   fold needs ≲ 4 km, normal pulsars ~100 km. **First fix** (§15, §17; scenario numbers, no
   timing noise): ~300 km from 30° S after 184 h on source worst case (~2–3 weeks of calendar
   time), ~1500 km from 52° N.
+  **Superseded by block D (21–22 Oct; `2026-10-22_handover-D.md`):** clock drift and wander (makeClock, the clock in
+  navFit / navFilter), relative motion (delayModel, makePredictor + foldProfile 'Predictor', trueResiduals) and
+  several pulsars (runShip two in simultaneous beams; navFit and navFilter any number) are modelled; the voltage
+  chain still simulates one pulsar with a fixed period. The "~1500 km from 52° N" estimate is replaced by the
+  simulations: B0329+54 alone finds a fixed site to ±31 km per equatorial component in 30 days at nominal flux,
+  ±110 km at worst flux (§7.4). The 30° S estimate still uses J0437's catalogue hours per TOA (3.9 / 21 h); the
+  simulation with its measured profile needs ~16 / 82–95 h (§7.3; review 22 Oct docs check: ~245–260 h / 46 h for the
+  four-pulsar fix). The binary orbit is parked (J0437 never rises at 52° N).
 - **Pulse**: stable Gaussian profile, no pulse-to-pulse jitter (a noise floor for bright
   MSPs, not in the low-SNR regime), no profile evolution with frequency, no polarisation. Gaussian-specific places to revisit for real data or other
   shapes: `ephem.profileFWHM` (→ template per pulsar), the generator and
   `expectedPowerModel` profile, the 1 %-of-peak on-pulse threshold in `estimateTOA`.
+  (20–21 Oct: multi-component profiles in `gaussianTemplate`, `foldToTOA`, `simulateFold` 'Components' and the
+  generator 'Components' (§5.1); `ephem.profileFWHM` takes the component matrix; B0329+54 five components at 1410 MHz,
+  J0437 eight fitted to the Parkes 1369 MHz profile. Still single-Gaussian: `expectedPowerModel`. Not modelled:
+  B0329+54's abnormal mode, ~15 % of the time.)
 - **Estimator**: FFTFIT not optimal under self-noise (1.5× at +10 dB, 2.4× at +20 dB;
   §7 phase D); weighted (radiometer-model) fit not implemented. Below SNR ≈ 10 per
   sub-int TOAs have outliers; the good-TOA definition (detected + χ² ok, §5.13) removes
   them (§7 phase E). Detection P_FA validated down to 1e-2…1e-3 (900 H0 profiles, §7);
   smaller P_FA (e.g. 1e-6 for navigation) only by extrapolating Gaussian / Rice tails.
+  **Not for every template (20–22 Oct):** with B0329+54's five components, TOAs just above the grouping threshold
+  (SNR 7.1–8.1) form a heavy tail that the good-TOA rule does not remove: 1.94 % beyond 3σ (Gaussian 0.27 %), ~0.5 %
+  one core width off (5–9σ), χ² cannot see them; with fixed groups below SNR ~5.7 a true jump to the template's side
+  peak (z −19.3). Handled by navFit's / navFilter's robust mixture (ε 0.02, k 4), not by the TOA rule (§5.35, §7.3;
+  `2026-10-20_blockC.md`). The threshold itself is SNR ≥ 6–7 (§7), not ≈ 10 as written above.
 - **Edges**: last ~6.3 ms of each file not fully supported; partial first/last turns
-  skipped (`MinCoverage` = 1).
+  skipped (`MinCoverage` = 1). (At the default DM 25 since 20 Oct: the last ~31.5 ms, hence L = 0.2 s.)
 - **Scale**: single-FFT coherent dedispersion becomes memory-limited for large DM
   (e.g. DM ≈ 71 → ~90 ms sweep); channelized (filterbank) dedispersion needed.
   Target DMs go up to ~100 → see §10 item 5 (memory-efficient FFT / alternatives).
@@ -2050,6 +2873,14 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   the channel's noise): (1 − f)/(16 f). Worst case = narrow noise-like carriers about as strong
   as their channel's noise. Measured: LTE 0 dB 0.08 %; realistic scenario 0.39 %; with ten
   narrow Inmarsat-like carriers χ² 1.22, error bars 3.4 % too small (matters for navigation).
+  **Remedies built 20–21 Oct (`2026-10-20_blockC.md`):** (1) the per-channel noise calibration as an option, off by
+  default: `rfiProfile` 'OnPulse' on the observation's off-pulse bins → `foldProfile` 'ChannelNoise', switched by
+  `processIQ` `proc.noiseCal` (pipelineParams `noiseCal = false`); on the chain χ² 1.07 → 1.00 (realistic) and 1.24 →
+  0.99 (narrow Inmarsat), §7.2; in the simulator 'ObserverNoise' 'measured' (scenario 'rfiCal' variants); (2) per-channel
+  detectRFI thresholds, default since 21 Oct (§5.20): they remove the false flags in partly covered channels. The
+  flat-channel observer (calibration off) keeps the χ² excess: 1.0778 (realistic) and 1.3026 (narrow) in expSimRFI part
+  2 with the 21 Oct profiles; its error bars honest in the realistic case (rms/pred 0.958 ± 0.035) and ~8 % too small
+  with narrow carriers (1.083) (§7.2).
 - **periodicRFI accepts false emitters when detections are dense (9 Oct 2026, B5e).** In the
   realistic scenario (§7) the lopsided channels produce hundreds of false flags each.
   periodicRFI then fitted 14108.5 Hz (70.88 µs = 2/29 of radar 1's period: every second radar
@@ -2066,7 +2897,10 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   candidates from strong pulses): `2026-10-09_handover-B-closed.md`; additions P1 (test cases),
   P2 (pair fits by construction) and P3 (groups chain across channels: the 9 Oct group spanned
   channels 29–94) in §10 item 11 (review 15–16 Oct). The per-channel calibration
-  also removes the dense false flags.
+  also removes the dense false flags. (Correction 23 Oct: the noise calibration changes the fold's noise model, not
+  the flags; the dense false flags are what detectRFI's per-channel thresholds remove, default since 21 Oct, §5.20.
+  runRFITest cases 14–15 have not been rerun with them, so whether the false emitters are gone is not measured; docs
+  `limits.html`.)
 - **Excision chain on long files (12 Oct 2026).** `channelizeIQ`, `blankChannels`,
   `dedisperseChannels`, `detectChannels` and `foldProfile` stream (memory set by the block size).
   Three excision stages do not: `detectRFI` reads each channel file whole (`readPower`; ~240 GB
@@ -2085,12 +2919,47 @@ r = (1 − f + f(1 + R)²)/L² (§9).
   independent, and the total fold (sum over sub-ints) misses the same small terms.
   Negligible for TOAs (template derivative ≈ 0 there) and χ² / detection (~1e-5).
 
+*(Added 23 Oct 2026: limits of blocks C and D. Docs `limits.html`, `simulator.html#limits`, `navigation.html`.)*
+
+- **Fast simulator: what it assumes (block C; simulateFold.m:129–161, 181–184; `2026-10-20_blockC.md`).** Gaussian
+  folds with the observer's noise model (so its pulls of 1 show consistency, not realism: at high ρ the chain gives
+  rms/pred 1.04–1.06 from its exact taper coefficients and the pulsar's own noise, the simulator ~1.00: ~5 % optimistic
+  at high SNR, fine in the weak regime; review T2-3). Sub-ints independent. RFI (C4b): stationary, correlations only
+  over the measured lags, blanking spread evenly over pulse phase and independent of the data (the chain's
+  data-dependent blanking made blanked bins +4–9 % noisier before the per-channel thresholds), RFI independent in the
+  two polarizations (S2-4). At −5 dB the simulator's SNR is ~0.5 % high (the chain's excision clips pulse peaks).
+  Scintillation: Gaussian ACFs, no refractive variation (S2-5: may understate long fades). The phase offset is constant
+  within a sub-int (a drift warning in runScenario above 5 % of the FWHM). Not in the simulator (parked at the close
+  of block C, 22 Oct): the time structure of rotating radars (C3d), refractive scintillation, excision of bright
+  pulses, RFI locked to the pulsar's period, merging identical channels for very long runs.
+- **Analytic Earth in the simulations (block D).** The default orbit is up to 3.2e5 km off the SSB (Roemer of B0329+54
+  off by up to 0.66 s); truth and observer share it, so it cancels in every simulation; real data must use 'Ephemeris'
+  (DE440, §5.30–5.31). Likewise every term missing from `delayModel` is missing on both sides and no run shows its
+  effect (§10 item 13).
+- **The clock model (block D).** The only noisy preset is the paper's 3e-11 crystal, steadier than a stock SDR TCXO
+  (0.65 against ~3.6 µs per hour, a log estimate); the real oscillator is not characterized (measure on the device);
+  navFit / navFilter leave the flicker term out (right for the crystal only); ADC aperture jitter is left out
+  (handover-E, update; docs `limits.html`: 1 ps adds ~1e-4 of the input power as noise) → step E5.
+- **Parked at the close of block D (22 Oct; `2026-10-22_handover-D.md`, "Parked"; §10 item 14):** J0437's binary orbit;
+  real ship and probe trajectories; the Earth's real axis in navFit / navFilter rows (< ~6 km); the clock's wander inside
+  a long TOA (testNavFilter 7 north pulls 1.19); stored profiles shifted instead of refolded (needed for MSPs); UT1 − UTC
+  and polar motion; a probe's own clock; the current as a Gauss–Markov state; the self-calibrated ship's north error;
+  a one-pass robust filter. Since 23 Oct navFilter and runShip as a whole are parked (§11).
+
 ---
 
 ## 10. Open items / immediate next steps
 
 *(Tidied 6 Oct 2026: open items first, then deferred, then a short done list with
 pointers; details of finished work are in §7 and the session logs.)*
+
+**Status 23 Oct 2026 (added in the catch-up; the status paragraphs below are history).** Blocks A–D closed: A 8 Oct,
+B 9 Oct, C 22 Oct afternoon (parked items §9), D 22 Oct evening (handover `logs/2026-10-22_handover-D.md`; item 14
+below). The processing boundary `processIQ` / `foldToTOA` done 19 Oct (item 7). Block E revised on 23 Oct toward one
+endpoint, a fixed position in the Netherlands from several pulsars (§11; handover `logs/2026-10-22_handover-E.md`,
+read its late-evening update first); block F (real recordings through the same code) added 22 Oct. Now: the review of
+C and D (E0; `logs/2026-10-22_review-C-D.md`, `logs/2026-10-23_review-C-D.md`; parts 2–3 done, observations in item
+15), then a review week before E1. All 25 unit tests pass in Jasper's run of 23 Oct (§7.6).
 
 **Status 8 Oct 2026: block A complete** (validated, committed `27b2367`; `main.m` runs the
 channel path by default). Handover recap of 7–8 Oct: `logs/2026-10-08_overview.md`.
@@ -2138,7 +3007,10 @@ A = finish the front end (item 1 below): A1 fold with channels and exact noise (
 "unit 3c"), A2 detection / TOA fit combining channels (3d), A3 fake-blanking test (3e),
 A4 switch in `main.m`; B = RFI excision (item 2); C = fast simulator (item 3);
 D = barycentric phase prediction (item 4); E = later (several pulsars, navigation
-solution, 3×3 array, second polarization). Done so far in A: channelizeIQ,
+solution, 3×3 array, second polarization). (As built, 23 Oct: D = motion, phase prediction, the clock and the
+navigation fit, steps D1–D5, item 14; E = the fixed-site endpoint, steps E0–E6 + E3b, §11; F = real recordings at
+the Netherlands site. The 5–6 Oct "phase D / E / F" — SNR sweep, detection, weighted fit — are not these blocks.)
+Done so far in A: channelizeIQ,
 dedisperseChannels, blanking experiment, detectChannels + powerCovariance (validated);
 A1 split (7 Oct) into **A1a** exact noise covariance in the fold (`NoiseCoeffs`, §5.7;
 validated, Jasper's run) and **A1b** per-channel data weights
@@ -2328,7 +3200,8 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    development in the old form"); log `2026-10-20_blockC.md`. **expSimRFI part 2 (20 Oct, 1 s
    profiles, −5 dB, 400 TOAs each)**: noise only SNR 92.4, σ 2.940 µs, rms/pred 1.004, χ² 1.0068;
    realistic 82.6 (×0.895), 3.293 µs (×1.120), rms/pred 0.957 ± 0.035, χ² 1.073; narrow Inmarsat
-   81.1 (×0.878), 3.357 µs (×1.142), 1.069, χ² 1.246 → RFI after excision costs 25–30 % observing
+   81.1 (×0.878), 3.357 µs (×1.142), 1.069, χ² 1.246 [superseded 23 Oct with the 21 Oct profiles: realistic rms/pred
+   0.958, χ² 1.0778; narrow 1.083, χ² 1.3026, σ 3.359 µs; SNR and σ unchanged; §7.2] → RFI after excision costs 25–30 % observing
    time for the same σ; error bars honest within ~7 %; the χ² excess (noise mis-modelled in the
    partly covered channels) does not shrink with SNR, so pChi2 < 0.05 for every TOA with RFI (the
    drop rule MaxRedChi2 2 is unaffected) — an argument for the parked per-channel noise calibration.
@@ -2339,14 +3212,29 @@ stays as validated reference); generic L-band RFI scenario until site measuremen
    proc.noiseCal, off by default) — all validated by Jasper's runs (testSimulateFold 1–15, testRFIModel
    1–5) except the chain check (runRFITest narrow Inmarsat with noiseCal: next). runScenario (clean,
    30 d): B0329+54 with its five components 9.6 / 1.8 TOAs per day (nominal / worst), 2.0 / 11.0 h each,
-   σ 730 µs; J0437 3.7 / 0.73, 3.25 / 16.5 h, σ 11.5 µs. testRFIChain: second moments hold on the chain
+   σ 730 µs; J0437 3.7 / 0.73, 3.25 / 16.5 h, σ 11.5 µs [superseded: B0329+54 at NBin 2048 9.97 / 1.97 per day, 1.93 /
+   10.0 h, σ 734 / 743 µs; J0437 with its measured eight-component profile 0.73 per day (nominal), 15.5 h, 13.0 µs; §7.3]. testRFIChain: second moments hold on the chain
    (realistic case); checks revised (kurtosis decay, one-sided pooled flatness/blanking), rerun pending.
    Open: channel 61's extra non-Gaussianity (carrier and impulses each ruled out; partly blanked bins
    tested), error-bar honesty at SNR ~7 (fat tail with B0329+54's components, too large for J0437).
+   **Status 23 Oct (catch-up; `2026-10-20_blockC.md`):** the pending items above are done — C1 and all later stages
+   validated by Jasper's runs (testSimulateFold 1–15 on 20 Oct, 16 on 22 Oct; testRFIModel 1–6); testRFIChain passes
+   on the new code (per-channel thresholds, 30 lags; Jasper's run 22 Oct); the chain check of the calibration done
+   (narrow Inmarsat χ² 1.24 → 0.99, Claude's run, §7.2); channel 61 closed 20 Oct (its excess kurtosis falls as
+   1/turns); "too large for J0437" retracted 20 Oct (a fluctuation); the components' fat tail at SNR ~7 was mostly bin
+   resolution → NBin 2048 for B0329+54 and the resolution rule tightened to /10 of the spectral width (§5.8), the rest
+   (~2 % beyond 3σ) handled by navFit's robust mixture. Also 21 Oct: J0437's measured eight-component profile in
+   runScenario, per-channel detectRFI thresholds, rfiProfile 'Lmax', the generator 'Components', the RFI variants and
+   100-day runs (§7.3). **Block C closed 22 Oct** (Jasper), parked: C3d radar time structure, refractive
+   scintillation, bright-pulse excision, RFI locked to the pulsar, merging identical channels. Entries §5.24–5.28,
+   results §7.2–7.3.
 4. **Relative motion / barycentric phase prediction** (Block 3) — a **hard requirement**
    since §11: a TOA is folded across passes, so the phase must stay coherent over days.
    Doppler in the generator and in the fold phase model (~100 µs/s drift at Earth's
-   orbital speed); Earth rotation; station position as input.
+   orbital speed); Earth rotation; station position as input. **[done in block D, 21–22 Oct]**: delayModel (Roemer,
+   Einstein, Shapiro, Earth rotation; DE440 for real data), makePredictor + foldProfile 'Predictor' (the fold phase
+   model with Doppler), trueResiduals (the truth), makeTrajectory (station position, ship, probe) — item 14, §5.29–5.34.
+   Not done: Doppler in the voltage generator (fixed period); J0437's binary orbit (parked).
 In parallel / later: generator-side DM memory (item 5); rest of Block 2 (DM check from
 sub-band TOAs, clock jitter); Block 3 further (multiple pulsars from the §11 table,
 barycentric corrections, navigation solution).
@@ -2355,7 +3243,8 @@ barycentric corrections, navigation solution).
 - **[todo] Ionosphere (8 Oct 2026, Jasper).** Assess dispersive delay (~3–70 ns at
   1.4 GHz, time-variable), Faraday rotation (single polarization), ionospheric
   scintillation and refraction for the target hardware / site; decide what to model and
-  correct (§9). Likely with block D (time-dependent corrections) or later.
+  correct (§9). Likely with block D (time-dependent corrections) or later. (23 Oct: not in D; step E2 for the
+  sub-µs list of item 13, and block F for real data.)
 - **[todo] Doppler-shifted dispersion delay (22 Oct 2026; real data only).** The dispersion
   delay K·DM/ν² holds at the frequency in the frame of the interstellar medium (≈ the SSB),
   ν_SSB ≈ ν_obs(1 − v·n̂/c); TEMPO/TEMPO2 evaluate it at the barycentric frequency.
@@ -2374,7 +3263,8 @@ barycentric corrections, navigation solution).
 
    | DM | sweep | forward dispersion (real, 4 GHz, 44 B/sample) | dedispersion (complex, 800 MHz, 56 B/sample) |
    |---|---|---|---|
-   | 5 (now) | 6.3 ms | 2^26 → 3 GB (run uses 2^28, 11.8 GB) | 2^24 → 0.9 GB |
+   | 5 (the default until 20 Oct) | 6.3 ms | 2^26 → 3 GB (run uses 2^28, 11.8 GB) | 2^24 → 0.9 GB |
+   | 25 (the default since 20 Oct; row added 23 Oct) | 31.5 ms | 2^28 → 11.8 GB (kernel 126 M samples) | 2^26 → ~3.8 GB (under the 4 GB default) |
    | 30 | 37.8 ms | 2^29 → 24 GB | 2^26 → 3.8 GB |
    | 60 | 75.6 ms | 2^30 → **47 GB** (kernel design grid alone ~17 GB) | 2^27 → 7.5 GB (above the 4 GB default `MaxMemoryGB`) |
    | 100 | 126 ms | 2^30 → **47 GB** (as at DM 60: the minimum 2·Nk − 2 = 1.008e9 still fits 2^30) | 2^28 → 15 GB |
@@ -2405,7 +3295,7 @@ barycentric corrections, navigation solution).
    `chooseSubintPeriods(...)`. Belongs with the fast simulator (item 3: long
    observations, varying SNR). Optional: include the baseline loss (0.962) in the
    `runSNRSweep` P_D theory curves.
-7. **[todo] Factor the receiver/processing chain into one function.** The same stage
+7. **[done 19 Oct: `processIQ` + `foldToTOA`, steps 1–3 and A3b below; §5.22–5.23, §7.1] Factor the receiver/processing chain into one function.** The same stage
    calls appear in `main`, `runMonteCarlo`, `runSNRSweep` and `runH0` (noted 6 Oct); also
    `runRFITest` and `runLockedRadar` (channel path). **Connected to A3b (review 16 Oct,
    Jasper: "note the connection"):** with one chain function the three statistical scripts
@@ -2461,11 +3351,12 @@ barycentric corrections, navigation solution).
    0.2580, false flags on pure noise 0.0049 %. runSNRSweep channel path: excision off above
    −5 dB, SNR axis = measured mean T0 (no optimum, item 8); smoke test only (the full channel
    sweep, ~1.5 h, not run). runLockedRadar stays. Only main and the run scripts call the
-   stages now.
+   stages now. (20 Oct: the weak-regime channel sweep, −25 … −11 dB, 10 realizations, was run; §7.1.)
 8. **[todo] Second polarization in the voltage chain** (hardware is dual pol, §11): two
    independent noise streams per element, |X|² + |Y|² after detection. The fast simulator
    (item 3) covers it statistically first — done 20 Oct: simulateFold 'NPol' (the voltage chain
-   itself stays single-pol).
+   itself stays single-pol). (23 Oct: the voltage-level polarizations are part of step E4 — two beams with the same
+   steering weights, detected and added; §11.)
 9. **[done 12 Oct] Legacy `envelopeReconstruction` and `plotEnvelope`**: kept in `old/` as
    legacy (Jasper), with the other `old/` files; no active code calls them and `old/` is not on
    the path. Not updated (`binTime0`, `'ieee-le'`).
@@ -2475,7 +3366,9 @@ barycentric corrections, navigation solution).
    runs 12 Oct: all passed (§5.18); validated. Lag-array memory (∝ bin length) also fixed 12 Oct
    (bit-identical, Jasper's run, §5.18). Left open: run time ∝ bin length and whole-file processing (§9, design ready).
 11. **[todo] Generator refinements (review week, stage 1, 12 Oct; Jasper: note only, the week
-   is for understanding).** Agreed in principle, not started:
+   is for understanding).** Agreed in principle, not started: (Labels: since 23 Oct the docs write these review items
+   with an R- prefix — R-D1, R-D2, R-N1, R-I1–4, R-C1, R-E1, R-V1–2 — so they do not collide with the block steps C1–C4,
+   D1–D5 and E0–E6; here they keep their old names. `docs/roadmap.html`, open items.)
    - **R1** unit test `tests/testGeneratePulsarSignal.m`: **done 13 Oct** (§5.1; all passed,
      validated by Jasper's run). Block-size independence confirmed (bit for bit). Overlap
      warning lowered from > 50 % to > 20 % duty (Jasper, 13 Oct; test 6 checks 25 / 20 %).
@@ -2762,6 +3655,9 @@ barycentric corrections, navigation solution).
    - whether the 1 Oct noise runs validate the noise versions of `plotDetectedPower` /
      `plotFoldCheck` (Jasper);
    - items 3, 4, 8 (Jasper; the χ² threshold decided 16 Oct, §5.8). (The bright-pulsar excision warning: done 14 Oct.)
+     (Status 23 Oct: item 3 parked together with the per-channel noise calibration as one block, Jasper 19 Oct
+     (`2026-10-19_processIQ.md`); the calibration was then built as an option on 20 Oct (§9 "Flat spectrum"); items 4
+     and 8 still open.)
 
 13. **[todo, later] Every TOA correction in the timing model (Jasper, 23 Oct 2026: "we need to take into
    account all corrections for the toa, as every missing piece will disrupt the timing"; fix block D's
@@ -2799,8 +3695,8 @@ barycentric corrections, navigation solution).
    | Term | Size | Status | Fix would go in |
    |---|---|---|---|
    | Pulsar position at the epoch: proper motion, parallax | 1 mas gives up to 2.4 µs (annual). B0329+54 moves ~19 mas/yr (VLBI, Brisken et al. 2002; to check): ~47 µs per year since the position epoch | not modelled: `psr` holds raDeg, decDeg only | `delayModel` (pmRA, pmDec, posEpoch, parallax) |
-   | Pulsar binary orbit (J0437) | ~3 s per 5.74 days | parked (handover-D) | `makePredictor`, `trueResiduals` (ELL1) |
-   | Doppler-shifted dispersion delay | ±7.1 µs (B0329+54) | open, item 4 | `delayModel`: DM term at the barycentric frequency |
+   | Pulsar binary orbit (J0437) | ~3 s per 5.74 days (projected size 3.37 lt-s; ~0.15 s per hour, ~3 s within one 20 h fold, §9) | parked (handover-D) | `makePredictor`, `trueResiduals` (ELL1) |
+   | Doppler-shifted dispersion delay | ±7.1 µs (B0329+54) | open, §10 "Open items" (after item 4) | `delayModel`: DM term at the barycentric frequency |
    | DM variations | 2.1 µs per 10⁻³ pc cm⁻³ | not modelled (§9) | sub-band TOAs, DM fit |
    | Spin ephemeris age, timing noise, glitches | unknown: needs a literature number per pulsar | not modelled; not listed before (context check 22 Oct) | truth: a red-noise phase; observer: a current ephemeris |
    | UT1 − UTC | ≤ 0.9 s of rotation: up to ~260 m east at 52° N (~0.9 µs) | parked (`'DeltaT'` is one number) | IERS Bulletin A |
@@ -2816,7 +3712,7 @@ barycentric corrections, navigation solution).
    |---|---|---|---|
    | Solar-wind dispersion | ~0.1–0.5 µs away from the Sun; µs within ~10° of it | not modelled; not listed before | `delayModel` DM term with a solar-wind density model |
    | Shapiro delay of the planets | ≤ ~0.2 µs (Jupiter), usually tens of ns | not modelled; not listed before | `delayModel` shapiro |
-   | Ionosphere | 3–70 ns | open, item 4 | GNSS TEC maps, or the sub-band DM fit |
+   | Ionosphere | 3–70 ns | open, §10 "Open items" (after item 4) | GNSS TEC maps, or the sub-band DM fit |
    | Troposphere | ~8 ns at zenith; ~22 ns at 20° elevation | not modelled; not listed before | a mapping function of elevation |
    | Polar motion | ~10 m: ~33 ns | parked (handover-D) | IERS Bulletin A |
    | Antenna position on the ship (lever arm, attitude) | a few m: ~10 ns | not modelled | `makeTrajectory` offset (E3) |
@@ -2829,12 +3725,75 @@ barycentric corrections, navigation solution).
    timing-noise numbers. Then the sub-µs terms for millisecond pulsars. Each term follows the usual rule:
    physics first, one function at a time, a test against a closed form or the PINT/TEMPO2 reference.
 
+14. **[done, closed 22 Oct] Block D: motion, barycentric phase prediction, the clock and the navigation fit**
+   (added 23 Oct in the catch-up; handover `logs/2026-10-22_handover-D.md`; history `logs/2026-10-20_blockC.md`, D
+   sections; docs `prediction.html`, `clock.html`, `simulator.html#truth`, `navigation.html`, `localisation.html`).
+   Decisions (Jasper, 21 Oct): (1) the analytic Earth orbit first, DE440 at the end of D behind the same interface;
+   (2) a phase predictor built from the timing model, delayModel and a trajectory provider (the entry point for sensor
+   fusion: planetary plus vehicle motion, a Kalman-like predictor); (3) first deliverable: the 2-D equatorial offset of
+   a fixed site from B0329+54; the observer folds with its own clock estimate (D3c option (a)); several pulsars in
+   simultaneous digital beams; the 'Start' switch "self" / "calibrated".
+
+   | Step | What | Status |
+   |---|---|---|
+   | D1 | makeTrajectory, delayModel (§5.29–5.30) | validated (Jasper's runs, 22 Oct) |
+   | D2 | makePredictor, foldProfile 'Predictor' (§5.33, §5.7) | validated |
+   | D3 | trueResiduals, makeClock, the simulator's truth in runScenario (motion) (§5.34, §5.32, §5.37) | validated; runScenario motion: Claude's runs |
+   | D4a, D4b | navFit (robust batch fit, the clock as correlated noise; 'Predict') (§5.35) | validated |
+   | D4c | planning study expNavPlan; 'ClockPrior' (§5.39, §5.36) | validated |
+   | D4d | navFilter (Kalman filter + smoother); runShip (closed loop) (§5.36, §5.38) | navFilter validated; runShip: Claude's runs (seed 1 worst flux reproduced by Jasper 23 Oct) |
+   | D4 fix | TOAs as time-averages: toa.tSub in navFit / navFilter | validated (Jasper's run, 22 Oct) |
+   | D5a–d | loadEphemeris (DE440), delayModel 'Ephemeris' (TDB − TT from DE440, precession + nutation), 'DeltaT' (§5.30–5.31) | validated |
+
+   (Table from handover-D, "State".) Results: §7.4–7.5. Parked: §9 "Parked at the close of block D". Since 23 Oct
+   navFilter and runShip are parked as a whole; the trajectory interface stays (§11).
+
+15. **[open, noted not implemented] Observations of the review of C and D (22–23 Oct)** (added 23 Oct in the catch-up;
+   `logs/2026-10-22_review-C-D.md`, `logs/2026-10-23_review-C-D.md`; review-week rule: refinements noted, minor ones
+   fixed). Review status: parts 2–3 done (fast simulator, RFI in the simulator); to go: part 1 (processing boundary,
+   short) and parts 4–8 (geometry and time, clock, prediction and truth, navigation, scenario drivers) — agenda in the
+   22 Oct log.
+
+   | # | Where | Observation | Weight / where it goes |
+   |---|---|---|---|
+   | S2-1 | simulateFold.m:489 | `permute(WX, [1 2 3 4])` is a no-op | minor cleanup |
+   | S2-2 | noise model | the variance uses the bin mean m_j², not the mean of m² over its time bins (as estimateTOA) | 2nd order, bright pulses only |
+   | S2-3 | simulateFold.m:289–291 | with 'RFI', defaults recognised by value (BinDt 1e-6 given explicitly = not given) | harmless |
+   | S2-4 | 'NPol' | RFI taken as independent in the two polarizations; real RFI often correlates | optimistic; E4 |
+   | S2-5 | scintField | Gaussian ACFs; real ones heavier-tailed; no refractive variation | may understate long fades (B0950+08 in E) |
+   | S2-6 | time base | turns on a regular time grid; real sub-ints hold whole predicted turns (length off by v/c ~1e-4) | understanding, no effect |
+   | T2-1 | tests | agreement with the voltage chain rests on experiments without PASS/FAIL; nothing flags a drift between chain and simulator | the main gap; a regression check from the weak-regime numbers is an option |
+   | T2-2 | tests 1, 14 | the smoothing kernels are not resolved by the wide test profiles (leaving out the assignment triangle changes the peak by 4.4e-5 / 2.8e-4, under the 5e-4 limit; J0437 at NBin 512: 2.9e-3) | low; a narrow-pulse case would close it |
+   | T2-3 | tests 4, 8, 12, 14, 15 | pulls of 1 show consistency, not realism (the simulator draws the observer's model) | fine in the weak regime; ~5 % optimistic at high SNR |
+   | T2-4 | tests | not tested: coverage and scintillation warnings, the memory limit, copied weights with several channels, scintillation with RFI, the scintillation stream leaving the noise draws unchanged | minor |
+   | A-1 | mergeSubints.m | merged predictor folds tagged with the f0 model | **fixed 23 Oct** (§8 #13) |
+   | A-2 | adaptiveSubints.m:91 | T0 at the predicted phase: with a phase error ~ the pulse width, groups grow or never close; harmless for B0329+54, matters for J0437 (FWHM 0.141 ms = 42 km of light travel) | for E (MSPs) |
+   | A-3 | 'AcrossGaps' default false | an incomplete last group of a pass is not continued; merging over a gap needs a phase model that holds across it (item 13) | design note |
+   | A-4 | adaptiveSubints.m:90 | `oneSubint` gives detectPulsar the last member's times; detectPulsar does not read them | harmless |
+   | P3-1 | RFI profiles | two generations; drivers read the old one | **done 23 Oct** (option a; §5.28, §7.3) |
+   | P3-2 | rfiProfile | the lags' estimation noise is taken as real per-channel noise: ±0.5 % (7 lags) to ±1 % (30 lags) in the long-run noise ratio at 1 s | low; more lags only in RFI channels, or calibrate longer |
+   | P3-3 | rfiProfile 'OnPulse' | finds the pulse with the f0 / F1 model; on real data Doppler moves it ~1e-4·t (0.36 s per hour) | for F (a predictor in processIQ; family of A-1) |
+   | P3-4 | profile files | do not record the excision settings that made them | minor |
+   | known | blanking | data-dependent blanking (false flags cut narrow carriers' peaks: blanked bins +4–9 %); halved by the per-channel thresholds; simulateFold assumes independent blanking | recorded 21 Oct |
+   | — | drivers | nothing automatic runs main.m (bug #12 went unseen for two days) | options: main.m in the validation list, or a short-L test of the drivers' local functions |
+   | — | runScenario | reruns need edits in the file (variants, motion) | a settings hook as in runShip (proposed) |
+   | — | runAllTests.m:4, docs tests.html | "6–9 min for all 25" | 9.6 min in Jasper's run (23 Oct) |
+
+   From the late update of `logs/2026-10-22_handover-E.md` (context check, worst-flux ship, code map), for E: E1 as
+   first drafted was off the critical path (expNavPlan already answers what extra northern pulsars add); D's 73 km is a
+   smoothed (hindsight) number; runShip has no RFI or scintillation and B0950+08 is a single Gaussian; navFilter puts
+   the port's 1 km prior at the first TOA (9–14 h after departure at worst flux); runShip's file tag would overwrite
+   D's files in runs with another clock, RFI or scintillation; navFit / navFilter leave out the clock's flicker. Most
+   of these are parked with the ship since 23 Oct.
+
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
-  (§7), not for the weak-signal target.
+  (§7), not for the weak-signal target. (Not block F, the real implementation.)
 - **Receiver noise does not pass W_f** in the simulation (real noise passes the same
   analog bandpass as the sky signal); < 1 % in SNR; fix by making the dispersion band
-  slightly wider than the analysis band if needed (`2026-10-05_fidelity.md`).
+  slightly wider than the analysis band if needed (`2026-10-05_fidelity.md`). (On the default channel path the
+  same effect is the full-review item 3 edge-channel mismatch: +2.5 % in σ_TOA against +0.4 % on the full band, the
+  whole 2.2 % channel-vs-full-band gap; docs `limits.html`, "Signal and receiver"; parked with the calibration, 19 Oct.)
 - **Real data**: the receiver bandpass is not ideal (ripple, slopes) and not known
   exactly → measure W² from the off-pulse spectrum (or off-pulse var/mean²) and multiply
   it into W for the statistical bandwidth (∫W²)²/∫W⁴ (§6).
@@ -2869,6 +3828,8 @@ barycentric corrections, navigation solution).
   T_sky in T_sys.
 - `MaxMemoryGB` default 16 GB in `applyDispersionStream`; generator progress print per
   ~10 %; `*.asv` git-ignored.
+- (Added 23 Oct.) Block A (8 Oct), block B (9 Oct), the processing boundary (19 Oct, item 7), block C (closed 22 Oct,
+  item 3), block D (closed 22 Oct, item 14); results §7.1–7.6.
 
 ---
 
@@ -2899,7 +3860,20 @@ Steps (docs/roadmap.html#blockE; log 2026-10-23_review-C-D.md):
 | E6 | the shortest integration time for a target precision; the levers |
 | F | real recordings at the Netherlands site through the same code |
 
-The plan of 6 Oct below is kept for its history; most of it is done or part of E or F.
+Status (docs `roadmap.html#blockE`, 23 Oct): E0 under way (review parts 2–3 done; §10 item 15); E1 next; E2–E6 open.
+Physics answers given on 23 Oct (`2026-10-23_review-C-D.md`): polarizations in E4 as two beams with the same steering
+weights, detected and added (√2), not coherent X+Y and not a TOA per polarization; integration time: the equatorial
+components go as 1/√T (B0329+54 alone ±31 km east at 30 d, ±16 km at 100 d nominal; ±80 / ±43 km worst), the polar
+component with the crystal clock flat in time (64 km nominal); extra beams cost computation, not observing time:
+B0950+08, B1642−03, B1929+10 add ~16, 19 and 4 % of B0329+54's information, mainly the polar component (64 → 40 km in
+30 d); at worst-case flux the two weak ones give no TOA → E3b.
+
+The plan of 6 Oct below is kept for its history; most of it is done or part of E or F. (Status 23 Oct: block 1 done;
+block 2 — excision done (blocks A, B), DM check from sub-band TOAs open, the station clock done in D (makeClock), ADC
+clock jitter left out; block 3 — relative motion in the fold phase model, the barycentric timing corrections (Roemer,
+Shapiro, Einstein) and the navigation solution done in D, several pulsars in runShip / navFit, the infinite-frequency
+conversion and the voltage generator's Doppler open; block 4 — the 3×3 array and the polarizations are step E4, real IQ
+recordings block F.)
 
 **Block 1 – noise and detection (closed 6 Oct 2026; phase F and adaptive sub-int length deferred)**
 - Receiver noise + RFI [noise validated at −5 dB (MC); all RFI types validated 5 Oct]
@@ -2948,7 +3922,8 @@ The plan of 6 Oct below is kept for its history; most of it is done or part of E
 **Open design decision:** a **reference scenario** (specific millisecond pulsar(s) with
 P, DM, flux, profile; receiver: antenna/array gain, T_sys, bandwidth; ground vs
 spacecraft; affordable observation time). It fixes realistic noise levels, sub-int
-lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes".
+lengths, and turns Monte Carlo curves into "X ns per pulsar after Y minutes". (Decided since: the draft and
+answers of 6 Oct below, the Netherlands site of 20 Oct, and the endpoint of 23 Oct at the top of this section.)
 
 **Reference scenario – draft (6 Oct 2026, from Jasper's hardware; questions answered below).**
 
@@ -2978,6 +3953,13 @@ latitude within dec ± 70°. Catalogue S₁₄₀₀ are averages; low-DM pulsar
 | J1939+2134 (B1937+21, MSP) | +22 | 1.56 | 71.0 | ~0.05 | 13.9 | −62 | 670 / 3600 | 5 (1.4 km) | > 48° S |
 | J1713+0747 (MSP) | +8 | 4.57 | 16.0 | 0.30 | 8.3 | −67 | 3700 / 20000 | 26 | |
 | J2145−0750 (MSP) | −8 | 16.05 | 9.0 | 0.40 | 5.5 | −65 | 3000 / 16000 | 34 | |
+
+**Simulated since (superseding the J0437 and B0329+54 rows' times; §7.3):** with measured profiles the fast simulator
+needs more data per TOA than this table's W_eq = 2·W50 estimate. J0437 (eight components fitted to the Parkes 1369 MHz
+profile, ρ −51.2 / −54.8 dB): 15.5–16 h (nominal) and 82–95 h (worst) per TOA, σ_TOA 13.0 µs; B0329+54 (five
+components, ρ −45.0 / −48.6 dB): 1.93 / 10.0 h, σ 734 / 743 µs (`2026-10-20_blockC.md`; docs `scenario.html`). The
+single Gaussian with the catalogue W50 left out J0437's wings (W10 1.02 ms against 0.26 ms for the Gaussian) and
+overstated B0329+54's peak by 3 dB.
 
 Bright but DM far too high for now: J1644−4559 (DM 479), J0738−4042 (161), J1935+1616
 (159), J0837−4135 (147). Corrections to the earlier from-memory draft: B1929+10 is
@@ -3027,7 +4009,8 @@ per day).
    - *worst case (design point)*: 0.61 m² physical × aperture efficiency ~0.5 →
      A_eff ≈ 0.3 m², T_sys 80 K → SEFD = 2·1.38e-23·80/0.3 ≈ **7.4e5 Jy** (2.3× nominal).
    t ∝ SEFD² → **5.3× longer**: J0437 ≈ **20 h per TOA** (SNR 7, dual pol),
-   ρ ≈ −54 dB; normal pulsars 4 h (B0329+54) to hundreds of h (table above). σ_TOA per TOA unchanged (fixed SNR 7);
+   ρ ≈ −54 dB; normal pulsars 4 h (B0329+54) to hundreds of h (table above). [Superseded by the simulations with
+   measured profiles: J0437 82–95 h per TOA at the worst case (ρ −54.8 dB), B0329+54 10.0 h; §7.3.] σ_TOA per TOA unchanged (fixed SNR 7);
    per unit time √5.3 = 2.3× worse. The pipeline must work at the worst case; nominal is
    the bonus.
 2. **Dual polarization on all 9 elements** (confirmed): n_pol = 2 in the radiometer
@@ -3060,7 +4043,8 @@ per day).
 the station position is a moving input (the thing being navigated). Scenario location **the
 Netherlands (52° N)**: J0437 (max. elevation −9°) and Vela (−7°) never rise; **B0329+54** is
 circumpolar (19.6 h/day above 20°): ρ −41.9 / −45.5 dB (nominal / worst, simulator convention),
-SNR 7 after ~0.6 / 3.2 h, σ_TOA ~0.5 ms (~170 km). Scenario runs: B0329+54 from the Netherlands and
+SNR 7 after ~0.6 / 3.2 h, σ_TOA ~0.5 ms (~170 km). [Single-Gaussian values, superseded 20 Oct: with the five
+components ρ −45.0 / −48.6 dB, 1.93 / 10.0 h of data per TOA, σ_TOA 734 / 743 µs (~220 km); §7.3.] Scenario runs: B0329+54 from the Netherlands and
 J0437 at −30° (12.3 h passes; a ship that sailed south). On a ship its own Inmarsat terminal
 (uplink 1626.5–1660.5 MHz) transmits just above the band — front-end/RFI point for later.
 
@@ -3078,7 +4062,9 @@ timescale ~780 s** (vary ×2–3 between epochs). Consequences: ~30–60 scintle
 band-averaged fading small (~15 %), but each 3.125 MHz channel is modulated ~100 %; sub-ints
 must be ≲ 150 s (timescale/5) → ~10× more sub-ints than planned (memory: chunk a day into hours);
 simulateFold's scintField evaluates one frequency point per channel at 128 channels — fine at
-7 MHz, too coarse below ~3 MHz (channel average needed).
+7 MHz, too coarse below ~3 MHz (channel average needed). (Since 20 Oct: the five components are used in runScenario
+with NBin 2048 and 120 s sub-ints; scintField's grid fixed the same day — points per channel max(1, ceil(64/NChan),
+ceil(4·channel width/bandwidth)), the channel average; `2026-10-20_blockC.md`, "scintField frequency grid".)
 
 ---
 
@@ -3174,18 +4160,48 @@ Jasper; docs `physics.html`, `tests.html`, `conventions.html`):
 - **Detect → fold → template is also the cheapest order** (physics): detection cuts the data rate
   ~800× on the full band, and folding turns hours of data into one profile before the fit.
 
+Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the logs named, the help headers):
+- **The processing cut at IQ, both front ends** (`processIQ`; Jasper 16–19 Oct): real IQ data enter between the
+  simulation and the processing, and the operational processing will run on an FPGA or GPU; a sky-to-TOA chain
+  function was rejected. The TOA step stays a separate function (`foldToTOA`, Jasper 19 Oct) so the fast simulator's
+  folds go through the same code.
+- **Draw the fold, not the voltages** (`simulateFold`): hours cannot be simulated at ~61 GB per second; the fold's
+  statistics are known exactly, so it is drawn from them and the same TOA code runs on it; its agreement with the
+  chain is the validation (C2, C4a, C4b).
+- **RFI in the simulator from a measured profile** (C4b, Jasper's "option a"): the effects of excision (blanked
+  fraction, leftover noise, its spectrum) come from a real voltage-chain run, not from a model of each emitter.
+- **Adaptive SNR-7 groups kept, outliers handled in the fit** (Jasper 21 Oct, "do it that way so we have more TOAs"):
+  more TOAs per day; the ~0.5 % one-core-width outliers of multi-component templates go into the navigation fit's
+  robust likelihood, not into fixed groups.
+- **NBin 2048 for B0329+54 and the /10 resolution rule** (the rule: Jasper 20 Oct; NBin 2048 proposed 20 Oct and used in
+  runScenario since): the low-SNR pull excess was bin resolution.
+- **A phase predictor from a trajectory** (decision 2 of block D, 21 Oct): polyco-like Chebyshev segments from the
+  timing model, delayModel and any trajectory (fixed site, ship, probe, a filter's state) — the entry point for sensor
+  fusion; the fold only evaluates them.
+- **Analytic Earth first, DE440 behind the same interface** (decision 1 of block D): the simulations need only
+  differences, which the analytic model gives exactly; real data use 'Ephemeris'.
+- **The observer folds with its own clock estimate** (D3c, option (a)): the data's time stamps are clock readings;
+  an uncorrected ±2 ppm would smear a fold like Doppler.
+- **The clock as correlated noise in one GLS fit** (D4 design, 21 Oct): free per-day offset-and-rate segments would
+  absorb part of the daily position sine; the physical clock model separates red clock from daily position.
+- **The 'Start' switch "self" / "calibrated"** (Jasper 21 Oct, "keep a switch"): start from a known position and time,
+  or estimate the per-pulsar constants.
+- **Simultaneous digital beams** (Jasper 21 Oct): extra pulsars take no time from B0329+54.
+- **A TOA as a time-average** (`tSub`, 22 Oct): a TOA merges hours of sub-ints, sometimes two passes; one time tag damps
+  or flips the daily signal.
+
 ---
 
 ## 13. File list
 
 | File | Role | Status |
 |---|---|---|
-| `main.m` | pipeline driver: run control, stages, `checkConsistency` (sky part via `checkSkyFiles`, all sky and receiver parameters since 13 Oct), `checkProcessing` / `checkFold` (13 Oct); channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct) | current; A4, B3, B6 validated (8 Oct) |
-| `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e) | current |
+| `main.m` | pipeline driver: run control, stages, `checkConsistency` (sky part via `checkSkyFiles`, all sky and receiver parameters since 13 Oct), `checkProcessing` / `checkFold` (13 Oct); channel path (default) or full-band path (`frontEnd`, A4 8 Oct); RFI excision on the channel path (`excision`, B3 8 Oct); periodic mask (`periodicMask`, B6-3; default off since 9 Oct). Since 19 Oct: the processing through `processIQ` / `foldToTOA` (`runStage.fold` removed; `checkProcessing` / `checkFold` moved into processIQ; only `checkConsistency` stays local) | current; A4, B3, B6 validated (8 Oct); processIQ 19 Oct; Jasper's run 23 Oct after the profileComponents fix (§8 #12) |
+| `pipelineParams.m` | all parameters + `ephem` (script, shared); `frontEnd`, `weighting`, `chanWidth`, channel file names (A4); `excision`, `excisionArgs`, excision file names, `rfiScenario` (B3/B4); `rfiList`, `rfiRealistic` (B5e); since 19–21 Oct the structs `rx`, `proc`, `files`, `profileComponents`, `noiseCal`, `scintOn` / `scint` / `scintSim`; DM 25 and L = 0.2 s since 20 Oct (§4) | current |
 | `runRFITest.m` | B4: each RFI type on the channel path without / with excision, table (`data/rfi`); stops if main's sky files do not match (`checkSkyFiles`, 13 Oct); B5c-2: rotating radar cases, per-pulse blanked fraction and missed energy; B5d-2: LTE cases; B5e: realistic cases 14–15, per-channel noise check, periodic hook (`runCases` picks a subset) | run 8 Oct; cases 1, 13–15 9 Oct; rerun 12 Oct, identical (validated, §7) |
 | `runLockedRadar.m` | B5b (stops if main's sky files do not match, `checkSkyFiles`, 13 Oct): radar locked to the pulsar, leftover profile in baseline units, TOA bias vs SNR (`data/locked`); frequency-guard sweep; B6-3: −35 dB sidelobe radar, periodic mask (`runCases` subset) | run 8 Oct (§7) |
-| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA; full band only (warns otherwise, 13 Oct); sky files checked (`checkSkyFiles`) | validated (−5 dB) |
-| `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure; full band only (warns otherwise, 13 Oct) | validated (−25…+20 dB) |
+| `runMonteCarlo.m` | noise-seed Monte Carlo, pooled validateTOA; full band only (warns otherwise, 13 Oct) — since 19 Oct on processIQ / foldToTOA, both front ends (§5.11); sky files checked (`checkSkyFiles`) | validated (−5 dB); channel path 10 seeds Jasper's run 19 Oct, A3b 50 seeds Claude's run |
+| `runSNRSweep.m` | phase D SNR sweep (pulsar + noise varied), summary + figure; full band only (warns otherwise, 13 Oct) — since 19 Oct on processIQ / foldToTOA, both front ends (§5.12) | validated (−25…+20 dB); channel weak sweep 20 Oct (Claude's run) |
 | `loadInfo.m` | reload a stage's `_info.mat` | moved from main |
 | `gaussianTemplate.m` | periodic Gaussian TOA template | moved from main |
 | `noiseBandwidth.m` | (∫W²)²/∫W⁴ of the band tapers | moved from main |
@@ -3215,11 +4231,11 @@ Jasper; docs `physics.html`, `tests.html`, `conventions.html`):
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
 | `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; incl. 3d: Jasper's run, 12 Oct) |
-| `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation; full band only (warns otherwise, 13 Oct) | validated (6 Oct) |
+| `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation; full band only (warns otherwise, 13 Oct) — since 19 Oct on processIQ, both front ends (§5.14) | validated (6 Oct); channel path 100 passes 19 Oct (Claude's run at Jasper's request) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
 | `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |
-| `tests/runAllTests.m` | runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/runAllTests.m` | (since 22 Oct: **25** unit tests, list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
@@ -3236,6 +4252,19 @@ Jasper; docs `physics.html`, `tests.html`, `conventions.html`):
 | `tests/testBlankingWeights.m` | A3a: exact vs direct covariance, consistency, channel spectrum, end-to-end voltage blanking (means, noise groups, channel use, TOAs); test 4: long time bins (12 Oct) | passes (Jasper's run, 7 Oct; with test 4: Jasper's run, 12 Oct) |
 | `tests/testOptimalTOA.m` | A2c-1: default unchanged, FFTFIT equivalence, explicit sandwich, Monte Carlo (bias, pulls, gain), blanked data; A2c-2 (tests 6–10): detection default, explicit H0 matrices, H0 / H1 Monte Carlo, blanked data | passes (Jasper's run, 7 and 8 Oct) |
 | `plotDispersionCheck.m`, `plotIQCheck.m`, `plotDetectedPower.m`, `plotFoldCheck.m` | checks | noise-free validated; noise versions written |
-| `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | to retire/update |
-| `docs/` | documentation site (26 static pages; `api.html` generated by `docs/tools/make_api.py`; checklist in `docs/maintenance.html`) | current |
+| `old/envelopeReconstruction.m`, `old/plotEnvelope.m` | legacy | kept in `old/` as legacy (Jasper, 12 Oct; §10 item 9; was "to retire/update") |
+| `docs/` | documentation site (31 pages on 23 Oct; `api.html` generated by `docs/tools/make_api.py`; checklist in `docs/maintenance.html`) | current |
 | other `old/` files (`applyDispersion.m`, `process_large_baseband_file.m`, `read_baseband_chunk.m`, `stream_pulsar_baseband_to_file.m`, `test.m`, `test_pipeline.m`) | legacy, unused | – |
+| *Rows added 23 Oct (19–22 Oct work; entries in §5.22–5.39)* | | |
+| `functions/processIQ.m`, `functions/foldToTOA.m` | the processing chain IQ → fold; fold → TOAs, detection, good TOAs (§5.22–5.23) | validated 19 Oct |
+| `functions/simulateFold.m` | fast simulator: folds drawn from their statistics (§5.24) | validated (testSimulateFold 1–16, Jasper's runs 20 / 22 Oct) |
+| `functions/mergeSubints.m`, `functions/adaptiveSubints.m` | exact merging of sub-ints; adaptive sub-int length to SNR ~7 (§5.25–5.26) | validated (Jasper's runs 20 Oct; predictor branch 23 Oct) |
+| `functions/rfiProfile.m`, `runRFIProfile.m` | per-channel RFI statistics after excision, for simulateFold 'RFI' (§5.27–5.28) | validated (testRFIModel, testRFIChain; Jasper's runs 20 / 22 Oct); profiles Claude's runs |
+| `functions/makeTrajectory.m`, `delayModel.m`, `loadEphemeris.m` | receiver trajectory; delay to the SSB; DE440 reader (§5.29–5.31) | validated (Jasper's runs 22 Oct) |
+| `functions/makeClock.m`, `makePredictor.m`, `trueResiduals.m` | clock error (truth); phase predictor; true residuals (truth) (§5.32–5.34) | validated (Jasper's runs 22 Oct) |
+| `functions/navFit.m`, `functions/navFilter.m` | fixed-site batch fit; Kalman filter + smoother for a moving receiver (§5.35–5.36) | validated (Jasper's runs 22 Oct); navFilter parked 23 Oct |
+| `runScenario.m`, `runShip.m` | scenario TOA budgets and fixed-site motion runs; the ship's closed loop (§5.37–5.38) | Claude's runs; runShip seed 1 worst reproduced by Jasper 23 Oct; runShip parked |
+| `tests/testSimulateFold.m` (16), `testRFIModel.m` (6), `testRFIChain.m` (slow, only when named) | block C tests (§5.24, §5.27) | pass (Jasper's runs 20 / 22 Oct; 23 Oct in runAllTests) |
+| `tests/testMakeTrajectory.m` (7), `testDelayModel.m` (11), `testLoadEphemeris.m` (5), `testMakeClock.m` (5), `testMakePredictor.m` (8), `testFoldPredictor.m` (6), `testTrueResiduals.m` (7), `testNavFit.m` (11), `testNavFilter.m` (7) | block D tests (§5.29–5.36, §5.7) | pass (Jasper's runs 22 Oct; testFoldPredictor 6 on 23 Oct; all in runAllTests 25 / 25, 23 Oct) |
+| `tests/expSimVsChain.m`, `expSimRFI.m`, `expComponentsChain.m`, `expNavFit.m`, `expNavPlan.m` | experiments of C and D, no PASS/FAIL (§5.39) | validated by Jasper's runs 23 Oct |
+| data (git-ignored; this list is the record) | `data/rfi/profile/` (the 21 Oct 1 s profiles + the 20 Oct 0.1 s ones), `data/rfi/profile_20oct/`, `data/rfi/runRFITest_results_cal*.mat`; `data/scenario/` (+ `profiles_20oct/`, `pre-22oct-tag/`, `ship-pointrows/`); `data/ephem/de440s.bsp`; `data/profiles/J0437-4715_20cm_dhm+15.txt` (EPN, Dai et al. 2015, CC BY 4.0); `data/ref_DM5_L0.1/` (the DM 5 / 0.1 s main dataset); `data/compchain/` | logs of 20–23 Oct |
