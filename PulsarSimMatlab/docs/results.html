@@ -135,13 +135,13 @@ for dead reckoning (<a href="navigation.html#ship-worst">navigation</a>; Claude'
   <path class="dot2" d="M573.0 532 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
   <text class="sub" x="828" y="536">1.004</text>
   <text class="sub" x="22" y="554">RFI: realistic scenario</text>
-  <path class="line" d="M527.2 550 H570.1"/>
-  <path class="dot2" d="M544.2 550 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
-  <text class="sub" x="828" y="554">0.957</text>
+  <path class="line" d="M527.8 550 H570.7"/>
+  <path class="dot2" d="M544.8 550 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="554">0.958</text>
   <text class="sub" x="22" y="572">RFI: narrow carriers</text>
-  <path class="line" d="M595.8 568 H638.7"/>
-  <path class="dot2" d="M612.8 568 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
-  <text class="sub" x="828" y="572">1.069</text>
+  <path class="line" d="M604.4 568 H647.3"/>
+  <path class="dot2" d="M621.3 568 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
+  <text class="sub" x="828" y="572">1.083</text>
   <text class="sub" x="22" y="590">B0329+54, 100 days, all 978 TOAs</text>
   <path class="line" d="M656.7 586 H684.4"/>
   <path class="dot2" d="M666.0 586 a4.5 4.5 0 1 0 9 0 a4.5 4.5 0 1 0 -9 0"/>
@@ -539,15 +539,20 @@ simulator at −20 dB.</li>
 <li>Noise only: the detection statistic T0 has a spread of 0.9925 ± 0.010 in the simulator, against 1.008 ± 0.024 in the chain
 (<a href="#h0">section 8</a>). The neighbour correlation is 0.2491, against 0.2484.</li>
 </ul>
-<h3>With RFI (<code>expSimRFI</code>, 20 Oct)</h3>
+<h3>With RFI (<code>expSimRFI</code>, 20 Oct; part 2 rerun 23 Oct)</h3>
 <p>The simulator takes the RFI left after excision from a measured profile of a 1 s voltage-chain run (<code>rfiProfile</code>). It
-reproduces the chain's SNR loss, σ and χ² excess within about 1 %. The production numbers, with the 1 s profiles at −5 dB (50 × 8 TOAs per case):</p>
+reproduces the chain's SNR loss, σ and χ² excess within about 1 %. The production numbers, with the 1 s profiles at −5 dB (50 × 8 TOAs
+per case; the 21 Oct profiles: per-channel <code>detectRFI</code> thresholds, 30 lags):</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th class="num">SNR</th><th class="num">SNR / clean</th><th class="num">median σ</th><th class="num">rms/pred (± 0.035)</th><th class="num">median χ²<sub>red</sub></th></tr>
 <tr><td>noise only</td><td class="num">92.4</td><td class="num">1.000</td><td class="num">2.940 µs</td><td class="num">1.004</td><td class="num">1.0068</td></tr>
-<tr><td>realistic (B5e)</td><td class="num">82.6</td><td class="num">0.895</td><td class="num">3.293 µs</td><td class="num">0.957</td><td class="num">1.0733</td></tr>
-<tr><td>narrow Inmarsat</td><td class="num">81.1</td><td class="num">0.878</td><td class="num">3.357 µs</td><td class="num">1.069</td><td class="num">1.2455</td></tr>
+<tr><td>realistic (B5e)</td><td class="num">82.6</td><td class="num">0.895</td><td class="num">3.293 µs</td><td class="num">0.958</td><td class="num">1.0778</td></tr>
+<tr><td>narrow Inmarsat</td><td class="num">81.1</td><td class="num">0.878</td><td class="num">3.359 µs</td><td class="num">1.083</td><td class="num">1.3026</td></tr>
 </table></div>
+<details><summary>History: the 20 Oct profiles</summary><p>With the first 1 s profiles (white <code>detectRFI</code> thresholds, 7 lags)
+the realistic case gave rms/pred 0.957 and χ²<sub>red</sub> 1.0733, and the narrow case 1.069 and 1.2455 (σ 3.357 µs). SNR and σ are
+the same with both. The 30 lags hold more of a carrier's correlated noise, so the flat-channel observer's χ² excess and its too-small
+error bars grow a little.</p></details>
 <p>The RFI left after excision costs 10.5 % of the SNR in the realistic case, and 12.2 % with narrow carriers. That is 25 % and 30 % more
 observing time for the same σ. The χ² excess comes from channels whose noise the observer's flat model under-predicts; the per-channel
 noise calibration removes it (<a href="scenario.html#rfivariants">scenario</a>).</p>

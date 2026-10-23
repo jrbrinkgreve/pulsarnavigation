@@ -20,8 +20,8 @@ rows = [('header', 'Noise-free chain and −5 dB reference'),
         ('header', 'Fast simulator against its truth (block C)'),
         ('−5 dB, 2000 sub-ints (expSimVsChain)', 1.002, 1/np.sqrt(2*2000)),
         ('RFI: noise only (expSimRFI, 400 TOAs)', 1.004, 0.035),
-        ('RFI: realistic scenario', 0.957, 0.035),
-        ('RFI: narrow carriers', 1.069, 0.035),
+        ('RFI: realistic scenario', 0.958, 0.035),       # the 21 Oct (30-lag) RFI profiles, rerun 23 Oct (was 0.957)
+        ('RFI: narrow carriers', 1.083, 0.035),          # (was 1.069 with the 20 Oct profiles)
         ('B0329+54, 100 days, all 978 TOAs', 1.156, 1/np.sqrt(2*978)),
         ('J0437, 100 days, 76 TOAs', 1.129, 1/np.sqrt(2*76)),
         ('header', 'Navigation fit and filter (block D)'),

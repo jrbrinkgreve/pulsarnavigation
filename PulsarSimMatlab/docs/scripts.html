@@ -373,9 +373,10 @@ are realistic, narrow Inmarsat and noise only. Each is run at 0.1 s (<code>runRF
 with the radar beam passages outside the run). It measures 30 lags (since 21 Oct).</p>
 <p>The profiles in <code>data/rfi/profile/</code> were measured at DM 5. <code>testRFIChain</code>'s half-A profile at DM 25 agrees with
 them within its scatter, so they stay valid at the default DM.</p>
-<p>The 1 s profiles were measured again with the new excision code (per-channel <code>detectRFI</code> thresholds, 30 lags). They are in
-<code>data/rfi/profile_21oct/</code>. The 100-day scenario runs used them, from a scratch copy of <code>runScenario</code>. The committed
-<code>runScenario.m</code> still loads <code>data/rfi/profile/</code>, so its 30-day results stay as recorded.</p>
+<p>The 1 s profiles in <code>data/rfi/profile/</code> come from the current excision code (per-channel <code>detectRFI</code> thresholds,
+30 lags; measured 21 Oct, the default since 23 Oct). The first 1 s profiles (20 Oct: white thresholds, 7 lags) are kept in
+<code>data/rfi/profile_20oct/</code>. The 30-day RFI variants of <code>runScenario</code> were made with those; their rerun is pending. The
+0.1 s profiles are the 20 Oct ones (<code>runRFITest</code>'s reference).</p>
 <details><summary>History</summary><p>Written 20 Oct 2026 (step C4b). 30 lags since 21 Oct; the profiles were measured again the same
 day.</p></details>
 

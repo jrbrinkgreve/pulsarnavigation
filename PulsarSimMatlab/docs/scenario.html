@@ -324,7 +324,7 @@ a week of passes.</p>
 <p>The realistic L-band RFI (LTE, GNSS, Inmarsat, radars, impulses; the measured 1 s profile after excision) costs about 20–25 % of the
 TOAs per day, and about 10–15 % in σ·√h.</p>
 <p>Without the per-channel noise calibration, the error bars are only about 3 % too small. But χ² is 1.07, and the pChi2 test flags
-89–100 % of the TOAs. With the calibration, χ² is 1.00 and about 5 % are flagged. That makes the calibration the setting for real
+89–100 % of the TOAs. With the calibration, χ² is 1.00 and at most 7 % are flagged. That makes the calibration the setting for real
 data.</p></div>
 <p>The variants of <code>runScenario</code>, each over 30 days:</p>
 <dl class="facts">
@@ -337,20 +337,21 @@ data.</p></div>
 </dl>
 <p>B0329+54 is at NBin 2048 with five components. J0437 appears twice: with the single Gaussian of the first runs, and with its
 measured profile (eight components, NBin 1024), which takes about 5× longer per TOA. "rms/pred" is the standard deviation of
-(TOA − truth)/σ; in brackets, without the rare outliers with |z| &gt; 4. (Claude's runs: 20–21 Oct 2026, 6.6 h; the measured J0437
-profile in the validation run of 21–22 Oct.)</p>
+(TOA − truth)/σ; in brackets, without the rare outliers with |z| &gt; 4. The RFI rows of B0329+54 and of J0437 with its measured
+profile use the current RFI profiles (per-channel <code>detectRFI</code> thresholds, 30 lags; Claude's runs, 23 Oct, 4.2 h). The
+single-Gaussian J0437 rows are from 20–21 Oct, with the first profiles.</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>Variant</th><th>TOAs per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
 <tr><td>B0329+54, nominal</td><td>clean</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs</td><td>1.05</td><td>1.00</td><td>6 %</td><td>1021</td></tr>
-<tr><td></td><td>RFI</td><td>7.90</td><td>2.37 (1.65–3.33)</td><td>734 µs</td><td>1.12 (1.04)</td><td>1.07</td><td><b>100 %</b></td><td>1130</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>7.87</td><td>2.35 (1.72–3.43)</td><td>736 µs</td><td>1.08 (1.00)</td><td>1.00</td><td>7 %</td><td>1129</td></tr>
-<tr><td></td><td>+ scintillation</td><td>7.97</td><td>2.40 (1.50–3.40)</td><td>735 µs</td><td>1.22 (1.02)</td><td>1.00</td><td>3 %</td><td>1139</td></tr>
-<tr><td></td><td>fixed groups</td><td>8.10</td><td>2.40</td><td>745 µs</td><td>1.63 (1.05)</td><td>1.00</td><td>3 %</td><td>1154</td></tr>
+<tr><td></td><td>RFI</td><td>7.90</td><td>2.40 (1.67–3.35)</td><td>736 µs</td><td>1.11 (1.03)</td><td>1.08</td><td><b>100 %</b></td><td>1140</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>7.83</td><td>2.43 (1.70–3.39)</td><td>736 µs</td><td>1.03</td><td>1.00</td><td>2 %</td><td>1148</td></tr>
+<tr><td></td><td>+ scintillation</td><td>7.93</td><td>2.40 (1.50–3.44)</td><td>735 µs</td><td>1.22 (1.02)</td><td>1.00</td><td>3 %</td><td>1139</td></tr>
+<tr><td></td><td>fixed groups</td><td>8.10</td><td>2.40</td><td>746 µs</td><td>1.62 (1.05)</td><td>1.00</td><td>3 %</td><td>1156</td></tr>
 <tr><td>B0329+54, worst case</td><td>clean</td><td>1.97</td><td>10.0 (6.5–12.9)</td><td>743 µs</td><td>1.36 (1.10)</td><td>1.00</td><td>7 %</td><td>2354</td></tr>
-<tr><td></td><td>RFI</td><td>1.53</td><td>12.4 (8.4–16.8)</td><td>741 µs</td><td>1.11</td><td>1.07</td><td><b>100 %</b></td><td>2608</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>1.53</td><td>12.6 (7.6–17.0)</td><td>741 µs</td><td>1.24 (1.06)</td><td>1.00</td><td>4 %</td><td>2627</td></tr>
-<tr><td></td><td>+ scintillation</td><td>1.53</td><td>12.7 (8.3–17.2)</td><td>743 µs</td><td>1.04</td><td>1.00</td><td>7 %</td><td>2649</td></tr>
-<tr><td></td><td>fixed groups</td><td>1.53</td><td>12.7</td><td>738 µs</td><td>1.32 (1.06)</td><td>1.00</td><td>2 %</td><td>2636</td></tr>
+<tr><td></td><td>RFI</td><td>1.53</td><td>12.4 (8.3–16.8)</td><td>740 µs</td><td>1.12</td><td>1.08</td><td><b>100 %</b></td><td>2607</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>1.53</td><td>12.8 (7.6–17.1)</td><td>740 µs</td><td>1.76 (1.01)</td><td>1.00</td><td>4 %</td><td>2644</td></tr>
+<tr><td></td><td>+ scintillation</td><td>1.53</td><td>12.9 (8.0–17.0)</td><td>743 µs</td><td>1.83 (1.05)</td><td>1.00</td><td>7 %</td><td>2666</td></tr>
+<tr><td></td><td>fixed groups</td><td>1.50</td><td>12.9</td><td>730 µs</td><td>1.00</td><td>1.00</td><td>0 %</td><td>2621</td></tr>
 <tr><td>J0437, nominal (single Gaussian)</td><td>clean</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs</td><td>0.88</td><td>1.00</td><td>4 %</td><td>21</td></tr>
 <tr><td></td><td>RFI</td><td>3.00</td><td>4.17 (2.82–5.25)</td><td>11.5 µs</td><td>0.97</td><td>1.07</td><td><b>89 %</b></td><td>23.4</td></tr>
 <tr><td></td><td>RFI + calibration</td><td>2.97</td><td>4.00 (2.82–5.25)</td><td>11.4 µs</td><td>1.02</td><td>1.00</td><td>6 %</td><td>22.8</td></tr>
@@ -362,16 +363,23 @@ profile in the validation run of 21–22 Oct.)</p>
 <tr><td></td><td>+ scintillation</td><td>0.53</td><td>24.5 (7.2–35.2)</td><td>11.4 µs</td><td>0.85</td><td>1.00</td><td>0 %</td><td>56.6</td></tr>
 <tr><td></td><td>fixed groups</td><td>0.50</td><td>24.5</td><td>11.8 µs</td><td>0.99</td><td>1.00</td><td>0 %</td><td>58.6</td></tr>
 <tr><td>J0437, nominal (measured profile)</td><td>clean</td><td>0.73</td><td>15.5 (13.6–20.0)</td><td>13.0 µs</td><td>1.10</td><td>1.00</td><td>9 %</td><td>51.3</td></tr>
-<tr><td></td><td>RFI</td><td>0.57</td><td>20.1 (15.1–26.0)</td><td>13.1 µs</td><td>0.78</td><td>1.07</td><td><b>100 %</b></td><td>58.5</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>18.8 (15.2–26.8)</td><td>13.1 µs</td><td>0.87</td><td>1.00</td><td>6 %</td><td>56.7</td></tr>
-<tr><td></td><td>+ scintillation</td><td>0.57</td><td>21.4 (6.4–32.4)</td><td>12.9 µs</td><td>0.87</td><td>1.00</td><td>6 %</td><td>59.7</td></tr>
-<tr><td></td><td>fixed groups</td><td>0.57</td><td>21.4</td><td>13.4 µs</td><td>1.31</td><td>1.00</td><td>6 %</td><td>62.1</td></tr>
+<tr><td></td><td>RFI</td><td>0.57</td><td>21.7 (13.7–28.0)</td><td>13.1 µs</td><td>1.20</td><td>1.07</td><td><b>100 %</b></td><td>60.8</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>20.7 (13.6–29.0)</td><td>13.0 µs</td><td>1.25</td><td>1.00</td><td>0 %</td><td>59.2</td></tr>
+<tr><td></td><td>+ scintillation</td><td>0.60</td><td>19.5 (3.4–38.3)</td><td>12.9 µs</td><td>1.13</td><td>1.00</td><td>6 %</td><td>57.0</td></tr>
+<tr><td></td><td>fixed groups</td><td>0.57</td><td>19.5</td><td>13.5 µs</td><td>1.15</td><td>1.00</td><td>0 %</td><td>59.6</td></tr>
 <tr><td>J0437, worst case (measured profile)</td><td>clean</td><td>0.13</td><td>87 (60–105)</td><td>13.1 µs</td><td>0.61</td><td>1.00</td><td>25 %</td><td>123</td></tr>
-<tr><td></td><td>RFI</td><td>0.10</td><td>82 (77–110)</td><td>13.2 µs</td><td>1.47</td><td>1.06</td><td><b>100 %</b></td><td>119</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>0.10</td><td>76 (66–109)</td><td>13.2 µs</td><td>1.26</td><td>1.00</td><td>0 %</td><td>115</td></tr>
-<tr><td></td><td>+ scintillation</td><td>0.10</td><td>131 (90–136)</td><td>13.1 µs</td><td>0.28</td><td>1.00</td><td>0 %</td><td>150</td></tr>
-<tr><td></td><td>fixed groups</td><td>0.07</td><td>131</td><td>12.0 µs</td><td>0.60</td><td>1.00</td><td>0 %</td><td>137</td></tr>
+<tr><td></td><td>RFI</td><td>0.10</td><td>126 (57–132)</td><td>13.2 µs</td><td>1.49</td><td>1.06</td><td><b>100 %</b></td><td>149</td></tr>
+<tr><td></td><td>RFI + calibration</td><td>0.10</td><td>122 (62–140)</td><td>13.2 µs</td><td>1.78</td><td>1.00</td><td>0 %</td><td>146</td></tr>
+<tr><td></td><td>+ scintillation</td><td>0.10</td><td>101 (69–165)</td><td>13.2 µs</td><td>1.11</td><td>0.99</td><td>0 %</td><td>132</td></tr>
+<tr><td></td><td>fixed groups</td><td>0.10</td><td>101</td><td>13.2 µs</td><td>0.92</td><td>1.00</td><td>0 %</td><td>132</td></tr>
 </table></div>
+<details><summary>History: the RFI rows with the first profiles (until 23 Oct)</summary><p>Until 23 Oct the RFI rows used the
+first 1 s profiles (20 Oct: white <code>detectRFI</code> thresholds, 7 lags; kept in <code>data/rfi/profile_20oct/</code>, the old
+results in <code>data/scenario/profiles_20oct/</code>). The rerun with the current profiles changes the TOA rates, σ and σ·√h of
+B0329+54 by at most 2 %. The flat-channel χ² rises from 1.07 to 1.08, and with the calibration fewer TOAs are flagged (2 % instead
+of 7 % at nominal flux). The rms/pred values with outliers (1.76 and 1.83 at worst-case flux) move with which noise draw lands a
+TOA in the low-SNR tail; without the outliers they stay at 1.01–1.05. The J0437 rows rest on 17 and 3 TOAs and change within their
+scatter.</p></details>
 <p>With its measured profile, J0437 gives 22 TOAs in 30 days at nominal flux, and only 2–4 in the worst case. The worst-case rows are
 therefore statistics of a handful of TOAs. The RFI still costs about 22 % of the TOAs, and the calibration still brings χ² to 1.00. The
 gain from scintillation is gone: each TOA now needs about 20 h of data, which averages over roughly 30 scintles of 40 min, so there are

@@ -911,16 +911,20 @@ level, true noise coefficients and valid fraction.</p>
 <tr><td>narrow Inmarsat carriers</td><td class="num">80.5</td><td class="num">81.2</td><td class="num">3.382 µs</td><td class="num">3.351 µs</td><td class="num">1.223</td><td class="num">1.245</td></tr>
 </table></div>
 <p>They agree within about 1 %. The chain's SNR is about 0.5 % lower in every case: its excision clips a few pulse peaks at −5 dB.</p>
-<p><b>Part 2</b>, production numbers with the 1 s profiles (the steady part). There are 50 × 8 TOAs per case, with the pulsar redrawn
-every run, so rms/pred ≈ 1 for honest error bars (± 0.035):</p>
+<p><b>Part 2</b>, production numbers with the 1 s profiles (the steady part; the 21 Oct profiles since 23 Oct). There are 50 × 8 TOAs
+per case, with the pulsar redrawn every run, so rms/pred ≈ 1 for honest error bars (± 0.035):</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>SNR (/ noise only)</th><th>median σ (/ noise only)</th><th>rms/pred</th><th>median χ²<sub>red</sub></th><th><code>pChi2</code> &lt; 0.05</th><th>channels: level &gt; 1.05, noise ratio &gt; 1.02</th></tr>
-<tr><td>noise only</td><td>92.4 (1.000)</td><td>2.940 µs (1.000)</td><td>1.004</td><td>1.0068</td><td>22.8 %</td><td>0, 0</td></tr>
-<tr><td>realistic scenario</td><td>82.6 (0.895)</td><td>3.293 µs (1.120)</td><td>0.957</td><td>1.0733</td><td>100 %</td><td>38, 12</td></tr>
-<tr><td>narrow Inmarsat carriers</td><td>81.1 (0.878)</td><td>3.357 µs (1.142)</td><td>1.069</td><td>1.2455</td><td>100 %</td><td>41, 16</td></tr>
+<tr><td>noise only</td><td>92.4 (1.000)</td><td>2.940 µs (1.000)</td><td>1.004</td><td>1.0068</td><td>22.5 %</td><td>0, 4</td></tr>
+<tr><td>realistic scenario</td><td>82.6 (0.895)</td><td>3.293 µs (1.120)</td><td>0.958</td><td>1.0778</td><td>100 %</td><td>38, 18</td></tr>
+<tr><td>narrow Inmarsat carriers</td><td>81.1 (0.878)</td><td>3.359 µs (1.142)</td><td>1.083</td><td>1.3026</td><td>100 %</td><td>41, 22</td></tr>
 </table></div>
 <p>The RFI left after excision costs 10.5 % SNR in the realistic case, and 12.2 % with narrow carriers: 25 % and 30 % more observing time
-for the same σ. The error bars stay honest in the realistic case, and are about 7 % too small with narrow carriers (2σ).</p>
+for the same σ. The error bars stay honest in the realistic case, and are about 8 % too small with narrow carriers (2.4σ).</p>
+<p>The four noise-only channels above 1.02 are estimation noise of the 30 measured lags (about ±1 % per channel at 1 s), not RFI.</p>
+<details><summary>History: the 20 Oct profiles</summary><p>With the first 1 s profiles (white thresholds, 7 lags): rms/pred 0.957 and
+1.069, χ²<sub>red</sub> 1.0733 and 1.2455, <code>pChi2</code> &lt; 0.05 in 22.8 % of the noise-only TOAs, noise ratio above 1.02 in 0, 12
+and 16 channels. Rerun on 23 Oct with the 21 Oct profiles.</p></details>
 <p>The χ² excess comes from channels whose noise the observer's flat model under-predicts. Unlike the noise-only excess, which comes from
 the band-edge taper and grows with SNR², it does not shrink at low SNR. So <code>pChi2</code> flags every TOA with RFI, while the drop rule
 (χ²<sub>red</sub> &gt; 2) does not. That is the case for the per-channel noise calibration, implemented on 20 Oct (<code>noiseCal</code>).

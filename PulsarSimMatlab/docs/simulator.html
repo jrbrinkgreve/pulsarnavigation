@@ -247,10 +247,15 @@ the error bars are too small in the partly covered channels.</p>
 <p>These are time-domain numbers, so a profile transfers to any pulsar, phase-bin count and sub-int length. The profiles are in
 <code>data/rfi/profile/rfiProfile_&lt;case&gt;_&lt;L&gt;s.mat</code>, for three cases: the realistic scenario, the narrow-Inmarsat worst
 case, and noise only. Each exists at 0.1 s (<code>runRFITest</code>'s exact settings) and at 1 s (the steady part, with the rotating
-radar's beam passage outside the run). The 1 s profiles were measured again on 21 Oct with the new excision code: per-channel
-<code>detectRFI</code> thresholds and 30 lags. They are in <code>data/rfi/profile_21oct/</code>. The 100-day scenario runs used them, from a
-scratch copy of <code>runScenario</code>. The committed <code>runScenario.m</code> still loads the earlier profiles from
-<code>data/rfi/profile/</code>, so its 30-day runs keep their recorded numbers.</p>
+radar's beam passage outside the run). The 1 s profiles come from the current excision code: per-channel <code>detectRFI</code>
+thresholds and 30 lags (measured 21 Oct). <code>runScenario</code>, <code>runShip</code> and <code>expSimRFI</code> load them. The 0.1 s profiles
+are from 20 Oct: they match <code>runRFITest</code>'s 12 Oct reference, which used the same detector.</p>
+<details><summary>History: two profile generations (until 23 Oct)</summary><p>The first 1 s profiles (20 Oct: white
+<code>detectRFI</code> thresholds, 7 lags) are kept in <code>data/rfi/profile_20oct/</code>. The 30-day RFI scenario variants and
+<code>expSimRFI</code> part 2 were made with them; the 100-day scenario runs already used the 21 Oct profiles, from a scratch copy of
+<code>runScenario</code>. The two differ most for the narrow-Inmarsat case: the blanked fraction halves (4.4·10⁻³ → 2.1·10⁻³) and the
+worst carrier channel's noise ratio rises from 4.55 to 4.95 (lags 8–30). On 23 Oct the 21 Oct set became the default (review item
+P3-1); the reruns of the 30-day RFI variants and of <code>expSimRFI</code> part 2 are pending.</p></details>
 <p><b>Per-channel noise calibration</b> (<code>'ObserverNoise'</code>). By default the fold carries the observer's clean, flat-channel
 model. So the observer's error bars and χ² are off in the channels that RFI reshapes, as on real data without calibration. With
 <code>'ObserverNoise', 'measured'</code>, the fold's noise weights use the profile's measured coefficients per channel instead. This is an
