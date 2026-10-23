@@ -2763,6 +2763,70 @@ barycentric corrections, navigation solution).
      `plotFoldCheck` (Jasper);
    - items 3, 4, 8 (Jasper; the χ² threshold decided 16 Oct, §5.8). (The bright-pulsar excision warning: done 14 Oct.)
 
+13. **[todo, later] Every TOA correction in the timing model (Jasper, 23 Oct 2026: "we need to take into
+   account all corrections for the toa, as every missing piece will disrupt the timing"; fix block D's
+   timing limitations after the review of C and D).** Log: `2026-10-23_review-C-D.md`.
+
+   **Why.** The navigation fit reads every unmodelled delay as position or clock: 1 µs is 300 m of light
+   travel. A TOA folded across passes also needs the phase to stay coherent over the gap. Today's TOAs
+   (~700 µs for B0329+54) hide the sub-µs terms. Millisecond pulsars (µs TOAs) and real data (block F) do not.
+
+   **Simulation caveat.** The truth (`trueResiduals`) and the observer (`makePredictor`) use the same
+   `delayModel`. A term missing from `delayModel` is therefore missing on both sides, and no run shows its
+   effect. Each fix has two halves:
+   - (a) the observer's model gets the term (needed for real data);
+   - (b) the truth gets it too, with an option to leave it out of the observer, so a run measures what
+     the omission costs.
+
+   **End-to-end check (proposal).** Compare `delayModel`'s total delay with PINT or TEMPO2 for the same
+   site, times and pulsar. Whatever the difference shows is a term still missing, including ones not in
+   this list.
+
+   **Modelled now:**
+
+   | Term | Size | Where |
+   |---|---|---|
+   | Roemer: Earth's orbit, Earth's rotation, ship motion | ±499 s; ±21 ms | `delayModel`, `makeTrajectory` |
+   | Einstein: TDB − TT, plus the site term | 1.66 ms; ~1 µs | `delayModel` (from DE440 with `'Ephemeris'`) |
+   | Shapiro delay of the Sun | −17 … +6 µs (B0329+54) | `delayModel` |
+   | Wave-front curvature | ~1 µs (B0329+54) | `delayModel`, only when `psr.distance` is given |
+   | Precession, nutation, apparent sidereal time | ~40 km at the site since J2000 | `delayModel`, with `'Ephemeris'` only |
+   | Receiver clock | ms | `makeClock`; the clock states in `navFit` / `navFilter` |
+   | Spin-down F1 | – | `makePredictor` (`runShip` sets F1 = 0) |
+
+   **Missing, 1 µs and above:**
+
+   | Term | Size | Status | Fix would go in |
+   |---|---|---|---|
+   | Pulsar position at the epoch: proper motion, parallax | 1 mas gives up to 2.4 µs (annual). B0329+54 moves ~19 mas/yr (VLBI, Brisken et al. 2002; to check): ~47 µs per year since the position epoch | not modelled: `psr` holds raDeg, decDeg only | `delayModel` (pmRA, pmDec, posEpoch, parallax) |
+   | Pulsar binary orbit (J0437) | ~3 s per 5.74 days | parked (handover-D) | `makePredictor`, `trueResiduals` (ELL1) |
+   | Doppler-shifted dispersion delay | ±7.1 µs (B0329+54) | open, item 4 | `delayModel`: DM term at the barycentric frequency |
+   | DM variations | 2.1 µs per 10⁻³ pc cm⁻³ | not modelled (§9) | sub-band TOAs, DM fit |
+   | Spin ephemeris age, timing noise, glitches | unknown: needs a literature number per pulsar | not modelled; not listed before (context check 22 Oct) | truth: a red-noise phase; observer: a current ephemeris |
+   | UT1 − UTC | ≤ 0.9 s of rotation: up to ~260 m east at 52° N (~0.9 µs) | parked (`'DeltaT'` is one number) | IERS Bulletin A |
+   | Instrumental delays (cables, mixer, SDR, channelizer filters) | unknown. The constant part merges into the clock offset; the frequency-dependent part looks like DM | not modelled | calibration (block F) |
+   | Absolute time stamps of the SDR (UTC → TAI → TT, leap seconds) | seconds, if wrong | not modelled: the simulation runs in TT | block F |
+   | Earth orientation in the navigation rows | < ~6 km on the fitted offsets | parked (handover-D) | `navFit`, `navFilter` |
+   | Clock wander inside a long TOA | a few hundred µs over a day (crystal) | parked (handover-D) | an extra variance per averaged TOA |
+   | Analytic ephemeris (the default) | Earth up to 3.2e5 km off; B0329+54's Roemer delay up to 0.66 s off | shared by truth and observer in the simulations | real data must use `'Ephemeris'` |
+
+   **Missing, below 1 µs (matter for millisecond pulsars):**
+
+   | Term | Size | Status | Fix would go in |
+   |---|---|---|---|
+   | Solar-wind dispersion | ~0.1–0.5 µs away from the Sun; µs within ~10° of it | not modelled; not listed before | `delayModel` DM term with a solar-wind density model |
+   | Shapiro delay of the planets | ≤ ~0.2 µs (Jupiter), usually tens of ns | not modelled; not listed before | `delayModel` shapiro |
+   | Ionosphere | 3–70 ns | open, item 4 | GNSS TEC maps, or the sub-band DM fit |
+   | Troposphere | ~8 ns at zenith; ~22 ns at 20° elevation | not modelled; not listed before | a mapping function of elevation |
+   | Polar motion | ~10 m: ~33 ns | parked (handover-D) | IERS Bulletin A |
+   | Antenna position on the ship (lever arm, attitude) | a few m: ~10 ns | not modelled | `makeTrajectory` offset (E3) |
+   | Scattering | ~0.4 ns at DM 5; µs at DM ≳ 100 | not modelled (§9) | – |
+
+   **Order when fixing (proposal, for Jasper).** First the µs terms that hit today's pulsars and the real
+   data: the pulsar's position at the epoch, the Doppler-shifted dispersion term, UT1 − UTC, and
+   timing-noise numbers. Then the sub-µs terms for millisecond pulsars. Each term follows the usual rule:
+   physics first, one function at a time, a test against a closed form or the PINT/TEMPO2 reference.
+
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
   (§7), not for the weak-signal target.
