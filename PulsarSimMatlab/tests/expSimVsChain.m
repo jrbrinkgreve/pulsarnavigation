@@ -39,6 +39,7 @@ test_dedispB_chan_power_info.mat) and the two sweep files. ~2-3 min.
 
 root = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(root, 'functions'));
+clear restoreDir                                    % another script's (shared workspace): it would cd back after cd(root)
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
 pipelineParams;
 nSim = 2000;                                        % simulated sub-ints per SNR point

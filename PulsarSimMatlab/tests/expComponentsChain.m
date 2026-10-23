@@ -28,6 +28,7 @@ Run from the PulsarSimMatlab folder: run('tests/expComponentsChain.m'). ~45-60 m
 scriptDir = fileparts(mfilename('fullpath'));
 root = fileparts(scriptDir);
 addpath(fullfile(root, 'functions'));
+clear restoreDir                                    % another script's (shared workspace): it would cd back after cd(root)
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
 pipelineParams;
 nSeed = 6; Lc = 0.2; DMc = 2.6; nSimRun = 6; nSimSub = 300;   % simulator: 6 x 300 sub-ints (memory)

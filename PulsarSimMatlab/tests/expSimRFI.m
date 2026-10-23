@@ -17,6 +17,7 @@ Needs data/rfi/profile/rfiProfile_*.mat (runRFIProfile) and runRFITest's results
 
 root = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(root, 'functions'));
+clear restoreDir                                    % another script's (shared workspace): it would cd back after cd(root)
 oldDir = cd(root); restoreDir = onCleanup(@() cd(oldDir));
 pipelineParams;
 nSeed = 50;
