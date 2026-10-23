@@ -555,10 +555,16 @@ the true phases to 1.1·10⁻⁸ of the peak.</td></tr>
 partial last one.</td></tr>
 <tr><td>4 · No delays</td><td>A predictor without delays against the old fold.</td><td>Identical to 5·10⁻¹¹.</td></tr>
 <tr><td>5 · Inputs</td><td>A predictor that is too short, or not a predictor.</td><td>Refused.</td></tr>
+<tr><td>6 · Merging</td><td><code>mergeSubints</code> on the predictor fold: 100-turn sub-ints merged in pairs, against the fold with
+200 turns per sub-int. A group whose reference turn falls in a gap.</td><td>Sums and weights equal to 10⁻¹². Reference times equal to
+10⁻¹¹ s; the f0 model would be off by 17 ms. The gap is refused.</td></tr>
 </table></div>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 as step D2b. The first version clamped the reference time to the predictor's span, which left the partial last
-sub-integration 0.39 turns off. It now extrapolates linearly.</p></details>
+sub-integration 0.39 turns off. It now extrapolates linearly.</p>
+<p>Test 6 added 23 Oct 2026 (review of blocks C and D, item A-1). Before it, <code>mergeSubints</code> took the merged reference time
+from the f0 model for every fold. For a predictor fold that is off by about the Doppler factor times the time since the file's start:
+0.3 s per hour of recording for B0329+54.</p></details>
 
 <h2 id="why">Design choices</h2>
 <p>The reasons for linear assignment, <code>weightX</code> and the data weights are with those sections above. Four more:</p>

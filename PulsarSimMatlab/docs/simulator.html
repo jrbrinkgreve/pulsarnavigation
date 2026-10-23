@@ -384,7 +384,9 @@ simulated ones:</p>
 <ol>
 <li><b><code>mergeSubints(fold, info_fold, group)</code></b> merges runs of consecutive sub-ints exactly: their sums and weights add.
 Only the noise covariance across an internal boundary is missing, as in <code>foldProfile</code> itself; with independent time bins it
-is exact.</li>
+is exact. A merged sub-int's reference time is the time of its middle turn. For a fold made with a predictor, that time comes from the
+member sub-int holding the middle turn, because the f0 model does not hold there (23 Oct; <a href="fold.html#predictor">folding
+page</a>, test 6).</li>
 <li><b><code>adaptiveSubints(fold, info_fold, template, Bnoise)</code></b> walks through short sub-ints and adds them one at a time. It
 stops when the merged profile's matched-filter statistic T0 at the predicted phase reaches the target: by default 7, the design rule.
 Then it starts a new group.<br>

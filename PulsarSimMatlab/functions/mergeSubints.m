@@ -20,14 +20,24 @@ Outputs:
          prof = sum ./ weight (NaN where weight = 0); profTotal and phase unchanged;
          subint: turnFirst = first member's, turnLast = last member's, turnRef = their
          middle (round((turnFirst + turnLast)/2), as foldProfile), tRef / fRef from the
-         phase model at turnRef, tMean weighted by the time bins, nTimeBins summed
+         phase model at turnRef, tMean weighted by the time bins, nTimeBins summed.
+         A predictor fold (info_fold.predictor, foldProfile 'Predictor'; 23 Oct 2026): its
+         phase is not the f0 / F1 model (f0 only labels it), so tRef / fRef come from the
+         member sub-int that holds turnRef, whose tRef / fRef foldProfile solved on the
+         predictor: tRef = tRef_m + (turnRef - turnRef_m) / fRef_m, fRef = fRef_m (exact
+         but for the frequency change within half a member, (fdot/f) dt^2 / 2: ~45 ns for
+         60 s sub-ints on the Earth). The f0 / F1 model would be off by ~(v.n/c) t, 0.3 s
+         per hour of recording for B0329+54.
   infoM  info_fold with nSub, subintPeriods = NaN (variable), subintGroup = group
 
 Exact except for one term foldProfile does not store either: the noise covariance between
 time bins on both sides of a sub-int boundary (with correlated time bins, NoiseCoeffs lags
 > 0, a merged sub-int lacks those few pairs at each internal boundary; independent time bins
 are exact). Merging across a gap in the data (between passes) is allowed here; whether it
-makes sense (phase coherence over the gap) is the caller's choice.
+makes sense (phase coherence over the gap) is the caller's choice. For a predictor fold a
+group whose turnRef falls in such a gap is refused ('mergeSubints:predictor'): its tRef
+would need the predictor there (one recording's sub-ints are contiguous, so this does not
+arise within one foldProfile fold).
 %}
 
 arguments
@@ -76,12 +86,27 @@ for k = 1:nG
     tM(k)  = sum(S.tMean(m) .* S.nTimeBins(m)) / max(nTB(k), 1);
 end
 tr = round((tf + tl) / 2);
-f0 = info_fold.f0; F1 = info_fold.F1; Phi0 = 0;
-if isfield(info_fold, 'Phi0'), Phi0 = info_fold.Phi0; end
-d = tr - Phi0;
-dtRef = 2*d ./ (f0 + sqrt(f0^2 + 2*F1*d));          % stable root of phi(t) = turnRef
+if isfield(info_fold, 'predictor') && ~isempty(info_fold.predictor)
+    tRef = zeros(nG, 1); fRef = zeros(nG, 1);       % predictor fold: from the member holding turnRef
+    for k = 1:nG
+        m = idx(g == k);
+        j = m(S.turnFirst(m) <= tr(k) & S.turnLast(m) >= tr(k));
+        if isempty(j)
+            error('mergeSubints:predictor', ['Group %d''s reference turn %d lies in a gap between ' ...
+                'its sub-ints: a predictor fold''s tRef needs the predictor there.'], k, tr(k));
+        end
+        tRef(k) = S.tRef(j) + (tr(k) - S.turnRef(j)) / S.fRef(j);
+        fRef(k) = S.fRef(j);
+    end
+else
+    f0 = info_fold.f0; F1 = info_fold.F1; Phi0 = 0;
+    if isfield(info_fold, 'Phi0'), Phi0 = info_fold.Phi0; end
+    d = tr - Phi0;
+    dtRef = 2*d ./ (f0 + sqrt(f0^2 + 2*F1*d));      % stable root of phi(t) = turnRef
+    tRef = info_fold.TRef + dtRef; fRef = f0 + F1*dtRef;
+end
 foldM.subint = struct('turnFirst', tf, 'turnLast', tl, 'turnRef', tr, ...
-    'tRef', info_fold.TRef + dtRef, 'fRef', f0 + F1*dtRef, 'tMean', tM, 'nTimeBins', nTB);
+    'tRef', tRef, 'fRef', fRef, 'tMean', tM, 'nTimeBins', nTB);
 
 infoM = info_fold;
 infoM.nSub = nG;

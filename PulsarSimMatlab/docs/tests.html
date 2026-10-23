@@ -375,7 +375,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#maketraj"><code>testMakeTrajectory</code></a></td><td><code>makeTrajectory</code> D1a (where the receiver is)</td><td>~1 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#delaymodel"><code>testDelayModel</code></a></td><td><code>delayModel</code> D1b (receiver → barycentre)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
-<tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b; <code>mergeSubints</code> on it</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 23 Oct)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~2 min</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~10 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
@@ -764,8 +764,8 @@ checks are on the <a href="prediction.html#predictor">phase-prediction page</a>.
 
 <h2 id="foldpred"><code>testFoldPredictor</code> (21 Oct)</h2>
 <p>Folding with a predictor removes the Doppler shift completely: a pulsar with a Doppler factor of 10⁻³ folds to within 10⁻⁸ of the
-fold with its true phases. Without a predictor the old fold is unchanged. The five checks are on the
-<a href="fold.html#predictor">folding page</a>.</p>
+fold with its true phases. Without a predictor the old fold is unchanged. Merged sub-ints of a predictor fold keep their reference
+times to 10⁻¹¹ s (test 6, 23 Oct). The six checks are on the <a href="fold.html#predictor">folding page</a>.</p>
 
 <h2 id="trueres"><code>testTrueResiduals</code> (21 Oct)</h2>
 <p>The residual between the true and the predicted arrival matches closed forms to 5·10⁻¹¹ s. Data whose pulses arrive where a true
