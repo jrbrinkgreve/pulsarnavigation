@@ -2822,6 +2822,8 @@ barycentric corrections, navigation solution).
    | Antenna position on the ship (lever arm, attitude) | a few m: ~10 ns | not modelled | `makeTrajectory` offset (E3) |
    | Scattering | ~0.4 ns at DM 5; µs at DM ≳ 100 | not modelled (§9) | – |
 
+   **Roadmap (23 Oct):** this item is step E2 of the revised block E (§11).
+
    **Order when fixing (proposal, for Jasper).** First the µs terms that hit today's pulsars and the real
    data: the pulsar's position at the epoch, the Doppler-shifted dispersion term, UT1 − UTC, and
    timing-noise numbers. Then the sub-µs terms for millisecond pulsars. Each term follows the usual rule:
@@ -2871,6 +2873,33 @@ barycentric corrections, navigation solution).
 ---
 
 ## 11. Roadmap
+
+**Revised 23 Oct 2026 (Jasper): block E leads to one endpoint, a fixed position on Earth from several pulsars.**
+Jasper: "I have a clear endpoint of the development pipeline for now: estimating a fixed position on earth using multiple
+pulsars. We can develop towards that point, and refine as much as possible." Decisions the same day:
+- site: the Netherlands (~52° N), where it will be tested;
+- flux: "design for worst-case, get more ToA's if better";
+- the Earth–pulsar motion stays in full; the navigation filter (navFilter, runShip) and the vehicle-motion uncertainty
+  in the fold are parked;
+- all 18 data streams (9 elements × 2 polarizations) are processed, with digital beamforming;
+- integration time: as short as possible; the fast simulator may run as long as needed;
+- later: the target precision and the array hardware.
+
+Steps (docs/roadmap.html#blockE; log 2026-10-23_review-C-D.md):
+
+| Step | Content |
+|---|---|
+| E0 | review of C and D as far as the endpoint uses them (geometry/time, clock, prediction/truth, navFit, runScenario) |
+| E1 | the pulsar set from 52° N: catalogue values with sources, measured profiles; expNavPlan on them picks the beams |
+| E2 | the complete Earth–pulsar timing model (§10 item 13), each term switchable in the observer; PINT/TEMPO2 check |
+| E3 | the multi-pulsar fixed-site solution in the fast simulator (beams, shared clock, RFI, scintillation; joint navFit; Monte Carlo); precision against integration time at worst-case flux |
+| E3b | extra beams and sub-threshold pulsars: long coherent folds, a direct position fit to all folded profiles |
+| E4 | the array: 18 streams at voltage level, the beamformer (per-channel steering weights after channelizeIQ, simultaneous beams), polarizations (two beams with the same weights, detected and added), element calibration; then E3 rerun with the measured beam properties |
+| E5 | the oscillator (TCXO, OCXO, Rb) and the clock's flicker term in the fit |
+| E6 | the shortest integration time for a target precision; the levers |
+| F | real recordings at the Netherlands site through the same code |
+
+The plan of 6 Oct below is kept for its history; most of it is done or part of E or F.
 
 **Block 1 – noise and detection (closed 6 Oct 2026; phase F and adaptive sub-int length deferred)**
 - Receiver noise + RFI [noise validated at −5 dB (MC); all RFI types validated 5 Oct]

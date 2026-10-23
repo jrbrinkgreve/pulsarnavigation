@@ -299,7 +299,7 @@ channels. Filtering the voltage with the inverse chirp, as <code>applyInverseDis
 <p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a constant
 shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>). That is harmless for relative timing, but it changes what a TOA means.
 The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check work.</p>
-<p>The simulation and the observer share one <code>refFreq</code>; that is noted on the roadmap (<a href="roadmap.html">item D2</a>).</p></div>
+<p>The simulation and the observer share one <code>refFreq</code>; that is noted on the roadmap (<a href="roadmap.html">review item R-D2</a>).</p></div>
 
 <div class="callout why"><span class="ttl">Overlap-save here, overlap-add in the forward stage</span>
 <p>Both are exact. Overlap-save suits a filter with a very lopsided, non-causal reach (6.3 ms into the future, a few µs into the past):

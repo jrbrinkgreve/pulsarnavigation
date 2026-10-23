@@ -11,7 +11,8 @@
 
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 22 October 2026 (evening): blocks A–D closed, E next, F later. Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 23 October 2026: blocks A–D closed. Block E, revised on 23 Oct, leads to a fixed position in the Netherlands
+from several pulsars; its first step (E0, the review of C and D) is under way. F later. Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p><b>Done:</b> the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
@@ -31,10 +32,11 @@ At worst-case flux it is at 298 km, against 372 km (Claude's run).</li>
 </ul>
 <p>Pages: <a href="prediction.html">phase prediction</a>, <a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>. The
 parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
-<p><b>Next: block E</b>, the full navigation system in simulation: several pulsars at full scale, the navigation solution, the 3×3 array
-and the second polarization. Its first step is being decided.</p>
-<p><b>Then block F</b>, the real implementation: IQ recordings from the antenna, mixer and SDR through <code>processIQ</code>, and the
-processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
+<p><b>Now: block E</b> (revised 23 Oct, <a href="#blockE">below</a>). Its endpoint is a fixed position at a site in the Netherlands,
+estimated from several pulsars, with all 18 data streams beamformed and the full Earth–pulsar motion in the timing model, at
+worst-case flux. Its steps are E0–E6; E0, the review of blocks C and D, is under way. The ship's navigation filter is parked.</p>
+<p><b>Then block F</b>, the real implementation: IQ recordings at the Netherlands site from the antenna, mixer and SDR through
+<code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -69,10 +71,15 @@ frozen copy (Claude's runs; Jasper's MATLAB down). These docs rewritten for read
 <code>navFit</code>, the clock as correlated noise, the planning study, <code>navFilter</code>, the ship scenario <code>runShip</code> and
 TOAs as time-averages. D5: <code>loadEphemeris</code> (JPL's DE440), TDB − TT, precession and nutation. The fixed-site reruns →
 <b>block D closed</b>. Block F added (Jasper). These docs: blocks C and D fitted into the stages; the clock on its own page.</td></tr>
+<tr><td>23 Oct</td><td>Review of C and D, parts 2–3 (the fast simulator, the RFI profiles). Jasper's runs validate all 25 unit tests, five
+experiments, a ship run and <code>main.m</code>. Four bugs fixed: <code>main.m</code> (stopped after the IQ stage since 21 Oct),
+<code>mergeSubints</code> with a predictor, the experiments' shared workspace, the one-pulsar precision formula. The 21 Oct RFI profiles
+become the default, with the RFI scenarios rerun. <b>Block E revised</b> toward one endpoint: a fixed position in the Netherlands from
+several pulsars (<a href="#blockE">below</a>).</td></tr>
 </table></div>
 
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 688" role="img" aria-label="Roadmap: the blocks on the calendar from 29 September, block C's steps with their status, and what blocks D, E and F hold">
+<svg class="wide" viewBox="0 0 860 716" role="img" aria-label="Roadmap: the blocks on the calendar from 29 September, block C's steps with their status, and what blocks D, E and F hold">
   <defs>
     <marker id="ar-rd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path class="ah" d="M0 0 L10 5 L0 10 z"/>
@@ -102,12 +109,12 @@ TOAs as time-averages. D5: <code>loadEphemeris</code> (JPL's DE440), TDB − TT,
   <text class="lbl" x="498.8" y="68">C · fast simulator</text>
   <rect class="box val" x="521.6" y="36" width="45.6" height="18" rx="4"/>
   <text class="lbl" x="571.2" y="49">D · motion</text>
-  <path class="dash" d="M567.2 76 V112"/><text class="sub" x="571.2" y="108">today</text>
-  <path class="line" d="M567.2 81 h18" marker-end="url(#ar-rd)"/>
+  <path class="dash" d="M590.0 76 V112"/><text class="sub" x="594.0" y="108">today</text>
+  <path class="line" d="M590.0 81 h18" marker-end="url(#ar-rd)"/>
   <rect class="box val" x="640" y="36" width="210" height="18" rx="4"/>
   <text class="lbl" x="745" y="49" text-anchor="middle">D · motion and phase (closed)</text>
-  <rect class="box" x="640" y="72" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
-  <text class="lbl" x="745" y="85" text-anchor="middle">E · full system, simulated (next)</text>
+  <rect class="box rx" x="640" y="72" width="210" height="18" rx="4"/>
+  <text class="lbl" x="745" y="85" text-anchor="middle">E · a fixed position (now)</text>
   <rect class="box" x="640" y="108" width="210" height="18" rx="4" stroke-dasharray="5 4"/>
   <text class="lbl" x="745" y="121" text-anchor="middle">F · real implementation (later)</text>
   <text class="ttl" x="10" y="156">2 · block C, step by step</text>
@@ -182,43 +189,55 @@ TOAs as time-averages. D5: <code>loadEphemeris</code> (JPL's DE440), TDB − TT,
   <rect class="box proc" x="10" y="550" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="565">D3c scenario runs with motion</text>
   <rect class="box val" x="10" y="578" width="275" height="22" rx="5"/>
-  <text class="sub" x="18" y="593">D4 navigation fit, ship filter</text>
+  <text class="sub" x="18" y="593">D4 navigation fit (ship filter parked)</text>
   <rect class="box proc" x="10" y="606" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="621">D4c-0 planning study, D4d-2 ship runs</text>
   <rect class="box val" x="10" y="634" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="649">D5 DE440, TDB − TT, precession</text>
-  <text class="lbl" x="293" y="458" font-weight="600">E · full system, simulated (next)</text>
-  <rect class="box" x="293" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="301" y="481">several pulsars at full scale</text>
+  <text class="lbl" x="293" y="458" font-weight="600">E · a fixed position (now)</text>
+  <rect class="box rx" x="293" y="466" width="275" height="22" rx="5"/>
+  <text class="sub" x="301" y="481">E0 review of C and D (parts 4–8)</text>
   <rect class="box" x="293" y="494" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="301" y="509">navigation solution: position + clock</text>
+  <text class="sub" x="301" y="509">E1 pulsar set from 52° N, real profiles</text>
   <rect class="box" x="293" y="522" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="301" y="537">3×3 array, second polarization</text>
+  <text class="sub" x="301" y="537">E2 complete Earth–pulsar timing model</text>
+  <rect class="box" x="293" y="550" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="565">E3 multi-pulsar fixed-site fit, Monte Carlo</text>
+  <rect class="box" x="293" y="578" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="593">E3b extra beams, sub-threshold pulsars</text>
+  <rect class="box" x="293" y="606" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="621">E4 array: 18 streams, digital beams</text>
+  <rect class="box" x="293" y="634" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="649">E5 oscillator, clock flicker in the fit</text>
+  <rect class="box" x="293" y="662" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="677">E6 shortest integration time, levers</text>
   <text class="lbl" x="576" y="458" font-weight="600">F · real implementation (later)</text>
   <rect class="box" x="576" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="584" y="481">IQ from the antenna, mixer and SDR</text>
+  <text class="sub" x="584" y="481">IQ recordings at the Netherlands site</text>
   <rect class="box" x="576" y="494" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="584" y="509">processIQ on the recordings</text>
   <rect class="box" x="576" y="522" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="584" y="537">GPU / FPGA port, stage by stage</text>
   <rect class="box" x="576" y="550" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="584" y="565">real time</text>
-  <rect class="box val" x="10" y="667" width="22" height="14" rx="3"/>
-  <text class="sub" x="40" y="678">validated (Jasper's run)</text>
-  <rect class="box proc" x="220" y="667" width="22" height="14" rx="3"/>
-  <text class="sub" x="250" y="678">done (Claude's run)</text>
-  <rect class="box rx" x="430" y="667" width="22" height="14" rx="3"/>
-  <text class="sub" x="460" y="678">running / under investigation</text>
-  <rect class="box" x="640" y="667" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
-  <text class="sub" x="670" y="678">next / open</text>
+  <rect class="box val" x="10" y="695" width="22" height="14" rx="3"/>
+  <text class="sub" x="40" y="706">validated (Jasper's run)</text>
+  <rect class="box proc" x="220" y="695" width="22" height="14" rx="3"/>
+  <text class="sub" x="250" y="706">done (Claude's run)</text>
+  <rect class="box rx" x="430" y="695" width="22" height="14" rx="3"/>
+  <text class="sub" x="460" y="706">running / under investigation</text>
+  <rect class="box" x="640" y="695" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
+  <text class="sub" x="670" y="706">next / open</text>
 </svg>
-<figcaption>The roadmap on 22 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
+<figcaption>The roadmap on 23 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
 TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
 done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D, E and F. D's functions are validated in
-Jasper's runs. The scenario runs with motion and the ship runs are Claude's. A few items are parked (navigation page). E brings the full
-system in simulation; its first step is being decided. F is the real implementation on antenna data and a GPU or FPGA.
+Jasper's runs. The scenario runs with motion and the ship runs are Claude's. A few items are parked (navigation page); since 23 Oct the
+ship filter is parked too. E, revised on 23 Oct, leads to one endpoint: a fixed position in the Netherlands from several pulsars, with
+all 18 data streams beamformed; its first step, the review of C and D, is under way. F is the real implementation on antenna data and a
+GPU or FPGA.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
 <h2>The labels</h2>
@@ -249,8 +268,8 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 <span class="badge written">Claude's runs</span>: the simulator's truth with a moving receiver and a clock in <code>runScenario</code>
 (D3c), the SDR clock tracked day by day (D4b-2), the planning study (D4c-0), the ship scenario <code>runShip</code> over eight ships
 (D4d-2), and the fixed-site reruns. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
-<tr><td><b>E</b></td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second polarization</td><td><span class="badge todo">next</span>; the first step is being decided</td></tr>
-<tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
+<tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 18 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>)</td><td><span class="badge todo">now</span>: E0 (the review) under way</td></tr>
+<tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings at the Netherlands site from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
 
 <h2 id="why">Design choices: why this order</h2>
@@ -404,11 +423,75 @@ truth, against 379 km for dead reckoning. Its error bars agree with those of an 
 </ul>
 <p>Details: <a href="prediction.html">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
 
+<h2 id="blockE">Block E: a fixed position from several pulsars (revised 23 Oct)</h2>
+<div class="callout note"><span class="ttl">In short</span>
+<p>Jasper (23 Oct): "I have a clear endpoint of the development pipeline for now: estimating a fixed position on earth using multiple
+pulsars. We can develop towards that point, and refine as much as possible."</p>
+<p>The endpoint: a fixed site in the Netherlands, its position estimated from several pulsars, each in its own digital beam formed from
+all 18 data streams. The Earth–pulsar motion is modelled in full. The design point is the worst-case flux. The headline is the
+precision against integration time, with the shortest time as the aim.</p></div>
+<h3>Decisions (Jasper, 23 Oct)</h3>
+<div class="table-wrap"><table>
+<tr><th>Topic</th><th>Decision</th></tr>
+<tr><td>Site</td><td>The Netherlands (~52° N), where the system will be tested. J0437 never rises there, so the pulsar set is northern.</td></tr>
+<tr><td>Flux</td><td>"Design for worst-case, get more ToA's if better." Nominal flux is reported alongside.</td></tr>
+<tr><td>Motion</td><td>The Earth–pulsar motion stays in full (delays, ephemeris, predictor). The navigation filter and the vehicle's motion
+uncertainty in the fold are parked.</td></tr>
+<tr><td>Array</td><td>All data streams are processed: 9 elements × 2 polarizations, with digital beamforming.</td></tr>
+<tr><td>Integration time</td><td>As short as possible. The fast simulator may run as long as needed to map precision against time.</td></tr>
+<tr><td>Later</td><td>The target precision, and the array hardware (element layout and spacing, element type, phase coherence of the SDR
+channels, calibration).</td></tr>
+</table></div>
+<h3>The steps</h3>
+<div class="table-wrap"><table>
+<tr><th>Step</th><th>Content</th><th>Status</th></tr>
+<tr><td>E0</td><td>The review of blocks C and D, as far as the endpoint uses them: geometry and time, the clock, prediction and truth,
+<code>navFit</code>, <code>runScenario</code>. <code>navFilter</code> and <code>runShip</code> are left out, being parked.</td><td><span class="badge todo">under way</span>: parts 2–3 done (log <code>2026-10-23_review-C-D.md</code>)</td></tr>
+<tr><td>E1</td><td>The pulsar set from 52° N: catalogue values with sources, and measured profiles, for B0950+08, B1642−03, B1929+10 and other
+bright northern candidates. <code>expNavPlan</code> on the real profiles then decides which pulsars get a beam.</td><td><span class="badge todo">next</span></td></tr>
+<tr><td>E2</td><td>The complete Earth–pulsar timing model (notes §10 item 13): every term of 1 µs and above, each with a switch to leave it out
+of the observer, so that a run measures what the omission costs; then an end-to-end check against PINT or TEMPO2.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E3</td><td>The multi-pulsar fixed-site solution in the fast simulator: a driver with one beam per pulsar, one shared clock, RFI and
+scintillation; the joint <code>navFit</code>; a Monte Carlo over seeds for bias and honest errors. The precision against integration
+time at worst-case flux, with the array as its budgeted gain.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E3b</td><td>Extra beams and pulsars below the TOA threshold. Each beam sees all the data, so more pulsars cost computation, not observing
+time. A weak pulsar's data hold information that the per-TOA threshold (SNR ≈ 7) throws away. Two ways to use it: long coherent folds
+over days (with E2's timing model), and a direct fit of the position to all folded profiles. The result: how precision and the shortest
+integration time improve with more beams and processing.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E4</td><td>The array: 18 streams at voltage level (element delays, independent noise per element, RFI from its own direction); the
+beamformer (steering weights per channel after <code>channelizeIQ</code>, which avoids beam squint over 400 MHz; simultaneous beams); the
+two polarizations; element calibration. The measured beam gain and RFI per beam then go into the fast simulator, and E3 is rerun.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E5</td><td>The oscillator: TCXO, OCXO or rubidium, and the clock's flicker term in the fit.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E6</td><td>Refinement: the shortest integration time for a target precision, and the levers (pulsar set, collecting area,
+oscillator).</td><td><span class="badge todo">open</span></td></tr>
+</table></div>
+<p><b>Parked:</b> the navigation filter (<code>navFilter</code>, <code>runShip</code>) and the vehicle's motion uncertainty in the fold.
+The trajectory interface stays, so they can return for the ship.</p>
+<h3>Physics notes from the revision</h3>
+<ul>
+<li><b>Polarizations in the beamformer (E4).</b> X and Y of one element share its position, so the 9 element positions are the only spatial
+information. Each pulsar gets two beams with the same steering weights, one from the X streams and one from the Y streams. Each beam is
+detected, and the powers are added (total intensity): the receiver noise is independent in X and Y, so the SNR gains √2. Combining X and
+Y before detection gains nothing for an unpolarized source and would have to follow Faraday and parallactic rotation for a polarized one.
+Separate TOAs per polarization would halve the SNR per profile and lose TOAs at worst-case flux. The separate streams still serve RFI
+excision and calibration.</li>
+<li><b>Integration time.</b> The equatorial components improve as 1/√T: twice the precision costs four times the time. B0329+54 alone
+gives about ±31 km east after 30 days and ±16 km after 100 days at nominal flux (±80 and ±43 km at worst-case flux). With the crystal
+clock the polar component does not improve with time (64 km at nominal flux after 30 and after 100 days), because the clock's wander
+looks like a polar offset; pulsars at other declinations or a better oscillator separate the two.</li>
+<li><b>Extra pulsars.</b> A pulsar's weight in the fit goes as 1/(σ<sub>TOA</sub>·√hours per TOA)². From 52° N, B0950+08,
+B1642−03 and B1929+10 add about 16, 19 and 4 % of B0329+54's information. Their main gain is the polar component: 64 → 40 km in 30
+days (24 km in 100 days) with the crystal clock. At worst-case flux, B1642−03 and B1929+10 give no TOA in 30 days, which is why E3b
+looks at processing below the TOA threshold.</li>
+</ul>
+
 <h2>Open items</h2>
+<p>The review-week items carry an R- prefix (R-D1, R-N1, R-C1, R-E1, …), so they do not collide with the block steps E0–E6. The notes
+(§10 item 11) give them without the prefix.</p>
 <div class="table-wrap"><table>
 <tr><th>Item</th><th>Note</th></tr>
-<tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html#propagation">limitations</a>). An open item for real data (notes §10); block D closed without it.</td></tr>
-<tr><td><span class="badge todo">todo</span> Doppler-shifted dispersion delay</td><td>The dispersion delay holds at the barycentric frequency, which Earth's orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term. For B0329+54 the missing term is an annual ±7.1 µs. It cancels in the simulator, so it matters for real data only. Needs a DM term in <code>delayModel</code> (notes §10; <a href="limits.html#propagation">limitations</a>).</td></tr>
+<tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html#propagation">limitations</a>). In step E2 (below 1 µs: 3–70 ns), and for real data (F).</td></tr>
+<tr><td><span class="badge todo">todo</span> Doppler-shifted dispersion delay</td><td>The dispersion delay holds at the barycentric frequency, which Earth's orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term. For B0329+54 the missing term is an annual ±7.1 µs. It cancels in the simulator, so it matters for real data only. Needs a DM term in <code>delayModel</code>: step E2 (notes §10 items 4 and 13; <a href="limits.html#propagation">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
 <tr><td><span class="badge validated">done 20 Oct</span> Adaptive sub-int length</td><td>Choose turns per sub-int from the data: fold a first chunk, measure its SNR, <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² with SNR<sub>target</sub> ~7. Adapts to scintillation. With block C.</td></tr>
 <tr id="processiq"><td><span class="badge validated">done 19 Oct</span> The processing as one function: <code>processIQ</code></td><td><p><b>Why:</b> the same stage calls appeared in <code>main</code>, <code>runMonteCarlo</code>, <code>runSNRSweep</code> and
@@ -447,12 +530,12 @@ five downstream functions.</li>
 true offset of 0, because <code>ephem.TRef</code> is the exact true epoch. <code>validateTOA</code> would then compare the whole-fold
 offset with the truth.</li>
 </ul></td></tr>
-<tr><td><span class="badge todo">todo</span> Dispersion refinements (review, 13 Oct)</td><td>Noted, not started. D1: a unit test for <code>applyDispersionStream</code> (tone-burst delays τ(<var>f</var>) − τ(refFreq), overlap-add equal to direct convolution for several <code>BlockLen</code>, DM = 0, power = <code>kernelEnergy</code>, kernel leakage); it replaces the NumPy ports, which are not in the repo. D2: one <code>refFreq</code> sets both where the simulation leaves out the bulk delay and where the observer dedisperses to, so the truth holds only because the two are equal; for phase D, simulate the full delay (or a separate simulation reference) and convert the truth in <code>validateTOA</code>.</td></tr>
-<tr><td><span class="badge todo">todo</span> Receiver-stage test (review, 13 Oct)</td><td>Noted, not started. N1: a unit test for <code>addNoiseAndRFI</code> that checks the noise level against the SNR definition (in-band PSD ratio = ρ), the power of each RFI type against INR, block-size independence for all types, and the 388·ρ prediction. Today the older RFI types are only checked as "the same as the pre-B5a reference".</td></tr>
-<tr><td><span class="badge todo">todo</span> IQ-stage refinements (review, 13 Oct)</td><td>Noted, not started. I1: a unit test for <code>applyIQmodulation</code> (frequency mapping without inversion, factor 2, group delay removed, image and alias suppression, block-size independence). I2 done 14 Oct: notes §5.4 now describes the current set-up (f<sub>LO</sub> 1.3 GHz, 800 MHz, <var>D</var> = 5, cut-off 360 MHz) instead of the 30 Sep one. I3: the I/Q receiver is ideal; a real zero-IF receiver adds I/Q imbalance, a DC/LO-leakage spike and LO phase noise, and our LO lies inside the band (now also on the limits page). I4: remove the unused legacy <code>'Gain','unity'</code> option (no caller uses it).</td></tr>
-<tr><td><span class="badge todo">todo</span> Channelizer test (review, 14 Oct)</td><td>Noted, not started. C1: extend <code>testChannelizeIQ</code>, which today runs only the current grid (β = ½, oversampling 4/3): a grid with the LO on a channel centre (β = 0, never run), oversampling 2, block-size independence bit for bit (<code>BlockOut</code>), and the grid and band refusals.</td></tr>
-<tr><td><span class="badge todo">todo</span> RFI-detection test (review, 15 Oct)</td><td>Noted, not started. E1: extend <code>testDetectRFI</code> with a slow gain ramp and a small gain step (the 16 ms baseline blocks exist to follow gain changes, but the simulation has none; a baseline 1.6 % off would raise false flags ~25 % for 1-sample windows, ~60 % for 16-sample windows), and compare one pass with two under dense RFI.</td></tr>
-<tr><td><span class="badge todo">todo</span> Dedispersion test (review, 16 Oct)</td><td>Noted, not started. V2: extend <code>testDedisperseChannels</code> with an absolute round trip (dispersion → IQ → dedispersion gives back the band-limited input; today only the channel and full-band paths are compared with each other), a reference frequency inside the band on the channel path, and DM = 0. V1 done 16 Oct: notes §5.5 now has the current 800 MHz numbers.</td></tr>
+<tr><td><span class="badge todo">todo</span> Dispersion refinements (review, 13 Oct)</td><td>Noted, not started. R-D1: a unit test for <code>applyDispersionStream</code> (tone-burst delays τ(<var>f</var>) − τ(refFreq), overlap-add equal to direct convolution for several <code>BlockLen</code>, DM = 0, power = <code>kernelEnergy</code>, kernel leakage); it replaces the NumPy ports, which are not in the repo. R-D2: one <code>refFreq</code> sets both where the simulation leaves out the bulk delay and where the observer dedisperses to, so the truth holds only because the two are equal; for phase D, simulate the full delay (or a separate simulation reference) and convert the truth in <code>validateTOA</code>.</td></tr>
+<tr><td><span class="badge todo">todo</span> Receiver-stage test (review, 13 Oct)</td><td>Noted, not started. R-N1: a unit test for <code>addNoiseAndRFI</code> that checks the noise level against the SNR definition (in-band PSD ratio = ρ), the power of each RFI type against INR, block-size independence for all types, and the 388·ρ prediction. Today the older RFI types are only checked as "the same as the pre-B5a reference".</td></tr>
+<tr><td><span class="badge todo">todo</span> IQ-stage refinements (review, 13 Oct)</td><td>Noted, not started. R-I1: a unit test for <code>applyIQmodulation</code> (frequency mapping without inversion, factor 2, group delay removed, image and alias suppression, block-size independence). R-I2 done 14 Oct: notes §5.4 now describes the current set-up (f<sub>LO</sub> 1.3 GHz, 800 MHz, <var>D</var> = 5, cut-off 360 MHz) instead of the 30 Sep one. R-I3: the I/Q receiver is ideal; a real zero-IF receiver adds I/Q imbalance, a DC/LO-leakage spike and LO phase noise, and our LO lies inside the band (now also on the limits page). R-I4: remove the unused legacy <code>'Gain','unity'</code> option (no caller uses it).</td></tr>
+<tr><td><span class="badge todo">todo</span> Channelizer test (review, 14 Oct)</td><td>Noted, not started. R-C1: extend <code>testChannelizeIQ</code>, which today runs only the current grid (β = ½, oversampling 4/3): a grid with the LO on a channel centre (β = 0, never run), oversampling 2, block-size independence bit for bit (<code>BlockOut</code>), and the grid and band refusals.</td></tr>
+<tr><td><span class="badge todo">todo</span> RFI-detection test (review, 15 Oct)</td><td>Noted, not started. R-E1: extend <code>testDetectRFI</code> with a slow gain ramp and a small gain step (the 16 ms baseline blocks exist to follow gain changes, but the simulation has none; a baseline 1.6 % off would raise false flags ~25 % for 1-sample windows, ~60 % for 16-sample windows), and compare one pass with two under dense RFI.</td></tr>
+<tr><td><span class="badge todo">todo</span> Dedispersion test (review, 16 Oct)</td><td>Noted, not started. R-V2: extend <code>testDedisperseChannels</code> with an absolute round trip (dispersion → IQ → dedispersion gives back the band-limited input; today only the channel and full-band paths are compared with each other), a reference frequency inside the band on the channel path, and DM = 0. R-V1 done 16 Oct: notes §5.5 now has the current 800 MHz numbers.</td></tr>
 <tr><td><span class="badge validated">chosen items done 13 Oct</span> Code review (12–13 Oct)</td><td><p>Claude went through the whole codebase: 33 candidates. The full list, with status, is in
 <code>logs/2026-10-13_code-review.md</code> (notes §10 item 12).</p>
 <p><b>Done on 13 Oct</b>, all bit-identical (validated by Claude's checks and Jasper's test runs; committed as <code>0499da7</code>):</p>
@@ -510,7 +593,7 @@ the navigation solution (least squares → Kalman)</td><td>done in block D (<a h
 <a href="clock.html">clock</a>, <a href="navigation.html">navigation</a>)</td></tr>
 <tr><td>Clock jitter</td><td>the receiver's clock is modelled at fold level in block D (<code>makeClock</code>); the ADC's sampling jitter is
 negligible (<a href="limits.html#timing">limitations</a>)</td></tr>
-<tr><td>Multiple pulsars (≥ 4); the 3×3 array with geometric delays and beamforming at IQ level; polarization</td><td>block E</td></tr>
+<tr><td>Multiple pulsars (≥ 4); the 3×3 array with geometric delays and beamforming at IQ level; polarization</td><td>block E (E1, E3, E3b, E4)</td></tr>
 <tr><td>Real IQ recordings; the FPGA/GPU port of the processing, with <code>processIQ</code> as the reference</td><td>block F</td></tr>
 </table></div>
 <p>Still open, in no block yet:</p>
