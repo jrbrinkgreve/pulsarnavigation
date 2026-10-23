@@ -120,7 +120,7 @@ else
     info_IQ = loadInfo(fileIQ);
 end
 checkConsistency(info_gen, info_disp, info_rx, info_IQ, ...
-    T, f_in, L, A, dutycycle, genEnvMode, seed, DM, fLow, fHigh, refFreq, ...   % sky
+    T, f_in, L, A, dutycycle, genEnvMode, seed, DM, fLow, fHigh, refFreq, profileComponents, ...   % sky
     snrDB, noiseSeed, rfi, fLO, fs, filterOrder);                               % receiver
 if ~fullBand && excision && snrDB > -5          % also noise-free (Inf); see detectRFI's help
     warning('main:brightExcision', ['Excision is on and the pulsar is bright (snrDB %g > -5): ' ...
@@ -192,7 +192,7 @@ end
 %  Local functions
 %  ======================================================================
 function checkConsistency(info_gen, info_disp, info_rx, info_IQ, T, f_in, L, A, dutycycle, ...
-    genEnvMode, seed, DM, fLow, fHigh, refFreq, snrDB, noiseSeed, rfi, fLO, fs, filterOrder)
+    genEnvMode, seed, DM, fLow, fHigh, refFreq, profileComponents, snrDB, noiseSeed, rfi, fLO, fs, filterOrder)
 %CHECKCONSISTENCY  Warn when reused files were made with other parameters.
 % Sky files: checkSkyFiles (also used by the run scripts); then the receiver files.
 d = checkSkyFiles(info_gen, info_disp, T, f_in, L, A, dutycycle, genEnvMode, seed, ...
