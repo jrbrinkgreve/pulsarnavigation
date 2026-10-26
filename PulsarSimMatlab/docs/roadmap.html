@@ -450,18 +450,23 @@ channels, calibration).</td></tr>
 sessions, more if needed (agreed 26 Oct). Per part: the physics, the code block by block, the tests and what they miss; refinements are
 noted, not built. Every smaller detail, in every part of the pipeline, goes onto one running list (Jasper, 26 Oct), including the
 stages of blocks A and B that <code>processIQ</code> (day 1) and <code>main.m</code> (day 4) drive.
+In the order of the <a href="pipeline.html">pipeline overview</a> page's stage table (Jasper, 26 Oct); stages 1–3 Jasper went
+through himself.
 <ol>
-<li>Day 1: <code>processIQ</code> and <code>foldToTOA</code>; geometry and time (<code>makeTrajectory</code>, <code>delayModel</code>,
-<code>loadEphemeris</code>).</li>
-<li>Day 2: the clock (<code>makeClock</code>); prediction and truth (<code>makePredictor</code>, <code>foldProfile</code>
-<code>'Predictor'</code>, <code>trueResiduals</code>).</li>
-<li>Day 3: navigation, <code>navFit</code> in depth; <code>navFilter</code> briefly (parked).</li>
-<li>Day 4: the drivers (<code>runScenario</code>, <code>runShip</code>, <code>main.m</code>); the changes to blocks A and B since the
-first review week; speed (the profiling of 25 Oct; no MEX); a <code>main.m</code> smoke run for the validation list.</li>
-<li>Day 5: one end-to-end walk from the sky to a position; the notes catch-up, the docs findings and stale texts; then the choice of
-refinements to build before E1.</li>
-</ol></td><td><span class="badge todo">next</span>: day 1. Parts 2–3 (the fast simulator, the RFI profiles) were reviewed on 23 Oct
-(log <code>2026-10-23_review-C-D.md</code>)</td></tr>
+<li>Day 1: stage 4 <code>applyIQmodulation</code> (IQ generation); 4a <code>makeClock</code>; the full-band front end, 5
+<code>applyInverseDispersion</code> and 6 <code>detectPower</code>.</li>
+<li>Day 2: the channel path: 5a <code>channelizeIQ</code>, <code>detectRFI</code> (+ <code>periodicRFI</code>),
+<code>blankChannels</code>, 5b <code>dedisperseChannels</code>, 6b <code>detectChannels</code>, <code>blankingWeights</code>.</li>
+<li>Day 3: phase prediction (7a: <code>makeTrajectory</code>, <code>delayModel</code>, <code>loadEphemeris</code>,
+<code>makePredictor</code>); the fold (7: <code>foldProfile</code>, with <code>'Predictor'</code>); 5–7 <code>processIQ</code> (reviewed 26
+Oct).</li>
+<li>Day 4: TOAs (8–9: <code>foldToTOA</code> (reviewed 26 Oct), <code>estimateTOA</code>, <code>detectPulsar</code>,
+<code>validateTOA</code>); navigation (10: <code>navFit</code> in depth, <code>navFilter</code> briefly).</li>
+<li>Day 5: the fast simulator's rows (<code>rfiProfile</code>, <code>simulateFold</code>, <code>adaptiveSubints</code> /
+<code>mergeSubints</code>: reviewed 23 Oct; <code>trueResiduals</code>); run control in <code>main.m</code> and the drivers
+(<code>runScenario</code>, <code>runShip</code>); speed (the profiling of 25 Oct, no MEX); a <code>main.m</code> smoke run; one
+end-to-end walk; housekeeping; the choice of refinements before E1.</li>
+</ol></td><td><span class="badge todo">under way</span>: day 1 at stage 4 (log <code>2026-10-26_review-week.md</code>)</td></tr>
 <tr><td>E1</td><td>The pulsar set from 52° N: catalogue values with sources, and measured profiles, for B0950+08, B1642−03, B1929+10 and other
 bright northern candidates. <code>expNavPlan</code> on the real profiles then decides which pulsars get a beam.</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>E2</td><td>The complete Earth–pulsar timing model (notes §10 item 13): every term of 1 µs and above, each with a switch to leave it out

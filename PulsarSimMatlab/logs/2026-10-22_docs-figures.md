@@ -42,4 +42,5 @@ sentence; illustrative figures say so). Changelog row added on docs/maintenance.
   spread (0.47–1.54). They are computed by the generators, from standard constants or the code's formulas.
 - Small difference noticed: over 2026 the orbital Roemer delay of B0329+54 runs from −420 to +406 s (half range 413 s); the pages say
   ±412 s. Not changed.
-- Nothing committed.
+- Committed as a780397 (with the open logs, the task 2.4 deliverable and the docs launch config; not pushed). A stray
+  "[done]al" edit in main.m's header comment was left out of the commit and reverted at Jasper's request.
