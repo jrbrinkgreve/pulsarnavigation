@@ -944,7 +944,7 @@ reproduces the old behaviour (amplitudes halved).</p></div>
 <h2 id="clock">4a · The receiver's clock: <code>makeClock</code> <span class="badge validated">validated</span></h2>
 <div class="sig">clk = makeClock([t1 t2], ...)</div>
 <p class="meta"><a href="api.html#makeclock">Full interface and help text of <code>makeClock</code> →</a> · the clock stamps the IQ
-samples of <a href="#iq">stage 4</a> · the observer estimates it in the predictor (<a href="prediction.html#predictor">stage
+samples of <a href="#iq">stage 4</a> · the observer estimates it in the predictor (<a href="fold.html#makepredictor">stage
 7a</a>) and in <a href="navigation.html">navigation</a> · block D</p>
 
 <h3 id="clock-short">In short</h3>
@@ -962,7 +962,7 @@ applies it, through <a href="simulator.html#truth"><code>trueResiduals</code></a
 per hour, an oven-controlled one (OCXO) 4–36 ns. B0329+54's 734 µs TOAs tolerate a TCXO; J0437's 13 µs TOAs need an OCXO or better. The
 clock offset and rate become part of the navigation state.</td></tr>
 <tr><td>Frequency error within a fold</td><td>Smears the fold like an uncorrected Doppler shift.</td><td>10⁻⁹ over an hour is 3.6 µs:
-below B0329+54's bins. A commercial SDR's uncorrected 2·10⁻⁶ is 7.2 ms per hour, so its rate must be estimated (the predictor's <a href="prediction.html#predictor"><code>'Clock'</code> option</a>).</td></tr>
+below B0329+54's bins. A commercial SDR's uncorrected 2·10⁻⁶ is 7.2 ms per hour, so its rate must be estimated (the predictor's <a href="fold.html#makepredictor"><code>'Clock'</code> option</a>).</td></tr>
 <tr><td>Sampling jitter of the ADC</td><td>Adds phase noise to the voltage samples.</td><td>1 ps adds 10⁻⁴ of the input power as noise:
 negligible for the pulsar, a noise floor under strong RFI.</td></tr>
 </table></div>

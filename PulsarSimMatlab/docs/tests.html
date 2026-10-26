@@ -751,16 +751,16 @@ voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="maketraj"><code>testMakeTrajectory</code> (21 Oct)</h2>
 <p>The receiver's positions and velocities agree with closed forms, for a fixed site, a ship, a probe and a custom trajectory. The
-seven checks and their numbers are on the <a href="prediction.html#trajectory">phase-prediction page</a>.</p>
+seven checks and their numbers are in the <a href="fold.html#trajectory">phase-prediction section</a>.</p>
 
 <h2 id="delaymodel"><code>testDelayModel</code> (21 Oct)</h2>
 <p>Every term of the delay to the barycentre agrees with a closed form computed in the test. For example, a site moved 100 km east
-gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. With JPL's DE440 and the Earth's real axis, a site matches JPL Horizons to 30 m. The eleven checks are on the
-<a href="prediction.html#delay">phase-prediction page</a>.</p>
+gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. With JPL's DE440 and the Earth's real axis, a site matches JPL Horizons to 30 m. The eleven checks are in the
+<a href="fold.html#delay">phase-prediction section</a>.</p>
 
 <h2 id="makepred"><code>testMakePredictor</code> (21 Oct)</h2>
 <p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns, also across a ship's sharp turn, and with the observer's own clock estimate. The eight
-checks are on the <a href="prediction.html#predictor">phase-prediction page</a>.</p>
+checks are in the <a href="fold.html#makepredictor">phase-prediction section</a>.</p>
 
 <h2 id="foldpred"><code>testFoldPredictor</code> (21 Oct)</h2>
 <p>Folding with a predictor removes the Doppler shift completely: a pulsar with a Doppler factor of 10⁻³ folds to within 10⁻⁸ of the
@@ -791,8 +791,8 @@ The seven checks are on the <a href="navigation.html#navfilter">navigation page<
 <h2 id="loadeph"><code>testLoadEphemeris</code> (22 Oct)</h2>
 <p>The Earth from JPL's DE440 file agrees with JPL's Horizons service to 4.5 cm at three dates. The velocity is the derivative of the
 position. The Earth and the Moon balance about their barycentre with DE440's mass ratio. TDB − TT integrated from the file follows the
-USNO series to 2.25 µs rms. The five checks are on the
-<a href="prediction.html#ephemeris">phase-prediction page</a>.</p>
+USNO series to 2.25 µs rms. The five checks are in the
+<a href="fold.html#ephemeris">phase-prediction section</a>.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic

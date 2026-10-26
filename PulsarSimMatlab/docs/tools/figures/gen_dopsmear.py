@@ -1,6 +1,6 @@
 import numpy as np
 from plotsvg import Ax
-# Why the phase must be predicted (prediction.html #why): B0329+54's profile (runScenario's five Gaussian components at 1410 MHz,
+# Why the phase must be predicted (fold.html#prediction #why): B0329+54's profile (runScenario's five Gaussian components at 1410 MHz,
 # peak 1) in a 120 s sub-int whose arrival rate is off by the Doppler factor 1e-4 of the Earth's orbit (the page's numbers: 12 ms
 # per sub-int). a: a pulse stack, one row every 5 s: with a constant spin rate the pulse walks; with the predictor it stays.
 # b: the folded profiles (the average over the sub-int's turns): the walk smears the fold.

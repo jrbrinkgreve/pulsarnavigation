@@ -30,7 +30,7 @@ Jasper's runs. The scenario and ship runs are Claude's.</p>
 At worst-case flux it is at 298 km, against 372 km (Claude's run).</li>
 <li>JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</li>
 </ul>
-<p>Pages: <a href="prediction.html">phase prediction</a>, <a href="receiver.html#clock">clock</a>, <a href="navigation.html">navigation</a>. The
+<p>Pages: <a href="fold.html#prediction">phase prediction</a>, <a href="receiver.html#clock">clock</a>, <a href="navigation.html">navigation</a>. The
 parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
 <p><b>Now: block E</b> (revised 23 Oct, <a href="#blockE">below</a>). Its endpoint is a fixed position at a site in the Netherlands,
 estimated from several pulsars, with all 18 data streams beamformed and the full Earth–pulsar motion in the timing model, at
@@ -268,7 +268,7 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 (<code>tSub</code>), and D5a–D5d (<code>loadEphemeris</code>, <code>delayModel</code> <code>'Ephemeris'</code>).
 <span class="badge written">Claude's runs</span>: the simulator's truth with a moving receiver and a clock in <code>runScenario</code>
 (D3c), the SDR clock tracked day by day (D4b-2), the planning study (D4c-0), the ship scenario <code>runShip</code> over eight ships
-(D4d-2), and the fixed-site reruns. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
+(D4d-2), and the fixed-site reruns. See <a href="fold.html#prediction">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
 <tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 18 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>)</td><td><span class="badge todo">now</span>: E0, the review week</td></tr>
 <tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings at the Netherlands site from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
@@ -422,7 +422,7 @@ validated 22 Oct</span> <span class="badge todo">J0437's orbit and real trajecto
 truth, against 379 km for dead reckoning. Its error bars agree with those of an ideal twin.</li>
 <li>JPL's DE440 matches JPL Horizons to 4.5 cm for the geocentre, and to 28–30 m for a site.</li>
 </ul>
-<p>Details: <a href="prediction.html">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
+<p>Details: <a href="fold.html#prediction">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
 
 <h2 id="blockE">Block E: a fixed position from several pulsars (revised 23 Oct)</h2>
 <div class="callout note"><span class="ttl">In short</span>
@@ -609,7 +609,7 @@ It is only a simulation problem. <var>L</var> must also be well above the sweep 
 <div class="table-wrap"><table>
 <tr><th>Item of the 6 Oct plan</th><th>Where it is now</th></tr>
 <tr><td>Relative motion; barycentric corrections (Roemer, Shapiro, Einstein); clock corrections; residuals against the timing model;
-the navigation solution (least squares → Kalman)</td><td>done in block D (<a href="prediction.html">phase prediction</a>,
+the navigation solution (least squares → Kalman)</td><td>done in block D (<a href="fold.html#prediction">phase prediction</a>,
 <a href="receiver.html#clock">clock</a>, <a href="navigation.html">navigation</a>)</td></tr>
 <tr><td>Clock jitter</td><td>the receiver's clock is modelled at fold level in block D (<code>makeClock</code>); the ADC's sampling jitter is
 negligible (<a href="limits.html#timing">limitations</a>)</td></tr>

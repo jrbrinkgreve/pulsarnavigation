@@ -114,7 +114,7 @@ statistics, so days of observing take seconds. Its folds go through the same TOA
   <text class="sub" x="460" y="390">NoiseCoeffs</text>
 
   <!-- 7a: the phase prediction, into the fold -->
-  <a href="prediction.html"><rect class="box proc" x="10" y="410" width="130" height="56" rx="7"/>
+  <a href="fold.html#prediction"><rect class="box proc" x="10" y="410" width="130" height="56" rx="7"/>
     <text class="fn" x="75" y="434" text-anchor="middle">makePredictor</text>
     <text class="sub" x="75" y="452" text-anchor="middle">7a · predicted phase</text></a>
   <path class="line" marker-end="url(#ar)" d="M140 455 H278"/>
@@ -200,13 +200,13 @@ in the same TOA fit as the chain, and navigation (stage 10) follows.</p>
   <path class="line" marker-end="url(#ar-ac)" d="M180 90 V112 M180 170 V192 M180 250 V272"/>
 
   <!-- right: motion -->
-  <a href="prediction.html#trajectory"><rect class="box proc" x="540" y="34" width="300" height="56" rx="7"/>
+  <a href="fold.html#trajectory"><rect class="box proc" x="540" y="34" width="300" height="56" rx="7"/>
     <text class="fn" x="690" y="58" text-anchor="middle">makeTrajectory</text>
     <text class="sub" x="690" y="76" text-anchor="middle">assumed receiver: site, ship, probe</text></a>
-  <a href="prediction.html#delay"><rect class="box proc" x="540" y="114" width="300" height="56" rx="7"/>
+  <a href="fold.html#delay"><rect class="box proc" x="540" y="114" width="300" height="56" rx="7"/>
     <text class="fn" x="690" y="138" text-anchor="middle">delayModel</text>
     <text class="sub" x="690" y="156" text-anchor="middle">receiver → barycentre: Roemer, Einstein, Shapiro</text></a>
-  <a href="prediction.html#predictor"><rect class="box proc" x="540" y="194" width="300" height="56" rx="7"/>
+  <a href="fold.html#makepredictor"><rect class="box proc" x="540" y="194" width="300" height="56" rx="7"/>
     <text class="fn" x="690" y="218" text-anchor="middle">makePredictor</text>
     <text class="sub" x="690" y="236" text-anchor="middle">predicted phase as short polynomials</text></a>
   <a href="fold.html#predictor"><rect class="box proc" x="540" y="274" width="300" height="56" rx="7"/>
@@ -266,8 +266,8 @@ barycentre, the centre of mass of the solar system. The Earth's orbit changes th
 <li><code>makePredictor</code> turns the delays into the predicted pulse phase, stored as short polynomials.</li>
 <li><code>foldProfile</code> follows that phase when it gets the option <code>'Predictor'</code> (<a href="fold.html#predictor">stage 7</a>).</li>
 </ol>
-<p>With the predictor, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one at rest. The <a href="prediction.html">phase-prediction
-page</a> explains each step.</p>
+<p>With the predictor, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one at rest. The <a href="fold.html#prediction">phase-prediction
+section</a> explains each step.</p>
 
 <h3>The truth, and navigation (stage 10)</h3>
 <p>The simulator places the pulses where a true trajectory and a clock put them (<a href="simulator.html#truth"><code>trueResiduals</code></a>,
@@ -301,10 +301,10 @@ shortcut for stages 1–7.</p></details>
 <tr><td>6b</td><td><a href="channels.html#detect"><code>detectChannels</code></a></td><td><code>…_chan_power.dat</code></td><td>power [128 × nBins], 0.96 µs</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="excision.html#weights"><code>blankingWeights</code></a></td><td><code>test_dedispB_chan_weights.dat</code></td><td>[128 × 9 × nBins]: W, V, X(1..7)</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Both</th></tr>
-<tr><td>7a</td><td><a href="prediction.html#trajectory"><code>makeTrajectory</code></a></td><td>(in memory: <code>traj</code>)</td><td>position and velocity of the receiver</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>7a</td><td><a href="prediction.html#delay"><code>delayModel</code></a></td><td>(in memory)</td><td>delay to the barycentre, per term</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>7a</td><td><a href="prediction.html#ephemeris"><code>loadEphemeris</code></a></td><td>(in memory: <code>eph</code>; reads <code>data/ephem/de440s.bsp</code>)</td><td>JPL's DE440 for <code>delayModel</code>'s <code>'Ephemeris'</code>, and TDB − TT</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>7a</td><td><a href="prediction.html#predictor"><code>makePredictor</code></a></td><td>(in memory: <code>pred</code>)</td><td>phase and frequency as Chebyshev segments</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7a</td><td><a href="fold.html#trajectory"><code>makeTrajectory</code></a></td><td>(in memory: <code>traj</code>)</td><td>position and velocity of the receiver</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7a</td><td><a href="fold.html#delay"><code>delayModel</code></a></td><td>(in memory)</td><td>delay to the barycentre, per term</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7a</td><td><a href="fold.html#ephemeris"><code>loadEphemeris</code></a></td><td>(in memory: <code>eph</code>; reads <code>data/ephem/de440s.bsp</code>)</td><td>JPL's DE440 for <code>delayModel</code>'s <code>'Ephemeris'</code>, and TDB − TT</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>7a</td><td><a href="fold.html#makepredictor"><code>makePredictor</code></a></td><td>(in memory: <code>pred</code>)</td><td>phase and frequency as Chebyshev segments</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7</td><td><a href="fold.html"><code>foldProfile</code></a></td><td><code>test_fold.mat</code> / <code>test_fold_chan.mat</code></td><td>profiles + weights</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>7</td><td><a href="fold.html#predictor"><code>foldProfile</code> <code>'Predictor'</code></a></td><td>as stage 7</td><td>profiles folded at the predicted phase</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>5–7</td><td><a href="#processiq"><code>processIQ</code></a></td><td>all the files of the front end and the fold</td><td>wraps either front end, excision, detection and the fold: IQ in, fold out</td><td><span class="badge validated">validated</span></td></tr>
@@ -354,7 +354,7 @@ the reference that the simulator is checked against (<a href="simulator.html#why
 <p><b>Why not:</b> that would put all the motion physics into the streaming fold. Instead the phase is computed once per observation,
 as short polynomials, the way radio observatories do it. The fold only evaluates them, which is also what an FPGA or GPU version
 needs. The receiver enters only through its trajectory, so a Kalman filter can later supply it without changes to the fold
-(<a href="prediction.html#predictor">phase-prediction page</a>).</p></div>
+(<a href="fold.html#makepredictor">phase prediction</a>).</p></div>
 
 <h2 id="run">Run control in <code>main.m</code></h2>
 <p>Each stage group has a switch. <code>true</code> runs it; <code>false</code> reuses the files an earlier run wrote.</p>

@@ -1,7 +1,7 @@
 import numpy as np
 from plotsvg import Ax
 from delaymodel import delay, track, fixed, EPOCH
-# makePredictor's segments around a ship's turn (prediction.html #predictor): testMakePredictor test 5 replayed with a port of
+# makePredictor's segments around a ship's turn (fold.html#prediction #predictor): testMakePredictor test 5 replayed with a port of
 # makePredictor's loop (Chebyshev degree 12 on one-hour segments, checked at the extrema between the nodes, split in two until
 # the check is within 1 ns, shortest half-segment 1 s) and of delayModel (delaymodel.py). A 100 Hz pulsar in B0329+54's
 # direction; the ship sails east at about 9 m/s, turns north after 3.3 h, and the track is linear between its waypoints.

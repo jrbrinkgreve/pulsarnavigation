@@ -184,6 +184,19 @@ with r > 1.1.
   carriers. A narrow *noise-like* signal straddling the edge would make both channels lopsided (the B5e/Inmarsat
   effect, χ² above 1). That is not tested here.
 
+## Docs: the 4a and 7a pages merged into their stages (Jasper, 26 Oct)
+
+Jasper: the separate "4a" in the docs sidebar "looks weird"; merge the pages, and "fold the folding page as well".
+- `clock.html` became the section "4a · The receiver's clock" on `receiver.html` (anchor `#clock`, sub-anchors `clock-*`).
+- `prediction.html` became the first part of `fold.html` ("7a · Phase prediction", anchors `#prediction`, `#prediction-why`,
+  `#trajectory`, `#delay`, `#ephemeris`, `#makepredictor`). The fold's own sections now sit under "7 · Folding: `foldProfile`"
+  (`#fold`), one heading level down; their anchors are unchanged.
+- Text and figures unchanged (word diff against the old pages). Only the headings changed: the prediction page's section
+  numbers 1, 2, 3, 3b, 4 became "7a", and the page titles were merged. Sidebar, home-page cards, contents and every link
+  (about 25 files, figure scripts included) retargeted; a site-wide link check finds no broken page or anchor. Rendering checked.
+- Committed `ddee4f4` (clock) and the prediction merge after it; changelog rows in `docs/maintenance.html`. No code change.
+  The pending review-week edits (roadmap E0 row, notes, this log) were committed first as `bafc774`, on Jasper's go-ahead.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -209,3 +222,4 @@ with r > 1.1.
 | D1-19 | clock | navFit.m:41 | Flicker FM is left out of the fit's clock covariance (OK for the crystal at daily scales: ~3 µs against 76 µs; not for other oscillators) | for E5 |
 | D1-20 | clock | scope | makeClock covers timescales ≥ Step (60 s). Sub-second jitter (ADC sampling) and LO phase noise are separate and not modelled (limits: negligible for sampling) | none |
 | D1-21 | stage 3 / channel path | receiver.html (carrier note) | A carrier at a channel edge does not break the chain (test above). The docs' "unrepresentative special case" could say what happens there (removed by the edge gap) and point to this result. Untested: a narrow noise-like signal straddling an edge | docs text; optional test |
+| D1-22 | main.m | main.m:15 (header) | The pipeline list still says "clock jitter, pulsar-Earth motion, polarisation?, 3x3 array element signals, multiple pulsars [todo]" under the receiver. The clock and the motion exist since block D (makeClock, makeTrajectory/delayModel/makePredictor); jitter is out of scope (D1-20) | minor text fix |

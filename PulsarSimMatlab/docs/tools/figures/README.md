@@ -71,8 +71,8 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_clockdraw.py` | what `makeClock` draws: one day of each noise (white, flicker, random walk) as time error; eight crystal clocks over 30 days against τ·σ_y(τ) (a port of its three generators; numpy's random numbers) | receiver.html#clock (how it works) |
 | `gen_delays.py` | the delay terms for B0329+54 from 52° N: orbital Roemer over 2026, rotational Roemer over two days, Einstein, Shapiro; every term's size on one log scale against the TOA noise (uses `delaymodel.py`) | localisation.html (4) |
 | `gen_timesys.py` | TAI, UTC, TDB and TCB as offsets from TT, 1972–2030 (leap-second table of IERS Bulletin C; IAU L_B) | localisation.html (3) |
-| `gen_dopsmear.py` | why the phase must be predicted: B0329+54's pulse stack in a 120 s sub-int with a Doppler factor of 10⁻⁴, and the smeared fold | prediction.html (1) |
-| `gen_predseg.py` | `makePredictor`'s segments around a ship's turn: testMakePredictor test 5 replayed with a port of its loop (15 segments, the shortest 7 s; uses `delaymodel.py`) | prediction.html (4) |
+| `gen_dopsmear.py` | why the phase must be predicted: B0329+54's pulse stack in a 120 s sub-int with a Doppler factor of 10⁻⁴, and the smeared fold | fold.html#prediction (1) |
+| `gen_predseg.py` | `makePredictor`'s segments around a ship's turn: testMakePredictor test 5 replayed with a port of its loop (15 segments, the shortest 7 s; uses `delaymodel.py`) | fold.html#prediction (4) |
 | `gen_simdraw.py` | how `simulateFold` draws a sub-int: the mean with its noise band, three drawn sub-ints, the neighbour correlation ¼ (illustrative: 128 bins) | simulator.html (how a fold is drawn) |
 | `gen_adaptive.py` | `adaptiveSubints`' rule under scintillation: the flux factor and the T0 of each group closing at 7 (illustrative, SNR 1.2 per sub-int) | simulator.html (adaptive sub-ints) |
 | `gen_pulls.py` | why long runs are judged by fixed-time pulls over many runs: eight correlated runs, and the rms each method measures over 2000 repetitions (illustrative) | validation.html (long runs) |
@@ -83,6 +83,6 @@ to Python, for `gen_delays.py` and `gen_predseg.py`. It reproduces the tests' nu
 
 The flowcharts (pipeline run control, ground-truth rule, info chain, receiver blocks,
 overlap-save, overlap-add (sky.html), excision chain (excision.html), bin stamps, filterbank, good TOAs, test data, the chain of stage 7a
-(prediction.html), long runs and a moving receiver (pipeline.html), the two chains of localisation.html) are hand-written SVG
+(fold.html#prediction), long runs and a moving receiver (pipeline.html), the two chains of localisation.html) are hand-written SVG
 in the pages themselves. They use the classes in `style.css` (`.box`, `.line`, `.curve`, ...),
 so they follow the light and dark themes.

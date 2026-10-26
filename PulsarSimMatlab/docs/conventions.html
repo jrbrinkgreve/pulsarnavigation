@@ -36,7 +36,7 @@ works on simulated data, out-of-memory errors, silent timing offsets, or results
 <p>The ground truth (<code>info_gen</code>, <code>info_disp</code>, <code>info_rx</code>: true pulse times, noise level, RFI parameters) is used
 only by the simulation stages and by the check and validation functions.</p>
 <p>For a moving receiver the same split holds. The observer predicts its pulses from the trajectory it <em>assumes</em> and from its own
-clock estimate (<code>makePredictor</code>, <a href="prediction.html">stage 7a</a>). The true trajectory and the true clock
+clock estimate (<code>makePredictor</code>, <a href="fold.html#prediction">stage 7a</a>). The true trajectory and the true clock
 (<code>trueResiduals</code>, <code>makeClock</code>) belong to the truth: only the fast simulator uses them, to place the pulses, and keeps
 them in its separate <code>truth</code> struct (<a href="simulator.html#truth">fast simulator</a>).</p>
 <figure class="scroll">

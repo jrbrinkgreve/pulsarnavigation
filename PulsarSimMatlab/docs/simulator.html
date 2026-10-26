@@ -399,7 +399,7 @@ By default it never merges across a gap between passes. What is left at the end 
 the good-TOA rule to judge. With <code>'AcrossGaps', true</code> a group continues in the next pass. That is needed when one TOA takes
 longer than a pass: J0437 in the worst case needs 82–95 h of data, against passes of 8–15 h. It assumes a phase model that stays
 coherent over the gap. On real data that is the observer's predictor, with motion and the barycentric correction
-(<a href="prediction.html">stage 7a</a>). In the simulator without motion the ephemeris is the truth, so it is exact there; with motion
+(<a href="fold.html#prediction">stage 7a</a>). In the simulator without motion the ephemeris is the truth, so it is exact there; with motion
 each sub-int's pulse is shifted by what the predictor misses (<a href="#motion">below</a>).<br>
 With <code>'TargetSNR', Inf</code> and <code>'MaxSubints'</code> it forms fixed groups instead, for comparison.</li>
 </ol>
@@ -601,7 +601,7 @@ offset per sub-integration is therefore enough for a position error.</p>
 <p>A clock rate is different. At the 2 ppm of a commercial SDR the pulse moves by 240 µs within a 120 s sub-integration. For B0329+54
 that is 5 % of its 5 ms core. For J0437 a 300 s sub-integration moves it by 600 µs, four times its pulse width. The observer must
 therefore fold with its own estimate of the clock rate, as it does with the Doppler shift. The predictor takes that estimate
-(<a href="prediction.html#predictor">stage 7a</a>). What is left for the simulator is the clock error the observer has not estimated.</p>
+(<a href="fold.html#makepredictor">stage 7a</a>). What is left for the simulator is the clock error the observer has not estimated.</p>
 <p>A first check over two days reproduces the 100 km daily sine to 1.6·10⁻⁸ s. It also shows how much a free-running crystal wanders:
 about 76 µs in a day, and 13 ms in a month. The clock must therefore be part of the navigation fit.</p>
 <p>With an SDR clock the observer tracks it day by day (<code>motion.track</code> <code>"daily"</code>). After each day it fits all its

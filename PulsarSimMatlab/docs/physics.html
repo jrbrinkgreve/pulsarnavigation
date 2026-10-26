@@ -97,7 +97,7 @@ pulsars are needed.</figcaption>
 </figure>
 <div class="callout note"><span class="ttl">What this project is, and is not (yet)</span>
 <p>The voltage pipeline produces TOAs with honest error bars for <em>one</em> pulsar at a receiver that does not move. The motion
-of the receiver (Doppler) and the barycentric corrections are in stage 7a: see <a href="prediction.html">phase prediction</a> and
+of the receiver (Doppler) and the barycentric corrections are in stage 7a: see <a href="fold.html#prediction">phase prediction</a> and
 <a href="localisation.html">localisation, frames and relativity</a>. The navigation solution is stage 10: a batch fit for a fixed site
 and a Kalman filter for a moving ship (<a href="navigation.html">navigation</a>). Several pulsars at full scale and the array follow in
 block E (<a href="roadmap.html">roadmap</a>).</p></div>
@@ -704,7 +704,7 @@ simulator is white.</li>
 <li><b>Ionosphere.</b> The same 1/<var>f</var>² law as interstellar dispersion, but ~3–70 ns and changing with time; also Faraday
 rotation and ionospheric scintillation.</li>
 <li><b>Motion.</b> Earth's orbital speed (<var>v</var>/<var>c</var> ≈ 10⁻⁴) drifts the pulse phase by ~100 µs per second at 100 Hz. That
-drift <em>is</em> the navigation signal. The observer follows it with a barycentric phase model (<a href="prediction.html">stage 7a</a>),
+drift <em>is</em> the navigation signal. The observer follows it with a barycentric phase model (<a href="fold.html#prediction">stage 7a</a>),
 and the fast simulator puts every pulse where the true trajectory puts it (<code>trueResiduals</code>,
 <a href="simulator.html#truth">fast simulator</a>). The voltage simulation has a fixed period.</li>
 </ul>

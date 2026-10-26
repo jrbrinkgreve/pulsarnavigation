@@ -157,10 +157,10 @@ yet; its noise is best measured on the device. The ADC's sampling jitter is left
 noise.</li>
 <li><b>Relative motion: an analytic Earth orbit in the simulations, DE440 for real data.</b> Earth's orbital speed changes the pulse rate
 by up to 10⁻⁴: at 100 Hz, about 100 µs of phase drift per second. The phase predictor follows that drift, and the fold uses it
-(<a href="prediction.html">phase prediction</a>). The fast simulator puts every pulse where a true trajectory puts it
+(<a href="fold.html#prediction">phase prediction</a>). The fast simulator puts every pulse where a true trajectory puts it
 (<a href="simulator.html#truth">the simulator's truth</a>). By default both use the same analytic Earth orbit. That orbit is up to
 3.2·10⁵ km off the barycentre, because it leaves out Uranus and Neptune. In a simulation the error cancels: a 100 km offset is measured
-the same to 2·10⁻¹² s. For real data <code>delayModel</code> takes JPL's DE440 (<code>'Ephemeris'</code>, <a href="prediction.html#ephemeris">phase
+the same to 2·10⁻¹² s. For real data <code>delayModel</code> takes JPL's DE440 (<code>'Ephemeris'</code>, <a href="fold.html#ephemeris">phase
 prediction</a>), which matches JPL Horizons to 28–30 m for a site.</li>
 <li><b>No binary motion of the pulsar</b> (found 13 Oct, deep analysis section 14). The reference pulsar J0437−4715 is in a 5.74-day
 orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).

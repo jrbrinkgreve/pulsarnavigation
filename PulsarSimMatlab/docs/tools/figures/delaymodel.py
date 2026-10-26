@@ -1,6 +1,6 @@
 import numpy as np
 # A line-by-line port of functions/delayModel.m's analytic branch (no 'Ephemeris') and of makeTrajectory's
-# 'fixed' and linear 'track' types, for the figures of localisation.html and prediction.html. Same constants,
+# 'fixed' and linear 'track' types, for the figures of localisation.html and fold.html#prediction. Same constants,
 # same formulas; times in s since J2000.0 (TT), positions in m, equatorial J2000.
 C = 299792458.0; AU = 149597870700.0; TSUN = 1.32712440018e20 / C**3
 B0329 = dict(raDeg=53.2474, decDeg=54.5787)
