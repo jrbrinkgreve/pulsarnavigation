@@ -197,6 +197,88 @@ Jasper: the separate "4a" in the docs sidebar "looks weird"; merge the pages, an
 - Committed `ddee4f4` (clock) and the prediction merge after it; changelog rows in `docs/maintenance.html`. No code change.
   The pending review-week edits (roadmap E0 row, notes, this log) were committed first as `bafc774`, on Jasper's go-ahead.
 
+**Follow-up: a narrow noise-like signal straddling the edge** (Jasper: "also test a narrow noise-like signal (e.g.
+200 kHz) straddling the 1350 MHz edge, as a scratch run").
+- Claude's run, 14:49–17:03; slow, the machine was shared.
+- Scratch copy; three passes per case: without excision, with excision, and excision + per-channel noise
+  calibration (`noiseCal`).
+- 200 kHz noise-like RFI, like one narrow Inmarsat carrier.
+
+| Case | SNR (no exc. / exc. / cal) | χ² (no exc. / exc. / cal) | rms/pred (exc. / cal) | channels r > 1.1 (r, level) | error bars too small |
+|---|---|---|---|---|---|
+| noise only | 92.4 / 92.0 / 92.0 | 1.00 / 1.00 / 1.00 | 0.86 / 0.86 | – | 0.02 % |
+| 1351.30 MHz, in ch 49, −21 dB | 92.2 / 91.8 / 91.7 | 1.02 / 1.02 / 1.00 | 0.87 / 0.87 | ch 49 (3.9, 2.0) | 0.28 % |
+| **1350.00, straddling, −21 dB** | 92.0 / 91.7 / 91.4 | 1.02 / 1.02 / 1.00 | 0.93 / 0.89 | **ch 48 (2.0, 1.3), ch 49 (2.0, 1.3)** | 0.46 % |
+| 1350.05, half in the taper, −21 dB | 92.1 / 91.8 / 91.7 | 1.02 / 1.02 / 1.00 | 0.91 / 0.88 | ch 49 (3.1, 1.6) | 0.34 % |
+| 1351.30, in ch 49, −11 dB | 92.1 / 91.6 / 91.7 | 1.07 / 1.07 / 1.00 | 0.87 / 0.87 | ch 49 (10.3, 11.4; 23 flags) | 0.04 % |
+| **1350.00, straddling, −11 dB** | 91.6 / 91.3 / 91.4 | **1.17 / 1.17 / 1.00** | 0.95 / 0.87 | **ch 48 (12.2, 4.2), ch 49 (12.1, 4.2)** | 0.51 % |
+
+All cases: 15/15 good TOAs, offsets +0.09…+0.29 ± 0.72 µs.
+
+**Reading: nothing breaks.** Straddling is the worse version of the known "lopsided channel" effect (B5e,
+Inmarsat-narrow):
+- Two channels are affected instead of one.
+- The edge tapers cut the middle of the signal, so each channel's level stays low (4.2 instead of 11.4 at −11 dB).
+  Optimal weighting therefore keeps these channels at a much higher weight (1/level²: 1/18 instead of 1/130), while
+  their noise is ~12× the flat model.
+- So χ² rises to 1.17 (1.07 for the same signal inside one channel).
+- The TOA error bars are only ~0.5 % too small (2 of 128 channels).
+- **The per-channel noise calibration brings χ² to 1.00 in every case.** This adds weight to the audit's open
+  question 3 (should `noiseCal` be on by default?).
+
+## Day 1, stages 5–6: the full-band front end (`applyInverseDispersion`, `detectPower`)
+
+**Physics.**
+- **Coherent dedispersion.** Interstellar dispersion is a pure phase filter: a frequency f arrives
+  τ(f) = K·DM/f² late, with K = 4.148808e3 s MHz² pc⁻¹ cm³.
+  - In the frequency domain the inverse is H = W(f)·exp(−i2π·K·DM·(f − fRef)²/(f·fRef²)). It removes the sweep
+    exactly and keeps fRef (1.6 GHz, the top of the band) at its own time.
+  - At DM 25 the sweep across 1.2–1.6 GHz is **31.5 ms** (checked). Frequencies below 1.6 GHz are advanced onto it.
+  - The bulk delay of 1.6 GHz relative to infinite frequency, τ(fRef) = **40.5 ms**, stays in: TOAs refer to 1.6 GHz.
+  - W is a sin² taper over 8 MHz at each band edge (2 % of the band). A sharp edge would ring (a sinc impulse
+    response); the taper keeps the impulse response compact. The leakage beyond the overlap is measured (main.m:
+    5.8e-13).
+- **Overlap-save streaming.** Each output sample needs the input from nPast samples before to nFuture after. With
+  fRef at the top: nPast = guard (2000 samples = 2.5 µs, 20 / edge width) and nFuture = sweep·fs + guard = **25.2 M
+  samples** (checked).
+  - The FFT size has the lowest total cost within 4 GB: 2^26 at DM 25.
+  - The first nPast and the last nFuture samples (31.5 ms) are not "fully supported" and are excluded downstream.
+- **Square-law detection.** |z|² averaged over time bins of 1/f_out = 1 µs (800 samples). The data rate collapses
+  from 800 MS/s complex to 1 MS/s of power.
+  - The relative variance per bin is 1/(B_noise·dt). B_noise = (∫W²)²/∫W⁴ = 391.6 MHz for the observer's taper
+    (noiseBandwidth), about 392 independent samples per bin.
+  - The bin time is its centroid, so a symmetric boxcar gives no timing bias.
+
+**Code.**
+
+applyInverseDispersion.m:
+
+| Lines | Block |
+|---|---|
+| 107–134 | checks (band inside fLO ± fs/2, RefFreq inside the band unless allowed) |
+| 136–148 | overlap sizes from τ(f) and the guard |
+| 164–181 | FFT size by cost within the memory budget (`chooseNfft`) |
+| 183–199 | H built in chunks, in double, only on in-band bins |
+| 201–213 | leakage check |
+| 242–271 | overlap-save loop on one preallocated buffer |
+| 273–305 | info: bulkDelayRef, fullySupported, edgeWidth |
+
+detectPower.m:
+
+| Lines | Block |
+|---|---|
+| 89–96 | binLen = round(fs/f_out) |
+| 98–133 | fast path (one channel) or sub-band FFT frames |
+| 177–205 | stream: I² + Q² summed per bin in double |
+| 207–238 | info: binTime0 (centroid), fullySupportedBins from the dedispersion's range |
+
+**Tests.**
+- The full band is the reference that `testDedisperseChannels` compares the channel path against.
+- `detectPower` runs inside `testDetectChannels` and `testDedisperseChannels`.
+- The 5 Oct full-band runs are validated (notes §7).
+- Missing: an absolute round-trip test (dispersion → dedispersion gives back the band-limited input: R-V2, noted 16
+  Oct), and the NumPy ports, which are not in the repo.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -223,3 +305,10 @@ Jasper: the separate "4a" in the docs sidebar "looks weird"; merge the pages, an
 | D1-20 | clock | scope | makeClock covers timescales ≥ Step (60 s). Sub-second jitter (ADC sampling) and LO phase noise are separate and not modelled (limits: negligible for sampling) | none |
 | D1-21 | stage 3 / channel path | receiver.html (carrier note) | A carrier at a channel edge does not break the chain (test above). The docs' "unrepresentative special case" could say what happens there (removed by the edge gap) and point to this result. Untested: a narrow noise-like signal straddling an edge | docs text; optional test |
 | D1-22 | main.m | main.m:15 (header) | The pipeline list still says "clock jitter, pulsar-Earth motion, polarisation?, 3x3 array element signals, multiple pulsars [todo]" under the receiver. The clock and the motion exist since block D (makeClock, makeTrajectory/delayModel/makePredictor); jitter is out of scope (D1-20) | minor text fix |
+| D1-22 | channel path | noiseCal default | A narrow noise-like signal straddling a channel edge gives two lopsided channels with a high weight (the taper keeps their level low): χ² 1.17 at −11 dB, error bars ~0.5 % small. `noiseCal` fixes it (χ² 1.00); it is off by default. Decision for Jasper: noiseCal on by default (cost: an rfiProfile pass per observation). **Jasper (26 Oct): decide on day 5** | **decision, day 5** |
+| D1-23 | full band | applyInverseDispersion, info.bulkDelayRef | TOAs refer to 1.6 GHz; τ(fRef) = 40.5 ms at DM 25 stays in. In the simulation truth and observer share it. For real data the DM's error and variations (2.1 µs per 1e-3 at 1.4 GHz) and the Doppler-shifted dispersion (±7 µs) enter through this term: notes item 13 / E2 | for E2/F |
+| D1-24 | full band | fullySupported | 31.5 ms (15.7 % of a 0.2 s file) at the end is unusable. Real data are a continuous stream: the processing must carry the overlap across file boundaries (overlap-save across files), not drop the edges | for F |
+| D1-25 | full band | memory | One FFT of 2^26 (3.8 GB) at DM 25; DM 100 needs 2^28 (~15 GB): notes item 5. The channel path avoids it | known |
+| D1-26 | full band | detectPower 'NChan' > 1 | The sub-band mode (FFT frames) predates channelizeIQ. It looks unused by main and the tests: check, then keep or retire | cleanup check |
+| D1-27 | full band | processIQ B_noise | The observer's B_noise (391.6 MHz) comes from its own taper only. The simulated pulsar also passed the generator's taper, so in-pulse the true value is ~0.5 % lower: high-SNR only, irrelevant for the weak signal | none |
+| D1-28 | full band | no excision | Every RFI type passes the full band unblanked (D1-4): it is a reference path, not for RFI data | known |
