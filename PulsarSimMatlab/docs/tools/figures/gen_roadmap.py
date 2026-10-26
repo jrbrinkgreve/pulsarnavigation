@@ -39,7 +39,7 @@ after = [  # blocks D and E: (title, now/next, [(item, status)])
                                      ('D4 navigation fit (ship filter parked)', 'V'),
                                      ('D4c-0 planning study, D4d-2 ship runs', 'C'),
                                      ('D5 DE440, TDB − TT, precession', 'V')]),
-    ('E · a fixed position', 'now', [('E0 review of C and D (parts 4–8)', 'R'),   # revised 23 Oct
+    ('E · a fixed position', 'now', [('E0 review week (5 sessions)', 'N'),   # revised 23 Oct
                                 ('E1 pulsar set from 52° N, real profiles', 'N'),
                                 ('E2 complete Earth–pulsar timing model', 'N'),
                                 ('E3 multi-pulsar fixed-site fit, Monte Carlo', 'N'),

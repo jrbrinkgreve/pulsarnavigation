@@ -12,7 +12,7 @@
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
 <p class="meta">Status as of 23 October 2026: blocks A–D closed. Block E, revised on 23 Oct, leads to a fixed position in the Netherlands
-from several pulsars; its first step (E0, the review of C and D) is under way. F later. Session-by-session history: <code>logs/</code>.</p>
+from several pulsars; its first step, E0, is a review week (five review sessions, agreed 26 Oct). F later. Session-by-session history: <code>logs/</code>.</p>
 
 <div class="callout note"><span class="ttl">In short</span>
 <p><b>Done:</b> the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
@@ -34,7 +34,8 @@ At worst-case flux it is at 298 km, against 372 km (Claude's run).</li>
 parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
 <p><b>Now: block E</b> (revised 23 Oct, <a href="#blockE">below</a>). Its endpoint is a fixed position at a site in the Netherlands,
 estimated from several pulsars, with all 18 data streams beamformed and the full Earth–pulsar motion in the timing model, at
-worst-case flux. Its steps are E0–E6; E0, the review of blocks C and D, is under way. The ship's navigation filter is parked.</p>
+worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development. The ship's
+navigation filter is parked.</p>
 <p><b>Then block F</b>, the real implementation: IQ recordings at the Netherlands site from the antenna, mixer and SDR through
 <code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
 
@@ -195,8 +196,8 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
   <rect class="box val" x="10" y="634" width="275" height="22" rx="5"/>
   <text class="sub" x="18" y="649">D5 DE440, TDB − TT, precession</text>
   <text class="lbl" x="293" y="458" font-weight="600">E · a fixed position (now)</text>
-  <rect class="box rx" x="293" y="466" width="275" height="22" rx="5"/>
-  <text class="sub" x="301" y="481">E0 review of C and D (parts 4–8)</text>
+  <rect class="box" x="293" y="466" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
+  <text class="sub" x="301" y="481">E0 review week (5 sessions)</text>
   <rect class="box" x="293" y="494" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="301" y="509">E1 pulsar set from 52° N, real profiles</text>
   <rect class="box" x="293" y="522" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -268,7 +269,7 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 <span class="badge written">Claude's runs</span>: the simulator's truth with a moving receiver and a clock in <code>runScenario</code>
 (D3c), the SDR clock tracked day by day (D4b-2), the planning study (D4c-0), the ship scenario <code>runShip</code> over eight ships
 (D4d-2), and the fixed-site reruns. See <a href="prediction.html">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
-<tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 18 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>)</td><td><span class="badge todo">now</span>: E0 (the review) under way</td></tr>
+<tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 18 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>)</td><td><span class="badge todo">now</span>: E0, the review week</td></tr>
 <tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings at the Netherlands site from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
 
@@ -445,8 +446,22 @@ channels, calibration).</td></tr>
 <h3>The steps</h3>
 <div class="table-wrap"><table>
 <tr><th>Step</th><th>Content</th><th>Status</th></tr>
-<tr><td>E0</td><td>The review of blocks C and D, as far as the endpoint uses them: geometry and time, the clock, prediction and truth,
-<code>navFit</code>, <code>runScenario</code>. <code>navFilter</code> and <code>runShip</code> are left out, being parked.</td><td><span class="badge todo">under way</span>: parts 2–3 done (log <code>2026-10-23_review-C-D.md</code>)</td></tr>
+<tr><td>E0</td><td>A review week before new development (Jasper, 23 Oct: "to fully, fully understand everything"), five review
+sessions, more if needed (agreed 26 Oct). Per part: the physics, the code block by block, the tests and what they miss; refinements are
+noted, not built. Every smaller detail, in every part of the pipeline, goes onto one running list (Jasper, 26 Oct), including the
+stages of blocks A and B that <code>processIQ</code> (day 1) and <code>main.m</code> (day 4) drive.
+<ol>
+<li>Day 1: <code>processIQ</code> and <code>foldToTOA</code>; geometry and time (<code>makeTrajectory</code>, <code>delayModel</code>,
+<code>loadEphemeris</code>).</li>
+<li>Day 2: the clock (<code>makeClock</code>); prediction and truth (<code>makePredictor</code>, <code>foldProfile</code>
+<code>'Predictor'</code>, <code>trueResiduals</code>).</li>
+<li>Day 3: navigation, <code>navFit</code> in depth; <code>navFilter</code> briefly (parked).</li>
+<li>Day 4: the drivers (<code>runScenario</code>, <code>runShip</code>, <code>main.m</code>); the changes to blocks A and B since the
+first review week; speed (the profiling of 25 Oct; no MEX); a <code>main.m</code> smoke run for the validation list.</li>
+<li>Day 5: one end-to-end walk from the sky to a position; the notes catch-up, the docs findings and stale texts; then the choice of
+refinements to build before E1.</li>
+</ol></td><td><span class="badge todo">next</span>: day 1. Parts 2–3 (the fast simulator, the RFI profiles) were reviewed on 23 Oct
+(log <code>2026-10-23_review-C-D.md</code>)</td></tr>
 <tr><td>E1</td><td>The pulsar set from 52° N: catalogue values with sources, and measured profiles, for B0950+08, B1642−03, B1929+10 and other
 bright northern candidates. <code>expNavPlan</code> on the real profiles then decides which pulsars get a beam.</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>E2</td><td>The complete Earth–pulsar timing model (notes §10 item 13): every term of 1 µs and above, each with a switch to leave it out

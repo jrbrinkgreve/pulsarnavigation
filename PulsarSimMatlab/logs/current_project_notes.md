@@ -3850,7 +3850,7 @@ Steps (docs/roadmap.html#blockE; log 2026-10-23_review-C-D.md):
 
 | Step | Content |
 |---|---|
-| E0 | review of C and D as far as the endpoint uses them (geometry/time, clock, prediction/truth, navFit, runScenario) |
+| E0 | review week, five sessions, more if needed (agreed 26 Oct): day 1 processIQ/foldToTOA + geometry and time; day 2 clock + prediction and truth; day 3 navFit (navFilter briefly); day 4 drivers, A/B changes since 12 Oct, speed (profiling 25 Oct, no MEX), main.m smoke run; day 5 end-to-end walk, housekeeping, choice of refinements; every smaller detail of every pipeline part on one running list (incl. the A/B stages under processIQ and main.m) |
 | E1 | the pulsar set from 52° N: catalogue values with sources, measured profiles; expNavPlan on them picks the beams |
 | E2 | the complete Earth–pulsar timing model (§10 item 13), each term switchable in the observer; PINT/TEMPO2 check |
 | E3 | the multi-pulsar fixed-site solution in the fast simulator (beams, shared clock, RFI, scintillation; joint navFit; Monte Carlo); precision against integration time at worst-case flux |
