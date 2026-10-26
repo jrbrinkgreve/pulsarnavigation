@@ -149,7 +149,7 @@ measured +2.19 %). With a realistic receiver, which applies the bandpass to puls
 <h2 id="timing">Timing and pulse</h2>
 <ul>
 <li><b>Clock errors: a model clock, not the real one.</b> A clock rate off by 10⁻⁹ accumulates 72 µs over 20 h, about 6× the J0437 TOA
-precision. The simulator's truth therefore has a clock process with offset, rate and noise (<a href="clock.html">the receiver's
+precision. The simulator's truth therefore has a clock process with offset, rate and noise (<a href="receiver.html#clock">the receiver's
 clock</a>). The observer folds with its own clock estimate, and the navigation state holds the clock's offset and rate
 (<a href="navigation.html">navigation</a>). The noise is that of the paper's crystal. Tracked day by day, its prediction one day ahead is
 off by a few hundred µs: harmless for B0329+54, too much for J0437's 0.14 ms pulse. The real SDR's oscillator is not characterised
@@ -175,7 +175,7 @@ B0329+54 alone finds a fixed site to ±30 km per equatorial component in 30 days
 with B0329+54, B0950+08 and a drifting SDR clock stays within 73 km rms of its track over 14 days, with a calibrated start, at nominal flux.
 At worst-case flux the same ship is at 298 km rms, against 372 km for dead reckoning: from 52° N these two pulsars do not navigate a ship
 at the design point (<a href="navigation.html#ship-worst">navigation</a>). Its clock is the paper's crystal, steadier than a stock SDR
-oscillator (<a href="clock.html">clock</a>). From 30° S
+oscillator (<a href="receiver.html#clock">clock</a>). From 30° S
 there is only a rough estimate from the scenario numbers. A first fix with four pulsars (J0437, Vela, B0950+08, B1749−28) would be good to
 about 300 km in 3-D. It is limited by the normal pulsars' TOAs of 0.3–0.7 ms. It needs 184 h on source in the worst case (34 h nominal):
 with visibility, about 2–3 weeks of calendar time (<a href="scenario.html">scenario</a>).

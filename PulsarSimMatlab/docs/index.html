@@ -108,8 +108,8 @@ the simulator a true trajectory and clock, against which the observer's assumed 
 and the navigation fit turns it into a position. A simulated ship times B0329+54 and B0950+08 for 14 days with a drifting SDR clock.
 With a calibrated start it stays within 73 km rms of its true track (the median of eight ships). Dead reckoning alone is 379 km rms
 off. That is at nominal flux. At worst-case flux, the design point, the same ship is at 298 km rms and barely beats dead reckoning
-(<a href="navigation.html#ship-worst">navigation</a>). The <a href="prediction.html">phase-prediction</a>,
-<a href="clock.html">clock</a> and <a href="navigation.html">navigation</a> pages have the functions, and the
+(<a href="navigation.html#ship-worst">navigation</a>). The <a href="prediction.html">phase-prediction</a> and
+<a href="navigation.html">navigation</a> pages and the receiver page's <a href="receiver.html#clock">clock section</a> have the functions, and the
 <a href="localisation.html">localisation page</a> the frames, time scales and relativistic corrections behind them.</p>
 <p><b>Before that: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
 handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
@@ -159,8 +159,7 @@ checked stage by stage against <code>processIQ</code>; in the end in real time</
 <div class="group-title">The stages</div>
 <div class="cards">
   <a class="card" href="sky.html"><b>Sky</b><span>Pulsar signal and interstellar dispersion.</span></a>
-  <a class="card" href="receiver.html"><b>Receiver</b><span>Noise, interference sources, IQ conversion.</span></a>
-  <a class="card" href="clock.html"><b>Receiver clock</b><span>The oscillator's offset, rate and noise, and what they do to the TOAs.</span></a>
+  <a class="card" href="receiver.html"><b>Receiver</b><span>Noise, interference sources, IQ conversion, the receiver clock.</span></a>
   <a class="card" href="channels.html"><b>Channelized front end</b><span>128 channels, per-channel dedispersion, exact noise.</span></a>
   <a class="card" href="excision.html"><b>RFI excision</b><span>Find, blank, and account for every blanked sample.</span></a>
   <a class="card" href="prediction.html"><b>Phase prediction</b><span>Where the pulse should arrive for a moving receiver.</span></a>

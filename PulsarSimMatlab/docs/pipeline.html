@@ -271,7 +271,7 @@ page</a> explains each step.</p>
 
 <h3>The truth, and navigation (stage 10)</h3>
 <p>The simulator places the pulses where a true trajectory and a clock put them (<a href="simulator.html#truth"><code>trueResiduals</code></a>,
-with the clock from <a href="clock.html"><code>makeClock</code></a>). The observer keeps folding with the assumed trajectory,
+with the clock from <a href="receiver.html#clock"><code>makeClock</code></a>). The observer keeps folding with the assumed trajectory,
 which is its own knowledge and not the truth. The difference between the two is the navigation signal. Navigation turns the TOAs into
 the receiver's position and clock offset (<a href="navigation.html">stage 10</a>). <code>navFit</code> does it for a fixed site, and
 <code>navFilter</code>, a Kalman filter, for a moving ship. In the ship scenario the filter feeds its estimated track back into
@@ -289,7 +289,7 @@ shortcut for stages 1–7.</p></details>
 <tr><td>2</td><td><a href="sky.html#disp"><code>applyDispersionStream</code></a></td><td><code>test_dispersed.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>3</td><td><a href="receiver.html#noise"><code>addNoiseAndRFI</code></a></td><td><code>test_rx.dat</code></td><td>real, 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>4</td><td><a href="receiver.html#iq"><code>applyIQmodulation</code></a></td><td><code>test_rx_IQ.dat</code></td><td>complex, fs = 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
-<tr><td>4a</td><td><a href="clock.html"><code>makeClock</code></a></td><td>(in memory: <code>clk</code>)</td><td>the receiver clock's error over time, for the fast simulator's truth</td><td><span class="badge validated">validated</span></td></tr>
+<tr><td>4a</td><td><a href="receiver.html#clock"><code>makeClock</code></a></td><td>(in memory: <code>clk</code>)</td><td>the receiver clock's error over time, for the fast simulator's truth</td><td><span class="badge validated">validated</span></td></tr>
 <tr><th colspan="5">Full-band front end (<code>frontEnd = 'fullband'</code>)</th></tr>
 <tr><td>5</td><td><a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a></td><td><code>test_IQ_dedispersed.dat</code></td><td>complex, 800 MHz</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>6</td><td><a href="fullband.html#detect"><code>detectPower</code></a></td><td><code>test_envelope.dat</code></td><td>power, 1 µs bins</td><td><span class="badge validated">validated</span></td></tr>

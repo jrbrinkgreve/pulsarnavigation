@@ -196,7 +196,7 @@ separate now, fit in with the 'stages' approach of the docs?"). Two new stage pa
 fast simulator, which is now the shortcut for stages 1–7 in the stage list. <code>motion.html</code> removed after its content moved
 without loss; every link to it retargeted. Pipeline map and table show the new stages. No code change.</td></tr>
 <tr><td>22 Oct 2026</td><td>after <code>36a19bf</code></td><td>The receiver's clock on its own stage page (Jasper: "can you make it its own?"):
-<a href="clock.html">stage 4a</a>, right after the receiver, with <code>makeClock</code>, the clock's three effects, its design choice, tests
+<a href="receiver.html#clock">stage 4a</a>, right after the receiver, with <code>makeClock</code>, the clock's three effects, its design choice, tests
 and History, and a lede on why the clock matters. The receiver page is back to stages 3–4, with a pointer. Every link to the old section,
 the pipeline table and the home page's stage cards updated. No code change.</td></tr>
 <tr><td>22 Oct 2026</td><td><code>8728266</code>–<code>26a03da</code></td><td>Block D's exact Earth (D5) documented with its commits:
@@ -226,6 +226,11 @@ Doppler smear without a predictor, the predictor's segments at a ship's turn), r
 fast simulator (how a fold is drawn, adaptive sub-ints), validation (pulls at fixed times). Generators in <code>tools/figures/</code>
 (README); <code>delaymodel.py</code> ports <code>delayModel</code>'s analytic branch and reproduces its tests' numbers. No code
 change.</td></tr>
+<tr><td>26 Oct 2026</td><td>after <code>bafc774</code></td><td>The receiver clock back on the receiver page (Jasper: the separate "4a" in the
+sidebar "looks weird"): <code>clock.html</code> became the section <a href="receiver.html#clock">4a</a> after stage 4, text and both figures
+unchanged (word diff), sub-anchors <code>clock-short</code>, <code>clock-phys</code>, <code>clock-how</code>, <code>clock-runs</code>,
+<code>clock-why</code>, <code>clock-tests</code>. Sidebar, page title, lede and contents, the home page's stage card and every link
+(13 files, figure scripts included) updated; <code>clock.html</code> removed. No code change.</td></tr>
 </table></div>
 
 </main>

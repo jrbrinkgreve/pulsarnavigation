@@ -1,6 +1,6 @@
 import numpy as np
 from plotsvg import Ax
-# What makeClock draws (clock.html #how): a port of its three noise generators on the 60 s grid (functions/makeClock.m), with the
+# What makeClock draws (receiver.html#clock-how): a port of its three noise generators on the 60 s grid (functions/makeClock.m), with the
 # "crystal" preset h = [1.8e-21 6.492e-22 1.37e-24]. White frequency noise: independent steps of the time error, variance h0 D/2.
 # Flicker: the step-averaged frequency by FFT synthesis with the spectrum h_1/f over twice the span, integrated. Random walk: the
 # exact two-state steps, q2 = 2 pi^2 h_2. numpy's random numbers, so these are other draws than makeClock's for the same seed.

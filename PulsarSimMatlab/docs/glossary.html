@@ -18,7 +18,7 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 
 <dl class="facts">
 <dt>adaptive sub-ints (<code>adaptiveSubints</code>)</dt><dd>Short sub-ints merged until each reaches an SNR of about 7. The sub-int length then follows the pulsar's flux, which scintillation changes from hour to hour.</dd>
-<dt>Allan deviation σ<sub><var>y</var></sub>(τ)</dt><dd>An oscillator's stability: the typical change of its average fractional frequency from one interval of length τ to the next. White frequency noise makes it fall with τ, flicker keeps it flat, and a random walk makes it grow (<a href="clock.html"><code>makeClock</code></a>).</dd>
+<dt>Allan deviation σ<sub><var>y</var></sub>(τ)</dt><dd>An oscillator's stability: the typical change of its average fractional frequency from one interval of length τ to the next. White frequency noise makes it fall with τ, flicker keeps it flat, and a random walk makes it grow (<a href="receiver.html#clock"><code>makeClock</code></a>).</dd>
 <dt id="bnoise"><var>B</var><sub>n</sub>, <code>Bnoise</code></dt><dd>Noise-equivalent bandwidth (∫<var>W</var>²)²/∫<var>W</var>⁴: the bandwidth that sets the variance of detected power. 391.6 MHz full band, 3.0596 MHz per channel.</dd>
 <dt>barycentre (SSB)</dt><dd>The centre of mass of the solar system: the origin of the frame in which a pulsar's timing model holds. SSB stands for solar-system barycentre.</dd>
 <dt>baseline</dt><dd>The off-pulse level of a profile (noise power plus any steady RFI). Fitted, never taken from the truth.</dd>
@@ -66,7 +66,7 @@ noise of detected power. See <a href="#snr">SNR</a> and <a href="#bnoise"><var>B
 <dt><code>NoiseCoeffs</code></dt><dd>Fold option: [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)] of correlated time bins (narrow channels, no blanking).</dd>
 <dt>noise ratio</dt><dd>Measured off-pulse variance / modelled variance; 1 if the noise model is right.</dd>
 <dt>Neyman–Pearson (NP)</dt><dd>The most powerful test at a fixed false-alarm rate; for a known shape in Gaussian noise, a matched filter.</dd>
-<dt>OCXO, TCXO</dt><dd>Oven-controlled and temperature-compensated crystal oscillators. A TCXO drifts about 3.6 µs per hour, an OCXO 4–36 ns (<a href="clock.html">clock</a>). A commercial SDR has a TCXO specified to ±2 ppm.</dd>
+<dt>OCXO, TCXO</dt><dd>Oven-controlled and temperature-compensated crystal oscillators. A TCXO drifts about 3.6 µs per hour, an OCXO 4–36 ns (<a href="receiver.html#clock">clock</a>). A commercial SDR has a TCXO specified to ±2 ppm.</dd>
 <dt>optimal weighting</dt><dd>Fit or detection over all channels with inverse-variance weights and one common amplitude (<a href="toa.html#optimal">TOA</a>).</dd>
 <dt>outlier mixture</dt><dd>The navigation fit's error model: (1 − ε)·N(0, σ²) + ε·N(0, (<var>k</var>σ)²), with ε = 2 % and <var>k</var> = 4. An outlier then counts about 16× less instead of pulling the fit (<a href="navigation.html#navfit">navigation</a>).</dd>
 <dt>oversampled filterbank</dt><dd>A channelizer whose channel rate exceeds the channel width (4/3 here), so aliasing stays out of the useful band.</dd>

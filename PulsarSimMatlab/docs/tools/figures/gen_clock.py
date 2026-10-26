@@ -1,6 +1,6 @@
 import numpy as np
 from plotsvg import Ax, pow10
-# The receiver clock (clock.html): makeClock's "crystal" preset, h = [1.8e-21 6.492e-22 1.37e-24] (functions/makeClock.m), and its
+# The receiver clock (receiver.html#clock): makeClock's "crystal" preset, h = [1.8e-21 6.492e-22 1.37e-24] (functions/makeClock.m), and its
 # Allan deviation from the code's own formula (clk.sigmaY; Van Dierendonck, McGraw & Brown 1984, eqs. 6-8):
 #   sigma_y^2(tau) = h0 / (2 tau) + 2 ln2 h_1 + (2 pi)^2 / 6 h_2 tau.
 # b: tau * sigma_y(tau), the typical time error built up over tau, against the oscillator classes on the clock page (a TCXO ~3.6 us
