@@ -785,6 +785,69 @@ About 30 other running-list items are labelled for E2 / E4 / E5 / F, "known", "n
 log. Days 1–2 and the missing unit tests are done (31 unit tests, all validated in Jasper's runs; committed and pushed
 up to d18c281).
 
+## Day 2, stage 6b: detection per channel and the blanking weights (`detectChannels`, `blankingWeights`)
+
+**Physics: detection.**
+- Each dedispersed channel is square-law detected: |y|² averaged over 4 channel samples, so bins are 0.96 µs
+  (1.0417 MHz; the bin is a whole number of channel samples).
+- All 128 channels go into one file [nChan × nBins] on one time grid (they are aligned at 1.6 GHz).
+- **Why not the plain radiometer formula per bin.** B·dt = 3.06 MHz × 0.96 µs ≈ 2.9: a bin holds only about three
+  independent samples, so neighbouring bins are correlated.
+  - Exact constants from the channel spectrum (`powerCovariance`): V = 0.888, X(1) = 0.046, X(2) = 0.005, …
+  - Lmax = 7 lags capture 99.84 % of V + 2ΣX = 1.
+  - Over many bins the radiometer value comes back; bin by bin it does not (the full band has V = 1, X ≈ 0).
+
+**Physics: blanking weights.**
+- Blanking zeroes channel samples x before dedispersion. Each output sample y(a) = Σ h(l)·x(a−l) then holds only part
+  of its data.
+- **What a blank becomes.** |h|² is spread roughly evenly over the channel's in-channel smear (0.16–0.37 ms) and shifted
+  by the channel's delay to 1.6 GHz. A radar blank of 28 samples (2 µs plus the guards) therefore turns into a shallow
+  dip in the output: about 4 % deep for 0.16 ms in the top channel, about 2 % for 0.37 ms in the bottom channel, and
+  31 ms later there. The data lost is conserved exactly: Σ_a w(a) = Σ keep.
+- **Mean.** For Gaussian input (noise and the noise-like pulsar alike), bin k has mean W_k·m. W_k is the bin mean of
+  w(a) = (|h|² ∗ keep)(a)/Σ|h|²: one FFT convolution of the mask.
+  - The true channel spectrum is used for the mean: the channelizer rolls off between the band edge and Nyquist, and
+    blanking mixes that region into the band.
+  - The difference is ~1 % for nearly empty bins and ≤ 0.07 % for W ≥ 0.1.
+- **Noise.** V_k and X_k(L) = (1/n²)·Σ|C_ab|² with C(a, a+τ) the mask convolved with h(l)·h*(l+τ): one FFT
+  convolution per sample lag τ = 0 … (Lmax+1)·n − 1 = 31. These use the white-input form (error bars only; 1–2 %
+  in heavily blanked bins).
+- **Why the fold needs them.** Phase bins fed by blanked time bins have a lower mean. Random blanking only lowers the
+  baseline evenly; blanking tied to the pulse phase does not:
+  - the pulse flagging itself (D2-7);
+  - a pulsar-locked radar;
+  - blanks on the pulse.
+
+  Then the naive fold distorts the profile and biases the TOA. foldProfile('DataWeights') divides by Σ W per phase
+  bin and takes the exact error bars from V and X.
+
+**Code.**
+- detectChannels.m (169 lines):
+  - detectPower per channel at :76, with a time-grid check at :81;
+  - interleaving block by block at :103;
+  - `powerCovariance` for V, X at :120.
+- blankingWeights.m (349 lines). Per channel, h is an impulse through the same applyInverseDispersion with the same
+  Nfft (:150–163), checked against nPast/nFuture.
+  - :167–177: unblanked V0, X0 and the mean's denominator with R_x;
+  - :187: unblanked channels get W = 1, V0, X0 and are skipped;
+  - :198–221: the lag loop. The mean is accumulated over lags d ≤ ~20 (keep·keep_d with R_x(d)); |C|² is summed into
+    V and X for the lags τ < 32;
+  - :226: bins with W < 1e-6 are set to zero, with their covariances;
+  - `channelAutocorr` (:286): the prototype's |response|² aliased at the channel rate.
+
+**Tests** (validated):
+- testDetectChannels: powerCovariance against the filter's own h; layout bit-identical to detectPower; fold of the
+  128-channel file = fold of the summed power; measured V, X(1–3) and 5-bin sums.
+- testBlankingWeights:
+  1. exactness against the full covariance matrix H·K·H' in channels 1, 64, 128, with blanks of 1–3001 samples;
+  2. consistency: unblanked = spectrum constants, an empty mask = the NoiseCoeffs fold, a messy mask = a clean mask,
+     R_x measured;
+  3. end to end with 8 blanking types (random, impulses, radar at 373 Hz, a pulsar-locked radar at 400 Hz, blanks on
+     the pulse, a 30 ms gap, a fully blanked channel). Checked: means unbiased also on the pulse (the naive fold
+     shown), noise per valid-fraction group, the channel exclusion rule, TOAs and the noise ratio;
+  4. long bins (the 12 Oct crash).
+- testFoldWeights 1–7 (the fold side, day 3).
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -840,3 +903,7 @@ up to d18c281).
 | D2-20 | 5 dedispersion | applyInverseDispersion.m:231, 241 | Two stale `%#ok<NASGU>` suppressions on the onCleanup lines (checkcode: "the message is no longer generated"); cosmetic, in HEAD before today | cleanup |
 | D2-21 | helpers | noiseBandwidth.m | No input checks. An edge wider than B/2 makes the low and high edge regions overlap, and the second assignment overwrites the first instead of multiplying; a width ≤ 0 is silently ignored or divides by 0. No caller does either (widths are 2 % of the band) | none (note) |
 | D2-22 | excision | frequency guard | Every strong event (peak ≥ 100 × baseline) is copied into ±7 channels. With strong bursts at independent times in many channels (test 6: 3 % of the samples in each), the guard blanks 99 % of the data against 33 % from the own detections. Real strong RFI is broadband (the guard's purpose) or confined to a few channels, so this is a stress case; but the guard has no cap on the total it blanks | note |
+| D2-23 | 6b weights | blankingWeights output | The weight file is [128 × (2+Lmax = 9) × bins] float32: 4.8 GB per second of data, 9× the power file (0.53 GB/s), held in memory. MaxMemoryGB 4 caps a chain run with excision at ~0.83 s (main's 0.2 s: 0.96 GB). Unblanked channels store the same constants in every bin; a sparse form (only blanked channels and bins) would be ~100× smaller | for F / longer chain runs |
+| D2-24 | 6b weights | testBlankingWeights header 3(a) | Says the white-input W is "~4 % off" near W = 1e-6. blankingWeights' header (A3a) says ~1 %, and that the earlier ~4 % was over-stated. Stale test comment | comment (tests) |
+| D2-25 | 6b weights | V, X white form | The mean uses the true channel spectrum, but V and X keep the white form: 1–2 % error in the error bars of heavily blanked bins (header) | none |
+| D2-26 | 6b detection | bin length | Bins are whole channel samples: 4 × 0.24 µs = 0.96 µs (1.0417 MHz, not the requested 1 MHz; one warning). The full-band path gives 1.000 µs, so the two front ends fold slightly different bins | understanding |
