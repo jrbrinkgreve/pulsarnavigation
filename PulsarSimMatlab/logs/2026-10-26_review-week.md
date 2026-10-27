@@ -279,6 +279,49 @@ detectPower.m:
 - Missing: an absolute round-trip test (dispersion → dedispersion gives back the band-limited input: R-V2, noted 16
   Oct), and the NumPy ports, which are not in the repo.
 
+## Day 2, stage 5a: the filterbank (`channelizeIQ`)
+
+**Physics.**
+- **What it does.** It splits the 800 MS/s IQ stream into 128 channels of 3.125 MHz that tile 1.2–1.6 GHz. Each
+  channel is a complex voltage stream at 4.17 MS/s.
+  - It is exactly what 128 separate receivers would give (mix down to the channel centre, low-pass, keep every
+    192nd sample), computed at ~1/256 of the cost by a polyphase filterbank.
+  - Per output time: weight a frame of 4096 input samples with the prototype filter, fold it into 256 bins, and one
+    256-point IFFT gives all channels at once, followed by a phase correction from the absolute sample index.
+- **Why channels:**
+  1. Narrowband RFI stays in one or two channels, where it can be excised or down-weighted.
+  2. The dispersion sweep inside one channel is short: **0.38 ms at 1.2 GHz and 0.16 ms at 1.6 GHz at DM 25**
+     (checked), against 31.5 ms over the whole band. Small FFTs per channel are enough, which solves the memory
+     problem.
+  3. Each channel gets its own noise model and weight (optimal weighting).
+- **Why oversampled (4/3).** The channel rate (4.17 MHz) is above the channel width (3.125 MHz).
+  - The prototype is flat to ±1.5625 MHz and stops from 2.604 MHz (80 dB), with 3853 taps, 16 per branch (checked).
+  - Aliasing on decimation lands only outside ±1.5625 MHz, so every channel's useful band is alias-free. A
+    critically sampled filterbank would alias into the channel edges.
+  - The transition region is cut later, by the per-channel dedispersion's window.
+- **The grid.** The channel centres are fLow + (j − ½)·3.125 MHz. The 1.3 GHz LO lies on a channel edge (between
+  channels 32 and 33), so the half-slot offset is β = ½. The group delay (1926 input samples, 2.41 µs) is removed
+  exactly.
+
+**Code** (channelizeIQ.m):
+
+| Lines | Block |
+|---|---|
+| 108–135 | the grid: K = 256, D = 192, the channel count, β from fLO |
+| 137–157 | the Kaiser prototype (length from the transition width), the β-modulated taps, the coverage check |
+| 207–241 | the stream: frames by index, ×taps, fold into K bins, IFFT, keep the 128 rows, exact phase correction, one file per channel |
+| 243–281 | info: chanFreqs, the mapping (no inversion), fullySupported |
+
+**Tests.** testChannelizeIQ (validated 6 Oct):
+- tones against direct mix-filter-decimate receivers to 2.7e-7;
+- passband ripple 1.2e-4;
+- stopband −80.2 dB;
+- noise power 1.0007;
+- Parseval on real data 1.00007;
+- 6 blocks.
+
+Only today's grid is tested (R-C1: β = 0, oversampling 2, `BlockOut` bit for bit, the refusals).
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -305,10 +348,16 @@ detectPower.m:
 | D1-20 | clock | scope | makeClock covers timescales ≥ Step (60 s). Sub-second jitter (ADC sampling) and LO phase noise are separate and not modelled (limits: negligible for sampling) | none |
 | D1-21 | stage 3 / channel path | receiver.html (carrier note) | A carrier at a channel edge does not break the chain (test above). The docs' "unrepresentative special case" could say what happens there (removed by the edge gap) and point to this result. Untested: a narrow noise-like signal straddling an edge | docs text; optional test |
 | D1-22 | main.m | main.m:15 (header) | The pipeline list still says "clock jitter, pulsar-Earth motion, polarisation?, 3x3 array element signals, multiple pulsars [todo]" under the receiver. The clock and the motion exist since block D (makeClock, makeTrajectory/delayModel/makePredictor); jitter is out of scope (D1-20) | minor text fix |
-| D1-22 | channel path | noiseCal default | A narrow noise-like signal straddling a channel edge gives two lopsided channels with a high weight (the taper keeps their level low): χ² 1.17 at −11 dB, error bars ~0.5 % small. `noiseCal` fixes it (χ² 1.00); it is off by default. Decision for Jasper: noiseCal on by default (cost: an rfiProfile pass per observation). **Jasper (26 Oct): decide on day 5** | **decision, day 5** |
+| D1-29 | channel path | noiseCal default | A narrow noise-like signal straddling a channel edge gives two lopsided channels with a high weight (the taper keeps their level low): χ² 1.17 at −11 dB, error bars ~0.5 % small. `noiseCal` fixes it (χ² 1.00); it is off by default. Decision for Jasper: noiseCal on by default (cost: an rfiProfile pass per observation). **Jasper (26 Oct): decide on day 5** | **decision, day 5** |
 | D1-23 | full band | applyInverseDispersion, info.bulkDelayRef | TOAs refer to 1.6 GHz; τ(fRef) = 40.5 ms at DM 25 stays in. In the simulation truth and observer share it. For real data the DM's error and variations (2.1 µs per 1e-3 at 1.4 GHz) and the Doppler-shifted dispersion (±7 µs) enter through this term: notes item 13 / E2 | for E2/F |
 | D1-24 | full band | fullySupported | 31.5 ms (15.7 % of a 0.2 s file) at the end is unusable. Real data are a continuous stream: the processing must carry the overlap across file boundaries (overlap-save across files), not drop the edges | for F |
 | D1-25 | full band | memory | One FFT of 2^26 (3.8 GB) at DM 25; DM 100 needs 2^28 (~15 GB): notes item 5. The channel path avoids it | known |
 | D1-26 | full band | detectPower 'NChan' > 1 | The sub-band mode (FFT frames) predates channelizeIQ. It looks unused by main and the tests: check, then keep or retire | cleanup check |
 | D1-27 | full band | processIQ B_noise | The observer's B_noise (391.6 MHz) comes from its own taper only. The simulated pulsar also passed the generator's taper, so in-pulse the true value is ~0.5 % lower: high-SNR only, irrelevant for the weak signal | none |
 | D1-28 | full band | no excision | Every RFI type passes the full band unblanked (D1-4): it is a reference path, not for RFI data | known |
+| D2-1 | 5a filterbank | channelizeIQ.m:129–132 | β depends on the LO: any fLO on the 3.125 MHz grid gives β = ½ (1.3 or 1.4 GHz both do, D1-9). A fractional β (an LO off the grid) is supported by the code but never run or tested (R-C1) | test gap |
+| D2-2 | 5a filterbank | header "tile the band without gaps" | True for the filterbank. But dedisperseChannels' edge taper (sin², 62.5 kHz at each channel edge) then removes ~2.5 % of each channel's W² bandwidth: the known channel gap (item 3; the edge-carrier test of 26 Oct). The header could say so | docs |
+| D2-3 | 5a filterbank | channelizeIQ.m:311–330 | `kaiserLowpass` is copied from applyIQmodulation (on purpose: "so that validated stage stays untouched"). Two copies to keep in step | cleanup |
+| D2-4 | 5a filterbank | output files | One file per channel: 128 files, 0.85 GB per 0.2 s. Fine for simulation; F streams in memory | for F |
+| D2-5 | 5a filterbank | channelizeIQ.m:221–224 | The 4096-tap weighted sum and the fold are accumulated in single precision; the tests show 2.7e-7 relative error, far below the noise | none |
+| D2-6 | drivers | runScenario.m:112, runShip.m:86 | Scripts share MATLAB's base workspace. runShip leaves `psr` as a 1×2 struct array; runScenario then fails at `psr.B0329 = struct(...)` ("Scalar structure required", Jasper's run 27 Oct). The same kind of leftover as the experiments' `restoreDir`. Fix options: `clear psr` at runScenario's top, or local names; for now run after `clear` (and cd back to the repo folder) | driver robustness (day 5) |

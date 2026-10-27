@@ -616,8 +616,11 @@ nutation (D5a–D5d)</td></tr>
 <tr><td><code>testNavFit</code> (11 checks), <code>testNavFilter</code> (7 checks)</td><td>pass, 131.7 s and 8.8 s</td><td>TOAs as
 time-averages (<code>tSub</code>)</td></tr>
 </table></div>
-<p>Still Claude's runs only: the experiments (<code>expSimVsChain</code>, <code>expSimRFI</code>, <code>expComponentsChain</code>,
-<code>expNavFit</code>, <code>expNavPlan</code>), the scenario runs, <code>runScenario</code>'s motion option and <code>runShip</code>.</p>
+<p>Jasper's runs of 23 Oct reproduce the experiments (<code>expSimVsChain</code>, <code>expSimRFI</code>, <code>expComponentsChain</code>,
+<code>expNavFit</code>, <code>expNavPlan</code>) and one ship run (<code>runShip</code>, worst-case flux, seed 1, calibrated start), number for
+number. <code>expSimRFI</code> part 2 with the current RFI profiles was reproduced on 27 Oct. One RFI variant (B0329+54, nominal flux, with the
+noise calibration) was reproduced bit for bit on 27 Oct. Still Claude's runs only: the other scenario budgets of <code>runScenario</code>
+(with its motion option and the other RFI variants) and the other ship runs.</p>
 
 <h2 id="blockD">15. Block D: from TOAs to a position (22 Oct)</h2>
 <p>These runs give the fast simulator the truth of a receiver that is not where the observer thinks, and a clock that drifts
