@@ -343,7 +343,9 @@ voltages the averaged power estimates the variance, with relative noise</p>
 <dt>\(B_n\,\Delta t\)</dt><dd>the number of independent samples in one bin</dd>
 </dl>
 <p><var>B</var><sub>n</sub> is the <b>noise-equivalent bandwidth</b>. For a flat band it is simply the bandwidth <var>B</var>. With the
-tapered band edges used here it is 391.6 MHz for receiver noise (exact formula below).</p>
+tapered band edges used here it is 391.6 MHz for receiver noise (exact formula below).
+<code>testNoiseBandwidth</code> checks that value against the closed form, and <code>testDetectPower</code> measures the bin
+scatter it predicts (<a href="tests.html#nbw">unit tests</a>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Radiometer equation: averaged power scatters less with more samples, as one over the square root of bandwidth times bin length">
   <text class="ttl" x="60" y="20">a · detected power, averaged over n samples</text>

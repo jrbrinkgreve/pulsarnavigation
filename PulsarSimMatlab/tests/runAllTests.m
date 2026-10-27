@@ -3,7 +3,7 @@ function results = runAllTests(names)
 %{
 Run from the PulsarSimMatlab folder: run('tests/runAllTests.m') (all), or
 runAllTests(["testRfiNoise" "testRadarEdges"]) with tests/ on the path (a subset). 6-9 min
-for all 30 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
+for all 31 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
 testRFIModel ~20 s).
 
 Each test runs in its own try/catch, so one failure does not stop the others; its own
@@ -17,7 +17,8 @@ runs and pipelineParams edits do not change them.
 
 Order: pipeline order, and the tests that make shared files before the ones that read them:
 testGeneratePulsarSignal, testApplyDispersionStream, testAddNoiseAndRFI, testApplyIQmodulation,
-testApplyInverseDispersion and testDetectPower (stages 1-6 of the full band, own files only) first;
+testApplyInverseDispersion, testDetectPower and testNoiseBandwidth (stages 1-6 of the full band and
+the noise bandwidth, own files or none) first;
 testChannelizeIQ and testDedisperseChannels rewrite the seed-43 channel files in data/test/chan/,
 testDetectChannels the 128-channel power
 file; the rest read them (or make their own data in tempdir). Not run: demo*, exp*
@@ -34,7 +35,7 @@ arguments
     names (1,:) string = strings(1, 0)
 end
 
-order = ["testGeneratePulsarSignal", "testApplyDispersionStream", "testAddNoiseAndRFI", "testApplyIQmodulation", "testApplyInverseDispersion", "testDetectPower", "testChannelizeIQ", "testDedisperseChannels", "testDetectChannels", ...
+order = ["testGeneratePulsarSignal", "testApplyDispersionStream", "testAddNoiseAndRFI", "testApplyIQmodulation", "testApplyInverseDispersion", "testDetectPower", "testNoiseBandwidth", "testChannelizeIQ", "testDedisperseChannels", "testDetectChannels", ...
          "testFoldWeights", "testChannelTOA", "testOptimalTOA", "testBlankingWeights", ...
          "testBlankChannels", "testDetectRFI", "testPeriodicRFI", "testRadarEdges", ...
          "testRfiGating", "testRfiNoise", "testSimulateFold", "testRFIModel", "testMakeTrajectory", "testDelayModel", "testMakePredictor", "testFoldPredictor", "testTrueResiduals", "testMakeClock", "testNavFit", "testNavFilter", "testLoadEphemeris"];

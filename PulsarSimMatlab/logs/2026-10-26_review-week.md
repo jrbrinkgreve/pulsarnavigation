@@ -662,6 +662,31 @@ check matrix regenerated, data-flow box "1 · stages 1–6", counts 30); fullban
 (a done row for this test); figures README; changelog. Notes: §5.6 Tests paragraph, tests table and the runAllTests
 row. D2-18 (below): tested.
 
+## Day 2: missing unit tests, `noiseBandwidth` (`testNoiseBandwidth`, D2-17)
+
+Jasper: "Go ahead" on the plan (closed forms, scale invariance, unequal widths, edge cases).
+
+**Physics checked.** B_n = (∫W²)²/∫W⁴ sets the radiometer noise 1/√(B_n·dt) that processIQ, foldToTOA and
+dedisperseChannels predict. For sin² edges ∫₀¹ sin²ⁿ(πu/2) du = C(2n, n)/4ⁿ, so m equal tapers of width e in a band B give
+∫W² = B − 2e + 2e·C(4m, 2m)/4^(2m) and ∫W⁴ = B − 2e + 2e·C(8m, 4m)/4^(4m): 391.63180 MHz for one 8 MHz taper in 400 MHz,
+389.61184 MHz for two.
+
+**The test** (`tests/testNoiseBandwidth.m`, 0.1 s, no files). All four checks pass in Claude's runs (alone and inside
+`runAllTests` with testDetectPower) and in Jasper's run (27 Oct): validated.
+
+| Check | Result | Limit |
+|---|---|---|
+| 1 closed forms (one / two tapers; full band, one channel) | difference 0 to double precision | 1e-7 |
+| 2 scale invariance | 128 × 3.059623 MHz = 391.631799 MHz exactly | 1e-7 |
+| 3 unequal widths (8 and 2 MHz) | 391.625485 MHz = quadrature to 7e-16; order of widths irrelevant | 1e-7 |
+| 4 edge cases | no taper = B; e = B/2 = closed form (0.514286 B); channel at RF = at baseband | 1e-12 / 1e-7 / 1e-9 |
+
+- **Not covered:** edge widths above B/2 or ≤ 0 (D2-21 below).
+
+**Also changed.** `runAllTests`: seventh, count 31. Docs: tests.html (row, section `#nbw`, check matrix regenerated,
+counts 31); physics.html (one sentence under the radiometer equation); roadmap (a done row); figures README; changelog.
+Notes: the helpers paragraph, the tests table and the runAllTests row. D2-17 (below): tested.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -711,7 +736,8 @@ row. D2-18 (below): tested.
 | D2-14 | 5b dedispersion | dedisperseChannels.m:102 | One common valid range for all channels: the bottom channel's 31.5 ms sweep (DM 25) cuts the end of every channel. The upper channels discard valid data, on average ~18 ms (~9 % of a 0.2 s file). Negligible in long runs; in streaming (F) the sweep is latency, not loss | none |
 | D2-15 | 5b dedispersion | chirp DM | A DM error enters here. The chirp uses the ephemeris DM; a true DM off by δDM = 1e-3 shifts the TOA by 2.2 µs (band-mean of K·δDM/f²; notes §9) and smears the summed pulse by 1.3 µs across the band. The simulation generates and processes with the same DM, so no test can see it | block D (TOA corrections) |
 | D2-16 | 5b dedispersion | time-bin noise | Power bins in the channelized path are correlated (lag 1 > 0, variance below the radiometer value; test 4). They nearly cancel inside a phase bin, so the radiometer noise model with B_noise 391.6 MHz holds for the fold. It would not hold for a much finer bin rate (bins ≲ 1/B_ch) | understanding |
-| D2-17 | tests | noiseBandwidth.m | No test of its own. `processIQ`, `foldToTOA` and `dedisperseChannels` take B_noise from it, so an error would shift every σ and SNR prediction. Check against the exact integral of the tapers | test gap |
+| D2-17 | tests | noiseBandwidth.m | No test of its own. `processIQ`, `foldToTOA` and `dedisperseChannels` take B_noise from it, so an error would shift every σ and SNR prediction. Check against the exact integral of the tapers | tested 27 Oct (testNoiseBandwidth) |
 | D2-18 | tests | detectPower | Only indirect checks: testDetectChannels (rows = detectPower per channel) and testDedisperseChannels (end to end). No direct check of the detected power's mean and variance against their prediction | tested 27 Oct (testDetectPower) |
 | D2-19 | 5 dedispersion | applyInverseDispersion.m:143 | The default guard is 2001 samples, not 2000: ceil(20/8 MHz × 800 MHz) evaluates ceil(2000.0000000000002). Harmless (the tests use the same formula); round(…) or a small tolerance would give 2000 | none |
 | D2-20 | 5 dedispersion | applyInverseDispersion.m:231, 241 | Two stale `%#ok<NASGU>` suppressions on the onCleanup lines (checkcode: "the message is no longer generated"); cosmetic, in HEAD before today | cleanup |
+| D2-21 | helpers | noiseBandwidth.m | No input checks. An edge wider than B/2 makes the low and high edge regions overlap, and the second assignment overwrites the first instead of multiplying; a width ≤ 0 is silently ignored or divides by 0. No caller does either (widths are 2 % of the band) | none (note) |
