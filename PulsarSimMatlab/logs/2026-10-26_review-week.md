@@ -322,6 +322,161 @@ detectPower.m:
 
 Only today's grid is tested (R-C1: β = 0, oversampling 2, `BlockOut` bit for bit, the refusals).
 
+## Day 2: RFI excision (`detectRFI`, `periodicRFI`, `blankChannels`)
+
+**Physics.**
+- **Why before dedispersion.** In the channel samples (0.24 µs each) a 2 µs radar pulse is a few samples in one or
+  two channels. After dedispersion it would be smeared over the in-channel sweep (0.16–0.38 ms at DM 25).
+- **Why blank instead of subtract.** At −54 dB one radar pulse holds the energy of ~80 000 pulsar pulses: even
+  99.9 % subtraction would leave more RFI than pulsar. Blanking sets signal and noise to 0 together; the exact
+  weights follow in blankingWeights.
+- **The statistic.** Per channel, the power |x|² is averaged over windows of 1, 2, 4, 8 and 16 samples
+  (half-overlapping).
+  - Noise power per sample is exponential. A window's sum is Σλ_k·E_k, with λ_k the eigenvalues of the channelizer's
+    sample correlation (ρ(1) = 0.05).
+  - The exact survival function (matrix exponential) gives thresholds of 13.82 / 8.39 / 5.39 / 3.68 / 2.69 × the
+    baseline at P_FA 1e-6 per window.
+  - Expected false windows over 0.2 s, all channels: 106.7 / 106.7 / 53.3 / 26.7 / 13.3 (rechecked).
+- **The baseline** is median(|x|²)/ln 2 per 16 ms block (robust; exact for exponential power), from fully supported
+  samples. A second pass re-estimates it without the flagged samples.
+- **Per-channel thresholds (since 21 Oct).** A narrow noise-like carrier is still Gaussian but correlated over ~20
+  samples, so white thresholds flag its own peaks. From pass 2 a channel takes thresholds from its own measured
+  autocorrelation (lags 0–15), but only if they move by > 1 %; clean channels stay bit for bit.
+- **The guards:**
+  - **time:** ±10 channel samples around each flagged window (the prototype's half-length / D);
+  - **frequency:** a strong event (peak ≥ 100 × the baseline) is also blanked in ±7 neighbouring channels at the
+    same time, against spectral sidelobes that a pulsar-locked radar would fold up coherently (B5b).
+- **`blankChannels`** zeroes the masked samples in copies (the raw files stay).
+- **`periodicRFI`** predicts and blanks every pulse of a periodic emitter, also the undetected weak ones. It is off
+  by default since 9 Oct (the false-emitter bug; design parked).
+- **Validity.** Up to a pulsar of about −5 dB. A brighter pulse flags itself (10 % of its 16-sample windows at 0 dB),
+  which the weights do not model. The target (−25 … −54 dB) cannot trigger anything.
+
+**Code.**
+
+detectRFI.m:
+
+| Lines | Block |
+|---|---|
+| 177–205 | memory check, guard, thresholds from the channelizer's ρ (`windowThresholds`, exact via `sumExpSurvival`) |
+| 207–225 | baseline blocks |
+| 227–308 | per channel and pass: own correlation and thresholds (pass ≥ 2), baseline per block, windows by cumulative sums, coverage with the guard, intervals, peaks → strong events |
+| 309–318 | frequency guard; the mask is normalized |
+| 320–366 | info |
+
+blankChannels.m: block-wise copy with the masked samples set to 0 (exact, independent of the block size).
+
+**Tests.**
+- testDetectRFI, validated:
+  1. noise only: baseline, flag counts = nWindows·P_FA at 1e-3 and 1e-4 (the exact distribution, not the Gamma
+     approximation), blanked fraction;
+  2. the −5 dB pulsar: flags on and off the pulse against the prediction;
+  3. RFI: radar energy removed > 0.9999, impulses > 0.95, the carrier and GNSS not blanked; 3d the frequency guard;
+  4. per-channel thresholds: three 200 kHz carriers; P_FA 1e-3 flags/expected 1.07 / 1.06 / 1.12 / 1.15 / 0.96
+     against 1.8–63× with white thresholds.
+- testBlankChannels: exact zeros, mask normalization, block size, empty mask, interface.
+- testPeriodicRFI, testRadarEdges, testRfiGating, testRfiNoise; runRFITest (the B4/B5e tables), runLockedRadar.
+
+## Day 2, stage 5b: coherent dedispersion per channel (`dedisperseChannels`)
+
+**Physics.**
+- **Same filter, smaller pieces.** Dispersion is a linear filter, so the full-band chirp
+  H(f) = W(f)·exp(−2πi·K·DM·(f − f_ref)²/(f·f_ref²)) can be applied piece by piece. Each channel gets the same
+  function of RF frequency, restricted to its 3.125 MHz. Filters commute, so channelize-then-dedisperse equals
+  dedisperse-then-channelize inside each channel's flat band (test 2).
+- **Why coherent inside a channel.** The smear inside one 3.125 MHz channel is 374 µs at the bottom and 159 µs at the
+  top (DM 25). Only shifting the channels (incoherent dedispersion) would leave that smear.
+- **No separate shift step.** f_ref is the band top (1.6 GHz) for every channel. Each channel's chirp then also holds
+  its delay to 1.6 GHz: 31.5 ms for the bottom channel, 12.6 ms mid-band and 0.16 ms at the top. All channels come out
+  aligned at 1.6 GHz on the same sample grid. The bulk delay τ(1.6 GHz) = 40.5 ms is not removed (the predictor
+  carries it).
+- **Channels tile the band.** The chirp is zero outside ±1.5625 MHz with sin² edges of 62.5 kHz (2 % of a channel).
+  This cuts away the filterbank's transition region (oversampling 4/3).
+  - Neighbouring channels do not overlap, so their noise is independent and the detected powers simply add.
+  - Per channel ∫W² = 3.047 MHz, × 128 = 390.0 MHz: exactly the full-band path's 390.0 MHz (8 MHz edges).
+  - B_noise per channel = 3.060 MHz, × 128 = 391.6 MHz.
+  - The price: a 125 kHz notch at each channel boundary (D2-2, the edge-carrier test).
+- **Why per channel: memory.**
+
+  | DM | full band at 800 MS/s | bottom channel at 4.17 MS/s |
+  |---|---|---|
+  | 25 | FFT 2^26, 3.8 GB | 2^19, 29 MB |
+  | 50 | 2^27, 7.5 GB | 2^20, 59 MB |
+  | 100 | 2^28, 15 GB | 2^21, 117 MB |
+
+  The FFT must exceed twice the overlap (sweep × rate + guards). With the 4 GB default the full-band path stops at
+  DM ≈ 33.
+- **The guard** is 20 / edge width = 320 µs (1334 channel samples) on each side, for the taper's ringing. The leakage
+  self-check (one extra IFFT per channel, warning above 1e-6) is on by default.
+
+**Code** (dedisperseChannels.m, 147 lines): a loop that calls the validated applyInverseDispersion per channel.
+- The call at :84 passes the channel band fc ± dF/2, RefFreq 1.6 GHz and AllowRefOutsideBand. With the reference
+  outside the channel, nPast is the guard only and nFuture is the delay to 1.6 GHz plus the guard
+  (applyInverseDispersion.m:146–147).
+- The common valid range at :102 is the channelizer's range minus the largest nPast/nFuture.
+- B_noise at :103.
+- Edge width, bulk delay and N come from channel 1: the same for every channel by construction.
+
+**Tests** (testDedisperseChannels, validated):
+1. the full-band path is bit-identical after the AllowRefOutsideBand change;
+2. commutation in the interior channels: |ρ| > 0.9999, phase < 1e-3 rad, power within 0.2 %. This checks the chirp
+   segments, the inter-channel delays and the phase reference at once;
+3. end to end against the full band, same data: TOA differences against their predicted scatter (χ², mean), SNR
+   against the taper prediction, fold noise ratio;
+4. detected-power noise per time bin: in a 3 MHz channel the power is correlated over ~0.33 µs against 0.96 µs bins
+   (bin rate 1.0417 MHz = channel rate / 4). The variance is below the radiometer value and the lag-1 correlation is
+   positive; both match the exact prediction and nearly cancel within a phase bin.
+
+## Day 2: missing unit tests, stage 2 (`testApplyDispersionStream`, R-D1)
+
+Jasper, 27 Oct: filling in the missing unit tests is part of the review week ("let's consider filling in the
+missing unit tests part of the review week"). Claude may run MATLAB itself; a test counts as validated only after
+Jasper's run.
+
+**The gaps (sweep of tests/ against functions/, earliest stages first).**
+- Stage 1 has its test (R1, 13 Oct).
+- Stages 2–4 had none: `applyDispersionStream` (R-D1), `addNoiseAndRFI` (R-N1: the noise level against the SNR
+  definition; the older RFI types only as a regression), `applyIQmodulation` (R-I1).
+- Stage 5 (`applyInverseDispersion`): a bit-for-bit regression and the comparison with the channel path only, no
+  absolute round trip (R-V2). Stage 6 (`detectPower`): only indirect checks (D2-18). Stage 5a: only today's grid
+  (R-C1).
+- Helpers without a test of their own: `noiseBandwidth` (D2-17), `combineChannels` (exercised by the TOA tests),
+  `processIQ`'s `'Reuse'` branch (D1-6). No test runs `main.m`.
+
+**Physics checked.** From input file to output file the stage applies H_eff(f) = W(f)·exp(iφ(f)),
+φ = 2π·K·DM·(f − fRef)²/(f·fRef²) (the kernel's s0 shift removed again). The group delay is exactly
+τ(f) − τ(fRef). The first kernel had the wrong sign and its forward + inverse round trip still worked, so the test
+compares every output with this formula, computed in the test in double precision; it never calls the kernel code.
+
+**The test** (`tests/testApplyDispersionStream.m`, ~3 s, own files in tempdir; band 1.2–1.6 GHz at 4 GHz; DM 0.05
+except check 3). All seven checks pass in Claude's runs (twice, also inside `runAllTests` with the generator test) and in
+Jasper's run (27 Oct, the same numbers; with testGeneratePulsarSignal): validated. The two warnings in the
+output are provoked on purpose (check 6 here, the generator's 25 % duty check).
+
+| Check | Result | Limit |
+|---|---|---|
+| 1 format and info | 21 of 21 fields | exact |
+| 2 transfer function from one impulse (RefFreq fHigh, 1.4 GHz, fLow; DM 0; EdgeFrac 0.01, 0.05) | relative error energy 0.9–4.1e-12; group delays within 7.4 ps | 1e-9 |
+| 3 five tone bursts at DM 5 (1.25–1.55 GHz, σ 0.5 µs) | centroid − prediction ≤ 9e-4 samples; energy kept to 6e-7 | 0.01 sample; 1e-5 |
+| 4 overlap-add vs one double FFT (automatic, M − 1 = 15 blocks, 300,007, 400,000 = 1-sample last block, one block) | relative rms 1.1e-6, file ends 8e-7 to 1.2e-6; a 5001-sample file (< s0, flush only) 3.1e-7 | 1e-5 |
+| 5 power | kernelEnergy 0.19500000 = 2(B − 1.25·edgeW)/fs; white-noise power −0.33σ (σ 1.7e-3) | 1e-6; 4σ |
+| 6 leakage | ≤ 4e-12 in 10 default runs; GuardTime 2/edgeW: 3.59e-8, warns, error energy / leakage = 1.00000 | 1e-10; 1 % |
+| 7 input checks | 8 of 8 refused with their ids | — |
+
+- **Prediction for the delays.** The burst's centroid moves by the group delay averaged over its own power spectrum
+  (exact where |H| = 1). The plain τ(f0) − τ(fRef) is 2.2–5.2 samples off (curvature of τ across the burst's
+  band). The plan said 4–10; the power spectrum is √2 narrower than the amplitude spectrum.
+- **Beyond the plan:** from notes §10 D1's spec, the EdgeFrac cases, the file shorter than s0 and the 1e-10 leakage
+  limit. The short-guard ratio limit was tightened from a factor 2 to 1 % after the first run gave 1.00000.
+- **Not covered:** R-D2 (one refFreq for the simulation and the observer: a design question). DM 25 (main since
+  20 Oct) runs the same code with a 5× longer kernel. The sky page's round-trip line (2e-6) still comes from the
+  NumPy port; R-V2 replaces it.
+
+**Also changed.** `runAllTests`: the test runs second, count 26. Docs: tests.html (table row, section `#disp`, the
+check matrix regenerated by `gen_testmatrix.py`, the data-flow box "1 · sky stages", counts 26); sky.html
+validation (the NumPy-port line replaced by the test's numbers); roadmap R-D1 done; figures README. Notes: §5.2
+Tests paragraph, §10 D1 done, tests table row and the runAllTests row. `api.html` unchanged (tests are not in it).
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -361,3 +516,15 @@ Only today's grid is tested (R-C1: β = 0, oversampling 2, `BlockOut` bit for bi
 | D2-4 | 5a filterbank | output files | One file per channel: 128 files, 0.85 GB per 0.2 s. Fine for simulation; F streams in memory | for F |
 | D2-5 | 5a filterbank | channelizeIQ.m:221–224 | The 4096-tap weighted sum and the fold are accumulated in single precision; the tests show 2.7e-7 relative error, far below the noise | none |
 | D2-6 | drivers | runScenario.m:112, runShip.m:86 | Scripts share MATLAB's base workspace. runShip leaves `psr` as a 1×2 struct array; runScenario then fails at `psr.B0329 = struct(...)` ("Scalar structure required", Jasper's run 27 Oct). The same kind of leftover as the experiments' `restoreDir`. Fix options: `clear psr` at runScenario's top, or local names; for now run after `clear` (and cd back to the repo folder) | driver robustness (day 5) |
+| D2-7 | excision | main.m reference run | main's −5 dB reference run sits exactly at the excision's validity limit: its 16-sample windows flag 109 against 13.3 expected (8×), on the pulse; SNR 92.4 → 92.0 (−0.4 %) with excision. Harmless for the weak target, but main's excision numbers are the pulse, not RFI | understanding; docs |
+| D2-8 | excision | baseline median/ln 2 | Assumes exponential power. In a channel dominated by a constant-envelope signal (carrier, GNSS) the level is overestimated (up to 1/ln 2), so it flags less. Intended: such channels are notched by the optimal weighting | none |
+| D2-9 | excision | detectRFI, periodicRFI, blankingWeights | Whole-file stages: one channel in memory (53 MB per 0.2 s; 267 MB per s). Real-time F needs streaming versions (notes §9) | for F |
+| D2-10 | excision | periodicMask false | periodicRFI is off (the false-emitter bug, design parked 9 Oct), so weak periodic RFI (radar sidelobes at −35 dB: ~40 % of pulses caught) is only partly blanked. Doppler decorrelates topocentric RFI over long folds (block D), but that is unquantified (excision#locked) | parked |
+| D2-11 | excision | per-channel thresholds | In the 26 Oct straddling test a 200 kHz carrier at −11 dB inside a channel still had 23 flagged windows against 2.4 expected (r 10.3). Residual data-dependent blanking at higher INR; small at 0.2 s | watch |
+| D2-12 | excision | frequency guard ±7 | Chosen for the pulsar-locked radar (1 µs bias only below −51 dB); costs ~0.004 % of the data per guard channel. Tuned on one radar model | none |
+| D2-13 | 5b dedispersion | full-band reference path | With MaxMemoryGB 4 the full-band path stops at DM ≈ 33 (FFT 2^26 = 3.76 GB at DM 25; 2^27 above DM 33). B0329+54 (26.8) fits; B1937+21 (71) or the Crab (56.8) need a larger budget for the full-band cross-check. Channelized: 29 MB at DM 25, 117 MB at DM 100 | understanding |
+| D2-14 | 5b dedispersion | dedisperseChannels.m:102 | One common valid range for all channels: the bottom channel's 31.5 ms sweep (DM 25) cuts the end of every channel. The upper channels discard valid data, on average ~18 ms (~9 % of a 0.2 s file). Negligible in long runs; in streaming (F) the sweep is latency, not loss | none |
+| D2-15 | 5b dedispersion | chirp DM | A DM error enters here. The chirp uses the ephemeris DM; a true DM off by δDM = 1e-3 shifts the TOA by 2.2 µs (band-mean of K·δDM/f²; notes §9) and smears the summed pulse by 1.3 µs across the band. The simulation generates and processes with the same DM, so no test can see it | block D (TOA corrections) |
+| D2-16 | 5b dedispersion | time-bin noise | Power bins in the channelized path are correlated (lag 1 > 0, variance below the radiometer value; test 4). They nearly cancel inside a phase bin, so the radiometer noise model with B_noise 391.6 MHz holds for the fold. It would not hold for a much finer bin rate (bins ≲ 1/B_ch) | understanding |
+| D2-17 | tests | noiseBandwidth.m | No test of its own. `processIQ`, `foldToTOA` and `dedisperseChannels` take B_noise from it, so an error would shift every σ and SNR prediction. Check against the exact integral of the tapers | test gap |
+| D2-18 | tests | detectPower | Only indirect checks: testDetectChannels (rows = detectPower per channel) and testDedisperseChannels (end to end). No direct check of the detected power's mean and variance against their prediction | test gap |

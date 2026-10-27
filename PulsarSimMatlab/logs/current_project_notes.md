@@ -403,6 +403,23 @@ blockLen, nBlocks, memEstimateGB, …
 81.5 s. The `MaxMemoryGB` default is now 16 GB in the code (machine: 24 GB unified
 memory), which covers this 11.8 GB run.
 
+**Tests (`tests/testApplyDispersionStream.m`, 27 Oct, review item R-D1; ~3 s; validated:
+Jasper's run 27 Oct, the same numbers as Claude's runs).** Ground truth = the transfer function above without
+the s0 shift, W·exp(iφ), computed in the test in double precision (not the kernel code);
+a forward + inverse round trip could not catch a wrong sign. Band 1.2–1.6 GHz at 4 GHz,
+DM 0.05 except (3). (1) Format and info, 21 fields. (2) Impulse response vs the formula on
+the 0–fs/2 grid: relative error energy 1.2e-12 (limit 1e-9) for RefFreq fHigh / 1.4 GHz /
+fLow, DM 0 (W only) and EdgeFrac 0.01 / 0.05; group delays within 7.4 ps. (3) DM 5: five
+Gaussian tone bursts (σ 0.5 µs, 1.25–1.55 GHz) at one instant; energy-centroid shift =
+the power-weighted mean group delay over each burst's spectrum within 9e-4 samples (limit
+0.01); the plain τ(f0) − τ(fRef) is 2.2–5.2 samples off (curvature of τ); energy kept to
+6e-7. (4) Overlap-add vs one FFT in double: automatic, M − 1 (15 blocks), 300,007,
+400,000 (1-sample last block), one block: relative rms 1.1e-6 (limit 1e-5), file ends
+included; a 5001-sample file (< s0 = 10,000; flush only) 3.1e-7. (5) kernelEnergy = 0.195
+= 2(B − 1.25·edgeW)/fs; white-noise output power −0.33σ (σ 1.7e-3). (6) Leakage ≤ 4e-12
+in 10 default runs (limit 1e-10); GuardTime 2/edgeW: 3.59e-8, warns, error energy /
+leakage = 1.00000. (7) Eight bad inputs refused with their ids.
+
 ### 5.3 `addNoiseAndRFI(inFile, outFile, fs, ...)` + `rfiSource(type, ...)` [validated: noise −5 dB MC; all RFI types 5 Oct, §7; B5a, B5c 8 Oct; B5d 9 Oct (Jasper's run); B5e realistic scenario 9 Oct, Claude's runs; validated 12 Oct by a rerun (Claude's run at Jasper's request)]
 
 **Physics / placement.** Noise and man-made interference are added **at the receiver
@@ -3386,7 +3403,9 @@ barycentric corrections, navigation solution).
      phase wrap).
 
    Stage 2, dispersion (`applyDispersionStream`, review 13 Oct; note only):
-   - **D1** unit test `tests/testApplyDispersionStream.m` (the stage-2 part of item 12's
+   - **D1** unit test `tests/testApplyDispersionStream.m`: **done 27 Oct** (§5.2; (a)–(f)
+     below all covered, plus the full transfer function from an impulse; validated: Jasper's
+     run 27 Oct). Spec as noted 13 Oct (the stage-2 part of item 12's
      item 30; own files in tempdir like the generator test; short file, small DM e.g. 0.1 →
      kernel ~0.5 M samples): (a) Gaussian tone bursts at a few frequencies arrive at
      τ(f) − τ(refFreq); (b) output = direct convolution for 2–3 `BlockLen` values, incl. a
@@ -4235,7 +4254,8 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
 | `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |
-| `tests/runAllTests.m` | (since 22 Oct: **25** unit tests, list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testApplyDispersionStream.m` | R-D1 (27 Oct): impulse response vs the help-text transfer function (3 RefFreq, DM 0, 3 EdgeFrac), tone-burst delays at DM 5, overlap-add vs one double FFT (5 BlockLen, a file shorter than s0), kernelEnergy and output power, leakage (and its warning), 8 refusals (§5.2) | passes (Jasper's run, 27 Oct) |
+| `tests/runAllTests.m` | (since 27 Oct: **26** unit tests, testApplyDispersionStream second; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |

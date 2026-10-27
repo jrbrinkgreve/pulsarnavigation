@@ -818,11 +818,12 @@ complete sweep (<code>fullySupported</code>), and the fold uses only those.</p><
 
 <h3 id="disp-valid">Validation</h3>
 <ul>
-<li>NumPy port: group delays exact to 10⁻⁴ µs, leakage ~10⁻¹², overlap-add equal to direct convolution (~10⁻⁷).</li>
+<li><code>testApplyDispersionStream</code> checks the stage against its formula (<a href="tests.html#disp">unit tests</a>). The
+impulse response matches with a relative error energy of 1.2·10⁻¹². At DM 5, tone bursts arrive within 0.001 sample of the predicted
+delay. Streaming in blocks matches one long convolution to 1.1·10⁻⁶.</li>
 <li>Round trip forward → IQ → inverse: ~2·10⁻⁶.</li>
 <li><code>plotDispersionCheck</code>: the raw and dispersed dynamic spectra follow the expected sweep; the band-integrated power is as
 expected.</li>
-<li>There is no MATLAB unit test yet; one is noted on the roadmap (<a href="roadmap.html">review item R-D1</a>).</li>
 </ul>
 
 <h3>History: why the current form</h3>
