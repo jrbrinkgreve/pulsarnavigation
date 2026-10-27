@@ -6,6 +6,7 @@ tests = [('testGeneratePulsarSignal', 'generatePulsarSignal', '', 'A', 'P', 5), 
          ('testApplyDispersionStream', 'applyDispersionStream', '', 'A', 'P', 3),   # 27 Oct 2026 (review R-D1)
          ('testAddNoiseAndRFI', 'addNoiseAndRFI', '', 'A', 'P', 4),   # 27 Oct 2026 (review R-N1)
          ('testApplyIQmodulation', 'applyIQmodulation', '', 'A', '', 2),   # 27 Oct 2026 (review R-I1)
+         ('testApplyInverseDispersion', 'applyInverseDispersion', '', 'A', '', 2),   # 27 Oct 2026 (review R-V2)
          ('testChannelizeIQ', 'channelizeIQ', '', 'A', 'P', 10),
          ('testDedisperseChannels', 'dedisperseChannels', 'R', 'A', 'P', 15),
          ('expBlankingVariance', 'experiment 3a', '', 'A', 'P', 15),
@@ -61,7 +62,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {H}" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The 28 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (seventh row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption>The 29 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (eighth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>

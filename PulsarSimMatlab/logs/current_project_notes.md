@@ -661,6 +661,30 @@ cold-plasma model.
 Per channel (`dedisperseChannels`, §5.16): nPast 1334 (guard 20/62.5 kHz = 320 µs), nFuture
 1467–27,595, Nfft 2^14–2^18, 1.4–2.6 s for all 128 channels.
 
+**Leakage check in double (27 Oct, bug §8 #23).** The self-check summed |h|² and computed
+1 − inside/E in single precision, which resolves only 2^-24 = 6e-8 near 1: it reported 0 or
+multiples of 6e-8 (1.79e-7 for the reference setting) instead of the true ~1.2e-12. Both sums
+are now `sum(…, 'double')`; the output files are bit-identical (7 settings compared with the
+HEAD copy, incl. a DM 25 channel), only `info.leakage` (and dedisperseChannels' copy) changes.
+
+**Tests (`tests/testApplyInverseDispersion.m`, 27 Oct, review item R-V2; ~2 s; validated:
+Jasper's run 27 Oct, with testDedisperseChannels and testDetectChannels).** Ground truth = the help text's filter W·e^(−iφ)
+computed in the test; main's IQ settings, DM 0.05 on the full band, 25 per channel. (1)
+Format and info, 23 checks (nPast / nFuture / fullySupported formulas; the default guard is
+2001 samples: ceil(20/8 MHz × 800 MHz) = ceil(2000.0000000000002)). (2) Impulse response vs
+the formula, error energy 4–23e-14 for RefFreq fHigh / 1.4 GHz / fLow / 1.8 GHz (above,
+nPast = guard) / 1.1 GHz (below, nFuture = guard) and DM 0; group delays within 13 ps. (3)
+Round trip RF → applyDispersionStream → applyIQmodulation → here = the IQ of the input × W²
+(from its FFT in double): 1.93e-6 over all 800,000 samples (limit 1e-4). (4) dedisperseChannels
+on four fake channels (1, 64, 65, 128), DM 25, RefFreq 1.4 GHz: each channel = the formula
+(≤ 5.9e-14); nPast 1334 / 1334 / 2316 / 53,013, nFuture 80,957 / 2322 / 1334 / 1334; the common
+range [max(s1 + nPast), min(s2 − nFuture)]; DM 0 = taper only. (5) Overlap-save = one double
+FFT, 2.4–2.8e-7 for Nfft automatic / 2^17 / 2^18 / one block. (6) info.leakage = the formula's
+leakage on the run's Nfft grid: 1.170e-12 vs 1.154e-12, 3.570e-8 vs 3.570e-8 (2/edgeW),
+1.212e-6 vs 1.212e-6 (0.1/edgeW, the only one that warns); the noise error is a bound, not
+an equality (7.6e-14 = 0.065 × leakage; a leaked lag only hurts the start of each block).
+(7) Ten refusals.
+
 ### 5.6 `detectPower(inFile, outFile, fs, fLO, f_out, ...)` [validated]
 
 **Physics.** After dedispersion the pulse is still noise; only the variance carries the
@@ -2744,6 +2768,10 @@ identical; east 414.2, north 182.6 km (DR 355.1), stated 155.0 / 142.1 km, pulls
     carrier channels then flagged ~2× at PFA 1e-3 (baseline ~9 % low); fixed before commit (§5.20).
 22. **Docs formula:** formulas.html's one-pulsar precision lacked 1/cos δ (18.0 km written vs the row's own 31.1 km;
     fixed 23 Oct). The notes' §6 now has the corrected row.
+23. **applyInverseDispersion's leakage check in single precision** (27 Oct, found by testApplyInverseDispersion
+    check 6): `sum(abs(h).^2)` and 1 − inside/E in single resolve only 6e-8, so `info.leakage` was 0 or a multiple
+    of 6e-8 (1.79e-7) instead of ~1.2e-12, and could not tell a good guard from a marginal one. Fix: the two sums
+    in double; output bit-identical. Lesson: a diagnostic computed in the data's precision can hide in its noise.
 
 ---
 
@@ -3574,7 +3602,10 @@ barycentric corrections, navigation solution).
      current numbers (800 MHz, 0.1 s: 2001, 5,043,956, 2^25 in 3 blocks, [2002, 74,956,045]),
      checked against the saved run `data/mc/mc_dedisp_info.mat`; the old ones kept as history.
      Docs already correct (`fullband.html`).
-   - **V2** extend `tests/testDedisperseChannels.m`: (a) absolute round trip forward → IQ →
+   - **V2 done 27 Oct** as a new test, `tests/testApplyInverseDispersion.m` (§5.5; testDedisperseChannels
+     left unchanged): (a)–(c) below all covered, plus the transfer function and the leakage check, which
+     it found broken (§8 #23, fixed); validated: Jasper's run 27 Oct. Spec as noted 16 Oct:
+     extend `tests/testDedisperseChannels.m`: (a) absolute round trip forward → IQ →
      inverse = the band-limited input (W²-filtered), replacing the NumPy round trip (2e-6, not in
      the repo); today the channel path is only compared with the full-band path, which is
      regression-protected against a frozen file (could be part of D1); (b) a `RefFreq` inside
@@ -4296,7 +4327,8 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `tests/testApplyDispersionStream.m` | R-D1 (27 Oct): impulse response vs the help-text transfer function (3 RefFreq, DM 0, 3 EdgeFrac), tone-burst delays at DM 5, overlap-add vs one double FFT (5 BlockLen, a file shorter than s0), kernelEnergy and output power, leakage (and its warning), 8 refusals (§5.2) | passes (Jasper's run, 27 Oct) |
 | `tests/testAddNoiseAndRFI.m` | R-N1 (27 Oct): the SNR definition (in-band power ratio = ρ, noise level, whiteness, input independence), cw / bpsk / impulse against INR, block size bit for bit (noise + six sources), predictPerformance against quadrature and the 388·ρ weak form, 7 refusals (§5.3) | passes (Jasper's run, 27 Oct) |
 | `tests/testApplyIQmodulation.m` | R-I1 (27 Oct): six tones = the complex envelope (mapping, factor 2, LO phase, timing), burst centroid (G removed), power ratio 2, mirror / stopband / alias suppression, 3 BlockLen, 3 warnings, 8 refusals (§5.4) | passes (Jasper's run, 27 Oct) |
-| `tests/runAllTests.m` | (since 27 Oct: **28** unit tests, testApplyDispersionStream, testAddNoiseAndRFI and testApplyIQmodulation second to fourth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testApplyInverseDispersion.m` | R-V2 (27 Oct): impulse response vs the formula (5 RefFreq incl. above / below the band, DM 0), round trip RF → dispersion → IQ → dedispersion = input × W², dedisperseChannels with RefFreq inside the band (4 fake channels, DM 25 and 0), overlap-save vs one double FFT (4 Nfft), leakage vs its formula (found §8 #23), 10 refusals (§5.5) | passes (Jasper's run, 27 Oct) |
+| `tests/runAllTests.m` | (since 27 Oct: **29** unit tests, testApplyDispersionStream, testAddNoiseAndRFI, testApplyIQmodulation and testApplyInverseDispersion second to fifth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |

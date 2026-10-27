@@ -821,7 +821,8 @@ complete sweep (<code>fullySupported</code>), and the fold uses only those.</p><
 <li><code>testApplyDispersionStream</code> checks the stage against its formula (<a href="tests.html#disp">unit tests</a>). The
 impulse response matches with a relative error energy of 1.2·10⁻¹². At DM 5, tone bursts arrive within 0.001 sample of the predicted
 delay. Streaming in blocks matches one long convolution to 1.1·10⁻⁶.</li>
-<li>Round trip forward → IQ → inverse: ~2·10⁻⁶.</li>
+<li>Forward dispersion, IQ and dedispersion together give back the band-limited input to 1.9·10⁻⁶
+(<a href="tests.html#inv"><code>testApplyInverseDispersion</code></a>).</li>
 <li><code>plotDispersionCheck</code>: the raw and dispersed dynamic spectra follow the expected sweep; the band-integrated power is as
 expected.</li>
 </ul>

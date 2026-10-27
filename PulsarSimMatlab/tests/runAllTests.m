@@ -3,7 +3,7 @@ function results = runAllTests(names)
 %{
 Run from the PulsarSimMatlab folder: run('tests/runAllTests.m') (all), or
 runAllTests(["testRfiNoise" "testRadarEdges"]) with tests/ on the path (a subset). 6-9 min
-for all 28 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
+for all 29 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
 testRFIModel ~20 s).
 
 Each test runs in its own try/catch, so one failure does not stop the others; its own
@@ -16,10 +16,10 @@ Data: the tests read only their frozen copy in data/test/ with their own setting
 runs and pipelineParams edits do not change them.
 
 Order: pipeline order, and the tests that make shared files before the ones that read them:
-testGeneratePulsarSignal, testApplyDispersionStream, testAddNoiseAndRFI and
-testApplyIQmodulation (stages 1-4, own files only) first; testChannelizeIQ and
-testDedisperseChannels rewrite the seed-43 channel files in data/test/chan/, testDetectChannels
-the 128-channel power
+testGeneratePulsarSignal, testApplyDispersionStream, testAddNoiseAndRFI,
+testApplyIQmodulation and testApplyInverseDispersion (stages 1-5, own files only) first;
+testChannelizeIQ and testDedisperseChannels rewrite the seed-43 channel files in data/test/chan/,
+testDetectChannels the 128-channel power
 file; the rest read them (or make their own data in tempdir). Not run: demo*, exp*
 (demonstrations, experiments), make* (they freeze data and references) and testParams (the
 settings). A test*.m file that is not in the list below runs at the end, with a note.
@@ -34,7 +34,7 @@ arguments
     names (1,:) string = strings(1, 0)
 end
 
-order = ["testGeneratePulsarSignal", "testApplyDispersionStream", "testAddNoiseAndRFI", "testApplyIQmodulation", "testChannelizeIQ", "testDedisperseChannels", "testDetectChannels", ...
+order = ["testGeneratePulsarSignal", "testApplyDispersionStream", "testAddNoiseAndRFI", "testApplyIQmodulation", "testApplyInverseDispersion", "testChannelizeIQ", "testDedisperseChannels", "testDetectChannels", ...
          "testFoldWeights", "testChannelTOA", "testOptimalTOA", "testBlankingWeights", ...
          "testBlankChannels", "testDetectRFI", "testPeriodicRFI", "testRadarEdges", ...
          "testRfiGating", "testRfiNoise", "testSimulateFold", "testRFIModel", "testMakeTrajectory", "testDelayModel", "testMakePredictor", "testFoldPredictor", "testTrueResiduals", "testMakeClock", "testNavFit", "testNavFilter", "testLoadEphemeris"];

@@ -202,8 +202,9 @@ clear f W lo hi cyc idx ks
 leakage = NaN;
 if opts.CheckLeakage
     h = ifft(H);
-    E = sum(abs(h).^2);
-    inside = sum(abs(h(1:nPast+1)).^2) + sum(abs(h(Nfft-nFuture+1:Nfft)).^2);
+    % sums in double: in single, 1 - inside/E resolves only 2^-24 = 6e-8 (27 Oct 2026)
+    E = sum(abs(h).^2, 'double');
+    inside = sum(abs(h(1:nPast+1)).^2, 'double') + sum(abs(h(Nfft-nFuture+1:Nfft)).^2, 'double');
     leakage = max(0, 1 - inside / E);
     clear h
     if leakage > opts.MaxLeakage

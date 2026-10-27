@@ -70,7 +70,8 @@ the guard (<code>nPast</code>), because <var>f</var><sub>ref</sub> is the top of
 <li><b>Write the filter directly on the FFT grid,</b> for the bins inside the band, with the phase in double precision. The data are
 complex, so there is no symmetry to use.</li>
 <li><b>Check the reach:</b> one inverse FFT of the filter shows how much of its response falls outside [−<code>nFuture</code>,
-+<code>nPast</code>]. That leakage must be tiny (0 in the reference run; warning above 10⁻⁶). This proves the overlap is long enough.</li>
++<code>nPast</code>]. That leakage must be tiny (about 10⁻¹² with the default guard; warning above 10⁻⁶). This proves the overlap is long
+enough.</li>
 <li><b>Stream with overlap-save:</b> one buffer holds [past | outputs | future]. Each FFT block keeps only the outputs whose whole
 window was inside the buffer, then the buffer shifts on.</li>
 <li><b>Mark the fully supported outputs:</b> samples <code>nPast</code> + 1 to <var>N</var> − <code>nFuture</code> saw their complete sweep.</li>
@@ -309,7 +310,10 @@ reaches forward, where overlap-add is the natural fit (<a href="sky.html#disp-wh
 <div class="callout why"><span class="ttl">A leakage check instead of a designed kernel</span>
 <p>Stage 2 builds a kernel in time and cuts it to length. Here the filter is applied directly as <var>H</var> on each block's FFT grid, so
 there is nothing to cut. What can go wrong is the opposite: a response that reaches further than the overlap and wraps around inside
-the block. The leakage check measures exactly that, on every run.</p></div>
+the block. The leakage check measures exactly that, on every run.</p>
+<details><summary>History</summary><p>Until 27 Oct 2026 the check summed in single precision. Near 1, single precision resolves
+only 6·10⁻⁸, so it reported 0 or a multiple of 6·10⁻⁸ instead of about 10⁻¹². <code>testApplyInverseDispersion</code> found
+it; the sums are now in double, and the output data did not change (bit for bit).</p></details></div>
 
 <div class="callout why"><span class="ttl">Only fully supported data go on</span>
 <p>The last 6.3 ms lack part of their sweep: stage 2 dropped the energy that would arrive after the end of the file, and a real
@@ -325,6 +329,15 @@ fully supported range travels with the data, and the fold uses only that (timeli
 <p>The stage trusts its inputs: the DM (a wrong DM leaves a residual sweep), the reference-frequency convention against the TOA
 definition, the receiver's frequency mapping (no spectral inversion assumed) and the true sample rate (passed through the info chain).
 See <a href="limits.html">limitations</a>.</p></div>
+
+<h3 id="dedisp-valid">Validation</h3>
+<ul>
+<li><code>testApplyInverseDispersion</code> checks the stage against its formula (<a href="tests.html#inv">unit tests</a>). The
+response to an impulse matches it with a relative error energy of at most 2.3·10⁻¹³, for six reference frequencies and DMs.
+Forward dispersion, IQ and this stage together give back the band-limited input to 1.9·10⁻⁶.</li>
+<li>Streaming by overlap-save matches one long FFT in double precision to 2.8·10⁻⁷, for four FFT sizes.</li>
+<li>The default output is the same bit for bit as the frozen reference file (<code>testDedisperseChannels</code>, test 1).</li>
+</ul>
 
 <h2 id="detect">6 · <code>detectPower</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = detectPower(inFile, outFile, fs, fLO, f_out, 'FullySupported', info_dedisp.fullySupported)</div>

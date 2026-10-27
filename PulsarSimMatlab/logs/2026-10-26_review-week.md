@@ -550,6 +550,54 @@ data-flow box "1 · stages 1–4", counts 28); receiver.html IQ validation (the 
 roadmap R-I1 done; figures README; changelog. Notes: §5.4 Tests paragraph, §10 I1 done, tests table and the
 runAllTests row.
 
+## Day 2: missing unit tests, stage 5 (`testApplyInverseDispersion`, R-V2) and a leakage-check fix
+
+Jasper: "plan the next unit test (R-V2, the dedispersion round trip)"; plan given (a new test instead of extending
+the validated testDedisperseChannels), then "Go ahead".
+
+**Physics checked.**
+- **The inverse filter.** Per baseband bin, RF f = fLO + f_bb: H = W(f)·e^(−iφ(f)), the conjugate of the forward
+  chirp; group delay −(τ(f) − τ(fRef)): the sweep collapses onto fRef; τ(fRef) (the bulk delay) stays in.
+- **Overlap-save reach.** nFuture = ⌈(τ(fLow) − τ(fRef))·fs⌉ + guard, nPast = ⌈(τ(fRef) − τ(fHigh))·fs⌉ + guard, each
+  ≥ guard; outputs nPast + 1 … N − nFuture fully supported.
+- **Round trip.** Forward × inverse = W² (the chirps cancel): the IQ of the input, band-limited by W².
+- **Channel path.** The same filter per channel with one common fRef; channels above fRef reach into the past.
+
+**The test** (`tests/testApplyInverseDispersion.m`, ~2 s, own files in tempdir). All seven checks pass in Claude's
+runs (also inside `runAllTests` with testDedisperseChannels and testDetectChannels) and in Jasper's run of the
+same three (27 Oct): validated, the fix included.
+
+| Check | Result | Limit |
+|---|---|---|
+| 1 format and info | 23 of 23 | exact |
+| 2 impulse response (RefFreq fHigh, 1.4 GHz, fLow, 1.8 GHz above, 1.1 GHz below; DM 0) | error energy 4–23e-14; group delays within 13 ps | 1e-9 |
+| 3 round trip RF → dispersion → IQ → dedispersion | input × W² to 1.93e-6 | 1e-4 |
+| 4 channel path, RefFreq 1.4 GHz, DM 25 (4 fake channels) | each = formula (≤ 5.9e-14); nPast up to 53,013 above, nFuture up to 80,957 below; common range right; DM 0 taper only | 1e-9 |
+| 5 overlap-save vs one double FFT (4 Nfft) | 2.4–2.8e-7 | 1e-5 |
+| 6 leakage vs its formula | 1.170e-12 / 1.154e-12; 3.570e-8; 1.212e-6 (warns); noise error ≤ 0.065 × leakage | 1 % + 1e-13; ≤ 2× |
+| 7 input checks | 10 of 10 | — |
+
+**Found and fixed: the leakage check summed in single precision** (applyInverseDispersion.m:205–206, bug §8 #23).
+- **Symptom (first run, check 6):** reported leakage 1.79e-7 at the default guard and 5.96e-7 at 0.5/edgeW (so the
+  10× shorter guard did not warn), but 0 at RefFreq 1.4 GHz, DM 0 and DM 5. All are multiples of 2^-24 = 6e-8: near 1,
+  1 − inside/E in single cannot resolve less. The true value (double sums) is 1.17e-12.
+- **Fix (Jasper: "Fix it"):** `sum(…, 'double')` for E and inside. The |h|² values themselves are fine in single
+  (1.165e-12 vs 1.154e-12 fully in double). No extra memory.
+- **Validation:** the HEAD copy (renamed `_old`) and the new code on 7 settings (full band: default, RefFreq 1.4 GHz,
+  Nfft 2^17, DM 0, RefFreq above the band, GuardTime 0.1/edgeW; one DM 25 channel): output files identical byte for
+  byte, info identical except `leakage`; testDedisperseChannels' bit-for-bit regression on the frozen file passes;
+  checkcode unchanged (two stale `%#ok` notes on the onCleanup lines, already in HEAD).
+- **Plan corrected:** the plan said "error energy = leakage within 1 %, as in stage 2". That holds for a truncated
+  kernel, not for overlap-save: a lag beyond the overlap disturbs only the start of each block (later outputs still
+  find its true sample in the buffer). So check 6 compares `info.leakage` with the same quantity from the formula,
+  and keeps the error as a bound (≤ 2 × leakage; measured 0.0004–0.065 ×).
+
+**Also changed.** `runAllTests`: fifth, count 29. Docs: tests.html (row, section `#inv` with a History box, check
+matrix regenerated, data-flow box "1 · stages 1–5", counts 29); fullband.html (leakage sentence ~1e-12, a History box
+in the leakage design box, a new Validation list for stage 5); sky.html (the round-trip line from the NumPy port →
+this test, 1.9e-6); roadmap R-V2 done; figures README; changelog. Notes: §5.5 (the fix and a Tests paragraph), §8 #23,
+§10 V2 done, tests table and the runAllTests row.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -601,3 +649,5 @@ runAllTests row.
 | D2-16 | 5b dedispersion | time-bin noise | Power bins in the channelized path are correlated (lag 1 > 0, variance below the radiometer value; test 4). They nearly cancel inside a phase bin, so the radiometer noise model with B_noise 391.6 MHz holds for the fold. It would not hold for a much finer bin rate (bins ≲ 1/B_ch) | understanding |
 | D2-17 | tests | noiseBandwidth.m | No test of its own. `processIQ`, `foldToTOA` and `dedisperseChannels` take B_noise from it, so an error would shift every σ and SNR prediction. Check against the exact integral of the tapers | test gap |
 | D2-18 | tests | detectPower | Only indirect checks: testDetectChannels (rows = detectPower per channel) and testDedisperseChannels (end to end). No direct check of the detected power's mean and variance against their prediction | test gap |
+| D2-19 | 5 dedispersion | applyInverseDispersion.m:143 | The default guard is 2001 samples, not 2000: ceil(20/8 MHz × 800 MHz) evaluates ceil(2000.0000000000002). Harmless (the tests use the same formula); round(…) or a small tolerance would give 2000 | none |
+| D2-20 | 5 dedispersion | applyInverseDispersion.m:231, 241 | Two stale `%#ok<NASGU>` suppressions on the onCleanup lines (checkcode: "the message is no longer generated"); cosmetic, in HEAD before today | cleanup |
