@@ -19,7 +19,7 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA: the catalogue estimate and the simulated 82–95 h) | parameters.html |
 | `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html |
 | `gen_experiments.py` | what each run script varies and keeps fixed (the voltage-chain scripts, runRFIProfile, and the fast-simulator scripts runScenario and runShip) | scripts.html |
-| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 29 tests of `runAllTests` and experiment 3a) | tests.html |
+| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 30 tests of `runAllTests` and experiment 3a) | tests.html |
 | `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record, blocks 1 to D (logged numbers) | results.html |
 | `gen_effects.py` | size of each effect if left out, as a timing error, with what block D models and what is parked | limits.html |
 | `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html |

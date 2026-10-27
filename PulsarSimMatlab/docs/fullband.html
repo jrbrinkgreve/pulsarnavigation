@@ -529,6 +529,9 @@ it carries through to the TOA.</p></div>
 standard deviation 1.0015 (expected 1 ± 0.0020). The per-pulse centroid offsets have an rms of 0.301 µs, against 0.277 µs expected.</li>
 <li>−5 dB: noise baseline 1.232 against 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
 <li>Run time 1.2 s per second of data (limited by reading the file).</li>
+<li><code>testDetectPower</code> checks the detector against its definition (<a href="tests.html#detpow">unit tests</a>). Every
+bin equals the mean of <var>I</var>² + <var>Q</var>² to 6.3·10⁻⁸, and a burst comes out at its true time to 4·10⁻⁸ bin. The bin
+variance matches the exact prediction from the noise spectrum within 1σ.</li>
 </ul>
 <p>Details in the <a href="results.html">validation record</a>.</p>
 

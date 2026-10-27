@@ -718,6 +718,20 @@ fullySupportedBins.
 case; B_noise ≈ 389.6 MHz for both tapers). Run: 0.17 s for 0.1 s at 800 MHz (saved run);
 1.2 s for 1 s at 500 MHz (30 Sep; I/O bound).
 
+**Tests (`tests/testDetectPower.m`, 27 Oct, review list D2-18; ~1 s; validated:
+Jasper's run 27 Oct).** Ground truth = the help text: bin k = mean of I² + Q² over its binLen
+samples at their centroid time; for complex Gaussian noise var(bin) = (1/binLen)·Σ_L (1 − |L|/binLen)
+|C(L)|². main's settings (800 MHz, f_out 1 MHz, binLen 800). (1) Format and info, 21 checks
+(800,123 samples → 1000 bins, 123 dropped; binTime0; fullySupportedBins = brute force). (2) Bins =
+the double mean of I² + Q² to 6.3e-8; BlockSamples 1001 and 300,007 = the default byte for byte.
+(3) A Gaussian power burst with T0 1.234 µs: the bin centroid = its true time to 4.3e-8 bin.
+(4) White noise (10,485 bins): mean +0.67σ, variance σ⁴/binLen +0.83σ, lag-1 +0.005 (±0.010);
+taper-shaped noise (W of 1.2–1.6 GHz, 8 MHz edges): mean −1.04σ, variance 0.986 of the exact sum
+(−1.02σ), the radiometer P²/(B_noise·dt) with B_noise 391.63 MHz = 1.0014 × exact. (5) The unused
+sub-band mode (D1-26): 8 channels over the whole baseband = the total power to 1e-7; a tone on an
+FFT bin of channel 3 puts 1.000000 of A² there, ≤ 2e-15 elsewhere; no Band / empty channels
+refused. (6) f_out 0.7 MHz warns :rate; four refusals.
+
 ### 5.7 `foldProfile(info_det, outFile, f0, ...)` [validated]
 
 **Idea.** Average all rotations at equal rotational phase; noise drops as √(number of
@@ -4338,7 +4352,8 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `tests/testAddNoiseAndRFI.m` | R-N1 (27 Oct): the SNR definition (in-band power ratio = ρ, noise level, whiteness, input independence), cw / bpsk / impulse against INR, block size bit for bit (noise + six sources), predictPerformance against quadrature and the 388·ρ weak form, 7 refusals (§5.3) | passes (Jasper's run, 27 Oct) |
 | `tests/testApplyIQmodulation.m` | R-I1 (27 Oct): six tones = the complex envelope (mapping, factor 2, LO phase, timing), burst centroid (G removed), power ratio 2, mirror / stopband / alias suppression, 3 BlockLen, 3 warnings, 8 refusals (§5.4) | passes (Jasper's run, 27 Oct) |
 | `tests/testApplyInverseDispersion.m` | R-V2 (27 Oct): impulse response vs the formula (5 RefFreq incl. above / below the band, DM 0), round trip RF → dispersion → IQ → dedispersion = input × W², dedisperseChannels with RefFreq inside the band (4 fake channels, DM 25 and 0), overlap-save vs one double FFT (4 Nfft), leakage vs its formula (found §8 #23), 10 refusals (§5.5) | passes (Jasper's run, 27 Oct) |
-| `tests/runAllTests.m` | (since 27 Oct: **29** unit tests, testApplyDispersionStream, testAddNoiseAndRFI, testApplyIQmodulation and testApplyInverseDispersion second to fifth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testDetectPower.m` | D2-18 (27 Oct): bins = mean of I² + Q² (double), bin times and a burst's centroid, BlockSamples byte for byte, white and taper-shaped noise mean / variance / lag-1 against the exact prediction, the unused sub-band mode (Parseval, a tone in its channel), :rate warning, refusals (§5.6) | passes (Jasper's run, 27 Oct) |
+| `tests/runAllTests.m` | (since 27 Oct: **30** unit tests, testApplyDispersionStream, testAddNoiseAndRFI, testApplyIQmodulation, testApplyInverseDispersion and testDetectPower second to sixth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval; since 27 Oct (R-C1) also the LO position (β = 0, 0.18; LO invariance), oversampling 2, BlockOut byte for byte, T0, 7 refusals | passes (Jasper's run, 6 Oct); tests 4–7 pass (Jasper's run, 27 Oct) |

@@ -629,6 +629,39 @@ and through runAllTests) and in Jasper's run (27 Oct): validated.
 **Also changed.** Docs: channels.html (the tests list, the β definition); tests.html (`#chan` items 4–7, a badge);
 roadmap R-C1 done; changelog. Notes: §5.15, §10 C1 done, the tests table row. D2-1 (below): now tested.
 
+## Day 2: missing unit tests, stage 6 (`testDetectPower`, D2-18)
+
+Jasper: "all passed, continue"; plan given (a new test; a light check of the unused sub-band mode), then "Go ahead",
+including that check.
+
+**Physics checked.**
+- **Square-law detection.** Bin k = mean of |z|² = I² + Q² over binLen = round(fs/f_out) = 800 samples, at the samples'
+  centroid time; the symmetric boxcar does not bias arrival times. The data rate falls from 800 M to 1 M values/s.
+- **Statistics.** For complex Gaussian noise with autocovariance C(L): Cov(|z_a|², |z_b|²) = |C(a − b)|², so
+  var(bin) = (1/binLen)·Σ_L (1 − |L|/binLen)|C(L)|²: σ⁴/binLen for white noise, ≈ P²/(B_noise·dt) for band-limited noise.
+
+**The test** (`tests/testDetectPower.m`, ~1 s, own files in tempdir). All six checks pass in Claude's runs (alone and
+inside `runAllTests` with testApplyInverseDispersion) and in Jasper's run (27 Oct): validated.
+
+| Check | Result | Limit |
+|---|---|---|
+| 1 format and info | 21 of 21 (1000 bins, 123 dropped, fully supported bins = brute force) | exact |
+| 2 exactness | bins = mean of I² + Q² to 6.3e-8; BlockSamples 1001, 300,007 byte for byte | 1e-6 |
+| 3 timing (Gaussian burst, T0 1.234 µs) | centroid off by 4.3e-8 bin | 1e-3 bin |
+| 4 statistics, white | mean +0.67σ, variance +0.83σ, lag-1 +0.005 | 4σ |
+| 4 statistics, taper-shaped | mean −1.04σ, variance 0.986 of exact (−1.02σ); radiometer = 1.0014 × exact | 4σ |
+| 5 sub-band mode | Parseval to 1e-7; tone 1.000000 in its channel, ≤ 2e-15 elsewhere; 2 refusals | 1e-5 |
+| 6 warnings and refusals | :rate; 4 of 4 | — |
+
+- **D1-26 (keep or retire the sub-band mode)** stays open: the mode now has a test, so retiring it would also remove
+  check 5.
+- **Not covered:** detectChannels' layout (testDetectChannels 2) and the end-to-end use (the chain tests).
+
+**Also changed.** `runAllTests`: sixth (after the stage 5 test), count 30. Docs: tests.html (row, section `#detpow`,
+check matrix regenerated, data-flow box "1 · stages 1–6", counts 30); fullband.html (stage 6 validation list); roadmap
+(a done row for this test); figures README; changelog. Notes: §5.6 Tests paragraph, tests table and the runAllTests
+row. D2-18 (below): tested.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -659,7 +692,7 @@ roadmap R-C1 done; changelog. Notes: §5.15, §10 C1 done, the tests table row. 
 | D1-23 | full band | applyInverseDispersion, info.bulkDelayRef | TOAs refer to 1.6 GHz; τ(fRef) = 40.5 ms at DM 25 stays in. In the simulation truth and observer share it. For real data the DM's error and variations (2.1 µs per 1e-3 at 1.4 GHz) and the Doppler-shifted dispersion (±7 µs) enter through this term: notes item 13 / E2 | for E2/F |
 | D1-24 | full band | fullySupported | 31.5 ms (15.7 % of a 0.2 s file) at the end is unusable. Real data are a continuous stream: the processing must carry the overlap across file boundaries (overlap-save across files), not drop the edges | for F |
 | D1-25 | full band | memory | One FFT of 2^26 (3.8 GB) at DM 25; DM 100 needs 2^28 (~15 GB): notes item 5. The channel path avoids it | known |
-| D1-26 | full band | detectPower 'NChan' > 1 | The sub-band mode (FFT frames) predates channelizeIQ. It looks unused by main and the tests: check, then keep or retire | cleanup check |
+| D1-26 | full band | detectPower 'NChan' > 1 | The sub-band mode (FFT frames) predates channelizeIQ. It looks unused by main and the tests: check, then keep or retire | cleanup check (checked 27 Oct: unused; testDetectPower 5 covers it) |
 | D1-27 | full band | processIQ B_noise | The observer's B_noise (391.6 MHz) comes from its own taper only. The simulated pulsar also passed the generator's taper, so in-pulse the true value is ~0.5 % lower: high-SNR only, irrelevant for the weak signal | none |
 | D1-28 | full band | no excision | Every RFI type passes the full band unblanked (D1-4): it is a reference path, not for RFI data | known |
 | D2-1 | 5a filterbank | channelizeIQ.m:129–132 | β depends on the LO: any fLO on the 3.125 MHz grid gives β = ½ (1.3 or 1.4 GHz both do, D1-9). A fractional β (an LO off the grid) is supported by the code but never run or tested (R-C1) | tested 27 Oct (β = 0, 0.18) |
@@ -679,6 +712,6 @@ roadmap R-C1 done; changelog. Notes: §5.15, §10 C1 done, the tests table row. 
 | D2-15 | 5b dedispersion | chirp DM | A DM error enters here. The chirp uses the ephemeris DM; a true DM off by δDM = 1e-3 shifts the TOA by 2.2 µs (band-mean of K·δDM/f²; notes §9) and smears the summed pulse by 1.3 µs across the band. The simulation generates and processes with the same DM, so no test can see it | block D (TOA corrections) |
 | D2-16 | 5b dedispersion | time-bin noise | Power bins in the channelized path are correlated (lag 1 > 0, variance below the radiometer value; test 4). They nearly cancel inside a phase bin, so the radiometer noise model with B_noise 391.6 MHz holds for the fold. It would not hold for a much finer bin rate (bins ≲ 1/B_ch) | understanding |
 | D2-17 | tests | noiseBandwidth.m | No test of its own. `processIQ`, `foldToTOA` and `dedisperseChannels` take B_noise from it, so an error would shift every σ and SNR prediction. Check against the exact integral of the tapers | test gap |
-| D2-18 | tests | detectPower | Only indirect checks: testDetectChannels (rows = detectPower per channel) and testDedisperseChannels (end to end). No direct check of the detected power's mean and variance against their prediction | test gap |
+| D2-18 | tests | detectPower | Only indirect checks: testDetectChannels (rows = detectPower per channel) and testDedisperseChannels (end to end). No direct check of the detected power's mean and variance against their prediction | tested 27 Oct (testDetectPower) |
 | D2-19 | 5 dedispersion | applyInverseDispersion.m:143 | The default guard is 2001 samples, not 2000: ceil(20/8 MHz × 800 MHz) evaluates ceil(2000.0000000000002). Harmless (the tests use the same formula); round(…) or a small tolerance would give 2000 | none |
 | D2-20 | 5 dedispersion | applyInverseDispersion.m:231, 241 | Two stale `%#ok<NASGU>` suppressions on the onCleanup lines (checkcode: "the message is no longer generated"); cosmetic, in HEAD before today | cleanup |
