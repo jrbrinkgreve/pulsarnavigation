@@ -598,6 +598,37 @@ in the leakage design box, a new Validation list for stage 5); sky.html (the rou
 this test, 1.9e-6); roadmap R-V2 done; figures README; changelog. Notes: §5.5 (the fix and a Tests paragraph), §8 #23,
 §10 V2 done, tests table and the runAllTests row.
 
+## Day 2: missing unit tests, stage 5a (`testChannelizeIQ` tests 4–7, R-C1)
+
+Jasper: "Plan the next unit test, R-C1"; plan given (extend the validated testChannelizeIQ, tests 1–3 unchanged),
+then "Go ahead".
+
+**Physics checked.**
+- **The grid offset β.** Channel centres sit at (k_j + β)·fs/K from the LO; the polyphase IFFT works on the integer
+  grid, so the code modulates the prototype by e^(i2πβr/K) and corrects the phase per output sample. fLO 1.3 GHz is 32
+  channels from the band edge, so every run so far had β = ½ (D2-1).
+- **LO invariance.** A channel depends only on the RF signal and its centre: x_bb·e^(−i2π(fc_j − fLO)t) =
+  x_RF·e^(−i2π fc_j t). The same RF tones through any LO must give the same channel files.
+- **Oversampling.** Content between fs_out/2 and the stopband aliases on decimation, but only to outside ±dF/2.
+
+**The test** (tests 4–7 added to `tests/testChannelizeIQ.m`; the whole test ~9 s). All pass in Claude's runs (alone
+and through runAllTests) and in Jasper's run (27 Oct): validated.
+
+| Check | Result | Limit |
+|---|---|---|
+| 4 LO 1.3015625 GHz (β = 0) and 1.301 GHz (β = 0.18) | 14 channels = formula to 2.9e-7; same grid; files = the β = ½ files to 1.4e-7 rms | 1e-4; 1e-5 |
+| 5 oversampling 2 (D 128) | 1285 taps (formula); flat 1.6e-4; stopband −79.6 dB; tones 2.5e-7 incl. the aliasing one (−2.25 MHz) | 2e-4; 1e-4 |
+| 6 BlockOut 1, 7, 100, 341; T0 | all 128 files byte for byte; T0 only info.t0 | exact |
+| 7 input checks | 7 of 7 | — |
+
+- **Open point settled:** the plan feared that MATLAB's FFT might round differently with another number of columns per
+  call. It does not: byte for byte for all four block lengths.
+- **Beyond the plan:** a fractional β (0.18, an LO off the grid), which D2-1 names, besides β = 0.
+- **Not covered:** noise statistics at oversampling 2 (test 2 stays at 4/3); `StopbandDB`.
+
+**Also changed.** Docs: channels.html (the tests list, the β definition); tests.html (`#chan` items 4–7, a badge);
+roadmap R-C1 done; changelog. Notes: §5.15, §10 C1 done, the tests table row. D2-1 (below): now tested.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -631,7 +662,7 @@ this test, 1.9e-6); roadmap R-V2 done; figures README; changelog. Notes: §5.5 (
 | D1-26 | full band | detectPower 'NChan' > 1 | The sub-band mode (FFT frames) predates channelizeIQ. It looks unused by main and the tests: check, then keep or retire | cleanup check |
 | D1-27 | full band | processIQ B_noise | The observer's B_noise (391.6 MHz) comes from its own taper only. The simulated pulsar also passed the generator's taper, so in-pulse the true value is ~0.5 % lower: high-SNR only, irrelevant for the weak signal | none |
 | D1-28 | full band | no excision | Every RFI type passes the full band unblanked (D1-4): it is a reference path, not for RFI data | known |
-| D2-1 | 5a filterbank | channelizeIQ.m:129–132 | β depends on the LO: any fLO on the 3.125 MHz grid gives β = ½ (1.3 or 1.4 GHz both do, D1-9). A fractional β (an LO off the grid) is supported by the code but never run or tested (R-C1) | test gap |
+| D2-1 | 5a filterbank | channelizeIQ.m:129–132 | β depends on the LO: any fLO on the 3.125 MHz grid gives β = ½ (1.3 or 1.4 GHz both do, D1-9). A fractional β (an LO off the grid) is supported by the code but never run or tested (R-C1) | tested 27 Oct (β = 0, 0.18) |
 | D2-2 | 5a filterbank | header "tile the band without gaps" | True for the filterbank. But dedisperseChannels' edge taper (sin², 62.5 kHz at each channel edge) then removes ~2.5 % of each channel's W² bandwidth: the known channel gap (item 3; the edge-carrier test of 26 Oct). The header could say so | docs |
 | D2-3 | 5a filterbank | channelizeIQ.m:311–330 | `kaiserLowpass` is copied from applyIQmodulation (on purpose: "so that validated stage stays untouched"). Two copies to keep in step | cleanup |
 | D2-4 | 5a filterbank | output files | One file per channel: 128 files, 0.85 GB per 0.2 s. Fine for simulation; F streams in memory | for F |

@@ -206,7 +206,7 @@ prototype <var>h</var>(<var>r</var>) centred at <var>G</var> = (<var>M</var>−1
 <dl class="where">
 <dt>\(K\)</dt><dd>FFT size = number of channel slots, \(f_s/\)<code>ChanWidth</code> = 256 (not the dispersion constant)</dd>
 <dt>\(k_j\)</dt><dd>integer FFT slot of channel \(j\)</dd>
-<dt>\(\beta\)</dt><dd>fractional slot offset, ½ here (the band edges lie on the \(K\)-grid)</dd>
+<dt>\(\beta\)</dt><dd>fractional slot offset, ½ here (the band edges lie on the \(K\)-grid); another LO gives another β (the tests also run 0 and 0.18)</dd>
 <dt>\(h(r)\)</dt><dd>prototype filter, taps \(r = 0 \ldots L-1\); \(M\) = 3853 non-zero taps, zero-padded to \(L = PK\) = 4096</dd>
 <dt>\(G\)</dt><dd>the centre of the prototype, \((M-1)/2\) [samples]; it removes the filter delay</dd>
 <dt>\(P\)</dt><dd>taps per polyphase branch (16)</dd>
@@ -277,6 +277,14 @@ and the stopband is at −80.2 dB.</li>
 flat within ±3 %.</li>
 <li><b>Real data</b> (seed 43, −5 dB). The channel band powers add up to the IQ band power, to 1.00007. So there are no gaps and no
 double counting (Parseval). 0.1 s of data becomes 128 × 416,667 samples in 4.1 s (427 MB).</li>
+<li><b>Other LOs.</b> With the LO on a channel centre (β = 0) or off the 3.125 MHz grid (β = 0.18), the tones still match to
+2.9·10⁻⁷. The channel files equal those with today's LO to 1.4·10⁻⁷: a channel depends only on the RF signal, not on where the LO
+sits.</li>
+<li><b>Oversampling 2</b> (6.25 MHz channels, 1285 taps). The passband is flat to 1.6·10⁻⁴ and the stopband is at −79.6 dB; tones
+match to 2.5·10⁻⁷. A tone 4 MHz from a channel centre aliases to −2.25 MHz, outside the useful ±1.5625 MHz.</li>
+<li><b>Block size.</b> Four values of <code>BlockOut</code>, down to one output sample per block, give every channel file byte for
+byte.</li>
+<li>Bad grids, bands and files are refused, each with its own error id.</li>
 </ul>
 
 <h2 id="dedisp">5b · <code>dedisperseChannels</code> <span class="badge validated">validated</span></h2>

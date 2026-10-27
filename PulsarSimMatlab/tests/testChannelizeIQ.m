@@ -4,6 +4,7 @@ function testChannelizeIQ()
 Run from the PulsarSimMatlab folder: run('tests/testChannelizeIQ.m'). ~10 s.
 Synthetic tests write small files to tempdir; test 3 uses the receiver IQ
 file (data/test/test_rx_IQ.dat, tests/makeTestData.m) if it exists.
+Tests 4-7 (27 Oct 2026, review R-C1) cover grids and options tests 1-3 never ran.
 
   1. Tones: every channel sample must equal the exact prediction
      A*exp(i*phi) * Hc(df) * exp(i*2*pi*df*t_m), df = f - fc_j, t_m = m*D/fs.
@@ -13,6 +14,24 @@ file (data/test/test_rx_IQ.dat, tests/makeTestData.m) if it exists.
      channels equal; channel PSD flat within +-ChanWidth/2.
   3. Real data: sum over channels of the power inside +-ChanWidth/2 equals
      the IQ power inside [fLow, fHigh] over the same time span (Parseval).
+  4. LO position: channel centres sit at (k_j + beta)*fs/K from the LO; tests 1-3
+     have beta = 1/2 (fLO 1.3 GHz). The tones of test 1 plus two at the band edges,
+     with fLO 1.3015625 GHz (on a channel centre: beta = 0) and 1.301 GHz (off the
+     grid: beta = 0.18): channels 1, 2, 6-8, 39-42, 99-101, 127, 128 = the formula of
+     test 1 within 1e-4; the same channel centres, K, D and supported range; and the
+     same channel files as with fLO 1.3 GHz to float32 rounding (relative rms 1e-5):
+     a channel depends only on the RF signal and its centre, not on the LO.
+  5. Oversampling 2 (D = 128, 6.25 MHz): prototype length from the Kaiser formula
+     (1285 taps), flat to ChanWidth/2 and stopband beyond fs_out - ChanWidth/2 as in
+     test 1; N and the supported range for D = 128; tones = the formula within 1e-4,
+     one of them at +4 MHz from channel 50 (between fs_out/2 and the stopband: it
+     aliases to -2.25 MHz, outside +-ChanWidth/2).
+  6. BlockOut and T0 (complex noise, 2^16 samples, 342 outputs per channel): BlockOut
+     1, 7, 100 and 341 (two blocks) give all 128 channel files byte for byte as the
+     default (one block); T0 0.123 s changes info.t0 only.
+  7. Input checks: fs/ChanWidth or K/Oversampling not an integer, fLow >= fHigh, a band
+     that is not a whole number of channels, a band (with its transitions) outside
+     fLO +- fs/2, a missing file and an empty file are refused, each with its own id.
 Errors at the end if any check fails.
 %}
 
@@ -160,6 +179,108 @@ else
 end
 
 % ---------------------------------------------------------------------------------
+% 4. LO position: the grid offset beta (review R-C1)
+% ---------------------------------------------------------------------------------
+HcOf = @(h, df) sum(h .* exp(-2i*pi*df*((0:numel(h)-1) - (numel(h)-1)/2)/fs));   % as Hc of test 1
+tones4 = [tones; fc(1) + 0.4e6, 0.8, -0.6; fc(128) - 0.9e6, 0.6, 0.9];
+chk4 = [1 2 6 7 8 39 40 41 42 99 100 101 127 128];
+fLOs = [1.3e9, 1.3015625e9, 1.301e9];
+N = 2^20;
+fileIn = fullfile(tmp, 'lo.dat');
+Y4 = cell(1, numel(fLOs)); I4 = cell(1, numel(fLOs));
+pass = true;
+for k = 1:numel(fLOs)
+    writeCF32(fileIn, toneInput(tones4, fLOs(k), fs, N));
+    I4{k} = channelizeIQ(fileIn, fullfile(tmp, sprintf('lo%d_chan', k)), fs, fLOs(k), fLow, fHigh, ...
+        'Verbose', false, 'SaveInfo', false);
+    [err4, Y4{k}] = toneError(I4{k}, tones4, chk4, HcOf, fs);
+    a = (fLow - fLOs(k)) / dF + 0.5;               % first channel centre from the LO, in channels
+    beta = a - floor(a + 1e-9);
+    okG = I4{k}.fLOIn == fLOs(k) && isequal(I4{k}.chanFreqs, I4{1}.chanFreqs) && I4{k}.K == I4{1}.K && ...
+          I4{k}.decimation == I4{1}.decimation && I4{k}.N == I4{1}.N && ...
+          isequal(I4{k}.fullySupported, I4{1}.fullySupported);
+    okK = err4 < 1e-4 && okG;
+    dLO = 0;
+    if k > 1
+        dLO = sqrt(sum(abs(double(Y4{k}(:)) - double(Y4{1}(:))).^2) / sum(abs(double(Y4{1}(:))).^2));
+        okK = okK && dLO < 1e-5;
+    end
+    pass = pass && okK;
+    fprintf(['4. LO %.7f GHz (beta %.2f): worst |y - pred| over %d channels %.2e (< 1e-4); same grid %d; ' ...
+             'relative rms from the fLO 1.3 GHz files %.1e (< 1e-5): %s\n'], fLOs(k) / 1e9, beta, numel(chk4), ...
+        err4, okG, dLO, passStr(okK));
+end
+if ~pass, fails{end+1} = 'LO position'; end
+clear Y4
+
+% ---------------------------------------------------------------------------------
+% 5. Oversampling 2
+% ---------------------------------------------------------------------------------
+tones5 = [tones; fc(50) + 4.0e6, 0.9, 0.4];      % channel 50: between fs_out/2 and its stopband
+writeCF32(fileIn, toneInput(tones5, fLO, fs, N));
+info = channelizeIQ(fileIn, fullfile(tmp, 'ov2_chan'), fs, fLO, fLow, fHigh, 'Oversampling', 2, ...
+    'Verbose', false, 'SaveInfo', false);
+K5 = fs / dF; D5 = K5 / 2; fsO = fs / D5;
+M5 = ceil((80 - 8) / (2.285 * 2*pi * (fsO - dF) / fs)) + 1;   % the help text's Kaiser length, odd
+M5 = M5 + (mod(M5, 2) == 0);
+G5 = (M5 - 1) / 2;
+okI = info.K == K5 && info.decimation == D5 && info.fs == fsO && info.oversampling == 2 && ...
+      info.filterLen == M5 && info.stopbandEdge == fsO - dF/2 && info.N == ceil(N / D5) && ...
+      isequal(info.fullySupported, [ceil(G5/D5) + 1, floor((N - 1 - G5)/D5) + 1]);
+gP = arrayfun(@(d) HcOf(info.prototype, d), [0 0.5 1.0 1.2 1.5 dF/2/1e6] * 1e6);
+gS = max(abs(arrayfun(@(d) HcOf(info.prototype, d), linspace(info.stopbandEdge, info.fs/2 + info.stopbandEdge, 2000))));
+okP = all(abs(abs(gP) - 1) < 2e-4) && gS < 2e-4;
+err5 = toneError(info, tones5, [1 7 40 41 49 50 51 52 100 128], HcOf, fs);
+pass = okI && okP && err5 < 1e-4;
+fprintf(['5. oversampling 2: K %d, D %d, %.4g MHz, %d taps (formula %d), flat to dF/2 within %.1e, stopband ' ...
+         'max %.1f dB beyond %.4g MHz; tones worst |y - pred| %.2e (< 1e-4); the +4 MHz tone lands in ' ...
+         'channel 50 at %.2f MHz with |Hc| %.3f: %s\n'], info.K, info.decimation, info.fs / 1e6, info.filterLen, ...
+    M5, max(abs(abs(gP) - 1)), 20*log10(gS), info.stopbandEdge / 1e6, err5, (4.0e6 - fsO) / 1e6, ...
+    abs(HcOf(info.prototype, 4.0e6)), passStr(pass));
+if ~pass, fails{end+1} = 'oversampling 2'; end
+
+% ---------------------------------------------------------------------------------
+% 6. BlockOut and T0
+% ---------------------------------------------------------------------------------
+rs6 = RandStream('mt19937ar', 'Seed', 8);
+fileN6 = fullfile(tmp, 'noise6.dat');
+writeCF32(fileN6, (randn(rs6, 2^16, 1) + 1i*randn(rs6, 2^16, 1)) / sqrt(2));
+ch = @(name, varargin) channelizeIQ(fileN6, fullfile(tmp, ['bo_' name]), fs, fLO, fLow, fHigh, ...
+    'Verbose', false, 'SaveInfo', false, varargin{:});
+iRef = ch('ref');
+ref  = fileBytes(iRef.chanFiles);
+bos  = [1 7 100 iRef.N - 1];
+same = false(size(bos)); nb = zeros(size(bos));
+for k = 1:numel(bos)
+    ib = ch(sprintf('%d', bos(k)), 'BlockOut', bos(k));
+    same(k) = isequal(fileBytes(ib.chanFiles), ref);
+    nb(k) = ib.nBlocks;
+end
+iT = ch('t0', 'T0', 0.123);
+okT = isequal(fileBytes(iT.chanFiles), ref) && iT.t0 == 0.123;
+pass = all(same) && okT && iRef.nBlocks == 1;
+fprintf(['6. BlockOut %s (%s blocks) vs the default (%d block, %d samples per channel): all %d channels byte ' ...
+         'for byte %s; T0 0.123 s: files unchanged and info.t0 set %d: %s\n'], mat2str(bos), mat2str(nb), ...
+    iRef.nBlocks, iRef.N, iRef.nChan, mat2str(same), okT, passStr(pass));
+if ~pass, fails{end+1} = 'BlockOut / T0'; end
+
+% ---------------------------------------------------------------------------------
+% 7. Input checks
+% ---------------------------------------------------------------------------------
+fEmpty = fullfile(tmp, 'empty.dat');
+fclose(fopen(fEmpty, 'w'));
+cz = @(fi, varargin) errId(@() channelizeIQ(fi, fullfile(tmp, 'bad_chan'), fs, varargin{:}, ...
+    'Verbose', false, 'SaveInfo', false));
+ids = {cz(fileN6, fLO, fLow, fHigh, 'ChanWidth', 3e6), cz(fileN6, fLO, fLow, fHigh, 'Oversampling', 1.5), ...
+       cz(fileN6, fLO, fHigh, fLow), cz(fileN6, fLO, fLow, 1.6005e9), cz(fileN6, 1.0e9, fLow, fHigh), ...
+       cz(fullfile(tmp, 'none.dat'), fLO, fLow, fHigh), cz(fEmpty, fLO, fLow, fHigh)};
+want = strcat('channelizeIQ:', {'grid', 'grid', 'band', 'band', 'band', 'notFound', 'empty'});
+pass = isequal(ids, want);
+fprintf('7. input checks: %d of %d bad inputs refused with the right id: %s\n', ...
+    nnz(strcmp(ids, want)), numel(want), passStr(pass));
+if ~pass, fails{end+1} = 'input checks'; end
+
+% ---------------------------------------------------------------------------------
 if isempty(fails)
     fprintf('testChannelizeIQ: ALL PASSED\n');
 else
@@ -177,6 +298,54 @@ function writeCF32(file, x)
 fid = fopen(file, 'w', 'ieee-le');
 fwrite(fid, [real(x(:)).'; imag(x(:)).'], 'single');
 fclose(fid);
+end
+
+function x = toneInput(tones, fLO, fs, N)
+%TONEINPUT  Complex baseband (LO fLO) of the RF tones [f, A, phi] (rows): sum A e^(i(2 pi (f - fLO) n/fs + phi)).
+n = (0:N-1).';
+x = zeros(N, 1);
+for t = 1:size(tones, 1)
+    x = x + tones(t,2) * exp(1i*(2*pi*(tones(t,1) - fLO)/fs * n + tones(t,3)));
+end
+end
+
+function [worst, Y] = toneError(info, tones, chk, HcOf, fs)
+%TONEERROR  All channels of a channelizeIQ run (one column each) and the largest error, over the
+% channels chk and their fully supported samples, against the formula of test 1:
+% A e^(i phi) Hc(df) e^(i 2 pi df m D/fs), df = f - fc_j, Hc from the reported prototype.
+Y = complex(zeros(info.N, info.nChan, 'single'));
+for j = 1:info.nChan
+    Y(:, j) = readCF32(info.chanFiles(j));
+end
+ok = info.fullySupported(1):info.fullySupported(2);
+tm = (ok - 1).' * info.decimation / fs;
+worst = 0;
+for j = chk
+    yExp = zeros(numel(ok), 1);
+    for t = 1:size(tones, 1)
+        df = tones(t,1) - info.chanFreqs(j);
+        yExp = yExp + tones(t,2) * exp(1i*tones(t,3)) * HcOf(info.prototype, df) * exp(2i*pi*df*tm);
+    end
+    worst = max(worst, max(abs(double(Y(ok, j)) - yExp)));
+end
+end
+
+function b = fileBytes(files)
+%FILEBYTES  The raw bytes of each file (cell, one per file), for byte-for-byte comparisons.
+b = cell(numel(files), 1);
+for k = 1:numel(files)
+    fid = fopen(files(k), 'r'); b{k} = fread(fid, Inf, 'uint8=>uint8'); fclose(fid);
+end
+end
+
+function id = errId(f)
+% The identifier of the error f() raises ('' if none).
+id = '';
+try
+    f();
+catch e
+    id = e.identifier;
+end
 end
 
 function y = readCF32(file, first, count)

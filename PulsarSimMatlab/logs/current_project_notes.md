@@ -1284,6 +1284,15 @@ file), conventions. Edge outputs see zero-padding.
   1σ 0.55 %); passband PSD level 1.0004 of expected; flat within ±3 % (Welch scatter).
 - Real data (`test_rx_IQ.dat`, seed 43, −5 dB): Σ channel band powers / IQ band power
   = 1.00007; 0.1 s → 128 × 416,667 samples in 4.1 s (`data/chan/`, 427 MB).
+- Tests 4–7 (27 Oct, review item R-C1; validated: Jasper's run 27 Oct):
+  (4) the LO position: fLO 1.3015625 GHz (on a channel centre, β = 0) and 1.301 GHz (off the grid,
+  β = 0.18), test 1's tones plus two at the band edges: 14 channels = the formula to 2.9e-7; the same
+  grid; the channel files equal the fLO 1.3 GHz ones to 1.4e-7 rms (a channel depends only on the RF
+  signal and fc_j: x_bb·e^(−i2π(fc_j − fLO)t) = x_RF·e^(−i2π fc_j t)). (5) Oversampling 2 (D 128,
+  6.25 MHz): 1285 taps = the Kaiser formula, flat to 1.6e-4, stopband −79.6 dB; tones to 2.5e-7, one
+  4 MHz from channel 50's centre (|Hc| 0.053) aliasing to −2.25 MHz. (6) BlockOut 1, 7, 100, 341 =
+  one block, all 128 files byte for byte (the FFT batch size does not change the rounding); T0 only
+  sets info.t0. (7) Seven refusals (grid ×2, band ×3, notFound, empty).
 
 ### 5.16 `dedisperseChannels(info_chan, outBase, DM, ...)` [validated 6 Oct 2026 (Jasper's run); channelized front end, unit 2]
 
@@ -3530,7 +3539,8 @@ barycentric corrections, navigation solution).
      ±360 MHz passband (full-review item 4).
 
    Stage 5, channelizer (`channelizeIQ`, review 14 Oct; note only):
-   - **C1** extend `tests/testChannelizeIQ.m` (same tone method; today it only runs the
+   - **C1 done 27 Oct** (§5.15, tests 4–7; also a fractional β = 0.18 and T0; validated: Jasper's run
+     27 Oct). Spec as noted 14 Oct: extend `tests/testChannelizeIQ.m` (same tone method; today it only runs the
      current grid: fs 800 MHz, fLO 1.3 GHz, β = ½, oversampling 4/3): (a) a β = 0 grid (fLO on
      a channel centre; that path has never run; real hardware may put the LO there);
      (b) oversampling 2 (D = 128); (c) `BlockOut` e.g. 333 vs 1024, bit for bit (measured once,
@@ -4331,7 +4341,7 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `tests/runAllTests.m` | (since 27 Oct: **29** unit tests, testApplyDispersionStream, testAddNoiseAndRFI, testApplyIQmodulation and testApplyInverseDispersion second to fifth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
-| `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
+| `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval; since 27 Oct (R-C1) also the LO position (β = 0, 0.18; LO invariance), oversampling 2, BlockOut byte for byte, T0, 7 refusals | passes (Jasper's run, 6 Oct); tests 4–7 pass (Jasper's run, 27 Oct) |
 | `dedisperseChannels.m` | coherent dedispersion per channel, common reference (channelized front end, unit 2) | validated (6 Oct) |
 | `tests/testDedisperseChannels.m` | regression, commutation, end-to-end TOAs, time-bin noise | passes (Jasper's run, 6 Oct) |
 | `tests/expBlankingVariance.m` | experiment 3a: detected-power variance after blanking (exact via mask convolutions) | passes (Jasper's run, 6 Oct) |

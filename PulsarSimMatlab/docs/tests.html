@@ -390,7 +390,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#rx"><code>testAddNoiseAndRFI</code></a></td><td><code>addNoiseAndRFI</code> (stage 3; review R-N1)</td><td>~4 s</td><td><span class="badge validated">passes (Jasper's run, 27 Oct)</span></td></tr>
 <tr><td><a href="#iq"><code>testApplyIQmodulation</code></a></td><td><code>applyIQmodulation</code> (stage 4; review R-I1)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 27 Oct)</span></td></tr>
 <tr><td><a href="#inv"><code>testApplyInverseDispersion</code></a></td><td><code>applyInverseDispersion</code> (stage 5; review R-V2)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 27 Oct)</span></td></tr>
-<tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
+<tr><td><a href="#chan"><code>testChannelizeIQ</code></a></td><td><code>channelizeIQ</code></td><td>~10 s</td><td><span class="badge validated">passes, 6 Oct</span> <span class="badge validated">tests 4–7 (Jasper's run, 27 Oct)</span></td></tr>
 <tr><td><a href="#dedisp"><code>testDedisperseChannels</code></a></td><td><code>dedisperseChannels</code>, <code>AllowRefOutsideBand</code></td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#exp3a"><code>expBlankingVariance</code></a></td><td>experiment 3a</td><td>~15 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
 <tr><td><a href="#detch"><code>testDetectChannels</code></a></td><td><code>detectChannels</code>, <code>powerCovariance</code></td><td>~1 s</td><td><span class="badge validated">passes, 6 Oct</span></td></tr>
@@ -444,6 +444,15 @@ the stopband: −80.2 dB.</li>
 model depends on this gain.</li>
 <li><b>Real data</b> (seed 43). The channel band powers add up to the IQ band power, to 1.00007. So there are no gaps and no double
 counting (Parseval).</li>
+<li><b>Other LOs.</b> Tests 1–3 all have β = ½, because today's LO sits exactly 32 channels from the band edge. With the LO on a
+channel centre (β = 0) and off the grid (β = 0.18), 14 channels, including both band edges, still match the formula to 2.9·10⁻⁷.
+The channel files equal those with today's LO to 1.4·10⁻⁷ (limit 10⁻⁵): a channel depends only on the RF signal and its centre.</li>
+<li><b>Oversampling 2</b> (6.25 MHz channels). The prototype has the 1285 taps the Kaiser formula gives, a passband flat to
+1.6·10⁻⁴ and a stopband at −79.6 dB. Tones match to 2.5·10⁻⁷, including one 4 MHz from a channel centre, which aliases to
+−2.25 MHz, outside the useful band.</li>
+<li><b>Block size and start time.</b> <code>BlockOut</code> 1, 7, 100 and 341 give all 128 channel files byte for byte as one
+block. <code>T0</code> changes only <code>info.t0</code>.</li>
+<li>Bad grids, bands and files are refused, each with its own error id.</li>
 </ol>
 
 <h2 id="dedisp"><code>testDedisperseChannels</code></h2>
