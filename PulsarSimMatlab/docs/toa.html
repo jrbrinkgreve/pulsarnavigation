@@ -507,7 +507,7 @@ changed from the half-maximum width to the spectral width. Multi-component templ
 
 <h2 id="outputs">8. Options and outputs</h2>
 <dl class="facts">
-<dt>Options</dt><dd><code>NoiseModel</code> (<code>'radiometer'</code> / <code>'offpulse'</code>), <code>Bnoise</code>, <code>Weighting</code> (<code>'equal'</code> default; main passes <code>'optimal'</code> on the channel path), <code>ChannelGain</code>, <code>MaxIterations</code> (10), <code>MinCoverage</code> (1: complete turns only), <code>MaxHarmonic</code>, <code>Upsample</code> (8), <code>OnPulseFrac</code> (0.01), <code>MaxRedChi2</code> (2), <code>Verbose</code></dd>
+<dt>Options</dt><dd><code>NoiseModel</code> (<code>'radiometer'</code> / <code>'offpulse'</code>), <code>Bnoise</code>, <code>Weighting</code> (<code>'equal'</code> default; main passes <code>'optimal'</code> on the channel path), <code>ChannelGain</code>, <code>MaxIterations</code> (10), <code>MinCoverage</code> (1: complete turns only), <code>MaxHarmonic</code>, <code>Upsample</code> (8), <code>OnPulseFrac</code> (0.01), <code>MaxRedChi2</code> (2), <code>Chi2Alarm</code> (10⁻³, report only), <code>Verbose</code></dd>
 <dt>Per sub-int</dt><dd>valid, coverage, phase, phaseErr, <b>toa</b>, <b>toaErr</b>, amp, ampErr, baseline, snr (= <var>b</var>/σ<sub>b</sub>), redChi2, flagChi2, converged ('optimal': the weight iteration met its criterion; 'equal' does not iterate: true), tRef, fRef, turnRef, nChanUsed, chanBaseline</dd>
 <dt><code>toa.total</code></dt><dd>phase, phaseErr, timeOffset (relative to the ephemeris), timeOffsetErr, amp, ampErr, snr, redChi2, flagChi2, converged, nChanUsed</dd>
 </dl>

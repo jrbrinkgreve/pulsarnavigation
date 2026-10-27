@@ -321,6 +321,30 @@ over two passes a day apart, and one time per TOA damps or even flips the daily 
 single ship run is far noisier than its pulls suggest; an ideal twin on the same TOAs now separates the TOA chain from the filter.</li>
 </ul>
 
+<h3>22–23 October — the review of blocks C and D</h3>
+<ul>
+<li><b>A review before block E</b> (Jasper): blocks C and D had added about 4,000 lines in four days, in large batches, without the
+stage-by-stage walk A and B had had. The review went part by part through the fast simulator, the RFI profiles and the navigation code.</li>
+<li><b>Jasper's runs</b> validate all 25 unit tests, five experiments, a ship run and <code>main.m</code>. Four bugs were fixed: <code>main.m</code>
+had stopped after the IQ stage since 21 Oct, <code>mergeSubints</code> ignored a predictor fold, the experiment scripts shared a workspace,
+and one docs formula lacked a factor 1/cos δ. The 21 Oct RFI profiles became the default.</li>
+<li><b>Block E revised</b> toward one endpoint: a fixed position in the Netherlands from several pulsars, with all 18 data streams
+beamformed; the ship filter is parked (<a href="roadmap.html#blockE">roadmap</a>).</li>
+</ul>
+
+<h3>26–27 October — the review week E0 and the missing unit tests</h3>
+<ul>
+<li><b>Day 1</b> walked through the processing boundary (<code>processIQ</code>, <code>foldToTOA</code>), the IQ stage, the receiver clock and
+the full-band front end. The clock and the phase prediction moved back into their stage pages (Jasper).</li>
+<li><b>Day 2</b> walked through the filterbank, RFI excision and the per-channel dedispersion, and then filled in the missing unit tests
+(Jasper: part of the review week). Stages 2–6 and <code>noiseBandwidth</code> got tests of their own, and the channelizer and
+<code>detectRFI</code> tests were extended: 31 unit tests, each validated in Jasper's run (<a href="tests.html">unit tests</a>).</li>
+<li><b>One bug</b> came out of it: <code>applyInverseDispersion</code>'s leakage check summed in single precision, so it reported 0 or a
+multiple of 6·10⁻⁸ instead of about 10⁻¹². The sums are now in double; the output data did not change.</li>
+<li>A read-only scan of all docs pages, against each other, the code and the project notes, then found about thirty smaller
+inconsistencies; most were fixed the same day.</li>
+</ul>
+
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
 agreed.</p>
@@ -418,10 +442,14 @@ trajectories yet.</td></tr>
 let the current grow past 1 m/s in two weeks, stronger than most real currents.</td></tr>
 <tr><td>22 Oct</td><td>A TOA's row averaged over its sub-integrations (Jasper)</td><td>One time per TOA damps the daily signal by up to a
 quarter, or flips it for a TOA from two passes.</td></tr>
-<tr><td>22 Oct</td><td>The docs as stages: the clock on its own page, the block-D page removed (Jasper)</td><td>One place per topic, in
+<tr><td>22 Oct</td><td>The docs as stages: the clock on its own page (back in the receiver page since 26 Oct), the block-D page removed (Jasper)</td><td>One place per topic, in
 the order of the chain.</td></tr>
 <tr><td>22 Oct</td><td>Block C closed, with the time structure of rotating radars, refractive scintillation, bright-pulse excision, RFI locked to the period and channel merging parked (Jasper)</td><td>The simulator and its RFI model are validated and the budgets done; none of the parked items is on the critical path.</td></tr>
 <tr><td>22 Oct</td><td>D4: a closed clock loop in the scenario (option a), a planning study first for D4c, then the ship (D4d) with a separate script <code>runShip</code>; dead reckoning still unknown, the route general (Jasper)</td><td>The ship is the end goal and where clock synchronisation matters most; the multi-pulsar timeline is built once, in its final form.</td></tr>
+<tr><td>23 Oct</td><td>Block E toward one endpoint: a fixed site in the Netherlands from several pulsars, all 18 streams beamformed; the ship filter parked (Jasper)</td><td>One concrete, testable goal before the real implementation; worst-case flux is the design point.</td></tr>
+<tr><td>26 Oct</td><td>The receiver clock and the phase prediction back into their stage pages (Jasper)</td><td>A separate 4a and 7a in the sidebar looked out of place; one page per stage.</td></tr>
+<tr><td>27 Oct</td><td>Filling in the missing unit tests is part of the review week (Jasper)</td><td>Stages 2–6 had been checked only by NumPy ports and end-to-end runs; a test per stage makes every later change checkable.</td></tr>
+<tr><td>27 Oct</td><td><code>applyInverseDispersion</code>'s leakage check summed in double (Jasper)</td><td>In single precision it could not tell 10⁻¹² from 10⁻⁷; the output data stay bit for bit.</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -467,6 +495,12 @@ the order of the chain.</td></tr>
 <tr><td><a href="../logs/2026-10-22_handover-D.md"><code>2026-10-22_handover-D.md</code></a></td><td>block D closed: state, results, the ten parked items</td></tr>
 <tr><td><a href="../logs/2026-10-22_handover-E.md"><code>2026-10-22_handover-E.md</code></a></td><td>handover for block E: state, what exists, open decisions</td></tr>
 <tr><td><a href="../logs/current_project_notes.md"><code>current_project_notes.md</code></a></td><td>the complete reference, kept up to date with the code</td></tr>
+<tr><td><a href="../logs/2026-10-21_task2.4-writeup.md"><code>2026-10-21_task2.4-writeup.md</code></a></td><td>deliverable for project task 2.4: the signal chain and the processing, about two pages</td></tr>
+<tr><td><a href="../logs/2026-10-22_docs-figures.md"><code>2026-10-22_docs-figures.md</code></a></td><td>these docs: eight new figures on the pages that had one or none</td></tr>
+<tr><td><a href="../logs/2026-10-22_agent-trial-2.md"><code>2026-10-22_agent-trial-2.md</code></a></td><td>the second trial with agent roles and linked sessions (stopped)</td></tr>
+<tr><td><a href="../logs/2026-10-22_review-C-D.md"><code>2026-10-22_review-C-D.md</code></a></td><td>the review of blocks C and D, day 1, and a read-only docs check</td></tr>
+<tr><td><a href="../logs/2026-10-23_review-C-D.md"><code>2026-10-23_review-C-D.md</code></a></td><td>the review of C and D, day 2: Jasper's validation list, TOA corrections noted, block E revised</td></tr>
+<tr><td><a href="../logs/2026-10-26_review-week.md"><code>2026-10-26_review-week.md</code></a></td><td>the review week E0: stages 4–6b walked through, the missing unit tests filled in, the running list</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

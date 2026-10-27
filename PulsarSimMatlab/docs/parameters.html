@@ -320,12 +320,14 @@ when the unit tests' data are re-frozen (the tests themselves read their own cop
 <tr><td>IQ decimation <var>D</var></td><td>5</td><td>round(<code>f_in</code>/<code>fs</code>)</td></tr>
 <tr><td>Baseband band</td><td>−100…+300 MHz</td><td><code>fLow</code>/<code>fHigh</code> − <code>fLO</code></td></tr>
 <tr><td>Dispersion smear across the band</td><td>31.51 ms</td><td>τ(1.2 GHz) − τ(1.6 GHz) at DM 25 (6.302 ms at the earlier DM 5)</td></tr>
-<tr><td>Forward dispersion kernel</td><td>25,229,772 taps</td><td><a href="sky.html#disp">sky</a></td></tr>
+<tr><td>Forward dispersion kernel</td><td>126,068,856 taps at DM 25 (25,229,772 at DM 5)</td><td><a href="sky.html#disp">sky</a></td></tr>
 <tr><td>Channels</td><td>128 × 3.125 MHz, slots <var>K</var> = 256, decimation 192, rate 4.17 MHz</td><td><code>chanWidth</code>, oversampling 4/3</td></tr>
 <tr><td>Detected bin</td><td>1 µs (full band, 800 samples); 0.96 µs (channels, 4 samples)</td><td><code>f_out</code></td></tr>
 <tr><td>Noise bandwidth</td><td>391.6 MHz (full band); 3.0596 MHz per channel</td><td>8 MHz / 2 % edge tapers</td></tr>
-<tr><td>Expected SNR per pulse at −5 dB</td><td>96.5 (exact tapers); measured median 93.4</td><td><a href="validation.html#epm"><code>expectedPowerModel</code></a></td></tr>
-<tr><td>Best TOA error per pulse at −5 dB</td><td>2.892 µs; measured median σ 2.880 µs</td><td>same</td></tr>
+<tr><td>Expected SNR per pulse at −5 dB</td><td>96.5 (exact tapers, full band); measured median 93.4 on the full band (DM 5,
+0.1 s); 92.0 for the current default, the channel path at DM 25 (<a href="results.html">validation record</a>)</td><td><a href="validation.html#epm"><code>expectedPowerModel</code></a></td></tr>
+<tr><td>Best TOA error per pulse at −5 dB</td><td>2.892 µs (full band); measured median σ 2.880 µs on the full band (DM 5,
+0.1 s); 2.951 µs for the channel path at DM 25</td><td>same</td></tr>
 <tr><td>Complete turns in 0.2 s (DM 25)</td><td>16 full band (turns 0–15), 15 channel path (1–15); 9 / 8 in 0.1 s at DM 5</td><td>fully-supported range: the last
 dispersion sweep (31.5 ms; 6.3 ms at DM 5) is not fully supported, so it ends at ~168.5 ms and turn 16 is incomplete; on the channel path
 turn 0 also lacks its first 0.32 ms (the per-channel dedispersion guard, 20/62.5 kHz; full band 20/8 MHz = 2.5 µs), because the file

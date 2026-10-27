@@ -14,7 +14,7 @@ const PAGES = [
   { file: "sky.html",         title: "1–2 Sky: pulsar and dispersion" },
   { file: "receiver.html",    title: "3–4 Receiver: noise, RFI, IQ, clock" },
   { file: "fullband.html",    title: "5–6 Full-band front end" },
-  { file: "channels.html",    title: "5b–6b Channelized front end" },
+  { file: "channels.html",    title: "5a–6b Channelized front end" },
   { file: "excision.html",    title: "RFI excision" },
   { file: "fold.html",        title: "7 Phase prediction and folding" },
   { file: "simulator.html",   title: "1–7 Fast simulator (long runs)" },

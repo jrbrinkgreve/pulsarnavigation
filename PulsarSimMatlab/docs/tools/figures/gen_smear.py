@@ -6,6 +6,7 @@ from plotsvg import Ax, pow10
 K, fL = 4.148808e3, 1200.0                             # s MHz^2, MHz
 w = np.logspace(-2, np.log10(400), 300)                # channel width [MHz]
 smear = lambda DM: (K*DM/fL**2 - K*DM/(fL + w)**2)*1e6 # us
+smearC = lambda DM: (K*DM/fL**2 - K*DM/(fL + 3.125)**2)*1e6   # us, exactly at the pipeline's 3.125 MHz (27 Oct 2026)
 o = []
 A = Ax(90, 40, 520, 250, (0.01, 400), (0.1, 1e5), logy=True)
 lx = lambda v: A.x0 + (np.log10(v) - np.log10(0.01))/(np.log10(400) - np.log10(0.01))*A.w
@@ -18,7 +19,7 @@ for DM, cls, lab in ((25, 'curve', 'DM 25 (the simulation)'), (100, 'curve2', 'D
     s = smear(DM)
     pts = ' L'.join(f'{lx(a):.1f} {float(A.Y(b)):.1f}' for a, b in zip(w, s) if 0.1 <= b <= 1e5)
     o.append(f'<path class="{cls}" d="M{pts}"/>')
-    print(DM, 'smear at 3.125 MHz', smear(DM)[np.argmin(abs(w - 3.125))], 'full band', smear(DM)[-1])
+    print(DM, 'smear at 3.125 MHz', smearC(DM), 'full band', smear(DM)[-1])
 ly = float(A.Y(5e4))
 o.append(f'<path class="curve2" d="M{A.x0+10} {ly-4:.1f} h18"/><text class="sub" x="{A.x0+34}" y="{ly:.1f}">DM 100 (the design target)</text>')
 o.append(f'<path class="curve" d="M{A.x0+10} {ly+12:.1f} h18"/><text class="sub" x="{A.x0+34}" y="{ly+16:.1f}">DM 25 (the simulation)</text>')
@@ -30,11 +31,11 @@ xc = lx(3.125)
 o.append(f'<path class="thin" d="M{xc:.1f} {A.y0} V{A.y0+A.h}"/>')
 o.append(f'<text class="sub" x="{xc + 4:.1f}" y="{A.y0 + 12}">the pipeline\'s channels: 3.125 MHz</text>')
 for DM, cls in ((25, 'dot'), (100, 'dot2')):
-    v = float(smear(DM)[np.argmin(abs(w - 3.125))])
+    v = smearC(DM)
     o.append(f'<path class="{cls}" d="M{xc-4:.1f} {A.Y(v):.1f} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>')
 nx = 632
 notes = [('ttl', 'If channels were only shifted'), ('sub', 'Each channel would keep its own'),
-         ('sub', 'sweep: 372 µs in a 3.125 MHz'), ('sub', 'channel at DM 25, 1.5 ms at DM 100,'),
+         ('sub', f'sweep: {smearC(25):.0f} µs in a 3.125 MHz'), ('sub', f'channel at DM 25, {smearC(100)/1e3:.1f} ms at DM 100,'),
          ('sub', 'more than a millisecond pulsar\'s'), ('sub', 'whole pulse.'), ('sub', ''),
          ('ttl', 'Dedispersing the voltage'), ('sub', 'removes the sweep at every'),
          ('sub', 'frequency: no smear at all, in any'), ('sub', 'channel width (stages 5 and 5b).')]

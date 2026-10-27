@@ -92,13 +92,14 @@ clock offset.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 22 October 2026</h2>
+<h2>Status · 27 October 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
   <div class="done"><b>B ✓ (for now)</b>RFI excision: essentials done; two items parked with designs</div>
   <div class="done"><b>C ✓</b>fast simulator for hours of data: validated, <a href="scenario.html#hundred">scenario budgets</a> done; closed 22 Oct</div>
   <div class="done"><b>D ✓</b>motion, phase, clock, navigation: a ship within 73 km of its track; closed 22 Oct</div>
+  <div class="now"><b>E0 (now)</b>review week: every stage walked through, every stage with its own unit test</div>
   <div class="later"><b>E (next)</b>the full system in simulation: several pulsars, the array</div>
   <div class="later"><b>F</b>real implementation: antenna data, GPU / FPGA</div>
 </div>
@@ -116,7 +117,8 @@ handle. The <a href="simulator.html">fast simulator</a> therefore draws the fold
 of data take seconds. It is validated in Jasper's runs, and its scenario runs give TOA budgets for B0329+54, seen from the Netherlands,
 and for J0437, seen from 30° S.</p>
 <p><b>Now: block E</b> (revised 23 Oct): a fixed position in the Netherlands from several pulsars, in simulation, with all 18 data
-streams beamformed. It starts with a review of blocks C and D. <b>Then block F</b>, the real implementation on antenna data at that site.
+streams beamformed. It starts with a review: of blocks C and D (22–23 Oct), then a review week, E0, that walks through every stage
+again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all, validated in Jasper's runs). <b>Then block F</b>, the real implementation on antenna data at that site.
 Details and reasons: <a href="roadmap.html#blockE">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
@@ -140,6 +142,7 @@ refinements are parked (simulator page)</td><td><span class="badge validated">cl
 <code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate; the
 navigation fit <code>navFit</code> and the ship's Kalman filter <code>navFilter</code>; the ship scenario <code>runShip</code>; JPL's DE440 with TDB − TT, precession and nutation for real data. Closing: the ship keeps
 within 73 km rms of its track with a calibrated start (dead reckoning: 379 km); a few items parked (<a href="navigation.html#next">navigation</a>)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
+<tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision)</td><td><span class="badge todo">under way</span></td></tr>
 <tr><td>E</td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second
 polarization</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>F</td><td>Real implementation: IQ data from the antenna, mixer and SDR through <code>processIQ</code>; the processing on a GPU or FPGA,
@@ -210,7 +213,7 @@ the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefor
 <tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
 <tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
 </table></div>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>65b1c95</code> (22 Oct 2026) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>7274ced</code> (27 Oct 2026) ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a> · <a href="maintenance.html">docs maintenance</a></p>
 
 </main>

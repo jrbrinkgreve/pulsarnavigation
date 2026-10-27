@@ -18,7 +18,7 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all 31 listed tests in one session (6–9 min), on their own frozen data. So a <code>main.m</code>
+<p><code>tests/runAllTests.m</code> runs all 31 listed tests in one session (about 10 min), on their own frozen data. So a <code>main.m</code>
 run can never change what they check. A thirty-second, the slow <code>testRFIChain</code>, runs only when named.</p></div>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision), C (fast simulator) and D (motion, clock
 and navigation) were built in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2"
@@ -27,7 +27,7 @@ and similar mean "the code before that step".</p>
 <h2 id="run">How to run</h2>
 <pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
 run('tests/testChannelizeIQ.m')     % one test
-run('tests/runAllTests.m')          % all 31 unit tests, in order, summary at the end (6–9 min)
+run('tests/runAllTests.m')          % all 31 unit tests, in order, summary at the end (~10 min)
 runAllTests("testRFIChain")         % the slow one, only when named (~2.5 h)</code></pre>
 <p>Run them from the <code>PulsarSimMatlab</code> folder. Every test is a function with its own workspace. It prints PASS/FAIL lines and
 its numbers, and tests can be run one after another in one MATLAB session.</p>
@@ -122,14 +122,14 @@ own. Never run two test sessions at once: they share <code>data/test/chan/</code
 <div class="callout warn"><span class="ttl">Order and shared files</span>
 <ul>
 <li>The tests have their own frozen settings and data (since 13 Oct 2026). The settings are <code>tests/testParams.m</code>, used
-instead of <code>pipelineParams</code>: seeds 42 and 43, −5 dB, no RFI, <var>L</var> = 0.1 s, fLO 1.3 GHz, fs 800 MHz, f_out 1 MHz,
+instead of <code>pipelineParams</code>: seeds 42 and 43, −5 dB, no RFI, DM 5, <var>L</var> = 0.1 s, fLO 1.3 GHz, fs 800 MHz, f_out 1 MHz,
 nBin 2048, 128 × 3.125 MHz. The data are in <code>data/test/</code>, made once by <code>tests/makeTestData.m</code> from
 <code>main.m</code>'s seed-43 files, after checking that they have that configuration.<br>
 So <code>main.m</code> runs with other settings, or edits to <code>pipelineParams</code>, no longer change what the tests check. Before,
 a <code>main.m</code> run with another SNR or RFI rewrote the tests' input (<code>data/test_rx_IQ.dat</code>, <code>data/chan/</code>). That
 broke the bit-for-bit regressions, or silently changed the data. On 13 Oct all 14 tests of that day passed on the frozen data
 (<span class="badge validated">Jasper's run of <code>runAllTests</code>, 6.8 min</span>).</li>
-<li><code>testDedisperseChannels</code> and <code>testDetectChannels</code> rewrite the channel files in <code>data/test/chan/</code>, with
+<li><code>testChannelizeIQ</code> (its test 3), <code>testDedisperseChannels</code> and <code>testDetectChannels</code> rewrite the channel files in <code>data/test/chan/</code>, with
 the same contents. A single test that needs them finds them there.</li>
 <li>The <code>make*Reference.m</code> scripts are not tests: they froze outputs of old code (at a named commit) for the regression checks. Do not rerun them with new code.</li>
 <li>Never run two test sessions at once: they share <code>data/test/chan/</code> and their tempdir folders. <code>main.m</code> at the same
@@ -464,7 +464,7 @@ counting (Parseval).</li>
 <li><b>Other LOs.</b> Tests 1–3 all have β = ½, because today's LO sits exactly 32 channels from the band edge. With the LO on a
 channel centre (β = 0) and off the grid (β = 0.18), 14 channels, including both band edges, still match the formula to 2.9·10⁻⁷.
 The channel files equal those with today's LO to 1.4·10⁻⁷ (limit 10⁻⁵): a channel depends only on the RF signal and its centre.</li>
-<li><b>Oversampling 2</b> (6.25 MHz channels). The prototype has the 1285 taps the Kaiser formula gives, a passband flat to
+<li><b>Oversampling 2</b> (the 3.125 MHz channels sampled at 6.25 MHz). The prototype has the 1285 taps the Kaiser formula gives, a passband flat to
 1.6·10⁻⁴ and a stopband at −79.6 dB. Tones match to 2.5·10⁻⁷, including one 4 MHz from a channel centre, which aliases to
 −2.25 MHz, outside the useful band.</li>
 <li><b>Block size and start time.</b> <code>BlockOut</code> 1, 7, 100 and 341 give all 128 channel files byte for byte as one
@@ -610,8 +610,8 @@ PFA they flag 1 and 0 windows, instead of 432 and 386. All 19 radar pulses on th
 give the old mask bit for bit, and pure noise gets no thresholds of its own. Tests 1–3 are unchanged, except that 3d's unguarded blanked
 fraction went from 0.6487 to 0.6484 %: the constant-envelope channels flag slightly less.</li>
 <li><b>Gain changes.</b> The noise-only channels get a gain ramp of +10 % over the file, and separately a +5 % step. The 16 ms
-baselines follow: block by block they equal the median of the gained power (1.0166, 1.0500 and 1.0833 for the ramp). False flags stay
-within 1.5 % of the prediction, which is only 0.2–1.1 % above the nominal rate. Inside each block, flags pile up where the gain has
+baselines follow: block by block they equal the median of the gained power (1.0166, 1.0500 and 1.0832 for the ramp). False flags stay
+within 1.5 % of the prediction, which is only 0.2–1.1 % above the nominal rate for the ramp and 0.4–2.6 % for the step. Inside each block, flags pile up where the gain has
 moved furthest from the baseline: the last tenth of a block has 1.2–1.5 times the flags of the first, as predicted.</li>
 <li><b>One pass against two, under dense bursts</b> (+20 dB in 3 % of the samples, +3 dB in 1 %). Pass 1's baseline is 5.4 % high,
 exactly the median of the mixture. Pass 2 brings it down to 0.5 % high, from the weak bursts pass 1 missed, as predicted. Pass 2
@@ -791,7 +791,7 @@ supported bins (checked by brute force) are right.</li>
 one bin per block, give the same file byte for byte.</li>
 <li>A Gaussian power burst comes out at its true time: the bins' centroid is off by 4·10⁻⁸ bin (limit 10⁻³). The boxcar average does
 not bias arrival times.</li>
-<li>White noise: the bin mean and the bin variance σ⁴/800 lie within 0.8σ of their predictions, and neighbouring bins are
+<li>White noise: the bin mean and the bin variance σ⁴/800 lie within 0.9σ of their predictions, and neighbouring bins are
 uncorrelated. Noise shaped by the dedispersion taper: the variance is 0.986 of the exact prediction (−1.0σ). The radiometer
 approximation, with a noise bandwidth of 391.63 MHz, is within 0.14 % of that exact value.</li>
 <li>The sub-band mode, which nothing uses today: eight channels over the whole baseband add up to the total power to 10⁻⁷, and a tone

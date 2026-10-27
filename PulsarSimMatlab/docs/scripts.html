@@ -16,7 +16,7 @@ their parameters from <code>pipelineParams.m</code> and must be run with MATLAB'
 
 <div class="callout note"><span class="ttl">In short</span>
 <p><code>main.m</code> runs the pipeline once and compares its TOAs with the truth. One run cannot show whether the error bars are
-honest (8–9 TOAs say little), so the experiments repeat the same stages many times, each time changing one thing on purpose: the
+honest (the 8–9 TOAs of 0.1 s at DM 5, or 15 of 0.2 s at DM 25, say little), so the experiments repeat the same stages many times, each time changing one thing on purpose: the
 noise, the pulsar, the signal strength or the interference. Each experiment answers one question.</p></div>
 
 <div class="table-wrap"><table>
@@ -193,7 +193,7 @@ structs from <code>pipelineParams</code>. It runs either the full band (dedisper
 19 Oct.</p></details>
 <div class="callout why"><span class="ttl">Design choice: the stages can be skipped</span>
 <p><b>Alternative:</b> always run the whole chain.</p>
-<p><b>Why not:</b> the sky stage is by far the slowest (random numbers and a 25-million-tap filter at 4 GHz) and does not depend on the noise. Changing
+<p><b>Why not:</b> the sky stage is by far the slowest (random numbers and a 126-million-tap filter at 4 GHz at DM 25; 25 million at DM 5) and does not depend on the noise. Changing
 the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>,
 <code>checkProcessing</code> and <code>checkFold</code> warn when files on disk were made with other parameters or from older inputs.</p></div>
 

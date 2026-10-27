@@ -239,7 +239,7 @@ path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</li>
 <div class="callout why"><span class="ttl">Coherent dedispersion of the voltage, not shifting sub-bands</span>
 <p><b>Alternative:</b> incoherent dedispersion: split the band into channels, detect each, and shift each channel by its delay.</p>
 <p><b>Why not:</b> the delay also changes inside each channel, so a shift leaves a smear. In a 3.125 MHz channel at the bottom of the
-band the smear is 372 µs at DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse.
+band the smear is 374 µs at DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse.
 Filtering the voltage removes the sweep at every frequency, with no smear at all. This is why the channel path also dedisperses each
 channel coherently.</p></div>
 <figure class="scroll">
@@ -277,11 +277,11 @@ channel coherently.</p></div>
   <text class="sub" x="96" y="153.8">J0437, W50 0.141 ms</text>
   <path class="thin" d="M371.9 40 V290"/>
   <text class="sub" x="375.9" y="52">the pipeline's channels: 3.125 MHz</text>
-  <path class="dot" d="M367.9 141.2 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <path class="dot" d="M367.9 141.1 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
   <path class="dot2" d="M367.9 116.1 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
   <text class="ttl" x="632" y="58">If channels were only shifted</text>
   <text class="sub" x="632" y="75">Each channel would keep its own</text>
-  <text class="sub" x="632" y="92">sweep: 372 µs in a 3.125 MHz</text>
+  <text class="sub" x="632" y="92">sweep: 374 µs in a 3.125 MHz</text>
   <text class="sub" x="632" y="109">channel at DM 25, 1.5 ms at DM 100,</text>
   <text class="sub" x="632" y="126">more than a millisecond pulsar's</text>
   <text class="sub" x="632" y="143">whole pulse.</text>
@@ -528,10 +528,10 @@ it carries through to the TOA.</p></div>
 <li>Noise-free, <var>L</var> = 1 s. The normalized residual of 127,512 on-pulse bins has mean −0.0016 (expected 0 ± 0.0028) and
 standard deviation 1.0015 (expected 1 ± 0.0020). The per-pulse centroid offsets have an rms of 0.301 µs, against 0.277 µs expected.</li>
 <li>−5 dB: noise baseline 1.232 against 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
-<li>Run time 1.2 s per second of data (limited by reading the file).</li>
+<li>Run time 1.7 s per second of data at 800 MHz (0.17 s for the 0.1 s reference run), limited by reading the file.</li>
 <li><code>testDetectPower</code> checks the detector against its definition (<a href="tests.html#detpow">unit tests</a>). Every
 bin equals the mean of <var>I</var>² + <var>Q</var>² to 6.3·10⁻⁸, and a burst comes out at its true time to 4·10⁻⁸ bin. The bin
-variance matches the exact prediction from the noise spectrum within 1σ.</li>
+variance matches the exact prediction from the noise spectrum within 1.1σ.</li>
 </ul>
 <p>Details in the <a href="results.html">validation record</a>.</p>
 

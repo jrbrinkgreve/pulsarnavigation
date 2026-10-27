@@ -76,7 +76,12 @@ sub-ints.</td><td>A derived time must stay inside the data it describes.</td></t
 comparison with DE440 showed 3.2·10⁵ km relative to the barycentre (Uranus and Neptune are left out), and up to 656 ms of Roemer delay
 for B0329+54.</td><td>Help text and docs corrected; simulations are unaffected, because truth and prediction share the orbit.</td><td>Check
 an approximation against the exact reference before quoting its error.</td></tr>
+<tr><td>19</td><td><b>The dedispersion leakage check summed in single precision</b> (27 Oct, found by <code>testApplyInverseDispersion</code>):
+near 1, 1 − inside/<var>E</var> resolves only 6·10⁻⁸, so <code>applyInverseDispersion</code> reported 0 or a multiple of 6·10⁻⁸ instead of
+about 10⁻¹², and could not tell a good guard from a marginal one.</td><td>The two sums in double; the output data did not change, bit for
+bit.</td><td>A diagnostic computed in the data's precision can hide in its own rounding: compare it with an independent value once.</td></tr>
 </table></div>
+<p class="meta">This table has its own numbers. The project notes (§8) count 23 bugs, including a few small ones this page leaves out.</p>
 
 <h2 id="picture">One lesson in a picture: shared data means correlated noise (#8)</h2>
 <figure class="scroll">

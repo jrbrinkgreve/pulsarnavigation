@@ -37,7 +37,7 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_radar.py` | radar pulse spectrum with instant / 0.1 µs edges; rotating-antenna gain | receiver.html (stage 3) |
 | `gen_iq.py` | spectra through the IQ stage | receiver.html (stage 4) |
 | `gen_iqfilter.py` | the IQ low-pass response, the band and the alias zones | receiver.html (stage 4) |
-| `gen_smear.py` | smear left inside a channel by incoherent dedispersion, DM 5 and 100 | fullband.html (stage 5) |
+| `gen_smear.py` | smear left inside a channel by incoherent dedispersion, DM 25 and 100 | fullband.html (stage 5) |
 | `gen_support.py` | fully supported data and complete turns of the 0.1 s file, both paths | fullband.html (stage 5) |
 | `gen_fout.py` | the f_out sweep of 9 Oct (logged numbers): SNR and error-bar honesty vs bin width | fullband.html (stage 6) |
 | `gen_dmmem.py` | memory of the dispersion filters vs DM (each function's sizing rule) | channels.html |

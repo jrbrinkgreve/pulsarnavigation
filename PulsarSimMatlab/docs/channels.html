@@ -9,7 +9,7 @@
 <body>
 <main>
 
-<h1>Stages 5b–6b · Channelized front end</h1>
+<h1>Stages 5a–6b · Channelized front end</h1>
 <p class="lede">The default processing path. It splits the band into 128 channels of 3.125 MHz, dedisperses each channel coherently
 to one common reference, and detects each channel with an exact model of its noise.</p>
 <p class="meta">Selected with <code>frontEnd = 'channels'</code> · RFI excision (<code>excision = true</code>, default) sits between
@@ -90,7 +90,7 @@ the channel's 4.17 MHz rate: about 10⁵ samples instead of 10⁸. And the chann
 </svg>
 <figcaption>Memory of one dispersion filter against DM, with each function's own sizing rule (the smallest FFT it may use: twice the reach of
 the filter, rounded up to a power of two; 44 or 56 bytes per FFT sample). The steps are the powers of two. One full-band filter at
-800 MHz passes the 4 GB default near DM 30 and needs ~15 GB at DM 100; a channel's filter stays near 100 MB. The simulator's
+800 MHz passes the 4 GB default near DM 33 and needs ~15 GB at DM 100; a channel's filter stays near 100 MB. The simulator's
 forward filter (stage 2, real samples at 4 GHz) is the remaining problem (<a href="roadmap.html#dm">roadmap</a>).</figcaption>
 </figure>
 
@@ -280,7 +280,7 @@ double counting (Parseval). 0.1 s of data becomes 128 × 416,667 samples in 4.1 
 <li><b>Other LOs.</b> With the LO on a channel centre (β = 0) or off the 3.125 MHz grid (β = 0.18), the tones still match to
 2.9·10⁻⁷. The channel files equal those with today's LO to 1.4·10⁻⁷: a channel depends only on the RF signal, not on where the LO
 sits.</li>
-<li><b>Oversampling 2</b> (6.25 MHz channels, 1285 taps). The passband is flat to 1.6·10⁻⁴ and the stopband is at −79.6 dB; tones
+<li><b>Oversampling 2</b> (the 3.125 MHz channels sampled at 6.25 MHz, 1285 taps). The passband is flat to 1.6·10⁻⁴ and the stopband is at −79.6 dB; tones
 match to 2.5·10⁻⁷. A tone 4 MHz from a channel centre aliases to −2.25 MHz, outside the useful ±1.5625 MHz.</li>
 <li><b>Block size.</b> Four values of <code>BlockOut</code>, down to one output sample per block, give every channel file byte for
 byte.</li>
@@ -307,8 +307,8 @@ delay to the reference, so <b>all channels come out aligned</b>.</li>
 independent. ∫<var>W</var>² = 390.0 MHz in total, the same as the full-band path.</li>
 </ul>
 <p>Memory per channel: the filter spans that channel's sweep to the reference, at 4.17 MHz. For the bottom channel at DM 100 that is
-about 5·10⁵ samples, or about 120 MB. At DM 5 the FFT sizes are 2¹⁴…2¹⁸, the largest leakage is 6·10⁻⁸, and all 128 channels take
-1.7 s.</p>
+about 5·10⁵ samples, or about 120 MB. At DM 5 the FFT sizes are 2¹⁴…2¹⁸, the largest leakage is 3·10⁻¹² (2·10⁻¹² at DM 25), and all 128
+channels take 1.7 s.</p>
 
 <h3>Design choices</h3>
 <div class="callout why"><span class="ttl">Reuse <code>applyInverseDispersion</code></span>

@@ -2,9 +2,9 @@ function results = runAllTests(names)
 %RUNALLTESTS  Run the unit tests in tests/ one after another in this session; summary at the end.
 %{
 Run from the PulsarSimMatlab folder: run('tests/runAllTests.m') (all), or
-runAllTests(["testRfiNoise" "testRadarEdges"]) with tests/ on the path (a subset). 6-9 min
-for all 31 (testOptimalTOA and testBlankingWeights 2-4 min each; testSimulateFold ~1 min,
-testRFIModel ~20 s).
+runAllTests(["testRfiNoise" "testRadarEdges"]) with tests/ on the path (a subset). About 10 min
+for all 31 (9.6 min for 25 in Jasper's run of 23 Oct; testOptimalTOA and testBlankingWeights 2-4 min
+each, testDetectRFI ~2.5 min, testSimulateFold ~1 min, testRFIModel ~20 s).
 
 Each test runs in its own try/catch, so one failure does not stop the others; its own
 output is printed as usual. At the end a table: PASS / FAIL per test, run time, and the

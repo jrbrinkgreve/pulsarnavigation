@@ -721,6 +721,40 @@ and in Jasper's run (27 Oct): validated.
 **Also changed.** Docs: tests.html (`#drfi` items 5–6, a badge, the runs in a collapsed box); excision.html (a paragraph
 under Baseline, two rows in the tests table); roadmap R-E1 done; changelog. Notes: §5.20, §10 E1 done, the tests table.
 
+## Day 2: a read-only consistency scan of the docs, and its fixes
+
+Jasper: "scan the entire docs - all pages - on consistency in the background", then "also let it check consistency
+with the project notes". A read-only background agent compared every page with the others, with the code and with the
+notes (no edits, no MATLAB). Clean: all 1061 internal links and 813 anchors, the 29 pages in nav.js, every Options
+list against the arguments blocks, today's test numbers and the test count (31). About thirty findings; Jasper: fix
+the wrong facts (A), the stale statements (B), the docs-vs-notes clashes (E) and the clear minor ones (D), leave the
+notes' stage relabelling (E5) for later.
+
+Fixed (docs unless noted):
+- **A:** "Oversampling 2 (6.25 MHz channels)" → the 3.125 MHz channels sampled at 6.25 MHz (tests, channels: my wording
+  today); the in-channel sweep at DM 25 is 374 µs, not 372 (gen_smear.py read its curve at a grid point; it now
+  computes 3.125 MHz exactly; figure regenerated, the script reproduced the page figure first); parameters.html's
+  "current settings" now give the DM 25 kernel (126,068,856 taps; 25,229,772 at DM 5) and the current channel-path
+  results (92.0 / 2.951 µs) next to the full-band DM 5 run; runAllTests "6–9 min" → about 10 min (tests.html,
+  runAllTests.m header).
+- **B:** channels.html and notes §5.16: the per-channel leakage, re-measured on the frozen data after the fix:
+  max 3.3e-12 at DM 5, 2.2e-12 at DM 25 (was the single-precision step 6e-8); index.html status 27 Oct, an E0 item
+  and row, the review-week paragraph, checked against 7274ced; roadmap status 27 Oct, the E0 row (days 1–2 done),
+  timeline rows 26 and 27 Oct; history.html: sessions 22–23 and 26–27 Oct, four decision rows, the reversed
+  clock-page decision marked, six missing session logs; lessons.html row 19 (the leakage bug) and a note that its
+  numbering differs from notes §8; api.html regenerated after this commit (B6).
+- **E (notes):** §5.5 leakage (now ~1.2e-12; the old values marked as before 27 Oct); §5.16 ~120 MB per channel at
+  DM 100 (2^21 × 56 B); "All 25 unit tests" → 31 since 27 Oct; header "Last updated: 27 October"; docs 29 pages.
+- **D:** "5b–6b" → "5a–6b" (nav.js, channels heading); scripts.html: TOA counts and kernel size with their DM and
+  length; toa.html Options: Chi2Alarm; tests.html: testChannelizeIQ (test 3) among the rewriters of data/test/chan,
+  DM 5 in the frozen settings; channels.html: the 4 GB limit near DM 33 (log D2-13), not 30; five roundings
+  (0.9σ, 1.1σ, 91.7 dB, 1.0832, ramp and step ranges); fullband.html detectPower run time 1.7 s per second at 800 MHz.
+- **Checked after:** the scan's own link checker on all pages: 1070 internal links, 814 anchors, none broken; the
+  edited pages render (sidebar, home strip, history, lessons, the figure).
+
+Not changed (Jasper's call): D2 (excision.html's numbered headings look like stage numbers), D3 (the "(DM = 5)" symbol
+lists, intended), E5 (the notes' stage labels: proposal below in this session's report).
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
