@@ -755,6 +755,36 @@ Fixed (docs unless noted):
 Not changed (Jasper's call): D2 (excision.html's numbered headings look like stage numbers), D3 (the "(DM = 5)" symbol
 lists, intended), E5 (the notes' stage labels: proposal below in this session's report).
 
+## Open decisions, for later (27 Oct, end of the unit-test session)
+
+Jasper: "log this to decide for later, I'll get back to the review week in the other session". Nothing below is
+decided or done. Each line has Claude's recommendation, for Jasper to take or change.
+
+**New from 27 Oct:**
+
+| # | Item | Options | Recommendation |
+|---|---|---|---|
+| D1-26 | `detectPower`'s sub-band mode (`'NChan'` > 1): unused, older than `channelizeIQ` | keep, or retire (~80 lines, and testDetectPower check 5) | retire on day 5, together with the unused `'unity'` gain (D1-13, R-I4): two dead options, one cleanup |
+| E5 (scan) | the notes' old stage labels ("4b channelizeIQ", "5c blankingWeights", "6a detectRFI", "6b periodicRFI", "Stage 7 per-channel dedispersion") clash with the docs' 5a / 5b / 6b | relabel now or later | one mapping table at the top of notes §3; relabel the current-state text; keep the dated §10 entries as written with the new label in brackets; leave the logs; align main.m's header (D1-22) at the same time; one text-only commit, checked by grep |
+| D2 (scan) | excision.html's headings "2 · detectRFI" … "8 · periodicRFI" read like stage numbers | keep, rename, or drop the numbers | drop the numbers (pipeline.html lists these functions without one) |
+| D3 (scan) | "(DM = 5)" in the symbol lists of fullband.html and sky.html | — | keep: intended, next to the DM-5 boxes |
+| D2-19 | the default guard is 2001 samples (floating-point ceil) | leave, or round | leave: harmless, and a change would move the outputs slightly |
+| D2-20 | two stale `%#ok<NASGU>` in applyInverseDispersion | remove, or leave | remove (cosmetic, bit-identical) |
+| D2-21 | noiseBandwidth checks no inputs (edge > B/2 overwrites; edge ≤ 0) | add checks, or note | add two checks that raise an error |
+| D2-22 | the frequency guard has no cap (99 % blanked under dense independent strong bursts) | design a cap, or note | note until real RFI data (F) shows whether it matters |
+
+**Already scheduled (review-week plan):** D1-7 the good-TOA rule's unknown-phase detection (day 3); D1-29 the
+`noiseCal` default (day 5); D2-6 driver robustness, the shared base workspace (day 5); the choice of refinements
+before E1 (day 5), where the cleanups D1-13, D2-3 and D1-26 fit; D1-9 the task 2.4 write-up's text against the
+in-band LO; the main.m smoke run with the `'Reuse'` test (D1-6, day 4).
+
+**No decision needed:** D1-22 (main.m's header) and D1-21 (one docs sentence) are minor text fixes, to do whenever.
+About 30 other running-list items are labelled for E2 / E4 / E5 / F, "known", "none", "understanding" or "watch".
+
+**Where the review week resumes:** day 3 (7a phase prediction, 7 fold, processIQ), per the plan at the top of this
+log. Days 1–2 and the missing unit tests are done (31 unit tests, all validated in Jasper's runs; committed and pushed
+up to d18c281).
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
