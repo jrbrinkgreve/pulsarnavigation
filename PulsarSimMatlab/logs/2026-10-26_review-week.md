@@ -513,6 +513,43 @@ data-flow box "1 · stages 1–3", counts 27); receiver.html validation (the "no
 test's numbers); roadmap R-N1 done; figures README; changelog. Notes: §5.3 Tests paragraph, §10 N1 done, tests
 table row and the runAllTests row.
 
+## Day 2: missing unit tests, stage 4 (`testApplyIQmodulation`, R-I1)
+
+Jasper: "plan the next unit test (R-I1, applyIQmodulation)"; plan given, then "Go ahead".
+
+**Physics checked.**
+- **Complex envelope.** x = Re{z·e^(i2π fLO t)}; mixing gives 2x·e^(−i2π fLO t) = z + z*·e^(−i4π fLO t). The low-pass
+  keeps z (the band at f − fLO) and removes the real signal's mirror at −(f + fLO). A tone A·cos(2πft + φ) becomes
+  A·e^(iφ)·e^(i2π(f − fLO)t): amplitude A (factor 2), no inversion.
+- **The low-pass.** Kaiser, 2049 taps, 80 dB: ripple and stopband both δ = 1e-4; flat to ±355.1 MHz, stopband from
+  364.9 MHz; the band (−100 … +300 MHz) sees 9e-6 ripple. After ÷5 the Nyquist is ±400 MHz.
+- **Timing.** Symmetric FIR: linear phase, delay exactly G = 1024 input samples, removed; with it removed the passband
+  response is real, so a tone keeps its phase. LO phase from the absolute index (13/40 cycles per sample).
+
+**The test** (`tests/testApplyIQmodulation.m`, ~2 s, own files in tempdir). All seven checks pass in Claude's runs
+(alone and inside `runAllTests` with the stage 2–3 tests) and in Jasper's run (27 Oct): validated.
+
+| Check | Result | Limit |
+|---|---|---|
+| 1 format and info | 22 of 22; 4,000,003 → 800,001 samples; no warning at main's settings | exact |
+| 2 six tones (1.2 … 1.6 GHz, one at fLO → DC) | = the formula sample for sample within 0.9–5.3e-6 of A | 1e-4 |
+| 3 burst timing | centroid on output sample k0, −8.5e-6 sample (204.8 late without removing G) | 1e-3 sample |
+| 4 power ratio | 2.000003 | 2 ± 2e-4 |
+| 5 suppression | mirror −134.3 dB, stopband tone −91.7 dB, aliasing tone −103.8 dB | −80 dB |
+| 6 block length (2048 = 1954 blocks, 99,999, 1,000,003) | 2.8–3.0e-7 rms from one block | 1e-6 |
+| 7 warnings and refusals | :rate, :band, :alias; 8 of 8 refused | — |
+
+- **Predicted beforehand:** the suppression levels were computed from the filter's design (NumPy, before the run) and
+  came out the same to 0.1 dB. The limits are the design limits, not the measured values.
+- **Warnings silenced.** The three provoked warnings are switched off inside the check; `lastwarn` still records
+  them (checked), so the output shows no warning text.
+- **Not covered:** `'Gain', 'unity'` (R-I4: remove); the ideal receiver (R-I3); no ADC (D1-11).
+
+**Also changed.** `runAllTests`: fourth, count 28. Docs: tests.html (row, section `#iq`, check matrix regenerated, the
+data-flow box "1 · stages 1–4", counts 28); receiver.html IQ validation (the NumPy-port line replaced by the test);
+roadmap R-I1 done; figures README; changelog. Notes: §5.4 Tests paragraph, §10 I1 done, tests table and the
+runAllTests row.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |

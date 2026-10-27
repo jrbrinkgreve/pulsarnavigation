@@ -595,6 +595,21 @@ Numbers for the current `pipelineParams` (fLO 1.3 GHz, fs 800 MHz; §4). The ori
 loPhaseRef, gainConvention, gainFactor, cutoff, transitionWidth, stopbandDB, filterLen,
 groupDelayRemoved, t0 = 0, Nfft, blockLen.
 
+**Tests (`tests/testApplyIQmodulation.m`, 27 Oct, review item R-I1; ~2 s; validated:
+Jasper's run 27 Oct).** Ground truth = the complex envelope (tone A·cos(2πft + φ) →
+A·e^(iφ)·e^(i2π(f − fLO)t), output sample k at k/fs) and the Kaiser design limit δ = 1e-4
+(ripple and stopband); the filter coefficients are not used. main's settings (4 GHz, fLO
+1.3 GHz, 800 MHz, 2048). (1) Format and info, 22 checks (4,000,003 → 800,001 samples,
+interleaved I,Q; 2049 taps, G 1024; no warning with main's Band). (2) Six tones (1.2, 1.25,
+1.3 = DC, 1.4, 1.55, 1.6 GHz) = the formula sample for sample within 0.9–5.3e-6 of A (limit
+δ; the in-band ripple is 9e-6). (3) Gaussian burst at input 5·k0 → centroid at output k0,
+−8.5e-6 sample (limit 1e-3; 204.8 without removing G). (4) Band-limited noise, tapered at
+the ends: D·Σ|z|²/Σx² = 2.000003 (limit 2 ± 2e-4). (5) Hann-weighted projections: the
+1.4 GHz tone's mirror at −300 MHz −134.3 dB, 1.68 GHz (+380 MHz) −91.7 dB, 1.75 GHz aliased
+to −350 MHz −103.8 dB (limit −80 dB; the same as the filter's response computed from its
+design). (6) BlockLen 2048 (1954 blocks), 99,999, 1,000,003 vs one block: 2.8–3.0e-7 rms.
+(7) Warnings :rate, :band, :alias (silenced; lastwarn records them) and eight refusals.
+
 ### 5.5 `applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, ...)` [validated]
 
 **Physics.** Exact inverse of 5.2, applied at baseband: per bin with RF frequency
@@ -3458,7 +3473,9 @@ barycentric corrections, navigation solution).
      flat-band copy of `expectedPowerModel` with an `envelopeMode` branch (R2, item 20e).
 
    Stage 4, IQ conversion (`applyIQmodulation`, review 13 Oct; noted; I2 fixed 14 Oct):
-   - **I1** unit test `tests/testApplyIQmodulation.m` (the stage-4 part of item 12's item 30):
+   - **I1** unit test `tests/testApplyIQmodulation.m`: **done 27 Oct** (§5.4; the spec below all
+     covered, plus the DC tone, the warnings and the refusals; validated: Jasper's run
+     27 Oct). Spec as noted 13 Oct (the stage-4 part of item 12's item 30):
      tones above / below fLO → f − fLO with amplitude A and phase φ (no inversion, factor 2);
      Gaussian burst keeps its centroid time (G = 1024 removed); in-band white noise power
      ratio 2.000; mirror tone and a tone past the stopband suppressed ≥ 80 dB; several
@@ -4278,7 +4295,8 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |
 | `tests/testApplyDispersionStream.m` | R-D1 (27 Oct): impulse response vs the help-text transfer function (3 RefFreq, DM 0, 3 EdgeFrac), tone-burst delays at DM 5, overlap-add vs one double FFT (5 BlockLen, a file shorter than s0), kernelEnergy and output power, leakage (and its warning), 8 refusals (§5.2) | passes (Jasper's run, 27 Oct) |
 | `tests/testAddNoiseAndRFI.m` | R-N1 (27 Oct): the SNR definition (in-band power ratio = ρ, noise level, whiteness, input independence), cw / bpsk / impulse against INR, block size bit for bit (noise + six sources), predictPerformance against quadrature and the 388·ρ weak form, 7 refusals (§5.3) | passes (Jasper's run, 27 Oct) |
-| `tests/runAllTests.m` | (since 27 Oct: **27** unit tests, testApplyDispersionStream and testAddNoiseAndRFI second and third; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testApplyIQmodulation.m` | R-I1 (27 Oct): six tones = the complex envelope (mapping, factor 2, LO phase, timing), burst centroid (G removed), power ratio 2, mirror / stopband / alias suppression, 3 BlockLen, 3 warnings, 8 refusals (§5.4) | passes (Jasper's run, 27 Oct) |
+| `tests/runAllTests.m` | (since 27 Oct: **28** unit tests, testApplyDispersionStream, testAddNoiseAndRFI and testApplyIQmodulation second to fourth; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
