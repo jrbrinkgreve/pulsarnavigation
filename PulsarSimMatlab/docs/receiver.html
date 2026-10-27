@@ -681,8 +681,9 @@ The realistic list estimates what the reference hardware would actually see. The
 predicted; error bars honest (<a href="results.html#mc">validation record</a>).</li>
 <li>All five RFI types were observed and checked in the <a href="results.html#rfi5oct">RFI test</a> of 5 Oct 2026. The radar edges
 are checked by <code>tests/testRadarEdges.m</code>, and rotation and the <code>'noise'</code> type by their tests above.</li>
-<li>There is no unit test yet of the noise level and of each type's INR against their formulas. It is noted on the roadmap
-(<a href="roadmap.html">item N1</a>).</li>
+<li><code>testAddNoiseAndRFI</code> checks the noise level and the RFI powers against their formulas (<a href="tests.html#rx">unit
+tests</a>). A peak-level pulsar's in-band power over the noise's equals ρ, within 1.3σ. The carrier matches its formula to
+1.5·10⁻⁷ of its amplitude. The output is the same for any block size, bit for bit.</li>
 </ul>
 <div class="callout warn"><span class="ttl">Known simplifications</span>
 <ul>

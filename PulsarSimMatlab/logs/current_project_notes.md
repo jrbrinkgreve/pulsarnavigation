@@ -542,6 +542,25 @@ the pulse (the warning `addNoiseAndRFI:weak` below −60 dB said otherwise; remo
 **Info:** noiseStd, noisePSD, noisePowerBand, snrDB, snrDefinition, noiseAddedAt, rfi
 (with computed amplitudes and parameters), prediction, seed.
 
+**Tests (`tests/testAddNoiseAndRFI.m`, 27 Oct, review item R-N1; ~4 s; validated:
+Jasper's run 27 Oct).** Ground truth = the help texts' definitions computed in the test:
+ρ = A²/σ_n², P_band = σ_n²·B/(fs/2), INR = RFI power while on / P_band; the RFI alone =
+(noise + RFI) − (noise only), same seed. Band 1.2–1.6 GHz at 4 GHz, 1 ms files. (1) Format
+and info, 17 checks (σ_n = A/√ρ, noisePSD, P_band exact; no noise → output = input bit for
+bit). (2) White input of std A (a pulsar held at its peak), −5 dB: in-band power ratio
+input / noise 0.31712 vs ρ 0.31623 (+1.26σ, 400,001 bins); noise variance −0.64σ; 8
+sub-bands of 250 MHz within 2.08σ; the noise does not depend on the input (to float32
+rounding). (3) cw (+10 dB, phase, drift) = amp·cos(…) to 1.5e-7 of amp, power 1.000000;
+bpsk (−5 dB): chips ±1 to 5.9e-6, constant in all 1023 chips, balanced (−1.34σ), power
+1.00000; impulse (+10 dB, 1e5/s, 200 ns): 104 bursts (100 expected), zero outside them,
+energy +0.53σ, in-band share 0.1991 (0.2000, −0.43σ). `pulsed` and `noise` stay with
+testRadarEdges 3 and testRfiNoise 3. (4) Noise + six sources (rotating cw, two bpsk, one
+crossing a 65,536-chip substream, radar, impulses, `noise`), 2.5 ms: BlockSize 4e6,
+1,000,003 and one block bit for bit. (5) `predictPerformance` = adaptive quadrature of its
+integrals to ~1e-16 at −54 dB, 0 dB and in amplitude mode; at −54 dB the weak-pulse forms
+are −3.3e-6 / +2.2e-6 off (self-noise), SNR per pulse 387.99·ρ. (6) Seven bad inputs refused
+with their ids.
+
 ### 5.4 `applyIQmodulation(inFile, outFile, f_in, fs, fLO, ...)` [validated noise-free]
 
 **Physics.** Analog I/Q receiver: mix with LO, low-pass, sample. Complex envelope
@@ -3423,7 +3442,10 @@ barycentric corrections, navigation solution).
    - DM up to 100 (item 5): this stage is the blocker (~47 GB at DM 100; was written ~94 GB, corrected 13 Oct); nothing new.
 
    Stage 3, receiver noise and RFI (`addNoiseAndRFI`, `rfiSource`, review 13 Oct; note only):
-   - **N1** unit test `tests/testAddNoiseAndRFI.m` (the stage-3 part of item 12's item 30):
+   - **N1** unit test `tests/testAddNoiseAndRFI.m`: **done 27 Oct** (§5.3; (a)–(d) below covered,
+     `pulsed` power left to testRadarEdges 3, which takes its amplitude from INR; plus whiteness,
+     input independence and the 0 dB prediction; validated: Jasper's run 27 Oct).
+     Spec as noted 13 Oct (the stage-3 part of item 12's item 30):
      (a) measured in-band PSD ratio pulsar peak / receiver noise vs ρ (the SNR definition,
      σ_n = A/√ρ); (b) power of each RFI type vs INR·P_band (`cw`, `bpsk`, `pulsed` while on,
      `impulse`'s in-band share; `noise` is in `testRfiNoise`); (c) `BlockSize` 1e6 + 3 vs one
@@ -4255,7 +4277,8 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |
 | `tests/testGeneratePulsarSignal.m` | R1 (13 Oct): format / ground truth, power profile vs an exact periodic sum (5 % power, amplitude mode, 20 % = the widest real pulses), reproducibility and block size, input checks | passes (Jasper's run, 13 Oct; 20 % case and the > 20 % warning: Jasper's run of `runAllTests`, 13 Oct) |
 | `tests/testApplyDispersionStream.m` | R-D1 (27 Oct): impulse response vs the help-text transfer function (3 RefFreq, DM 0, 3 EdgeFrac), tone-burst delays at DM 5, overlap-add vs one double FFT (5 BlockLen, a file shorter than s0), kernelEnergy and output power, leakage (and its warning), 8 refusals (§5.2) | passes (Jasper's run, 27 Oct) |
-| `tests/runAllTests.m` | (since 27 Oct: **26** unit tests, testApplyDispersionStream second; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
+| `tests/testAddNoiseAndRFI.m` | R-N1 (27 Oct): the SNR definition (in-band power ratio = ρ, noise level, whiteness, input independence), cw / bpsk / impulse against INR, block size bit for bit (noise + six sources), predictPerformance against quadrature and the 388·ρ weak form, 7 refusals (§5.3) | passes (Jasper's run, 27 Oct) |
+| `tests/runAllTests.m` | (since 27 Oct: **27** unit tests, testApplyDispersionStream and testAddNoiseAndRFI second and third; list at runAllTests.m:34–38, plus `testRFIChain` only when named; 25 / 25 in Jasper's run 23 Oct, 9.6 min) runs the 14 unit tests in one session in dependency order (generator first, then the channel-file writers), each in try/catch; table PASS / FAIL, time, first error line; errors at the end if any failed; subset by name; new test*.m run last (13 Oct, review item 30) | passes: all 13 in 6.3 min (Claude's run in an isolated copy, 13 Oct); validated by Jasper's run 13 Oct (all 13 + the generator test); on the frozen data `data/test/`: 14/14 in 6.8 min (Jasper's run, 13 Oct) |
 | `tests/testParams.m` | the unit tests' frozen settings (script; the tests' `pipelineParams`): the seed-43 reference of 13 Oct, files under `data/test/`; errors `testParams:noData` if that folder is missing (13 Oct, review item 3) | used by the 12 data tests; validated by Jasper's run of `runAllTests` 13 Oct (14/14) |
 | `tests/makeTestData.m` | run once: checks that `data/` is the seed-43 reference of `testParams` (9 checks along the info chain) and copies it to `data/test/` (infos rewritten; 272 files, 2.2 GB); refuses if `data/test/` exists unless `'Overwrite', true` (13 Oct, review item 3) | run 13 Oct (Claude in an isolated copy; Jasper in the repo, then `runAllTests` 14/14) |
 | `tests/testChannelizeIQ.m` | unit tests: tones, white noise, real-data Parseval | passes (Jasper's run, 6 Oct) |
