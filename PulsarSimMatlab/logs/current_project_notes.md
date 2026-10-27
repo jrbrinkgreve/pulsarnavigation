@@ -1571,6 +1571,20 @@ except 3d's unguarded blanked fraction 0.6487 → 0.6484 % (`2026-10-20_blockC.m
 §9's periodicRFI false emitters (dense false flags): not rerun (runRFITest cases 14–15 still at the white thresholds;
 docs `limits.html`).
 
+**Tests 5–6 (27 Oct, review item R-E1; validated: Jasper's run 27 Oct).** On test 1's noise-only channels,
+same noise, so baseline ratios barely scatter. (5) Power × G(t), one pass, PFA 1e-3: a ramp of +10 % over the 0.05 s
+file (3.3 % per 16.7 ms block) and a +5 % step mid-block 2. Gained / clean baseline per block = the median of the gained
+exponential power (ramp 1.0166 / 1.0500 / 1.0832 vs 1.01661 / 1.04994 / 1.08327; step 1 / 1.02461 / 1.05); flagged /
+predicted (exact survival at G_eff/G(t)) 0.985–1.009, the prediction only 0.2–1.1 % (ramp) / 0.4–2.6 % (step) above
+nominal; last / first tenth of the ramp blocks 1.2–1.5 measured vs 1.22–1.62 predicted. So the §10 E1 estimate (+25 % /
++60 % at a block end) holds locally and averages away. (6) Dense bursts at random times per channel: strong +20 dB, 4
+samples, 3 % of the samples; weak +3 dB, 16 samples, 1 %. Pass-1 baseline 1.0540 = the mixture median 1.0540; pass 2
+1.0049 vs 1.0056 predicted from what pass 1 left (~45 % of the weak-burst samples escape pass 1 and are 0.6 % of the
+pass-2 baseline samples). Weak bursts wholly blanked by own detections 51 % → 58 %; strong ones missed 11 / 8 of
+200,064 (a Gaussian burst fades below every threshold; Gamma estimate 18). Clean-stretch false windows = each pass's
+prediction. Defaults (ChannelThresholds true): no channel takes its own thresholds, the same result. With independent
+strong bursts in every channel the frequency guard blanks 99 % of the data (own detections 33 %): review list D2-22.
+
 ### 5.21 `periodicRFI(info_chan, info_rfi, ...)` → `[rows, info]` [B6, validated 8 Oct 2026 (Jasper's run of testPeriodicRFI)]
 
 **Idea.** What makes periodic RFI dangerous — regular timing, so it can pile up at fixed
@@ -3569,7 +3583,8 @@ barycentric corrections, navigation solution).
      quantisation (§9 "Receiver", ADC).
 
    Stage 6, RFI excision (review 14–15 Oct; note only). 6a `detectRFI`:
-   - **E1** extend `tests/testDetectRFI.m`: (a) a slow gain ramp and a small gain step in the
+   - **E1 done 27 Oct** (§5.20, tests 5–6; validated: Jasper's run 27 Oct). Spec as noted 15 Oct:
+     extend `tests/testDetectRFI.m`: (a) a slow gain ramp and a small gain step in the
      channel data: false flags stay near the expected count (the reason for the 16 ms
      `BaselineTime` blocks; the simulation has no gain drift, §9 "Receiver", so it has never
      been exercised). Estimate: a baseline 1.6 % off (a 10 % ramp over 50 ms, at a block end)
@@ -4345,7 +4360,7 @@ Added 23 Oct (the choices of 19–22 Oct, each with its decision; sources: the l
 | `periodicRFI.m` | B6-2: periodic emitters from detectRFI's events (significance-tested period fit), mask of all predicted pulses | validated (8 Oct, Jasper's run of testPeriodicRFI) |
 | `tests/testPeriodicRFI.m` | B6-2: noise / impulses (no emitter), scenario radar (PRF, predicted times), −35 dB sidelobes (100 % blanked) | passes (Jasper's run, 8 Oct) |
 | `tests/testBlankChannels.m` | B1: exactness, mask normalization, block size, empty mask, dedispersion interface | passes (Jasper's run, 8 Oct) |
-| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2) | passes (Jasper's run, 8 Oct; incl. 3d: Jasper's run, 12 Oct) |
+| `tests/testDetectRFI.m` | B2: false flags / thresholds on noise, the −5 dB pulsar on / off pulse, real RFI scored with the RFI-only signal; 3d frequency guard (B5b-2); since 27 Oct (R-E1) 5 gain ramp / step, 6 one pass vs two under dense bursts (tests 5–6: Jasper's run, 27 Oct) | passes (Jasper's run, 8 Oct; incl. 3d: Jasper's run, 12 Oct) |
 | `runH0.m` | long noise-only run: T0/Tmax statistics, exceedances, bin-bin correlation; full band only (warns otherwise, 13 Oct) — since 19 Oct on processIQ, both front ends (§5.14) | validated (6 Oct); channel path 100 passes 19 Oct (Claude's run at Jasper's request) |
 | `expectedPowerModel.m` | shared ground-truth power/variance model | written |
 | `channelizeIQ.m` | oversampled polyphase filterbank, IQ → per-channel IQ files (channelized front end, unit 1) | validated (6 Oct) |

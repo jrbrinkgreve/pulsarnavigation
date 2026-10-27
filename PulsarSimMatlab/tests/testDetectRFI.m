@@ -65,6 +65,36 @@ no RFI) for test 2.
      (c) channels away from the RFI (outside 55-85) keep the white thresholds
          and give the same mask bit for bit as 'ChannelThresholds' false, and
          no channel of the noise-only data (test 1c) takes its own.
+  5. Gain changes (27 Oct 2026, review R-E1): the noise-only channels of test 1 with their
+     power x G(t), one pass, PFA 1e-3: a ramp of +10 % over the 0.05 s file (3.3 % per 16.7 ms
+     baseline block, far faster than a real receiver drifts) and a step of +5 % in the middle
+     of block 2.
+     (a) the baselines follow the gain: gained / clean baseline (the same noise) = each
+         block's effective gain, the median of the gained exponential power (solved here),
+         within 4 sigma of the scatter between channels;
+     (b) flagged windows per scale = sum over windows of S_n(eta * n * G_eff / G(t)), S_n the
+         exact survival function (the run's eigenvalues), within 4 sigma: false flags stay
+         near nWindows * PFA (the small excess is printed);
+     (c) ramp: in the last tenth of each block (gain above the baseline) and the first tenth
+         (below) the counts match the same prediction; their ratio is printed.
+  6. One pass against two under dense bursts (R-E1), on the same noise: strong bursts (+20 dB,
+     4 samples, 3 % of the samples) and weak ones (+3 dB, 16 samples, 1 %) at random times,
+     'ChannelThresholds' false (the pass logic alone):
+     (a) the pass-1 baseline / clean = the median of the mixture (solved here per channel and
+         block from the burst samples), within 4 sigma;
+     (b) the pass-2 baseline / clean = the median of what pass 1 left unflagged (the weak
+         bursts it missed included), within 4 sigma;
+     (c) strong bursts wholly blanked by the channel's own detections: at least 99.9 % in
+         both passes (a Gaussian burst fades: its total power misses every threshold with
+         probability ~1e-4, Gamma estimate printed);
+     (d) weak bursts wholly blanked by the own detections: more in pass 2 than in pass 1
+         (shown: the blanked fraction with and without the frequency guard, which copies
+         each channel's strong bursts into its neighbours: these bursts are independent
+         per channel, unlike broadband RFI);
+     (e) false windows in clean stretches (no burst within the guard), each pass = the
+         prediction from that pass's baseline, within 4 sigma;
+     (f) the defaults ('ChannelThresholds' true): strong bursts as in (c), weak ones at
+         least as well as in pass 1; shown: channels with their own thresholds, the baseline.
 Uses its own temporary folder per run (21 Oct 2026).
 Errors at the end if any check fails.
 %}
@@ -366,6 +396,164 @@ fprintf(['4c. channels outside 55-85: own thresholds in %d, mask = ''ChannelThre
 if ~okC, fails{end+1} = 'narrow carriers: white channels'; end
 
 % ---------------------------------------------------------------------------------
+% 5. Gain changes (review R-E1)
+% ---------------------------------------------------------------------------------
+t5  = tic;
+eB  = d1.blockEdges; nB = numel(eB) - 1;           % the clean pass-1 run of 1a: its baseline
+blk = blockIndex(eB);
+inSupS = false(1, Nc); inSupS(sup(1):sup(2)) = true;
+ns  = round((eB(2) + eB(3)) / 2);                   % the step: middle of block 2
+Gs  = {1 + 0.10 * (0:Nc-1) / Nc, 1 + 0.05 * ((1:Nc) > ns)};
+gNames = {'ramp +10 % over the file', 'step +5 % in block 2'};
+for c = 1:2
+    G = Gs{c};
+    chG = modChannels(chan0, fullfile(tmp, sprintf('g%d', c)), @(x, j) x .* sqrt(G));
+    [~, dG] = detectRFI(chG, 'PFA', 1e-3, 'Passes', 1, 'KeepWindows', true, 'Verbose', false);
+    gEff = zeros(1, nB);
+    for b = 1:nB
+        gB = G(eB(b) + 1 : eB(b + 1)); gB = gB(inSupS(eB(b) + 1 : eB(b + 1)));
+        gEff(b) = mixMedian(gB, ones(size(gB)));    % the median of the gained exponential power
+    end
+    rB = dG.baseline ./ d1.baseline;                % the same noise: little scatter
+    okA = all(abs(mean(rB, 1) - gEff) < max(4 * std(rB, 0, 1) / sqrt(nCh), 1e-6));   % constant-gain blocks: exact
+    % (b) the flagged windows against the exact survival function at G_eff / G(t)
+    nSc = numel(dG.scales);
+    expd = zeros(1, nSc); eFirst = expd; eLast = expd; cFirst = expd; cLast = expd;
+    for s = 1:nSc
+        n = dG.scales(s);
+        i0 = 1:dG.stride(s):Nc - n + 1;
+        Gw = G(i0 + floor((n - 1) / 2));
+        x  = dG.threshold(s) * n * gEff(blk(i0)) ./ Gw;
+        F  = survTable(dG.lambda{s}, dG.threshold(s) * n);
+        S  = exp(F(x));
+        expd(s) = nCh * sum(S);
+        pos = (i0 - eB(blk(i0)) - 1) ./ (eB(blk(i0) + 1) - eB(blk(i0)));   % position in the block, 0..1
+        f1 = pos < 0.1; f2 = pos >= 0.9;
+        eFirst(s) = nCh * sum(S(f1)); eLast(s) = nCh * sum(S(f2));
+        for j = 1:nCh
+            w = dG.flaggedWindows{j, s};
+            pw = (w - eB(blk(w)) - 1) ./ (eB(blk(w) + 1) - eB(blk(w)));
+            cFirst(s) = cFirst(s) + nnz(pw < 0.1); cLast(s) = cLast(s) + nnz(pw >= 0.9);
+        end
+    end
+    [okB, r, sr] = countCheck(dG.nFlaggedWindows, expd);
+    k = sr .* expd ./ sqrt(expd);                   % overdispersion of the counts (clustered windows)
+    okC = all(abs(cFirst - eFirst) < 4 * k .* sqrt(eFirst)) && all(abs(cLast - eLast) < 4 * k .* sqrt(eLast));
+    pass = okA && okB && (c == 2 || okC);
+    fprintf(['5. %s: baseline / clean per block %s (effective gain %s, %d); flagged / predicted %s ' ...
+             '(+- %s), predicted / nominal %s; '], gNames{c}, mat2str(round(mean(rB, 1), 5)), ...
+        mat2str(round(gEff, 5)), okA, mat2str(round(r, 3)), mat2str(round(sr, 3)), ...
+        mat2str(round(expd ./ (nCh * dG.nWindows * 1e-3), 4)));
+    if c == 1
+        fprintf('last / first tenth of the blocks measured %s, predicted %s (%d): %s\n', ...
+            mat2str(round(cLast ./ cFirst, 2)), mat2str(round(eLast ./ eFirst, 2)), okC, passStr(pass));
+    else
+        fprintf('%s\n', passStr(pass));
+    end
+    if ~pass, fails{end+1} = ['gain change, ' gNames{c}]; end %#ok<AGROW>
+    cellfun(@delete, cellstr(chG.chanFiles));
+end
+fprintf('   (test 5: %.0f s)\n', toc(t5));
+
+% ---------------------------------------------------------------------------------
+% 6. One pass against two under dense bursts (review R-E1)
+% ---------------------------------------------------------------------------------
+t6  = tic;
+rs6 = RandStream('mt19937ar', 'Seed', 23);
+slot = 32;                                          % one burst per slot of 32 samples at most
+nSlot = floor((sup(2) - sup(1) + 1) / slot) - 2;
+nStr = round(0.03 * Nc / 4); nWk = round(0.01 * Nc / 16);
+mJ = mean(d1.baseline, 2);                          % each channel's noise power
+sStart = cell(nCh, 1); wStart = cell(nCh, 1);
+for j = 1:nCh
+    sl = sup(1) + slot * randperm(rs6, nSlot, nStr + nWk);   % slot starts
+    sStart{j} = sl(1:nStr) + randi(rs6, slot - 4, 1, nStr) - 1;
+    wStart{j} = sl(nStr+1:end) + randi(rs6, slot - 16, 1, nWk) - 1;
+end
+cgn = @(m, n) sqrt(m / 2) * complex(randn(rs6, 1, n), randn(rs6, 1, n));   % complex Gaussian, power m
+chB = modChannels(chan0, fullfile(tmp, 'b'), @(x, j) addBursts(x, sStart{j}, 4, cgn(100 * mJ(j), 4 * nStr), ...
+    wStart{j}, 16, cgn(2 * mJ(j), 16 * nWk)));
+isS = @(j) spanMask(sStart{j}, 4, Nc); isW = @(j) spanMask(wStart{j}, 16, Nc);
+[m1, q1] = detectRFI(chB, 'Passes', 1, 'ChannelThresholds', false, 'KeepWindows', true, 'Verbose', false);
+[m2, q2] = detectRFI(chB, 'Passes', 2, 'ChannelThresholds', false, 'KeepWindows', true, 'Verbose', false);
+[m3, q3] = detectRFI(chB, 'KeepWindows', true, 'Verbose', false);            % defaults
+g6 = q1.guard;
+% (a), (b) the baselines against the median of the mixture (all samples / what pass 1 left)
+pred1 = zeros(nCh, nB); pred2 = pred1;
+for j = 1:nCh
+    lev = ones(1, Nc); lev(isW(j)) = 3; lev(isS(j)) = 101;   % power level / noise of each sample
+    cov1 = windowCover(q1.flaggedWindows(j, :), q1.scales, g6, Nc);
+    for b = 1:nB
+        idx = eB(b) + 1 : eB(b + 1);
+        u = inSupS(idx);
+        pred1(j, b) = mixMedian(ones(1, nnz(u)), lev(idx(u)));
+        u2 = u & ~cov1(idx);
+        pred2(j, b) = mixMedian(ones(1, nnz(u2)), lev(idx(u2)));
+    end
+end
+rb1 = q1.baseline ./ d1.baseline; rb2 = q2.baseline ./ d1.baseline; rb3 = q3.baseline ./ d1.baseline;
+dev = @(rb, pr) abs(mean(rb(:) - pr(:))) < 4 * std(rb(:) - pr(:)) / sqrt(numel(rb));
+okA = dev(rb1, pred1); okB = dev(rb2, pred2);
+% (c), (d) strong bursts blanked, weak bursts wholly blanked, by the channel's own detections
+% (the mask also holds the frequency guard: these bursts are independent per channel, so each
+% channel's strong bursts are copied into 14 neighbours and the mask covers most of the data)
+[allS, fracW, fOwn, fMask] = deal(zeros(1, 3));
+qs = {q1, q2, q3}; ms = {m1, m2, m3};
+for r6 = 1:3
+    nAll = 0; nW = 0;
+    for j = 1:nCh
+        cv = windowCover(qs{r6}.flaggedWindows(j, :), qs{r6}.scales, g6, Nc);
+        cs = cumsum([0, cv]);
+        nAll = nAll + nnz(cs(sStart{j} + 4) - cs(sStart{j}) == 4);
+        nW = nW + nnz(cs(wStart{j} + 16) - cs(wStart{j}) == 16);
+        fOwn(r6) = fOwn(r6) + mean(cv) / nCh;
+        fMask(r6) = fMask(r6) + mean(coveredOf(ms{r6}, j, Nc)) / nCh;
+    end
+    allS(r6) = nAll / (nCh * nStr); fracW(r6) = nW / (nCh * nWk);
+end
+% a Gaussian burst fades: its 4 samples' power total is Gamma(4) x 101 noise powers, below the
+% 4-sample threshold eta_4 * 4 * baseline with probability ~1e-4 (the shorter windows rarely help)
+pMiss = gammainc(4 * q1.threshold(q1.scales == 4) * mean(rb1(:)) / 101, 4);
+okC = all(allS(1:2) >= 0.999); okD = fracW(2) > fracW(1);
+% (e) false windows in clean stretches against each pass's own baseline
+qq = {q1, q2}; [okE, rE, sE] = deal(false(1, 2), cell(1, 2), cell(1, 2));
+for r6 = 1:2
+    q = qq{r6};
+    cnt = zeros(nCh, numel(q.scales)); expd = zeros(1, numel(q.scales));
+    F = arrayfun(@(s) survTable(q.lambda{s}, q.threshold(s) * q.scales(s)), 1:numel(q.scales), 'UniformOutput', false);
+    for j = 1:nCh
+        near = dilate(isS(j) | isW(j), g6);
+        cn = cumsum([0, near]);
+        for s = 1:numel(q.scales)
+            n = q.scales(s);
+            i0 = 1:q.stride(s):Nc - n + 1;
+            cl = cn(i0 + n) - cn(i0) == 0;          % windows with no burst within the guard
+            x = q.threshold(s) * n * q.baseline(j, blk(i0(cl))) / mJ(j);
+            expd(s) = expd(s) + sum(exp(F{s}(x)));
+            w = q.flaggedWindows{j, s};
+            cnt(j, s) = nnz(cn(w + n) - cn(w) == 0);
+        end
+    end
+    [okE(r6), rE{r6}, sE{r6}] = countCheck(cnt, expd);
+end
+% (f) the defaults
+okF = allS(3) >= 0.999 && fracW(3) >= fracW(1);
+pass = okA && okB && okC && okD && all(okE) && okF;
+fprintf(['6. dense bursts (%d strong, %d weak per channel): baseline / clean, pass 1 %.4f (mixture median %.4f, %d), ' ...
+         'pass 2 %.4f (median of the unflagged %.4f, %d); strong bursts wholly blanked %s (missed %s of %d; Gamma ' ...
+         'estimate %.0f); weak bursts wholly blanked ' ...
+         '%s (pass 1, pass 2, defaults); clean-stretch false windows / predicted, pass 1 %s (+- %s), pass 2 %s ' ...
+         '(+- %s) (%d %d); defaults: own thresholds in %d channels, baseline / clean %.4f; blanked fraction, own ' ...
+         'detections %s, with the frequency guard %s: %s\n'], nStr, nWk, ...
+    mean(rb1(:)), mean(pred1(:)), okA, mean(rb2(:)), mean(pred2(:)), okB, mat2str(round(allS, 5)), ...
+    mat2str(round((1 - allS) * nCh * nStr)), nCh * nStr, pMiss * nCh * nStr, mat2str(round(fracW, 3)), ...
+    mat2str(round(rE{1}, 2)), mat2str(round(sE{1}, 2)), mat2str(round(rE{2}, 2)), mat2str(round(sE{2}, 2)), okE, ...
+    nnz(q3.ownThreshold), mean(rb3(:)), mat2str(round(fOwn, 3)), mat2str(round(fMask, 3)), passStr(pass));
+if ~pass, fails{end+1} = 'dense bursts, one pass against two'; end
+cellfun(@delete, cellstr(chB.chanFiles));
+fprintf('   (test 6: %.0f s)\n', toc(t6));
+
+% ---------------------------------------------------------------------------------
 if isempty(fails)
     fprintf('testDetectRFI: ALL PASSED\n');
 else
@@ -403,6 +591,65 @@ Q  = diag(-mu);
 if numel(mu) > 1, Q = Q + diag(mu(1:end-1), 1); end
 E  = expm(Q * x);
 P  = max(sum(E(1, :)), realmin);
+end
+
+function F = survTable(lam, x0)
+% log P(sum_k lam_k E_k > x) as a pchip interpolant over 0.8 .. 1.25 x0 (the exact survival
+% function of sumExpSurvival, tabulated once per scale).
+xs = x0 * linspace(0.8, 1.25, 300);
+F = griddedInterpolant(xs, arrayfun(@(v) log(sumExpSurvival(lam, v)), xs), 'pchip', 'linear');
+end
+
+function g = mixMedian(G, lev)
+% The median of independent exponential powers with means G .* lev (one per sample), / ln 2:
+% what the median / ln 2 baseline converges to, in units of the noise power (1 for pure noise).
+s = G(:) .* lev(:);
+x = fzero(@(x) mean(exp(-x ./ s)) - 0.5, log(2) * median(s));
+g = x / log(2);
+end
+
+function info = modChannels(info0, base, fun)
+% A copy of the channel set info0 with channel j's samples x (complex row) replaced by fun(x, j).
+info = info0;
+info.chanFiles = strings(info0.nChan, 1);
+for j = 1:info0.nChan
+    info.chanFiles(j) = sprintf('%s_ch%03d.dat', base, j);
+    z = fun(readIQ(info0.chanFiles(j)), j);
+    fid = fopen(info.chanFiles(j), 'w', 'ieee-le');
+    fwrite(fid, [real(z); imag(z)], 'single');
+    fclose(fid);
+end
+end
+
+function z = addBursts(x, sSt, sLen, sVals, wSt, wLen, wVals)
+% x plus bursts: sVals in the sLen samples from each start sSt, wVals likewise (column order).
+z = x;
+iS = sSt(:).' + (0:sLen-1).';
+z(iS(:)) = z(iS(:)) + sVals;
+iW = wSt(:).' + (0:wLen-1).';
+z(iW(:)) = z(iW(:)) + wVals;
+end
+
+function m = spanMask(st, len, N)
+% Samples st .. st+len-1 of 1..N (logical row), for every start st.
+d = accumarray([st(:); st(:) + len], [ones(numel(st), 1); -ones(numel(st), 1)], [N + 1, 1]);
+m = cumsum(d(1:N)).' > 0;
+end
+
+function m = dilate(m, g)
+% A logical row widened by g samples on each side.
+m = conv(double(m), ones(1, 2*g + 1), 'same') > 0;
+end
+
+function cv = windowCover(fw, scales, g, N)
+% Samples covered by the flagged windows fw{s} (starts, scale s) widened by the guard g.
+a = []; e = [];
+for s = 1:numel(scales)
+    a = [a, fw{s} - g]; e = [e, fw{s} + scales(s) - 1 + g]; %#ok<AGROW>
+end
+a = max(a, 1); e = min(e, N);
+d = accumarray([a, e + 1].', [ones(1, numel(a)), -ones(1, numel(e))].', [N + 1, 1]);
+cv = cumsum(d(1:N)).' > 0;
 end
 
 function blk = blockIndex(edges)

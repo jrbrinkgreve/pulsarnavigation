@@ -416,7 +416,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#bw"><code>testBlankingWeights</code></a></td><td><code>blankingWeights</code> A3a; long time bins (test 4, 12 Oct)</td><td>~110 s</td><td><span class="badge validated">passes, 7 Oct; test 4: 12 Oct</span></td></tr>
 <tr><td><a href="#opt"><code>testOptimalTOA</code></a></td><td>optimal weighting A2c-1, A2c-2</td><td>~130 s</td><td><span class="badge validated">passes, 7–8 Oct</span></td></tr>
 <tr><td><a href="#bc"><code>testBlankChannels</code></a></td><td><code>blankChannels</code> B1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
-<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~2.5 min</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span> <span class="badge validated">test 4 (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#drfi"><code>testDetectRFI</code></a></td><td><code>detectRFI</code> B2, frequency guard B5b-2</td><td>~2.5 min</td><td><span class="badge validated">passes, 8 Oct; 3d 12 Oct</span> <span class="badge validated">test 4 (Jasper's run, 22 Oct)</span> <span class="badge validated">tests 5–6 (Jasper's run, 27 Oct)</span></td></tr>
 <tr><td><a href="#edges"><code>testRadarEdges</code></a></td><td><code>rfiSource</code> <code>RiseTime</code> B5a</td><td>~5 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
@@ -609,8 +609,19 @@ without the radar flag 0.96–1.15 × the expected windows with their own thresh
 PFA they flag 1 and 0 windows, instead of 432 and 386. All 19 radar pulses on the carrier are still blanked. Channels away from the RFI
 give the old mask bit for bit, and pure noise gets no thresholds of its own. Tests 1–3 are unchanged, except that 3d's unguarded blanked
 fraction went from 0.6487 to 0.6484 %: the constant-envelope channels flag slightly less.</li>
+<li><b>Gain changes.</b> The noise-only channels get a gain ramp of +10 % over the file, and separately a +5 % step. The 16 ms
+baselines follow: block by block they equal the median of the gained power (1.0166, 1.0500 and 1.0833 for the ramp). False flags stay
+within 1.5 % of the prediction, which is only 0.2–1.1 % above the nominal rate. Inside each block, flags pile up where the gain has
+moved furthest from the baseline: the last tenth of a block has 1.2–1.5 times the flags of the first, as predicted.</li>
+<li><b>One pass against two, under dense bursts</b> (+20 dB in 3 % of the samples, +3 dB in 1 %). Pass 1's baseline is 5.4 % high,
+exactly the median of the mixture. Pass 2 brings it down to 0.5 % high, from the weak bursts pass 1 missed, as predicted. Pass 2
+catches 58 % of the weak bursts against 51 %. Of 200,064 strong bursts 8–11 escape, because a Gaussian burst sometimes fades below
+every threshold (about 18 expected). False flags elsewhere match each pass's prediction. The defaults give the same result.</li>
 </ol>
-<p>Claude's run of 21 Oct and Jasper's run of 22 Oct: all passed. The test uses its own temporary folder per run.</p>
+<details><summary>Runs and a note on the frequency guard</summary><p>Tests 1–4: Claude's run of 21 Oct and Jasper's run of 22 Oct,
+all passed. Tests 5–6: Claude's run and Jasper's run of 27 Oct, all passed. In test 6 the bursts are independent in every channel, unlike broadband RFI. The
+frequency guard then copies each channel's strong bursts into 14 neighbours, and blanks 99 % of the data against 33 % from the own
+detections (review list D2-22). The test uses its own temporary folder per run.</p></details>
 
 <h2 id="edges"><code>testRadarEdges</code></h2>
 <p>The radar edges are modelled exactly, and change nothing when switched off.</p>

@@ -687,6 +687,40 @@ dedisperseChannels predict. For sin² edges ∫₀¹ sin²ⁿ(πu/2) du = C(2n, 
 counts 31); physics.html (one sentence under the radiometer equation); roadmap (a done row); figures README; changelog.
 Notes: the helpers paragraph, the tests table and the runAllTests row. D2-17 (below): tested.
 
+## Day 2: missing unit tests, excision (`testDetectRFI` tests 5–6, R-E1)
+
+Jasper: "plan the last one, R-E1"; plan given (tests 5–6 added to the validated testDetectRFI), then "Go ahead".
+
+**Physics checked.**
+- **Gain changes.** The baseline is median(p)/ln 2 per 16 ms block. Inside a block the local power sits a fraction ε
+  above or below it, and false flags change by ~exp(n·η·ε): largest for long windows and at the block ends.
+- **Two passes.** Dense RFI raises the median (~1.4f for a fraction f), which raises every threshold; pass 2 re-estimates
+  the baseline without what pass 1 flagged.
+
+**The test** (tests 5–6 of `tests/testDetectRFI.m`, +14 s; the whole test 2.4 min). All 15 lines pass in Claude's run
+and in Jasper's run (27 Oct): validated.
+
+| Check | Result | Limit |
+|---|---|---|
+| 5a baselines follow the gain (ramp, step) | ramp 1.0166 / 1.0500 / 1.0832 vs predicted 1.01661 / 1.04994 / 1.08327; step exact | 4σ (floor 1e-6) |
+| 5b false flags | 0.985–1.009 × predicted; the prediction 0.2–1.1 % (ramp), 0.4–2.6 % (step) above nominal | 4σ |
+| 5c ramp, last / first tenth of a block | 1.2–1.5 measured, 1.22–1.62 predicted | 4σ |
+| 6a pass-1 baseline | 1.0540 = mixture median 1.0540 | 4σ |
+| 6b pass-2 baseline | 1.0049 vs 1.0056 (the weak bursts pass 1 missed) | 4σ |
+| 6c strong bursts wholly blanked (own detections) | 11 / 8 of 200,064 missed (Gamma estimate 18) | ≥ 99.9 % |
+| 6d weak bursts wholly blanked (own detections) | 51 % → 58 % | pass 2 > pass 1 |
+| 6e clean-stretch false windows | = each pass's prediction | 4σ |
+| 6f defaults | no channel with own thresholds; same as 6a–e | — |
+
+- **Corrected on the first runs:** (5a) constant-gain blocks give an exact ratio (zero scatter), so the 4σ test needed a
+  floor; (6c) the plan said "every strong burst", but a Gaussian burst fades below every threshold ~1e-4 of the time;
+  (6d) the first version scored with the full mask, which includes the frequency guard and came out 98.5 % — it now uses
+  each channel's own detections.
+- **Finding (D2-22):** with independent strong bursts in every channel the frequency guard blanks 99 % of the data.
+
+**Also changed.** Docs: tests.html (`#drfi` items 5–6, a badge, the runs in a collapsed box); excision.html (a paragraph
+under Baseline, two rows in the tests table); roadmap R-E1 done; changelog. Notes: §5.20, §10 E1 done, the tests table.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -741,3 +775,4 @@ Notes: the helpers paragraph, the tests table and the runAllTests row. D2-17 (be
 | D2-19 | 5 dedispersion | applyInverseDispersion.m:143 | The default guard is 2001 samples, not 2000: ceil(20/8 MHz × 800 MHz) evaluates ceil(2000.0000000000002). Harmless (the tests use the same formula); round(…) or a small tolerance would give 2000 | none |
 | D2-20 | 5 dedispersion | applyInverseDispersion.m:231, 241 | Two stale `%#ok<NASGU>` suppressions on the onCleanup lines (checkcode: "the message is no longer generated"); cosmetic, in HEAD before today | cleanup |
 | D2-21 | helpers | noiseBandwidth.m | No input checks. An edge wider than B/2 makes the low and high edge regions overlap, and the second assignment overwrites the first instead of multiplying; a width ≤ 0 is silently ignored or divides by 0. No caller does either (widths are 2 % of the band) | none (note) |
+| D2-22 | excision | frequency guard | Every strong event (peak ≥ 100 × baseline) is copied into ±7 channels. With strong bursts at independent times in many channels (test 6: 3 % of the samples in each), the guard blanks 99 % of the data against 33 % from the own detections. Real strong RFI is broadband (the guard's purpose) or confined to a few channels, so this is a stress case; but the guard has no cap on the total it blanks | note |

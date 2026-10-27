@@ -325,6 +325,9 @@ day, and validated in Jasper's run of 22 Oct (<code>testDetectRFI</code> 4, and 
 <code>detectRFI</code> takes it as median(<var>p</var>)/ln 2 over the fully supported samples. For exponential power, which is what a
 Gaussian voltage gives, this is exact. It is also robust: RFI in a fraction <var>f</var> of the samples raises it by only about
 1.4<var>f</var>. The second pass (<code>Passes</code> = 2) recomputes it without the flagged samples.</p>
+<p>The blocks follow slow gain changes. With a gain ramp of 3.3 % per block, far faster than a real receiver drifts, each block's
+baseline equals the median of its gained power, and false flags rise by only 0.2–1.1 % (test 5 below). Under dense bursts, 4 % of the
+samples, the first pass's baseline is 5.4 % high, and the second pass brings it to 0.5 % (test 6).</p>
 <div class="callout note"><span class="ttl">Constant-envelope channels flag less, on purpose</span>
 <p>In a channel dominated by a carrier or a GNSS signal, the power is not exponential. The median-based baseline then comes out too
 high, by up to a factor 1/ln 2, so those channels flag less. That is intended. Such RFI is not excised. Instead, the optimal channel
@@ -427,6 +430,11 @@ detections plus every strong event copied to ±7 channels. The radar energy left
 (10⁻⁴ without the guard).</td></tr>
 <tr><td>4 · Narrow carriers</td><td>The per-channel thresholds.</td><td>The carrier channels flag at the design rate. The radar
 on a carrier is still blanked. Clean channels are bit for bit unchanged (<a href="#chanthr">above</a>).</td></tr>
+<tr><td>5 · Gain changes</td><td>The 16 ms baseline blocks follow a gain ramp and a step.</td><td>Baselines equal the median of
+the gained power in every block. False flags within 1.5 % of the prediction, which is 0.2–1.1 % above nominal for a ramp of +10 % over
+50 ms.</td></tr>
+<tr><td>6 · Dense bursts</td><td>What the second pass gains.</td><td>Baseline 5.4 % high after pass 1, 0.5 % after pass 2, both
+as predicted. Weak bursts caught: 51 % → 58 %. Strong bursts: 8–11 of 200,064 fade below every threshold (about 18 expected).</td></tr>
 </table></div>
 
 <h2 id="blank">3 · <code>blankChannels</code> <span class="badge validated">validated</span></h2>
