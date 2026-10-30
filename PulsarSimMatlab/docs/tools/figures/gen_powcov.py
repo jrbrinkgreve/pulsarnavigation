@@ -51,7 +51,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Noise of detected bins in a narrow channel: the power correlation against lag, and the variance and covariances of one bin">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption><code>powerCovariance</code> for the pipeline's channels, recomputed with its formula. a: the squared correlation of the channel
+<figcaption><b>Figure 6b.1.</b> <code>powerCovariance</code> for the pipeline's channels, recomputed with its formula. a: the squared correlation of the channel
 voltage, which is how strongly the detected power at two times is related (Isserlis). It falls within about one sample but has a slow
 tail from the sharp channel edges. b: so a 0.96 µs bin has less variance than the radiometer formula (0.888) and shares some noise
 with its neighbours. Summed over all lags the total is exactly the radiometer value; the fold carries <var>V</var> and <var>X</var> so the

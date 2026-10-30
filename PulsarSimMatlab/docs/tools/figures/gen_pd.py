@@ -32,9 +32,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Detection probability against sub-int SNR for known and unknown phase, with the measured fraction of good TOAs">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Detection probability against the SNR of a sub-int at a false-alarm probability of 10⁻³, from <var>P</var><sub>D</sub> =
-Φ(SNR − η) (for the unknown phase this is an approximation), and the fraction of good TOAs measured in the threshold sweep
+<figcaption><b>Figure D.4.</b> Detection probability against the SNR of a sub-int at a false-alarm probability of 10⁻³, from <var>P</var><sub>D</sub> =
+Φ(SNR − η) (an approximation for the unknown phase), and the fraction of good TOAs measured in the threshold sweep
 (<a href="results.html#threshold">results</a>). The good TOAs lie close to the unknown-phase curve, because a good TOA must pass the
-unknown-phase test (and the χ² flag).</figcaption>
+unknown-phase test and the χ² flag.</figcaption>
 </figure>'''
 open('pd.svg', 'w').write(svg)

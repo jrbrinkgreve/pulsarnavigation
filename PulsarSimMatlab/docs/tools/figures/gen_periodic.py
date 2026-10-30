@@ -39,10 +39,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 260" role="img" aria-label="periodicRFI: a few detected radar pulses give the period, and every predicted pulse is blanked">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The idea of <code>periodicRFI</code>. This is a schematic: the scenario radar's PRF of 373 Hz, over 50 ms, and
-which pulses are found is random. Weak sidelobe pulses are found only now and then. The gaps between the found ones are whole
-multiples of the period <var>P</var>, so dividing the gaps by 1–8 gives candidate periods. A significance test picks the period that
-the found pulses fit far better than chance. From <var>P</var> and one pulse time every pulse is known. Each predicted pulse is then
-blanked with a margin (orange), whether it was found or not.</figcaption>
+<figcaption><b>Figure E.7.</b> The idea of <code>periodicRFI</code> (schematic: the scenario radar's PRF of 373 Hz over 50 ms; which pulses are found is
+random). The gaps between the found pulses are whole multiples of the period <var>P</var>, so dividing them by 1–8 gives candidate
+periods. A significance test picks the period that the found pulses fit far better than chance. Every predicted pulse is then blanked
+with a margin (orange), whether it was found or not.</figcaption>
 </figure>'''
 open('periodic.svg', 'w').write(svg)

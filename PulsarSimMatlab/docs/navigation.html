@@ -8,7 +8,6 @@
 </head>
 <body>
 <main>
-
 <h1>Stage 10 · Navigation: position and clock from the TOAs</h1>
 <p class="lede">Each TOA arrives a little early or late against the phase that stage 7a predicted. The receiver is not quite where it
 thinks it is, and its clock is not quite right. This stage turns those residuals into the receiver's position and clock. On a ship it
@@ -17,19 +16,19 @@ also estimates the velocity.</p>
 filter and smoother) · input: the TOA residuals, observed minus predicted for the trajectory the observer assumes · block D</p>
 
 <div class="toc"><b>On this page</b><ol>
-<li><a href="#signal">The navigation signal</a></li>
-<li><a href="#navfit"><code>navFit</code>: the site from the TOAs</a></li>
-<li><a href="#extra">Extra pulsars: synchronising the clock</a></li>
-<li><a href="#navfilter"><code>navFilter</code>: a moving receiver</a></li>
-<li><a href="#next">Status and next steps</a></li>
+<li><a href="#signal">10.1 The navigation signal</a></li>
+<li><a href="#navfit">10.2 <code>navFit</code>: the site from the TOAs</a></li>
+<li><a href="#extra">10.3 Extra pulsars: synchronising the clock</a></li>
+<li><a href="#navfilter">10.4 <code>navFilter</code>: a moving receiver</a></li>
+<li><a href="#next">10.5 Status and next steps</a></li>
 </ol></div>
 
-<h2 id="signal">1. The navigation signal</h2>
-<p>The first goal is a site 100 km from where the observer thinks it is, found from B0329+54 alone. A site offset changes each TOA by
-the offset projected onto the pulsar direction. That direction turns once per sidereal day in the Earth-fixed frame. The two equatorial
-components of the offset therefore show up as a daily sine: 193 µs for 100 km east. The component along the Earth's axis gives a
-constant that cannot be told apart from the clock offset, so it goes into the clock. After 30 days of TOAs, each equatorial component
-should be known to about ±30 km. A 100 km offset is then a 3σ detection.</p>
+<h2 id="signal">10.1 The navigation signal</h2>
+<p>The first goal is a site 100 km from where the observer thinks it is, found from B0329+54 alone. A site offset changes each TOA by the
+offset projected onto the pulsar direction, and that direction turns once per sidereal day in the Earth-fixed frame. The two equatorial
+components of the offset therefore show up as a daily sine: 193 µs for 100 km east (Figure 10.1). The component along the Earth's axis
+gives a constant that cannot be told apart from the clock offset, so it goes into the clock. After 30 days of TOAs, each equatorial
+component should be known to about ±30 km, which makes a 100 km offset a 3σ detection.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated TOA residuals of B0329+54 for a site 100 km east: three days of single TOAs, and all 30 days averaged by hour angle, against the daily sine of 193 microseconds">
   <rect class="fillfg" x="182.1" y="50" width="24.0" height="230"><title>below 20°: no data</title></rect>
@@ -182,56 +181,53 @@ should be known to about ±30 km. A 100 km offset is then a 3σ detection.</p>
   <circle class="s1f" cx="80" cy="326" r="4"/><text class="sub" x="90" y="330">measured residuals, ±1σ</text>
   <path class="s2" d="M290 326 h20"/><text class="sub" x="316" y="330">the signal of a site 100 km east: a daily sine of 193 µs</text>
 </svg>
-<figcaption>The navigation signal in the simulated data. Left: three days of B0329+54's TOAs for a site 100 km east of the assumed
-one (grey: the pulsar below 20°). Each TOA's error bar, about 738 µs, is four times the signal, a daily sine of 193 µs.
-Right: all 302 TOAs of 30 days averaged in 2-hour bins of hour angle, where the sine stands out. The fit does the same with every
-TOA, and finds each equatorial component to about ±30 km. Data: the 30-day run of <code>runScenario</code> with
+<figcaption><b>Figure 10.1.</b> The navigation signal in the simulated data. Left: three days of B0329+54's TOAs for a site 100 km east of the assumed one
+(grey: the pulsar below 20°). Each TOA's error bar, about 738 µs, is four times the signal, a daily sine of 193 µs. Right: all 302 TOAs of
+30 days averaged in 2-hour bins of hour angle, where the sine stands out. Data: the 30-day run of <code>runScenario</code> with
 <code>motion.on</code>; the constant offset of the profile reference is removed.</figcaption>
 </figure>
-<div class="callout why"><span class="ttl">Rare outliers are handled by redundancy, not by fewer TOAs</span>
-<p>At SNR 7 a few of B0329+54's TOAs land one core width off. In the 30-day runs about 0.5 % lie 5–9 times their error bar off; over
-100 days 1.9 % lie beyond 3σ. A higher SNR target would avoid them, but would halve the number of TOAs. The fit instead judges each TOA
-against the others. For B0329+54 the prediction from the other TOAs and from the ship's dead reckoning is good to about 70 km, while an
-outlier is 1100–2000 km off. The fit's error model therefore has an outlier component, with its rate and size taken from the simulator's
-tail (<a href="#navfit">section 2</a>). Without it, one outlier among a day's ten TOAs would shift that day's position by about
-130 km.</p>
+<p><b>Rare outliers are handled by redundancy, not by fewer TOAs.</b> At SNR 7 a few of B0329+54's TOAs land one core width off: in the
+30-day runs about 0.5 % lie 5–9 times their error bar off, and over 100 days 1.9 % lie beyond 3σ. A higher SNR target would avoid them,
+but would halve the number of TOAs. The fit instead judges each TOA against the others. For B0329+54 the prediction from the other TOAs
+and from the ship's dead reckoning is good to about 70 km, while an outlier is 1100–2000 km off. The fit's error model therefore has an
+outlier component, with its rate and size taken from the simulator's tail (Section 10.2). Without it, one outlier among a day's ten TOAs
+would shift that day's position by about 130 km.</p>
 <details><summary>History</summary><p>The design of 21 Oct 2026 handled outliers by redundancy. It estimated that a hard 4σ test would
-reject a good TOA only about once in four to five years. The fit was built with a mixture instead (section 2).</p></details></div>
+reject a good TOA only about once in four to five years. The fit was built with a mixture instead (section 2).</p></details>
 
-<h2 id="navfit">2 · <code>navFit</code>: the site from the TOAs <span class="badge validated">validated</span></h2>
+<h2 id="navfit">10.2 <code>navFit</code>: the site from the TOAs <span class="badge validated">validated</span></h2>
 <div class="sig">fit = navFit(toa, psrs, site, ...)</div>
 <p class="meta"><a href="api.html#navfit">Full interface and help text of <code>navFit</code> →</a></p>
-<h3>In short</h3>
-<p><code>navFit</code> finds where a fixed site really is from the residuals of its TOAs. Each residual is the site's offset projected
-onto the pulsar's direction. The Earth's rotation turns that into a daily sine, and a fit of many TOAs recovers the offset. A few TOAs
-near the detection threshold are far off; the fit recognises them and lets them count much less.</p>
-<h3>How it works</h3>
+<p><code>navFit</code> finds where a fixed site really is from the residuals of its TOAs. Each residual is the site's offset projected onto
+the pulsar's direction; the Earth's rotation turns that into a daily sine, and a fit of many TOAs recovers the offset. A few TOAs near the
+detection threshold are far off; the fit recognises them and lets them count much less.</p>
 <ol>
 <li><b>The model:</b> each residual is the offset times a known direction vector, plus a constant per pulsar. The direction vector is the
 pulsar's direction turned back by the Earth rotation angle at the TOA's time.</li>
 <li><b>What one pulsar sees:</b> the two components in the equatorial plane rotate with the Earth and give the daily sine. The component
 along the Earth's axis gives a constant, the same as the clock offset and the pulsar's own offset.</li>
-<li><b>The switch</b> <code>'Start'</code>: with <code>"self"</code> the constant is unknown and fitted, so the fit gives the two
-equatorial components. With <code>"calibrated"</code> the observer started from a known position and time, so the constant is known and
-the fit gives the full 3-D position.</li>
-<li><b>Robustness:</b> the noise model is a mixture. Most TOAs follow their error bar; a fraction ε = 2 % scatter k = 4 times wider.
-The fit repeats: each TOA gets its probability of belonging to the core, its weight follows from that, and the weighted fit is solved
-again until it no longer changes.</li>
-<li><b>The result</b> is given in the site's own directions: east, radial (in the equatorial plane, away from the Earth's axis) and polar.
-With <code>"calibrated"</code> also east, north and up.</li>
+<li><b>The switch</b> <code>'Start'</code>: with <code>"self"</code> the constant is unknown and fitted, so the fit gives the two equatorial
+components. With <code>"calibrated"</code> the observer started from a known position and time, so the constant is known and the fit gives
+the full 3-D position.</li>
+<li><b>Robustness:</b> the noise model is a mixture. Most TOAs follow their error bar; a fraction ε = 2 % scatter k = 4 times wider. The fit
+repeats: each TOA gets its probability of belonging to the core, its weight follows from that, and the weighted fit is solved again until
+it no longer changes. A hard cut, such as dropping every TOA beyond 4σ, does not work: the 100-day runs show a continuum of far-off TOAs
+between 3σ and 5σ, so a cut either keeps some or throws away good ones.</li>
+<li><b>The result</b> is given in the site's own directions: east, radial (in the equatorial plane, away from the Earth's axis) and polar;
+with <code>"calibrated"</code> also east, north and up.</li>
 </ol>
-<p>East lies entirely in the equatorial plane, so an offset to the east is fully visible to one pulsar. North and up each have a part
-along the Earth's axis. For B0329+54 from 52° N with 302 TOAs of 734 µs, each equatorial component is known to about ±30 km. A calibrated
-start gives the polar component to about ±16 km, because the constant uses every TOA at once.</p>
-<h3>With a real clock</h3>
-<p>A real clock adds its unestimated error to every residual. The crystal's error wanders by about 76 µs a day and 13 ms a month,
-more than one TOA's σ. TOAs close in time share almost the same clock error, so it is not extra noise per TOA but correlated noise.
-With the option <code>'Clock'</code> the fit uses the clock model's covariance between every pair of TOAs, and solves a generalized
-least-squares problem.</p>
-<p>With <code>"self"</code> the clock's offset goes into the constants and its rate is fitted too. With <code>"calibrated"</code> both
-were known at the start, and only the wander since then is unknown. Either way the fit also estimates the clock at every TOA and
-predicts it ahead, with an error bar. That estimate is what the observer feeds back into its predictor.</p>
-<p>For a fixed site the position hardly suffers: the clock wanders slowly, while the position signal is a daily sine. With a crystal
+<p>East lies entirely in the equatorial plane, so an offset to the east is fully visible to one pulsar; north and up each have a part along
+the Earth's axis. For B0329+54 from 52° N with 302 TOAs of 734 µs, each equatorial component is known to about ±30 km. A calibrated start
+gives the polar component to about ±16 km, because the constant uses every TOA at once.</p>
+<p><b>With a real clock.</b> A real clock adds its unestimated error to every residual. The crystal's error wanders by about 76 µs a day
+and 13 ms a month, more than one TOA's σ. TOAs close in time share almost the same clock error, so it is correlated noise, not extra noise
+per TOA. With the option <code>'Clock'</code> the fit uses the clock model's covariance between every pair of TOAs, and solves a
+generalized least-squares problem. A free clock offset and rate for every day would not do: a straight line per day absorbs part of a daily
+sine, and the daily sine is the position signal itself. The clock model from <code>makeClock</code> says how fast the clock can really
+wander, so the clock takes only what it can physically do. With <code>"self"</code> the clock's offset goes into the constants and its rate
+is fitted too; with <code>"calibrated"</code> both were known at the start, and only the wander since then is unknown. Either way the fit
+also estimates the clock at every TOA and predicts it ahead, with an error bar, which is what the observer feeds back into its predictor.
+For a fixed site the position hardly suffers, because the clock wanders slowly while the position signal is a daily sine: with a crystal
 clock the east component is still known to ±31 km. Without the clock model the same fit flags a third of the TOAs as outliers.</p>
 <details><summary>The formulas</summary>
 <p>\[ r_i = \mathbf{a}_i\cdot\delta\mathbf{x} + c_k + \text{noise}, \qquad \mathbf{a}_i = -R_z(\theta_i)^\mathsf{T}\hat{\mathbf{n}}_k/c \]</p>
@@ -245,12 +241,13 @@ function returns only the covariance a TOA schedule would give, to plan which pu
 <var>q</var>₂ = 2π²<var>h</var>₋₂. Flicker is left out of this model; at daily scales it adds about 3 µs against 76 µs. The clock
 estimate is the posterior mean K S⁻¹(<var>r</var> − A<var>p</var>), and its error includes the uncertainty of the fitted parameters
 (universal kriging).</p></details>
+
 <h3 id="averaged">A TOA is a time-average</h3>
-<p>A TOA merges sub-integrations until its SNR reaches about 7. For B0329+54 that takes about 2 hours, for B0950+08 about 12 hours of
-data spread over two passes a day apart. The TOA's residual is therefore the average over its sub-integrations, not the value at one
-time. The daily position signal averaged over 10 hours is only 0.74 of its value at the middle of that time. Over two passes a day
-apart at the same hour angle it keeps its full size, but the middle of that time span lies near the opposite hour angle, where the
-signal has the opposite sign.</p>
+<p>A TOA merges sub-integrations until its SNR reaches about 7: for B0329+54 about 2 hours, for B0950+08 about 12 hours of data spread
+over two passes a day apart. The TOA's residual is therefore the average over its sub-integrations, not the value at one time. The daily
+position signal averaged over 10 hours is only 0.74 of its value at the middle of that time. Over two passes a day apart at the same hour
+angle it keeps its full size, but the middle of that time span lies near the opposite hour angle, where the signal has the opposite sign
+(Figure 10.2).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="The daily position signal of B0329+54 for a site 100 km east, with the time spans that two TOAs average over, and the value one time per TOA would give">
   <text class="ttl" x="70" y="22">One pass: 10 hours of data</text>
@@ -339,31 +336,19 @@ signal has the opposite sign.</p>
   <circle class="s2f" cx="440" cy="326" r="5"/><text class="sub" x="452" y="330">the model at one time per TOA</text>
   <path class="thin" d="M670 326 h20"/><text class="sub" x="696" y="330">the daily signal</text>
 </svg>
-<figcaption>Why a TOA's row must be averaged. The grey curve is the residual that a site 100 km east gives B0329+54: a daily sine of
-193 µs against the hour angle (grey bands: the pulsar below 20°). Left: a TOA from 10 hours of one pass measures the average
-over its data, 123 µs; the model at one time, the data's mean hour angle, says 167 µs, so the fit sees the offset
-0.74 times too small. Right: a TOA from 5 hours on each of two days at the same hour angle measures +180 µs; the
-middle of its time span lies at the opposite hour angle, where the model says -193 µs. With <code>toa.tSub</code> the fit
-averages the model over the same data and both cases are exact.</figcaption>
+<figcaption><b>Figure 10.2.</b> Why a TOA's row must be averaged. Grey: the residual a site 100 km east gives B0329+54, a daily sine of 193 µs against hour
+angle (grey bands: the pulsar below 20°). Left: a TOA from 10 hours of one pass measures the average over its data, 123 µs; the model at
+the data's mean hour angle says 167 µs, so the fit sees the offset 0.74 times too small. Right: a TOA from 5 hours on each of two days at
+the same hour angle measures +180 µs, but the middle of its span lies at the opposite hour angle, where the model says -193 µs. With
+<code>toa.tSub</code> the fit averages the model over the same data, and both cases are exact.</figcaption>
 </figure>
-<p>So each TOA can carry the times of its sub-integrations (<code>toa.tSub</code>). The fit then averages the TOA's row over them, just
-as the data are averaged. Test 11 shows the difference: with the rows averaged, a 1000 km offset comes out unbiased; with one time per
-TOA it comes out at 0.84 of the truth.</p>
-<div class="callout why"><span class="ttl">The row averaged, not one well-chosen time</span>
-<p><b>Alternative:</b> tag each TOA with the time whose hour angle its data represent best, and keep one row per TOA.</p>
-<p><b>Why not:</b> no single time represents data spread over many hours of hour angle. The best tag still damps the daily signal, by
-0.74 for 10 hours of data. Averaging the row is exact and costs nothing. The run scripts still tag each TOA at its data's mean hour
-angle, for the filter's time order and for plots.</p></div>
-<div class="callout why"><span class="ttl">A mixture, not a hard cut</span>
-<p><b>Alternative:</b> drop every TOA beyond 4σ and fit the rest.</p>
-<p><b>Why not:</b> the 100-day runs show a continuum of far-off TOAs between 3σ and 5σ, not a clean gap. A hard cut either keeps some or
-throws away good ones. The mixture lets each TOA count according to how likely it is to be good.</p></div>
-<div class="callout why"><span class="ttl">The clock as correlated noise, not as free segments</span>
-<p><b>Alternative:</b> a free clock offset and rate for every day.</p>
-<p><b>Why not:</b> a straight line per day absorbs part of a daily sine, and the daily sine is the position signal itself. The clock
-model from <code>makeClock</code> says how fast the clock can really wander. A fit that uses it as correlated noise lets the clock take
-only what it can physically do.</p></div>
-<h3>Options and outputs</h3>
+<p>Each TOA can therefore carry the times of its sub-integrations (<code>toa.tSub</code>), and the fit averages the TOA's row over them,
+just as the data are averaged. Test 11 shows the difference: with the rows averaged, a 1000 km offset comes out unbiased; with one time per
+TOA it comes out at 0.84 of the truth. No single tag time can replace this: even the time whose hour angle best represents the data damps
+the daily signal, by 0.74 for 10 hours of data, while averaging the row is exact and costs nothing. The run scripts still tag each TOA at its
+data's mean hour angle, for the filter's time order and for plots.</p>
+
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Input</dt><dd><code>toa</code>: per TOA its time <code>t</code> (s since J2000, TT), residual <code>r</code> (not needed with
 <code>'Predict'</code>), <code>sigma</code>, pulsar index <code>k</code>, and optionally <code>tSub</code> (its sub-ints' times);
@@ -377,8 +362,9 @@ or [<var>h</var>₀ <var>h</var>₋₁ <var>h</var>₋₂], or a <code>makeClock
 <code>'Clock'</code> also <code>clock</code>, <code>clockErr</code>, <code>clockRate</code>, and <code>clockAt</code> /
 <code>clockAtErr</code> (the clock predicted at any later time)</dd>
 </dl>
-<h3>Tests (<code>tests/testNavFit.m</code>)</h3>
-<p>The fit recovers known offsets to a few metres without noise, and its error bars are honest with Gaussian noise and with outliers.</p>
+</details>
+<p><b>Tests</b> (<code>tests/testNavFit.m</code>). The fit recovers known offsets to a few metres without noise, and its error bars are
+honest with Gaussian noise and with outliers.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · No noise</td><td>A true site [30, −20, 10] km east, north, up from the assumed one.</td><td>Recovered to 2.8 m (calibrated,
@@ -400,10 +386,11 @@ clock model 35 % of the TOAs are flagged and half the fits do not settle.</td></
 day apart; 200 realizations.</td><td>Rows averaged: 1002 ± 82 km, pull spread 0.97. One time per TOA: 845 km, 0.84 of the
 truth.</td></tr>
 </table></div>
+
 <h3>The first result: B0329+54 finds a 100 km offset</h3>
-<p>The simulator's scenario runs put the true site 100 km east of the assumed one, with a perfect clock, and <code>navFit</code> fits
-the observer's TOAs (<code>tests/expNavFit.m</code>). The 30-day run uses the averaged rows. The other rows are earlier fits with one
-time per TOA, which were not rerun. With the averaged rows the 30-day estimate moved by 0.6 km, from 35.9 km.</p>
+<p>The simulator's scenario runs put the true site 100 km east of the assumed one, with a perfect clock, and <code>navFit</code> fits the
+observer's TOAs (<code>tests/expNavFit.m</code>). The 30-day run uses the averaged rows; the other rows are earlier fits with one time per
+TOA, which were not rerun. With the averaged rows the 30-day estimate moved by 0.6 km, from 35.9 km.</p>
 <div class="table-wrap"><table>
 <tr><th>Run (nominal flux)</th><th>Good TOAs</th><th>East (truth 100 km)</th><th>What it shows</th></tr>
 <tr><td>30 days</td><td class="num">302</td><td class="num">36.5 ± 29.6 km</td><td>2.1σ low: a fluctuation of these 30 days' noise.</td></tr>
@@ -462,19 +449,20 @@ toward the prediction: slope −0.05 ± 0.03.</td></tr>
   <path class="s1" d="M90 340 h20"/><text class="sub" x="116" y="344">the fit to the first N days, ±1σ</text>
   <path class="s2" d="M350 340 h20" style="stroke-dasharray:6 4"/><text class="sub" x="376" y="344">the true offset, 100 km east</text>
 </svg>
-<figcaption>How the fit converges: the east component of the site offset, fitted to the first <var>N</var> days of B0329+54's simulated
-TOAs (nominal flux, perfect clock; the truth 100 km east). The error shrinks as 1/√<var>N</var>: ±29 km after 30 days and
-±16 km after 100, where the offset stands out at 4.6σ (<code>navFit</code> itself, with its outlier model: 80 ± 16 km, 4.9σ). After 30 days this noise draw happens to sit 2σ low; the
-later days pull it back. Data: <code>runScenario</code>'s 100-day motion run; the fit is <code>navFit</code>'s model by weighted least
+<figcaption><b>Figure 10.3.</b> The east component of the site offset fitted to the first <var>N</var> days of B0329+54's simulated TOAs (nominal flux,
+perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±29 km after 30 days and ±16 km after 100, where the offset stands
+out at 4.6σ (<code>navFit</code> itself, with its outlier model: 80 ± 16 km, 4.9σ). After 30 days this noise draw sits 2σ low; the later
+days pull it back. Data: <code>runScenario</code>'s 100-day motion run, fitted with <code>navFit</code>'s model by weighted least
 squares.</figcaption>
 </figure>
-<p>A calibrated start also gives the polar component, against a truth of 0. Over 30 days it is −27.0 ± 16.7 km with the averaged rows,
-and over 100 days −10.7 ± 9.1 km with one time per TOA. At worst-case flux 30 days give only 59 TOAs, and the east estimate is
-82.2 ± 110.3 km. Half of those TOAs span the daily gap with about 9.5 hours of data each, so each carries less of the daily signal than a
-TOA from one short stretch. The stated error agrees with the 109.1 km that <code>'Predict'</code> gives for the same schedule.</p>
+<p>A calibrated start also gives the polar component, against a truth of 0: over 30 days −27.0 ± 16.7 km with the averaged rows, and over
+100 days −10.7 ± 9.1 km with one time per TOA. At worst-case flux 30 days give only 59 TOAs, and the east estimate is 82.2 ± 110.3 km. Half
+of those TOAs span the daily gap with about 9.5 hours of data each, so each carries less of the daily signal than a TOA from one short
+stretch. The stated error agrees with the 109.1 km that <code>'Predict'</code> gives for the same schedule.</p>
+
 <h3>With the SDR clock, tracked day by day</h3>
-<p>The same 30 days with the SDR clock: a rate of −1.17·10⁻⁶ and the crystal's wander, which the observer does not know. Each day it refits
-its clock from all TOAs so far and folds the next day with the prediction (<a href="scripts.html#scenario">run scripts</a>):</p>
+<p>The same 30 days with the SDR clock: a rate of −1.17·10⁻⁶ and the crystal's wander, which the observer does not know. Each day it
+refits its clock from all TOAs so far and folds the next day with the prediction (<a href="scripts.html#scenario">run scripts</a>):</p>
 <div class="table-wrap"><table>
 <tr><th>SDR clock, 30 days</th><th>Good TOAs</th><th>Clock not estimated</th><th>East, final fit with the clock model</th></tr>
 <tr><td>tracked daily</td><td class="num">300</td><td>0.1–0.6 ms on most days, up to 1 ms</td><td class="num">35.1 ± 29.7 km</td></tr>
@@ -483,13 +471,13 @@ its clock from all TOAs so far and folds the next day with the prediction (<a hr
 </table></div>
 <ul>
 <li><b>Tracking keeps every TOA.</b> The tracked run has 300 TOAs against 302 with a perfect clock, and the same position, with the same
-error. The tracked run shares the perfect-clock run's noise, and with it the −2.1σ draw.</li>
+error. It shares the perfect-clock run's noise, and with it the −2.1σ draw.</li>
 <li><b>Without tracking the pulse drifts off the prediction.</b> The groups then need more data to reach SNR 7 at the predicted phase: 29 %
 fewer TOAs, each more precise. Over 30 days the position barely suffers (±31.0 km), but the loss grows as the clock drifts further.</li>
 <li><b>What limits the tracking:</b> the error is mostly a constant per day. B0329+54's TOAs pin the clock's rate to about 2·10⁻⁹, and the
-crystal's rate itself wanders by about 1.5·10⁻⁹ a day. Extrapolated to the next day that gives a few hundred µs. That is harmless next to
-B0329+54's 6.6 ms pulse, but not for J0437's 0.14 ms: a millisecond pulsar needs a better oscillator, or extra pulsars to synchronise the
-clock (<a href="#extra">section 3</a>).</li>
+crystal's rate itself wanders by about 1.5·10⁻⁹ a day. Extrapolated to the next day that gives a few hundred µs: harmless next to
+B0329+54's 6.6 ms pulse, but not for J0437's 0.14 ms. A millisecond pulsar needs a better oscillator, or extra pulsars to synchronise the
+clock (Section 10.3).</li>
 </ul>
 <details><summary>History</summary>
 <p>Added 22 Oct 2026 as step D4a, with Jasper's switch between a calibrated start and self-calibration. The first version solved the
@@ -500,35 +488,35 @@ The fixed-site runs were redone on 22 Oct with the time-average tags and the ave
 35.9 ± 29.6 km to 36.5 ± 29.6 km (the same noise draw), the tracked SDR run from 35.0 ± 29.7 km to 35.1 ± 29.7 km, and the worst case from
 104.7 ± 82.0 km to 82.2 ± 110.3 km. Its old error bar claimed more signal than its TOAs carry.</p></details>
 
-<h2 id="extra">3. Extra pulsars: synchronising the clock</h2>
+<h2 id="extra">10.3 Extra pulsars: synchronising the clock</h2>
 <p>The clock error is the same for every pulsar, while a position error projects differently onto each pulsar's direction. Differences
-between pulsars therefore cancel the clock, as differences between satellites do in GNSS. Once the position is known, the common part
-of all residuals is the clock error itself: the pulsars discipline the receiver's clock.</p>
-<p>For a fixed site and B0329+54 alone the clock barely matters. The crystal's wander adds about 0.9 µs to the 30-day estimate of the
-daily sine, against 60 µs from the TOA noise. The reason is that the Earth's rotation puts the position signal at a period of one day,
-while the clock wanders slowly. The clock does matter in two places. The component along the Earth's axis and the absolute clock are
-both constants, so one pulsar cannot separate them. And on a moving ship the dead-reckoning errors drift slowly too, just like the
-clock. Extra pulsars in other directions solve both.</p>
-<p>The array forms several digital beams at once, so extra pulsars cost no time on B0329+54. From 52° N they are weak, though. The
-scenario table gives their TOAs at SNR 7 (B1749−28 never rises above 20° there):</p>
+between pulsars therefore cancel the clock, as differences between satellites do in GNSS. Once the position is known, the common part of
+all residuals is the clock error itself: the pulsars discipline the receiver's clock.</p>
+<p>For a fixed site and B0329+54 alone the clock barely matters. The crystal's wander adds about 0.9 µs to the 30-day estimate of the daily
+sine, against 60 µs from the TOA noise, because the Earth's rotation puts the position signal at a period of one day while the clock
+wanders slowly. The clock does matter in two places. The component along the Earth's axis and the absolute clock are both constants, so
+one pulsar cannot separate them. And on a moving ship the dead-reckoning errors drift slowly too, just like the clock. Extra pulsars in
+other directions solve both.</p>
+<p>The array forms several digital beams at once, so extra pulsars cost no time on B0329+54. From 52° N they are weak, though. The scenario
+table gives their TOAs at SNR 7 (B1749−28 never rises above 20° there):</p>
 <div class="table-wrap"><table>
 <tr><th>Pulsar</th><th class="num">hours of data per TOA, nominal</th><th class="num">worst case</th><th class="num">σ<sub>TOA</sub></th></tr>
 <tr><td>B0950+08</td><td class="num">12 h</td><td class="num">67 h</td><td class="num">738 µs</td></tr>
 <tr><td>B1642−03</td><td class="num">52 h</td><td class="num">278 h</td><td class="num">326 µs</td></tr>
 <tr><td>B1929+10</td><td class="num">106 h</td><td class="num">571 h</td><td class="num">480 µs</td></tr>
 </table></div>
-<p>They therefore constrain the clock and the polar component over days to weeks, not hours. The crystal wanders less than 1 µs within
-an hour, so TOAs of different pulsars taken within hours share the same clock.</p>
-<p>Each pulsar also has a constant offset between our profile's reference point and its timing model. A switch chooses how it is
-handled. Either the observer starts from a calibrated position and time, for example in port, or it estimates the offsets itself.
-Without calibration the polar component of a fixed site stays unobservable.</p>
+<p>They therefore constrain the clock and the polar component over days to weeks, not hours. The crystal wanders less than 1 µs within an
+hour, so TOAs of different pulsars taken within hours share the same clock. Each pulsar also has a constant offset between our profile's
+reference point and its timing model. A switch chooses how it is handled: either the observer starts from a calibrated position and time,
+for example in port, or it estimates the offsets itself. Without calibration the polar component of a fixed site stays unobservable.</p>
 <details><summary>History</summary><p>When D4 was designed (21 Oct 2026) these pulsars were estimated to give TOAs of 3–6 ms after about
 4 hours. The planning study of 22 Oct uses the scenario table's numbers above.</p></details>
+
 <h3 id="plan">Which extra pulsars help: a planning study</h3>
 <p><code>navFit</code>'s <code>'Predict'</code> mode gives the errors a TOA schedule would produce, without simulating
 (<code>tests/expNavPlan.m</code>). The schedules use each pulsar's real passes above 20° from 52° N: B0329+54's TOA rate from the scenario
-runs, and the others' from the <a href="scenario.html#visibility">scenario table</a>. For B0329+54 alone the study predicts what the real
-fits gave: ±29.6 km east and ±16.3 km polar over 30 days. B1749−28 is never above 20° from 52° N.</p>
+runs, and the others' from the <a href="scenario.html#visibility">scenario table</a>. For B0329+54 alone the study predicts what the real fits
+gave: ±29.6 km east and ±16.3 km polar over 30 days. B1749−28 is never above 20° from 52° N.</p>
 <div class="table-wrap"><table>
 <tr><th>100 days, nominal flux</th><th>TOAs</th><th>East</th><th>Radial</th><th>Polar (calibrated), perfect clock</th><th>Polar (calibrated), crystal clock</th><th>Clock one day ahead</th></tr>
 <tr><td>B0329+54 alone</td><td class="num">1005</td><td class="num">16.2 km</td><td class="num">18.7 km</td><td class="num">8.9 km</td><td class="num">63.6 km</td><td class="num">453 µs</td></tr>
@@ -539,12 +527,12 @@ fits gave: ±29.6 km east and ±16.3 km polar over 30 days. B1749−28 is never 
 <li><b>The equatorial position barely gains:</b> 5 % in east and up to 25 % in radial. B0329+54's TOAs dominate.</li>
 <li><b>The daily clock tracking does not gain either.</b> The extra pulsars are too weak to follow the clock from day to day, so a
 millisecond pulsar needs a better oscillator.</li>
-<li><b>The real gain is the polar component with a real clock.</b> With B0329+54 alone the crystal's slow wander mimics the constant that
-carries the polar component, and its error grows from 9 to 64 km. The clock is common to all pulsars, but the polar term projects
-differently onto each (sin δ is 0.82, 0.14, −0.06 and 0.19), so extra pulsars separate them again: 34 km with B0950+08, 24 km with all
-three.</li>
-<li><b>B0950+08 brings most of it.</b> B1642−03 and B1929+10 give only a few TOAs a month at nominal flux, and none in 30 days at worst
-case. At worst-case flux B0950+08 too gives only 4 TOAs in 30 days.</li>
+<li><b>The real gain is the polar component with a real clock</b> (Figure 10.4). With B0329+54 alone the crystal's slow wander mimics the
+constant that carries the polar component, and its error grows from 9 to 64 km. The clock is common to all pulsars, but the polar term
+projects differently onto each (sin δ is 0.82, 0.14, −0.06 and 0.19), so extra pulsars separate them again: 34 km with B0950+08, 24 km
+with all three.</li>
+<li><b>B0950+08 brings most of it.</b> B1642−03 and B1929+10 give only a few TOAs a month at nominal flux, and none in 30 days at worst case.
+At worst-case flux B0950+08 too gives only 4 TOAs in 30 days.</li>
 </ul>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="The polar error with a crystal clock for B0329+54 alone and with extra pulsars, after 30 and 100 days">
@@ -583,47 +571,40 @@ case. At worst-case flux B0950+08 too gives only 4 TOAs in 30 days.</li>
   <rect class="s1f" x="570" y="36" width="14" height="12" rx="3"/><text class="sub" x="590" y="46">30 days</text>
   <rect class="s2f" x="660" y="36" width="14" height="12" rx="3"/><text class="sub" x="680" y="46">100 days</text>
 </svg>
-<figcaption>What extra pulsars buy: the error of the polar component (along the Earth's axis), with a calibrated start and the crystal
-clock, from 52° N at nominal flux. B0329+54 alone cannot tell the polar offset from the clock's wander, and more days do not help
-(64 km after 30 and after 100 days). Pulsars at other declinations separate the two: B0950+08 brings it to 34 km in 100 days, all
-three extra pulsars to 24 km. With a perfect clock B0329+54 alone already reaches 9 km. Numbers: the planning study
-(<code>tests/expNavPlan.m</code>), from <code>navFit</code>'s <code>'Predict'</code>.</figcaption>
+<figcaption><b>Figure 10.4.</b> The error of the polar component (along the Earth's axis), with a calibrated start and the crystal clock, from 52° N at
+nominal flux. B0329+54 alone cannot tell the polar offset from the clock's wander, and more days do not help (64 km after 30 and after
+100 days). Pulsars at other declinations separate the two: B0950+08 brings it to 34 km in 100 days, all three extra pulsars to 24 km.
+With a perfect clock B0329+54 alone already reaches 9 km. Numbers: the planning study (<code>tests/expNavPlan.m</code>), from
+<code>navFit</code>'s <code>'Predict'</code>.</figcaption>
 </figure>
 
-<h2 id="navfilter">4 · <code>navFilter</code>: a moving receiver <span class="badge validated">validated</span></h2>
+<h2 id="navfilter">10.4 <code>navFilter</code>: a moving receiver <span class="badge validated">validated</span></h2>
 <div class="sig">fit = navFilter(toa, psrs, trajDR, ...)</div>
 <p class="meta"><a href="api.html#navfilter">Full interface and help text of <code>navFilter</code> →</a></p>
-<h3>In short</h3>
 <p>On a ship the observer knows its track only from dead reckoning: speed log and compass. The dead-reckoning error grows; an unknown
-current of 0.3 m/s is 26 km a day. <code>navFilter</code> estimates that error over time from the TOA residuals, together with the clock.
-It is a Kalman filter around the dead-reckoning track, followed by a smoother that uses all TOAs for every moment.</p>
-<h3>How it works</h3>
+current of 0.3 m/s is 26 km a day. <code>navFilter</code> estimates that error over time from the TOA residuals, together with the clock. It
+is a Kalman filter around the dead-reckoning track, followed by a smoother that uses all TOAs for every moment.</p>
 <ol>
-<li><b>The state:</b> the position error and the velocity error in the ship's own east and north directions; the clock's offset and
-rate; with <code>"self"</code> one constant per pulsar. With <code>"calibrated"</code> the constants are known, and the clock starts from
-the port calibration, with that calibration's uncertainty (<code>'ClockPrior'</code>). Everything is in metres, the clock as the speed of
-light times its offset, as in GNSS receivers.</li>
-<li><b>Between TOAs:</b> the position error grows with the velocity error. The velocity error is an unknown current that changes slowly
-(a random walk). The clock follows the two-state model of <code>makeClock</code>.</li>
-<li><b>At each TOA:</b> the residual is the position error projected onto the pulsar's direction, plus the clock and the pulsar's
-constant. That is linear in the state, so an ordinary Kalman filter suffices.</li>
+<li><b>The state:</b> the position error and the velocity error in the ship's own east and north directions; the clock's offset and rate;
+with <code>"self"</code> one constant per pulsar. With <code>"calibrated"</code> the constants are known, and the clock starts from the port
+calibration, with that calibration's uncertainty (<code>'ClockPrior'</code>). Everything is in metres, the clock as the speed of light times
+its offset, as in GNSS receivers.</li>
+<li><b>Between TOAs:</b> the position error grows with the velocity error. The velocity error is an unknown current that changes slowly (a
+random walk). The clock follows the two-state model of <code>makeClock</code>.</li>
+<li><b>At each TOA:</b> the residual is the position error projected onto the pulsar's direction, plus the clock and the pulsar's constant.
+That is linear in the state, so an ordinary Kalman filter suffices.</li>
 <li><b>Afterwards:</b> a smoother runs back through the TOAs, so that every moment gets the best estimate from all of them.</li>
 </ol>
-<p>A ship stays at sea level, so the filter has no up component. That lets one pulsar find north as well as east: the equatorial
-component that rotates with the Earth then fixes north.</p>
-<div class="callout why"><span class="ttl">Errors in the ship's own frame</span>
-<p><b>Alternative:</b> keep the errors in Earth-fixed coordinates.</p>
-<p><b>Why not:</b> a current pushes the ship along its own east and north, and those directions turn as the ship moves. Over 35° of
-longitude a fixed Earth-fixed east vector gets a 37 % vertical part. The first version did this: the height constraint then forbade the
-east error, and the filter was 30 times overconfident in east. In the ship's own frame a constant current is a constant state.</p></div>
-<div class="callout why"><span class="ttl">The port clock with its uncertainty</span>
-<p><b>Alternative:</b> take the port calibration of the clock as exact.</p>
-<p><b>Why not:</b> a port calibration is never exact. An offset error of 1 ms is 300 km in the filter's units, more than one TOA's error.
-Test 6 shows what an exact prior does: the clock's error bars become 2.6 times too small. The position hardly suffers, because the
-clock's own wander takes up the offset within a day.</p></div>
-<div class="callout why"><span class="ttl">A filter, and the same answer as the batch fit</span>
-<p>For a fixed site the filter and <code>navFit</code> are the same estimator: test 1 shows they agree to 10⁻⁴ of the errors. The filter
-adds what the batch fit cannot do: a state that changes in time, and an estimate at any moment that can be fed back to the predictor.</p></div>
+<p>A ship stays at sea level, so the filter has no up component. That lets one pulsar find north as well as east: the equatorial component
+that rotates with the Earth then fixes north. For a fixed site the filter and <code>navFit</code> are the same estimator: test 1 shows they
+agree to 10⁻⁴ of the errors. The filter adds what the batch fit cannot do: a state that changes in time, and an estimate at any moment that
+can be fed back to the predictor.</p>
+<p>The errors are kept in the ship's own frame, because a current pushes the ship along its own east and north, and those directions turn as
+the ship moves. Over 35° of longitude a fixed Earth-fixed east vector gets a 37 % vertical part. The first version kept the errors in
+Earth-fixed coordinates: the height constraint then forbade the east error, and the filter was 30 times overconfident in east. In the ship's
+own frame a constant current is a constant state. The port clock enters with its uncertainty, because a port calibration is never exact:
+an offset error of 1 ms is 300 km in the filter's units, more than one TOA's error. Test 6 shows what an exact prior does: the clock's
+error bars become 2.6 times too small. The position hardly suffers, because the clock's own wander takes up the offset within a day.</p>
 <details><summary>The equations</summary>
 <p>State <var>x</var> = [<var>d</var><sub>E</sub>, <var>d</var><sub>N</sub>, <var>v</var><sub>E</sub>, <var>v</var><sub>N</sub>, <var>b</var>,
 <var>ḃ</var>, <var>J</var><sub>k</sub>]. Over Δ: <var>d</var> += Δ<var>v</var>; <var>v</var> a random walk of spectral density
@@ -633,7 +614,7 @@ adds what the batch fit cannot do: a state that changes in time, and an estimate
 Rauch-Tung-Striebel. Outliers: the same mixture as <code>navFit</code>, applied to each TOA's innovation in one pass. On the real
 surface a horizontal error <var>d</var> lies <var>d</var>²/2<var>R</var> below the tangent plane (7 km at 300 km); the closed loop keeps
 <var>d</var> small.</p></details>
-<h3>Options and outputs</h3>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Input</dt><dd><code>toa</code> as for <code>navFit</code> (any order; sorted inside); <code>psrs</code>; <code>trajDR</code>: the
 dead-reckoning track (or a fixed site) the residuals refer to, a <code>makeTrajectory</code> struct</dd>
@@ -648,8 +629,9 @@ covariances), <code>xF</code> and <code>PF</code> (filtered); <code>enu</code> a
 east-north-up frame); <code>clock</code> and <code>clockErr</code>; <code>gamma</code>, <code>outlier</code>, <code>nu</code> (normalized
 innovations); <code>predict</code> (the state extrapolated from the last TOA, for feedback to the predictor)</dd>
 </dl>
-<h3>Tests (<code>tests/testNavFilter.m</code>)</h3>
-<p>For a fixed site the filter is the batch fit; on a moving ship it tracks the dead-reckoning error with honest error bars.</p>
+</details>
+<p><b>Tests</b> (<code>tests/testNavFilter.m</code>). For a fixed site the filter is the batch fit; on a moving ship it tracks the
+dead-reckoning error with honest error bars.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Fixed site</td><td>Against <code>navFit</code>: without a clock, with the crystal clock, and with a calibrated start.</td>
@@ -673,11 +655,12 @@ run script). The first version kept the errors in Earth-fixed coordinates, which
 Test 2's first criteria pooled the pulls of all TOAs, which are strongly correlated along a smoothed track; they now use four fixed times
 per realization. <code>'ClockPrior'</code> and test 6 were added the same day for the calibrated ship start (step D4c-1); test 6 passes
 in Jasper's run.</p></details>
+
 <h3 id="ship">The ship scenario</h3>
-<p>A simulated ship sails for 14 days from 50° N, 5° W at 5 knots and knows its track only from dead reckoning. An unknown current pushes
-it off that track: after 14 days by 640 km (the median of eight ships). It follows B0329+54 and B0950+08 in two beams, and its SDR clock
-drifts. Each evening it runs <code>navFilter</code> on all its TOAs so far and folds the next day with the corrected track and clock
-(<a href="scripts.html#ship"><code>runShip</code></a>).</p>
+<p>A simulated ship sails for 14 days from 50° N, 5° W at 5 knots and knows its track only from dead reckoning. An unknown current pushes it
+off that track: after 14 days by 640 km (the median of eight ships). It follows B0329+54 and B0950+08 in two beams, and its SDR clock drifts.
+Each evening it runs <code>navFilter</code> on all its TOAs so far and folds the next day with the corrected track and clock
+(<a href="scripts.html#ship"><code>runShip</code></a>; Figure 10.5).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="One ship over 14 days: the true drift off its dead-reckoning track, east and north, against the navigation filter's estimate">
   <path class="axis" d="M70 260 H400"/>
@@ -756,12 +739,12 @@ drifts. Each evening it runs <code>navFilter</code> on all its TOAs so far and f
   <path class="s2" d="M70 316 h20"/><text class="sub" x="96" y="320">truth</text>
   <path class="s1" d="M160 316 h20"/><text class="sub" x="186" y="320">the filter, smoothed over all TOAs, ±1σ</text>
 </svg>
-<figcaption>One simulated ship (<code>runShip</code>, seed 7, self-calibrated start): over 14 days an unknown current pushes it
-468 km off its dead-reckoning track. B0329+54 and B0950+08 alone, with a drifting SDR clock, keep the smoothed
-track within its error band. The band widens towards the end, where no later TOAs help.</figcaption>
+<figcaption><b>Figure 10.5.</b> One simulated ship (<code>runShip</code>, seed 7, self-calibrated start): over 14 days an unknown current pushes it 468 km off
+its dead-reckoning track. B0329+54 and B0950+08 alone, with a drifting SDR clock, keep the smoothed track within its error band. The band
+widens towards the end, where no later TOAs help.</figcaption>
 </figure>
-<p>Over eight ships with different currents, clocks and noise, the smoothed track stays within about 70 km rms of the truth with a
-calibrated start, against 380 km for dead reckoning. A self-calibrated start gives about 100 km.</p>
+<p>Over eight ships with different currents, clocks and noise, the smoothed track stays within about 70 km rms of the truth with a calibrated
+start, against 380 km for dead reckoning; a self-calibrated start gives about 100 km (Figure 10.6).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 358" role="img" aria-label="Track errors of eight simulated ships: dead reckoning against the navigation filter with a self-calibrated and a calibrated start">
   <path class="grid" d="M189.4 40 V280"/><text class="sub" x="189.4" y="298" text-anchor="middle">10</text>
@@ -814,13 +797,13 @@ calibrated start, against 380 km for dead reckoning. A self-calibrated start giv
   <circle class="s1f" cx="350" cy="338" r="6"/><text class="sub" x="362" y="342">filter, self-calibrated (102 km)</text>
   <circle class="s2f" cx="560" cy="338" r="6"/><text class="sub" x="572" y="342">filter, calibrated start (73 km)</text>
 </svg>
-<figcaption>Eight ships with different currents, clocks and noise (<code>runShip</code>, seeds 1–8, 14 days): the rms distance of the
-track from the truth for dead reckoning alone, and for the smoothed filter with a self-calibrated and with a calibrated start. Medians
-379, 102 and 73 km.</figcaption>
+<figcaption><b>Figure 10.6.</b> Eight ships with different currents, clocks and noise (<code>runShip</code>, seeds 1–8, 14 days): the rms distance of the
+track from the truth for dead reckoning alone, and for the smoothed filter with a self-calibrated and with a calibrated start. Medians 379,
+102 and 73 km.</figcaption>
 </figure>
-<p>The error bars are checked against a twin: the same smoother on ideal TOAs at the same times, so that only the TOA chain differs.
-With a calibrated start the two agree. With a self-calibrated start the north error is larger than the twin's in four of the eight
-ships; the cause is still open (<a href="#next">parked</a>).</p>
+<p>The error bars are checked against a twin: the same smoother on ideal TOAs at the same times, so that only the TOA chain differs
+(<a href="validation.html#longruns">validation</a>). With a calibrated start the two agree. With a self-calibrated start the north error is
+larger than the twin's in four of the eight ships; the cause is still open (Section 10.5).</p>
 <div class="table-wrap"><table>
 <tr><th>Eight ships, pulls at days 3, 7, 10 and 14</th><th>East: spread (mean)</th><th>North: spread (mean)</th><th class="num">Median rms error, east</th><th class="num">north</th></tr>
 <tr><td>Calibrated start, the real filter</td><td>0.86 (−0.03)</td><td>0.84 (−0.48)</td><td class="num">42 km</td><td class="num">57 km</td></tr>
@@ -838,8 +821,8 @@ ships followed the same day.</p></details>
 
 <h4 id="ship-worst">At worst-case flux <span class="badge written">Claude's run</span></h4>
 <p>The ship results above are at nominal flux. The design point is the worst case, an SEFD of 7.4·10<sup>5</sup> Jy instead of
-3.2·10<sup>5</sup> Jy. The same eight ships were sailed again at worst flux, with the same tracks, currents and clocks. At worst flux
-the ship barely beats dead reckoning.</p>
+3.2·10<sup>5</sup> Jy. The same eight ships were sailed again at worst flux, with the same tracks, currents and clocks. At worst flux the
+ship barely beats dead reckoning.</p>
 <div class="table-wrap"><table>
 <tr><th>Eight ships, 14 days</th><th class="num">2-D rms error, median</th><th class="num">range over the ships</th><th class="num">error at the end, median</th></tr>
 <tr><td>Dead reckoning</td><td class="num">372 km</td><td class="num">165–510 km</td><td class="num">644 km</td></tr>
@@ -847,19 +830,18 @@ the ship barely beats dead reckoning.</p>
 <tr><td>Calibrated start, worst flux</td><td class="num">298 km</td><td class="num">152–520 km</td><td class="num">499 km</td></tr>
 <tr><td>Calibrated start, nominal flux</td><td class="num">73 km</td><td class="num">55–101 km</td><td class="num">141 km</td></tr>
 </table></div>
-<p>The cause is the number of TOAs. B0329+54 gives 18–23 TOAs in 14 days instead of about 115. B0950+08 gives 1–3 instead of about 12.
-Each B0329+54 TOA then spans 13–19 hours of data. The daily filter needs ten TOAs before it corrects the track, so the ship sails on
-dead reckoning until day 6–9. The smoothed track is worse than dead reckoning in four of the eight ships. The real-time track at day 14
-is worse than dead reckoning in four to five of the eight.</p>
-<p>The stated errors are too small at worst flux. The pull spread at days 3, 7, 10 and 14 is 1.6 east and 1.2–1.5 north, against
-0.85–1.1 for the twin. Most of the excess is therefore in the TOA chain. The per-run pulls that <code>runShip</code> prints are larger
-still, because <code>navFilter</code> puts the port's 1 km position prior at the first TOA. At worst flux that TOA comes 9–14 hours after
-departure, when the ship has already drifted 14–41 km.</p>
+<p>The cause is the number of TOAs. B0329+54 gives 18–23 TOAs in 14 days instead of about 115, and B0950+08 gives 1–3 instead of about 12.
+Each B0329+54 TOA then spans 13–19 hours of data. The daily filter needs ten TOAs before it corrects the track, so the ship sails on dead
+reckoning until day 6–9. The smoothed track is worse than dead reckoning in four of the eight ships, and the real-time track at day 14 in
+four to five of the eight. The stated errors are too small at worst flux: the pull spread at days 3, 7, 10 and 14 is 1.6 east and 1.2–1.5
+north, against 0.85–1.1 for the twin, so most of the excess is in the TOA chain. The per-run pulls that <code>runShip</code> prints are
+larger still, because <code>navFilter</code> puts the port's 1 km position prior at the first TOA. At worst flux that TOA comes 9–14 hours
+after departure, when the ship has already drifted 14–41 km.</p>
 <details><summary>History</summary><p>Run on 22 Oct 2026, evening (16 runs, 19:48–21:49; logs in <code>.claude/runs/</code>,
 results in <code>data/scenario/ship_14d_worst*.mat</code>). A context check of block E's plan had found that the ship had only been run
 at nominal flux. Not yet validated by Jasper's own run.</p></details>
 
-<h2 id="next">5. Status and next steps</h2>
+<h2 id="next">10.5 Status and next steps</h2>
 <div class="table-wrap"><table>
 <tr><th>Step</th><th>What</th><th>Status</th></tr>
 <tr><td>D4a</td><td><code>navFit</code>: a robust batch fit for a fixed site with a perfect clock, on the 30-day motion run. It also
@@ -910,6 +892,18 @@ it; <code>navFit</code> iterates.</td><td>An iterated smoother pass, if outliers
 <p>Block D's design, agreed on 21 Oct 2026, made B0329+54's 2-D equatorial offset the first deliverable, with the outlier handling by
 redundancy. Later the same day D4 was designed around Jasper's idea of clock synchronisation with extra pulsars, with simultaneous
 digital beams and a switch between a calibrated start and self-calibration.</p></details>
+
+<div class="callout why"><span class="ttl">Summary</span>
+<ul>
+<li>A site offset shows up as a daily sine in the TOA residuals: 193 µs for 100 km east, from B0329+54.</li>
+<li><code>navFit</code> fits it with a robust mixture model, the clock as correlated noise, and rows averaged over each TOA's data; 30 days
+give each equatorial component to about ±30 km.</li>
+<li>Extra pulsars at other declinations separate the polar component from the clock; B0950+08 brings most of the gain.</li>
+<li><code>navFilter</code> tracks a ship's dead-reckoning error: about 70 km rms against 380 km for dead reckoning at nominal flux, but
+barely better than dead reckoning at worst-case flux.</li>
+</ul></div>
+<p>This is the last stage. The pages after it are reference: the <a href="scripts.html">run scripts</a>, the <a href="tests.html">unit
+tests</a>, and the record of results and decisions.</p>
 
 </main>
 <script src="nav.js"></script>

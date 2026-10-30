@@ -8,7 +8,6 @@
 </head>
 <body>
 <main>
-
 <section class="hero">
 <div class="eyebrow">PulsarSimMatlab · documentation</div>
 <h1>Navigating by pulsars</h1>
@@ -80,7 +79,7 @@ clock offset.</p>
 <ol class="steps">
   <li><a href="physics.html"><b>The physics</b><span>Why the signal is noise, what dispersion does, the radiometer equation, folding, how precise a TOA can be.</span></a></li>
   <li><a href="pipeline.html"><b>The pipeline</b><span>Every stage and file on one diagram, both front ends, and why the order is what it is.</span></a></li>
-  <li><a href="sky.html"><b>The stages</b><span>One page per stage: in short, the physics, how it works in plain steps, and the design choices: what was chosen, the alternative, and why.</span></a></li>
+  <li><a href="sky.html"><b>The stages</b><span>One page per stage, written like a textbook chapter: numbered sections that build on each other, numbered equations and figures, the design choices in the text, and a short summary.</span></a></li>
 </ol>
 
 <h2>What makes this hard</h2>
@@ -92,7 +91,7 @@ clock offset.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 27 October 2026</h2>
+<h2>Status · 30 October 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
@@ -142,7 +141,7 @@ refinements are parked (simulator page)</td><td><span class="badge validated">cl
 <code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate; the
 navigation fit <code>navFit</code> and the ship's Kalman filter <code>navFilter</code>; the ship scenario <code>runShip</code>; JPL's DE440 with TDB − TT, precession and nutation for real data. Closing: the ship keeps
 within 73 km rms of its track with a calibrated start (dead reckoning: 379 km); a few items parked (<a href="navigation.html#next">navigation</a>)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
-<tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision)</td><td><span class="badge todo">under way</span></td></tr>
+<tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision); these docs rewritten as a textbook (30 Oct)</td><td><span class="badge todo">under way</span></td></tr>
 <tr><td>E</td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second
 polarization</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>F</td><td>Real implementation: IQ data from the antenna, mixer and SDR through <code>processIQ</code>; the processing on a GPU or FPGA,
@@ -197,8 +196,8 @@ checked stage by stage against <code>processIQ</code>; in the end in real time</
   and it does not depend on the noise. Set it to <code>false</code> once its files exist.</li>
   <li>Run <code>main</code>. It prints a disk estimate, each stage's progress, the TOAs, the detection result and the validation against the truth.</li>
 </ol>
-<p>Disk use is large. With the default settings (channel path with excision) a run writes about 72 GB per second of simulated data;
-the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefore needs about 14 GB. See <a href="scripts.html">run scripts</a>.</p>
+<p>Disk use is large. With the default settings (channel path with excision) a run writes about 72.5 GB per second of simulated data;
+the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefore needs about 14.5 GB. See <a href="scripts.html">run scripts</a>.</p>
 
 <h2>Folder layout</h2>
 <div class="table-wrap"><table>
@@ -213,7 +212,7 @@ the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefor
 <tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
 <tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
 </table></div>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>7274ced</code> (27 Oct 2026) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>77bf36d</code> (30 Oct 2026; the code is unchanged since <code>7274ced</code>) ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a> · <a href="maintenance.html">docs maintenance</a></p>
 
 </main>

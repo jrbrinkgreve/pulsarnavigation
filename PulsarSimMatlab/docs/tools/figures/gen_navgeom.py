@@ -89,10 +89,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Navigation geometry: a pulse arrives early when the station is closer to the pulsar; three pulsars give three lines of position that cross at the true position">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How arrival times give a position (to scale, in a plane). a: a pulse front moves at the speed of light, so a station
-600 m closer to the pulsar meets it 2 µs earlier; a sideways offset changes nothing. b: each pulsar's TOA therefore puts the station
-on one line, perpendicular to that pulsar's direction. Where the lines cross is the position. In 3-D the lines become planes and
-three pulsars fix the position; a receiver clock that is off moves all arrival times by the same amount, a fourth unknown, so four
-pulsars are needed.</figcaption>
+<figcaption><b>Figure P.1.</b> How arrival times give a position (to scale, in a plane). (a) A pulse front moves at the speed of light, so a station 600 m
+closer to the pulsar meets it 2 µs earlier; a sideways offset changes nothing. (b) Each pulsar's TOA puts the station on one line,
+perpendicular to that pulsar's direction, and the lines cross at the position. In 3-D the lines become planes and three pulsars fix the
+position; a receiver clock that is off moves all arrival times by the same amount, a fourth unknown, so four pulsars are needed.</figcaption>
 </figure>'''
 open('navgeom.svg', 'w').write(svg)

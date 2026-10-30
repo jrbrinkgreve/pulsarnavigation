@@ -56,7 +56,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {yb + 44}" role="img" aria-label="Size of each effect the simulation leaves out, as a timing error on a log scale, against the J0437 TOA precision and the nanosecond goal">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
+<figcaption><b>Figure 1.</b> How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
 12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours. Block D models three of them:
 Earth's motion, the clock and the station position. The pulsar's binary orbit is parked. Between 1 ns and 12 µs (orange) an effect does
 not change today's TOAs but matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a

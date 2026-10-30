@@ -26,8 +26,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Energy of one radar pulse and what subtraction would leave, in units of one pulsar pulse, against SNR">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Why the excision stage blanks. The top line is the energy of one radar pulse, in units of one pulsar
-pulse: equal at −5 dB, then growing as 1/ρ as the pulsar gets weaker. The two lines below it show what a subtraction of 99.9 % or
-99.99 % would leave. At the design target, both leftovers are still above the pulsar.</figcaption>
+<figcaption><b>Figure E.2.</b> The energy of one radar pulse in units of one pulsar pulse (top line): equal at −5 dB, then growing as 1/ρ as the pulsar gets
+weaker. The lines below show what a subtraction of 99.9 % or 99.99 % would leave. At the design target, both leftovers are still above
+the pulsar.</figcaption>
 </figure>'''
 open('blanksub.svg', 'w').write(svg)

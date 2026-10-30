@@ -39,21 +39,27 @@ shrinking the text.</li>
 <code>--series-1</code>, <code>--series-2</code>, <code>--series-3</code> (blue, orange, aqua; checked for colour-vision deficiency, in
 light and dark), through the SVG classes <code>s1</code>/<code>s2</code>/<code>s3</code> (lines), <code>s1f</code>… (filled markers) and
 <code>s1band</code>, <code>s2band</code> (error bands). Inline <code>code</code> may wrap, so long file paths fit a phone.</li>
-<li><b>Page format</b> (agreed 13 Oct 2026): short sentences, one idea each. A page or section starts with "In short" (a
-<code>.callout.note</code> or an <code>&lt;h3&gt;</code>), then the physics, then how it works in plain numbered steps with exact formulas
-folded into <code>&lt;details&gt;</code>, then "Design choices": one <code>.callout.why</code> per choice with the alternative and why it was
-not taken. Reasons that are not recorded in the notes or logs are reconstructions: list them for Jasper, and add them to notes §12 only
+<li><b>Page format</b> (the textbook form of 30 Oct 2026; it replaced the 13 Oct format). Each page reads as a chapter, and stage 5a
+on the <a href="channels.html#chan">channels page</a> is the model. Sections are numbered: stage pages by stage (1.1, 5a.4, 7a.2), the
+other explanatory pages by a letter (E excision, F fast simulator, D detection, P physics, L localisation, C conventions, O pipeline,
+R scenario), reference pages by plain numbers. Each section opens from the one before and ends on the question the next one answers.
+Equations (<code>&lt;span class="label"&gt;(2.1)&lt;/span&gt;</code> in the <code>.eq</code> block) and figures (<code>&lt;b&gt;Figure 2.1.&lt;/b&gt;</code>
+at the start of the caption) carry the section's prefix, and the text refers to them by number. A design choice sits in the section it
+explains. A separate "Design choices" block holds only the choices no section covers, one <code>.callout.why</code> each, with the
+alternative and why it was not taken. A short Summary box (<code>.callout.why</code> titled "Summary") closes the page or the stage.
+"Options and outputs" and full help texts are collapsed boxes, because they repeat the <a href="api.html">function reference</a>.
+Reasons that are not recorded in the notes or logs are reconstructions: list them for Jasper, and add them to notes §12 only
 after he confirms. How to write the text itself: see <a href="#style">writing style</a>.</li>
 </ul>
 
 <h2 id="style">Writing style</h2>
 <p>The pages had become compact but hard to read: each sentence carried several facts, project shorthand and dates. These rules keep
-the text easy to follow. The excision page is the reference example.</p>
+the text easy to follow. They still hold in the textbook form above; stage 5a on the channels page is the reference example.</p>
 <ol>
 <li><b>One fact per sentence.</b> Use parentheses only for units, symbols or a name in the code. Anything else gets its own
 sentence, or is cut.</li>
-<li><b>Each section follows the same order:</b> the problem, what goes wrong without a fix, what the code does, and what that buys,
-with one number.</li>
+<li><b>Each section opens from the one before and ends on the next question.</b> Inside, it follows the same order: the problem,
+what goes wrong without a fix, what the code does, and what that buys, with one number.</li>
 <li><b>No dates, stage codes (B5b, A3a, …) or "decided by" in the explanation.</b> The page says how things work now. History goes
 into a collapsed <code>&lt;details&gt;&lt;summary&gt;History&lt;/summary&gt;</code> at the end of the section, and into the development
 history and the logs. Stage codes stay in status tables and History boxes. Status badges just say <span class="badge validated">validated</span>.</li>
@@ -62,12 +68,13 @@ history and the logs. Stage codes stay in status tables and History boxes. Statu
 <li><b>Every number gets a sentence that says what it means:</b> good or bad, and compared to what. At most two numbers per sentence.
 Instead of a slash list ("1.02 / 1.04 / 1.08 at 10⁻³ / 10⁻⁴ / 10⁻⁶"), use a small table.</li>
 <li><b>Full sentences with a subject</b> ("<code>blankChannels</code> writes …", not "Writes …").</li>
-<li><b>Say each thing once.</b> "In short" summarizes, "How it works" explains, and the exact rules and formulas go in
-<code>&lt;details&gt;</code>.</li>
+<li><b>Say each thing once.</b> The opening paragraph says what a stage does, the numbered sections explain it, the Summary box
+collects the conclusions, and the exact rules and formulas go in <code>&lt;details&gt;</code>.</li>
 <li><b>Test results:</b> one sentence with the conclusion. The numbers go in a table or in <code>&lt;details&gt;</code>.</li>
 </ol>
 <p>Record pages (tests, scripts, results, validation, limits, roadmap, history) are dated by nature: there rules 1, 4, 5 and 6 apply.
-When a page is rewritten, no number or name may disappear by accident: compare the page text before and after.</p>
+When a page is rewritten, no number or name may disappear by accident: compare the page text before and after (the textbook
+rewrite did this with a script, against the git tag <code>docs-before-textbook</code>).</p>
 
 <h2>Relation to the notes</h2>
 <p><code>logs/current_project_notes.md</code> is the complete reference (every number, every option); the session logs record what changed and why.
@@ -286,6 +293,19 @@ numbered equations; four new computed figures (<code>tools/figures/gen_proto.py<
 of the filter regions, the channel rows and the oversampling choices. The hand-drawn sketch of three channel responses is replaced by
 Figure 5a.4. Fixed in the algorithm diagram: "about 1/256 of the arithmetic" is now "about 1/100" (27 against 2700 multiplications per
 input sample), and the frame now ends at sample m·D + G instead of being centred on it. No code change.</td></tr>
+<tr><td>30 Oct 2026</td><td>after <code>77bf36d</code></td><td>All pages in the textbook form of stage 5a (Jasper: "rewrite all pages in this
+style? Textbook, linked, yet relatively short format"). Restore point: the git tag <code>docs-before-textbook</code>. Rewritten: sky,
+receiver, fullband, the rest of channels, excision, fold, simulator, toa, detection, validation, navigation, physics, localisation,
+conventions, pipeline and scenario. They now have numbered sections that lead into each other, numbered equations and figures, design boxes
+folded into their sections, a Summary box, shorter captions and "Options and outputs" collapsed. Restyled lightly: index,
+parameters, scripts, tests, results, lessons, limits, roadmap, formulas and glossary (figures numbered, "In short" boxes unwrapped). Every
+page was compared with the tag, so no number, code name, link or id was lost by accident (the record per page is in
+<code>logs/2026-10-30_docs-textbook.md</code>). The current settings were checked again against <code>pipelineParams.m</code>,
+<code>main.m</code> and the function defaults, and every page was rendered without KaTeX or console errors. Fixed on the way: disk per
+second 72.5 GB on the default path (was "72") and 63.5 GB on the channel path; the fullband legend's <code>ephem.DM</code> (25 by
+default); the kernel size on conventions (126 million taps at DM 25); the closing "next page" of scenario. The 72 figure scripts now
+write the page's caption word for word, with its label, and running all of them reproduces all 73 figures exactly; their README lists each figure's
+label. The writing-style rules above describe the textbook form. Links checked: 1052, none broken. No code change.</td></tr>
 </table></div>
 
 </main>

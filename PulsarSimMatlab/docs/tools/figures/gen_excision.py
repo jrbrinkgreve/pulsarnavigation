@@ -75,11 +75,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 470" role="img" aria-label="Excision step by step: a radar pulse in one channel is flagged, masked, blanked, and becomes a dip in the valid fraction after dedispersion">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>One channel through the excision chain, simulated with the code's own numbers. The input is white noise
-with a 2 µs pulse at about 30× the baseline. The detector uses its exact thresholds η₁…η₁₆ = 13.82 … 2.69 for windows of 1–16
-samples and a guard of 10 samples. The filter is the dedispersion filter of a 3.125 MHz channel at 1.4 GHz. Panel d shows
-<var>W</var>: the fraction of each output sample's filter window that was valid. <code>blankingWeights</code> computes <var>W</var>
-exactly for every detected bin, together with two numbers for its noise (<var>V</var> and <var>X</var>(<var>L</var>), section 4).
-The fold weights each bin by them.</figcaption>
+<figcaption><b>Figure E.3.</b> One channel through the excision chain, with the code's own numbers: white noise with a 2 µs pulse at about 30× the
+baseline; the exact thresholds η₁…η₁₆ = 13.82 … 2.69 for windows of 1–16 samples; a guard of 10 samples; the dedispersion filter of a
+3.125 MHz channel at 1.4 GHz. Panel d shows <var>W</var>, the valid fraction of each output sample's filter window, which
+<code>blankingWeights</code> computes exactly for every detected bin, with two numbers for its noise (<var>V</var> and
+<var>X</var>(<var>L</var>), Section E4).</figcaption>
 </figure>'''
 open('excision.svg', 'w').write(svg)

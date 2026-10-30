@@ -74,10 +74,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated TOA residuals of B0329+54 for a site 100 km east: three days of single TOAs, and all 30 days averaged by hour angle, against the daily sine of 193 microseconds">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>The navigation signal in the simulated data. Left: three days of B0329+54's TOAs for a site 100 km east of the assumed
-one (grey: the pulsar below 20°). Each TOA's error bar, about {np.median(s):.0f} µs, is four times the signal, a daily sine of 193 µs.
-Right: all {len(t)} TOAs of 30 days averaged in 2-hour bins of hour angle, where the sine stands out. The fit does the same with every
-TOA, and finds each equatorial component to about ±30 km. Data: the 30-day run of <code>runScenario</code> with
+<figcaption><b>Figure 10.1.</b> The navigation signal in the simulated data. Left: three days of B0329+54's TOAs for a site 100 km east of the assumed one
+(grey: the pulsar below 20°). Each TOA's error bar, about {np.median(s):.0f} µs, is four times the signal, a daily sine of 193 µs. Right: all {len(t)} TOAs of
+30 days averaged in 2-hour bins of hour angle, where the sine stands out. Data: the 30-day run of <code>runScenario</code> with
 <code>motion.on</code>; the constant offset of the profile reference is removed.</figcaption>
 </figure>'''
 open('navsignal.svg', 'w').write(svg)

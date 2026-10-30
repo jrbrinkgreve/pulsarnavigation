@@ -50,10 +50,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design target and the test runs marked">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>What a value of <code>snrDB</code> means, from the radiometer equation that <code>addNoiseAndRFI</code> prints (flat 400 MHz band,
-the 0.5 ms Gaussian pulse; ~1.5 % optimistic). For weak pulses the SNR of one pulse is 388·ρ, a straight line here (dashed). At high
-<code>snrDB</code> the pulsar's own noise (self-noise) takes over and more brightness hardly helps. The time per TOA (side note) uses the
-fold's 373·ρ per turn, which includes the loss from estimating the baseline; the 62 h is the <a href="scenario.html">scenario page</a>'s
-number for this pulsar.</figcaption>
+<figcaption><b>Figure 3.3.</b> What a value of <code>snrDB</code> means, from the radiometer equation that <code>addNoiseAndRFI</code> prints (flat
+400 MHz band, the 0.5 ms Gaussian pulse; ~1.5 % optimistic). For weak pulses the SNR of one pulse is 388·ρ (dashed). At high
+<code>snrDB</code> the pulsar's own noise takes over. The time per TOA (side note) uses the fold's 373·ρ per turn, which includes the
+baseline loss; the 62 h is the <a href="scenario.html">scenario page</a>'s number for this pulsar.</figcaption>
 </figure>'''
 open('snrscale.svg', 'w').write(svg)

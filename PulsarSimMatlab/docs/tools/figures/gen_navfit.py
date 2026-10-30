@@ -50,10 +50,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 352" role="img" aria-label="The east component of the site offset fitted to the first N days of simulated TOAs, converging on the true 100 km">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>How the fit converges: the east component of the site offset, fitted to the first <var>N</var> days of B0329+54's simulated
-TOAs (nominal flux, perfect clock; the truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.0f} km after 30 days and
-±{err[99]:.0f} km after 100, where the offset stands out at {est[99] / err[99]:.1f}σ (<code>navFit</code> itself, with its outlier model: 80 ± 16 km, 4.9σ). After 30 days this noise draw happens to sit 2σ low; the
-later days pull it back. Data: <code>runScenario</code>'s 100-day motion run; the fit is <code>navFit</code>'s model by weighted least
+<figcaption><b>Figure 10.3.</b> The east component of the site offset fitted to the first <var>N</var> days of B0329+54's simulated TOAs (nominal flux,
+perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.0f} km after 30 days and ±{err[99]:.0f} km after 100, where the offset stands
+out at {est[99] / err[99]:.1f}σ (<code>navFit</code> itself, with its outlier model: 80 ± 16 km, 4.9σ). After 30 days this noise draw sits 2σ low; the later
+days pull it back. Data: <code>runScenario</code>'s 100-day motion run, fitted with <code>navFit</code>'s model by weighted least
 squares.</figcaption>
 </figure>'''
 open('navfit.svg', 'w').write(svg)

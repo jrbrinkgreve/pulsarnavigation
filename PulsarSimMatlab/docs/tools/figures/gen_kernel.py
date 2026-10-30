@@ -73,10 +73,9 @@ svg = '''<figure class="scroll">
   </defs>
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption><code>makeDispersionKernel</code> at the reference settings. a: the kernel's impulse response is a chirp. High frequencies come out
-first, low frequencies 6.302 ms later; that delay difference <em>is</em> dispersion. b: the kernel is designed by sampling <var>H</var>(<var>f</var>) on
-<var>N</var><sub>f</sub> frequency bins. That makes its time response periodic with period <var>N</var><sub>f</sub>, so anything outside the kernel
-"wraps around". Making the grid at least twice the kernel leaves an empty zone for the wrapped ringing (schematic, magnified), which the
-truncation to <var>N</var><sub>k</sub> taps then removes.</figcaption>
+<figcaption><b>Figure 2.3.</b> <code>makeDispersionKernel</code> at the reference settings. (a) The impulse response is a chirp: high frequencies first,
+low frequencies 6.302 ms later. (b) Designed on <var>N</var><sub>f</sub> frequency bins, the time response is periodic with period
+<var>N</var><sub>f</sub>. A grid at least twice the kernel leaves an empty zone for the wrapped ringing (schematic, magnified), which
+the truncation to <var>N</var><sub>k</sub> taps removes.</figcaption>
 </figure>'''
 open('kernel.svg', 'w').write(svg)

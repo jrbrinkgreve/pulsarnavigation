@@ -8,17 +8,15 @@
 </head>
 <body>
 <main>
-
 <h1>Limitations and modelling gaps</h1>
 <p class="lede">What the simulation leaves out, what the processing assumes without checking, and how big each effect
 is. Each item says whether it matters for the weak-signal target (−54 dB, J0437 on a 0.61 m² array).</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p>The voltage chain simulates 0.1–1 s, and it is exact for what it models. The fast simulator covers days. Four effects are larger than
 a J0437 TOA and must be handled before folding for hours. Three of them are modelled since block D: Earth's motion, the receiver's clock
 and the station position. The fourth, the pulsar's binary orbit, is left out and parked: J0437 never rises at 52° N. Other effects only
 matter for nanosecond navigation: the ionosphere, DM changes, scattering at high DM. A few matter only for real data, such as the
-Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-mask fix is parked with a design.</p></div>
+Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-mask fix is parked with a design.</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#sizes">How big each effect is</a></li>
@@ -93,7 +91,7 @@ Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-
   <text class="sub" x="560.0" y="390" text-anchor="middle">timing error if left out</text>
   <text class="sub" x="10" y="390">red: larger than a J0437 TOA · orange: between 1 ns and a TOA</text>
 </svg>
-<figcaption>How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
+<figcaption><b>Figure 1.</b> How big each effect would be if left out, as a timing error (log scale; numbers from the sections below). Right of the
 12 µs line (grey) an effect is larger than a J0437 TOA and must be modelled before folding for hours. Block D models three of them:
 Earth's motion, the clock and the station position. The pulsar's binary orbit is parked. Between 1 ns and 12 µs (orange) an effect does
 not change today's TOAs but matters for nanosecond navigation: DM changes, the ionosphere, scattering at high DM and the residual of a
@@ -297,7 +295,7 @@ trial periods from strong pulses only (block-B handover
 <li><b>High DM in the generator:</b> forward dispersion needs about 47 GB from DM ~54 up to DM ~106, so at both DM 60 and DM 100. The
 machine has 24 GB. The channelized front end solves the processing side; the generator side is open
 (<a href="roadmap.html#dm">roadmap</a>).</li>
-<li>Disk per second of simulated data: ~61 GB on the full band, ~63 GB on the channel path, ~72 GB with excision
+<li>Disk per second of simulated data: ~61 GB on the full band, ~63.5 GB on the channel path, ~72.5 GB with excision
 (blanked copies and the weight file). Hours of data therefore use the <a href="simulator.html">fast simulator</a>.</li>
 <li><b>Excision on long files</b> (12 Oct). The front end streams, but three excision functions do not: <code>detectRFI</code> reads
 each channel whole, <code>periodicRFI</code> takes all events at once, and <code>blankingWeights</code> processes each blanked channel whole

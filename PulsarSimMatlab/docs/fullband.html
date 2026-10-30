@@ -8,7 +8,6 @@
 </head>
 <body>
 <main>
-
 <h1>Stages 5–6 · Full-band front end</h1>
 <p class="lede">The original processing path. One coherent dedispersion filter over the whole 400 MHz band, then square-law
 detection into 1 µs bins. It is simple and exact, and it is the validated reference the channelized path is compared against.</p>
@@ -16,11 +15,14 @@ detection into 1 µs bins. It is simple and exact, and it is the validated refer
 (<a href="channels.html">channelized front end</a>)</p>
 
 <div class="toc"><b>On this page</b><ol>
-<li><a href="#dedisp"><code>applyInverseDispersion</code></a>: <a href="#dedisp-short">in short</a> · <a href="#dedisp-phys">physics</a> ·
-<a href="#dedisp-how">how it works</a> · <a href="#refoutside">reference outside the band</a> · <a href="#dedisp-why">design choices</a></li>
-<li><a href="#detect"><code>detectPower</code></a>: <a href="#detect-short">in short</a> · <a href="#detect-phys">physics</a> ·
-<a href="#detect-how">how it works</a> · <a href="#detect-why">design choices</a> · <a href="#detect-valid">validation</a></li>
+<li><a href="#dedisp">5 · <code>applyInverseDispersion</code></a>: <a href="#dedisp-phys">the inverse filter</a> ·
+<a href="#dedisp-how">streaming</a> · <a href="#refoutside">reference outside the band</a> · <a href="#dedisp-why">why coherent</a> ·
+<a href="#dedisp-valid">validation</a></li>
+<li><a href="#detect">6 · <code>detectPower</code></a>: <a href="#detect-phys">why square</a> · <a href="#detect-how">bins and time
+stamps</a> · <a href="#detect-why">bin width</a> · <a href="#detect-valid">validation</a></li>
 </ol></div>
+<p>This is the first page of the processing. From here on, the code may use only the ephemeris and the receiver settings, never the
+simulator's truth (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
 
 <h2 id="dedisp">5 · <code>applyInverseDispersion</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, 'RefFreq', refFreq)</div>
@@ -29,7 +31,6 @@ detection into 1 µs bins. It is simple and exact, and it is the validated refer
 <h3 id="dedisp-short">In short</h3>
 <p>It undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied, so
 every frequency comes out at the time it would have at 1.6 GHz. It uses only the catalogue DM and the receiver settings.</p>
-
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
 <p>The figures, FFT sizes and run times in this section are worked out at DM 5, where the figures are easier to read. The default
 DM is 25. The method is the same.</p>
@@ -41,39 +42,44 @@ DM is 25. The method is the same.</p>
 <p>At DM 25 the smallest full-band FFT that the sizing rule allows is 2²⁶ points (3.8 GB). (DM 5 was the default until
 20 Oct 2026.)</p></div>
 
-<h3 id="dedisp-phys">The physics</h3>
-<p>For every FFT bin, with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside the band, the filter is</p>
-<div class="eq">\[ H_\mathrm{inv}(f) = W(f)\, \exp\!\left(-i 2\pi K\,\mathrm{DM}\, \frac{(f - f_\mathrm{ref})^2}{f\, f_\mathrm{ref}^2}\right), \qquad H_\mathrm{inv}(f) = 0 \text{ outside the band} \]</div>
+<h3 id="dedisp-phys">5.1 The inverse filter</h3>
+<p>Stage 2 delayed each frequency by a chirp, Eq. (2.2) on the <a href="sky.html#disp-how">sky page</a>. Stage 5 applies the same chirp
+with the opposite sign. For every FFT bin, with RF frequency <var>f</var> = <var>f</var><sub>LO</sub> + <var>f</var><sub>bb</sub> inside
+the band, the filter is</p>
+<div class="eq"><span class="label">(5.1)</span>\[ H_\mathrm{inv}(f) = W(f)\, \exp\!\left(-i 2\pi K\,\mathrm{DM}\, \frac{(f - f_\mathrm{ref})^2}{f\, f_\mathrm{ref}^2}\right), \qquad H_\mathrm{inv}(f) = 0 \text{ outside the band} \]</div>
 <dl class="where">
 <dt>\(H_\mathrm{inv}(f)\)</dt><dd>the inverse dispersion filter, one value per FFT bin</dd>
 <dt>\(f\)</dt><dd>RF frequency of the bin: \(f_\mathrm{LO} + f_\mathrm{bb}\) [Hz], with \(f_\mathrm{bb}\) its baseband frequency</dd>
 <dt>\(f_\mathrm{ref}\)</dt><dd>radio reference frequency, whose timing is left unchanged [Hz] (<code>RefFreq</code>, default <code>fHigh</code> = 1.6 GHz)</dd>
 <dt>\(K\)</dt><dd>dispersion constant, 4.148808·10¹⁵ s Hz² pc⁻¹ cm³ (= 4.148808·10³ s MHz² pc⁻¹ cm³)</dd>
-<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure from the catalogue [pc cm⁻³] (<code>ephem.DM</code> = 5)</dd>
+<dt>\(\mathrm{DM}\)</dt><dd>dispersion measure from the catalogue [pc cm⁻³] (<code>ephem.DM</code>; 5 in the worked numbers, 25 by default)</dd>
 <dt>\(W(f)\)</dt><dd>the observer's band window: 1 inside, raised-cosine (sin²) edges, 0 outside</dd>
 </dl>
-<ul>
-<li>It is the forward chirp with the opposite sign. Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies
-are moved <em>earlier</em>, by up to 6.3 ms.</li>
-<li>Moving something earlier needs input from the future, so the filter is <b>non-causal</b>: each output needs up to 6.3 ms of later
-input.</li>
-<li>Because it acts on the voltage, it removes dispersion exactly at every frequency, even inside a narrow channel. What it does to
-noise and RFI is shown on the <a href="receiver.html#noise">receiver page</a>: impulses become inverse sweeps.</li>
-</ul>
+<p>Its group delay is −(τ(<var>f</var>) − τ(<var>f</var><sub>ref</sub>)): lower frequencies are moved <em>earlier</em>, by up to 6.3 ms.
+Moving something earlier needs input from the future, so the filter is <b>non-causal</b>: each output needs up to 6.3 ms of later input.
+Because it acts on the voltage, it removes dispersion exactly at every frequency, even inside a narrow channel (Section 5.4). Noise and
+RFI pass the same filter, so impulses become inverse sweeps (<a href="receiver.html#noise">receiver page</a>).</p>
+<p>An exact round trip needs the same constant, DM, reference frequency and sign as stage 2. A different <code>RefFreq</code> would leave
+a constant shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>): harmless for relative timing, but it changes what a TOA
+means. The simulation and the observer share one <code>refFreq</code>, which is noted on the roadmap (<a href="roadmap.html">review item
+R-D2</a>). The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check of
+Section 5.2 work.</p>
 
-<h3 id="dedisp-how">How it works</h3>
+<h3 id="dedisp-how">5.2 Streaming by overlap-save</h3>
+<p>The filter's reach is very lopsided: 6.3 ms into the future, a few µs into the past. Overlap-save suits that, whereas stage 2's
+forward filter only reaches forward and uses overlap-add (<a href="sky.html#disp-why">sky page</a>). The stage works in six steps.</p>
 <ol>
 <li><b>Check the inputs:</b> the band must lie inside <var>f</var><sub>LO</sub> ± <var>f</var><sub>s</sub>/2, and <var>f</var><sub>ref</sub> inside the
-band (unless <code>AllowRefOutsideBand</code>).</li>
+band (unless <code>AllowRefOutsideBand</code>, Section 5.3).</li>
 <li><b>Work out how far the filter reaches:</b> into the future, the whole sweep plus a guard (<code>nFuture</code>); into the past, only
 the guard (<code>nPast</code>), because <var>f</var><sub>ref</sub> is the top of the band.</li>
 <li><b>Write the filter directly on the FFT grid,</b> for the bins inside the band, with the phase in double precision. The data are
 complex, so there is no symmetry to use.</li>
 <li><b>Check the reach:</b> one inverse FFT of the filter shows how much of its response falls outside [−<code>nFuture</code>,
-+<code>nPast</code>]. That leakage must be tiny (about 10⁻¹² with the default guard; warning above 10⁻⁶). This proves the overlap is long
-enough.</li>
-<li><b>Stream with overlap-save:</b> one buffer holds [past | outputs | future]. Each FFT block keeps only the outputs whose whole
-window was inside the buffer, then the buffer shifts on.</li>
++<code>nPast</code>]. That leakage must be tiny (about 10⁻¹² with the default guard; warning above 10⁻⁶), which proves the overlap is
+long enough.</li>
+<li><b>Stream:</b> one buffer holds [past | outputs | future]. Each FFT block keeps only the outputs whose whole window was inside the
+buffer, then the buffer shifts on (Figure 5.1).</li>
 <li><b>Mark the fully supported outputs:</b> samples <code>nPast</code> + 1 to <var>N</var> − <code>nFuture</code> saw their complete sweep.</li>
 </ol>
 <figure class="scroll">
@@ -109,11 +115,16 @@ window was inside the buffer, then the buffer shifts on.</li>
   <path class="dash" d="M750.0 30 V236"/>
   <text class="sub" x="100.0" y="258">each block: FFT of the whole buffer → × H_inv(f) → inverse FFT → keep the outputs; the buffer then moves on by the outputs</text>
 </svg>
-<figcaption>Overlap-save in <code>applyInverseDispersion</code> (schematic, not to scale). The filter is non-causal: an output needs up to
-6.3 ms of <em>future</em> input (low frequencies are advanced) and only a short guard of past input. One buffer holds
-[past | outputs | future]; after each FFT block only the outputs whose whole window was inside the buffer are kept. Near the end the
-future is zeros, so the last ~6.3 ms are not fully supported and the fold leaves them out.</figcaption>
+<figcaption><b>Figure 5.1.</b> Overlap-save in <code>applyInverseDispersion</code> (schematic, not to scale). An output needs up to 6.3 ms of
+<em>future</em> input and only a short guard of past input. One buffer holds [past | outputs | future]; after each FFT block only the
+outputs whose whole window was inside the buffer are kept. Near the end the future is zeros, so the last ~6.3 ms are not fully supported.</figcaption>
 </figure>
+<p>Stage 2 builds a kernel in time and cuts it to length. Here the filter is applied directly as <var>H</var> on each block's FFT grid,
+so there is nothing to cut. What can go wrong is the opposite: a response that reaches further than the overlap and wraps around inside
+the block. Step 4 measures exactly that, on every run.</p>
+<p>Only fully supported data go on. The last 6.3 ms lack part of their sweep, because stage 2 dropped the energy that would arrive after
+the end of the file, and a real observation stops the same way. Folding them would give a profile that is too weak at low frequencies
+there. The fully supported range therefore travels with the data, and the fold uses only that (Figure 5.2).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 268" role="img" aria-label="Fully supported parts of the 0.1 s file after dedispersion, for the full band and the channel path, and the complete turns they contain">
   <path class="axis" d="M130 190 H820"/>
@@ -202,12 +213,11 @@ future is zeros, so the last ~6.3 ms are not fully supported and the fold leaves
   <rect class="fillwarn" x="260" y="233" width="18" height="10"/><text class="sub" x="284" y="242">not: the last 6.3 ms (sweep incomplete); on the channel path also the first 0.32 ms (guard)</text>
   <path class="line" d="M130 256 h18"/><text class="sub" x="154" y="260">complete turns: one TOA each</text>
 </svg>
-<figcaption>The 0.1 s file of <code>main.m</code> after dedispersion (notes §4). Green: output samples that saw their complete dispersion
-sweep (<code>fullySupported</code>). Orange: samples that did not. At the end the low frequencies of the last 6.3 ms were delayed past the
-end of the file in stage 2; at the start the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see; 0.32 ms per
-channel). The fold uses only green data and the TOA fit only complete turns (lines), so the full band gives 9 TOAs
-and the channel path 8: the file starts exactly on a turn boundary, so the 0.32 ms channel guard leaves turn 0 with only 96.8 % of its
-phase bins covered, below <code>MinCoverage</code> = 1.</figcaption>
+<figcaption><b>Figure 5.2.</b> The 0.1 s file of <code>main.m</code> after dedispersion. Green: output samples that saw their complete sweep
+(<code>fullySupported</code>); orange: samples that did not. At the end, the low frequencies of the last 6.3 ms were delayed past the end
+of the file in stage 2. At the start, the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see;
+0.32 ms per channel). The fold uses only green data and the TOA fit only complete turns (lines): 9 TOAs on the full band, 8 on the
+channel path, where turn 0 keeps only 96.8 % of its phase bins, below <code>MinCoverage</code> = 1.</figcaption>
 </figure>
 <details><summary>Exact formulas and numbers</summary>
 <ul>
@@ -221,27 +231,26 @@ Original 1 s run at 500 MHz: 2²⁶, 95 % useful, 8 blocks, 3.76 GB, 7.4 s. For 
 <li>Zeros before the start and after the end of the file. <code>fullySupported</code> = [<code>nPast</code> + 1, <var>N</var> − <code>nFuture</code>].</li>
 </ul>
 </details>
+<details><summary>History</summary><p>Until 27 Oct 2026 the check summed in single precision. Near 1, single precision resolves
+only 6·10⁻⁸, so it reported 0 or a multiple of 6·10⁻⁸ instead of about 10⁻¹². <code>testApplyInverseDispersion</code> found
+it; the sums are now in double, and the output data did not change (bit for bit).</p></details>
 
-<h3 id="refoutside"><code>AllowRefOutsideBand</code></h3>
-<p>Added for the channelized front end, so that every 3.125 MHz channel can be referenced to the top of the <em>whole</em> band.</p>
-<ul>
-<li>Default false: <var>f</var><sub>ref</sub> must lie in [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]. True: any <var>f</var><sub>ref</sub> &gt; 0.</li>
-<li>The filter formula is exact for any <var>f</var><sub>ref</sub>. Its phase splits into the 1/<var>f</var> dispersion term, a linear term
-(a pure delay) and a constant. A reference above the band only adds a pure advance, so all the overlap moves to the future side.</li>
-<li><code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. Regression: the full-band
-path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</li>
-</ul>
+<h3 id="refoutside">5.3 A reference outside the band: <code>AllowRefOutsideBand</code></h3>
+<p>The channelized front end references every 3.125 MHz channel to the top of the <em>whole</em> band, which lies outside the channel.
+The option <code>AllowRefOutsideBand</code> allows that. By default it is false, and <var>f</var><sub>ref</sub> must lie in
+[<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]; when true, any <var>f</var><sub>ref</sub> &gt; 0 is accepted.</p>
+<p>Eq. (5.1) is exact for any <var>f</var><sub>ref</sub>. Its phase splits into the 1/<var>f</var> dispersion term, a linear term (a pure
+delay) and a constant. A reference above the band only adds a pure advance, so all the overlap moves to the future side.
+<code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. Regression: the
+full-band path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</p>
 <details><summary>History</summary>
 <p><code>AllowRefOutsideBand</code> was added on 6 Oct 2026, for the channelized front end.</p></details>
 
-<h3 id="dedisp-why">Design choices</h3>
-
-<div class="callout why"><span class="ttl">Coherent dedispersion of the voltage, not shifting sub-bands</span>
-<p><b>Alternative:</b> incoherent dedispersion: split the band into channels, detect each, and shift each channel by its delay.</p>
-<p><b>Why not:</b> the delay also changes inside each channel, so a shift leaves a smear. In a 3.125 MHz channel at the bottom of the
-band the smear is 374 µs at DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse.
-Filtering the voltage removes the sweep at every frequency, with no smear at all. This is why the channel path also dedisperses each
-channel coherently.</p></div>
+<h3 id="dedisp-why">5.4 Why coherent dedispersion</h3>
+<p>Incoherent dedispersion splits the band into channels, detects each, and shifts each channel by its delay. But the delay also changes
+inside each channel, so a shift leaves a smear (Figure 5.3). In a 3.125 MHz channel at the bottom of the band the smear is 374 µs at
+DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse. Filtering the voltage
+removes the sweep at every frequency, with no smear at all. This is why the channel path also dedisperses each channel coherently.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Smear left inside one channel by incoherent dedispersion, against channel width, for DM 25 and DM 100">
   <path class="axis" d="M90 290 H610"/>
@@ -291,40 +300,17 @@ channel coherently.</p></div>
   <text class="sub" x="632" y="211">frequency: no smear at all, in any</text>
   <text class="sub" x="632" y="228">channel width (stages 5 and 5b).</text>
 </svg>
-<figcaption>What incoherent dedispersion would leave behind: shifting a channel by one delay leaves the sweep <em>inside</em> it, here at the
-bottom of the band, where it is largest (τ(1.2 GHz) − τ(1.2 GHz + width), the code's constant). The dots are the pipeline's 3.125 MHz
-channels. Filtering the voltage with the inverse chirp, as <code>applyInverseDispersion</code> does, leaves no smear at any width.</figcaption>
+<figcaption><b>Figure 5.3.</b> What incoherent dedispersion would leave behind: the sweep <em>inside</em> one channel after shifting it by one delay, at
+the bottom of the band, where it is largest (τ(1.2 GHz) − τ(1.2 GHz + width)). The dots are the pipeline's 3.125 MHz channels. Filtering
+the voltage with the inverse chirp leaves no smear at any width.</figcaption>
 </figure>
 
-<div class="callout why"><span class="ttl">The same constant, DM, reference and taper as the forward stage</span>
-<p>An exact round trip needs the same constant, DM, reference frequency and sign. A different <code>RefFreq</code> would leave a constant
-shift τ(<var>f</var><sub>ref,fwd</sub>) − τ(<var>f</var><sub>ref</sub>). That is harmless for relative timing, but it changes what a TOA means.
-The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's response short, so the guard and the leakage check work.</p>
-<p>The simulation and the observer share one <code>refFreq</code>; that is noted on the roadmap (<a href="roadmap.html">review item R-D2</a>).</p></div>
-
-<div class="callout why"><span class="ttl">Overlap-save here, overlap-add in the forward stage</span>
-<p>Both are exact. Overlap-save suits a filter with a very lopsided, non-causal reach (6.3 ms into the future, a few µs into the past):
-one buffer holds past, outputs and future, and each block keeps only the outputs that saw a complete window. The forward filter only
-reaches forward, where overlap-add is the natural fit (<a href="sky.html#disp-why">sky page</a>).</p></div>
-
-<div class="callout why"><span class="ttl">A leakage check instead of a designed kernel</span>
-<p>Stage 2 builds a kernel in time and cuts it to length. Here the filter is applied directly as <var>H</var> on each block's FFT grid, so
-there is nothing to cut. What can go wrong is the opposite: a response that reaches further than the overlap and wraps around inside
-the block. The leakage check measures exactly that, on every run.</p>
-<details><summary>History</summary><p>Until 27 Oct 2026 the check summed in single precision. Near 1, single precision resolves
-only 6·10⁻⁸, so it reported 0 or a multiple of 6·10⁻⁸ instead of about 10⁻¹². <code>testApplyInverseDispersion</code> found
-it; the sums are now in double, and the output data did not change (bit for bit).</p></details></div>
-
-<div class="callout why"><span class="ttl">Only fully supported data go on</span>
-<p>The last 6.3 ms lack part of their sweep: stage 2 dropped the energy that would arrive after the end of the file, and a real
-observation stops the same way. Folding those samples would give a profile that is too weak at low frequencies there. So the
-fully supported range travels with the data, and the fold uses only that (timeline figure above).</p></div>
-
-<h3>Options and outputs</h3>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>RefFreq</code> (<var>f</var><sub>High</sub>), <code>AllowRefOutsideBand</code> (false), <code>EdgeFrac</code> (0.02), <code>GuardTime</code>, <code>Nfft</code>, <code>MaxMemoryGB</code> (4), <code>CheckLeakage</code> (true), <code>MaxLeakage</code> (1e-6), <code>SaveInfo</code>, <code>Verbose</code></dd>
 <dt>Info</dt><dd>dedispersion parameters, refFreq, edgeWidth, nPast, nFuture, Nfft, leakage, <b>fullySupported</b>, refOutsideBand, …</dd>
 </dl>
+</details>
 <div class="callout warn"><span class="ttl">Not checked internally</span>
 <p>The stage trusts its inputs: the DM (a wrong DM leaves a residual sweep), the reference-frequency convention against the TOA
 definition, the receiver's frequency mapping (no spectral inversion assumed) and the true sample rate (passed through the info chain).
@@ -338,6 +324,7 @@ Forward dispersion, IQ and this stage together give back the band-limited input 
 <li>Streaming by overlap-save matches one long FFT in double precision to 2.8·10⁻⁷, for four FFT sizes.</li>
 <li>The default output is the same bit for bit as the frozen reference file (<code>testDedisperseChannels</code>, test 1).</li>
 </ul>
+<p>The voltage is now free of dispersion, but the pulse is still noise. Stage 6 turns it into something that can be folded.</p>
 
 <h2 id="detect">6 · <code>detectPower</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = detectPower(inFile, outFile, fs, fLO, f_out, 'FullySupported', info_dedisp.fullySupported)</div>
@@ -347,21 +334,30 @@ Forward dispersion, IQ and this stage together give back the band-limited input 
 <p>It squares the dedispersed voltage, |<var>z</var>|² = I² + Q², and averages it over time bins of 1 µs. Here the data rate collapses,
 from 800 million complex samples per second to 1 million power values, so everything after this is cheap.</p>
 
-<h3 id="detect-phys">The physics</h3>
-<p>After dedispersion the pulse is still noise; only its variance carries the signal (see the <a href="sky.html#gen-phys">voltage figure</a>).
+<h3 id="detect-phys">6.1 Why square, then fold</h3>
+<p>After dedispersion the pulse is still noise; only its variance carries the signal (<a href="sky.html#gen-phys">Section 1.1</a>).
 |<var>z</var>|² estimates the variance. For noise whose variance follows a known profile, a profile-weighted sum of |<var>z</var>|² is the
-optimal (Neyman–Pearson) test statistic. So the optimal order is: square, then fold, then match the template.</p>
+optimal (Neyman–Pearson) test statistic. The optimal order is therefore: square, then fold the turns, then match the template.
+Everything linear (dedispersion, RFI blanking, later beamforming) must happen before the square, because after it the phase is gone.</p>
 <p>Each 1 µs bin averages about <var>B</var><sub>n</sub>·Δ<var>t</var> ≈ 390 independent samples, so its noise is 1/√390 ≈ 5.1 % of its mean
 (the radiometer equation).</p>
 
-<h3 id="detect-how">How it works</h3>
+<h3 id="detect-how">6.2 Bins and time stamps</h3>
 <ol>
 <li><b>Bin length:</b> <code>binLen</code> = round(<var>f</var><sub>s</sub>/<var>f</var><sub>out</sub>) samples, a whole number (800 at 800 MHz).</li>
 <li><b>Square and average:</b> I² + Q² straight from the raw read (no complex arrays, no square root), summed in double, divided by
 <code>binLen</code>. A trailing partial bin is dropped.</li>
-<li><b>Time stamp:</b> each bin is stamped at the centroid of its samples, <var>t</var><sub>k</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.</li>
+<li><b>Time stamp:</b> each bin is stamped at the centroid of its samples, <var>t</var><sub>k</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>
+(Figure 6.1).</li>
 <li><b>Support:</b> <code>fullySupportedBins</code> are the bins whose samples are all fully supported.</li>
 </ol>
+<p>Every sample is averaged into its bin (integrate and dump). Keeping one squared sample per bin, as a simple power detector followed by a
+slow ADC would, throws away most of the data, and its SNR then grows with <var>f</var><sub>out</sub>. Averaging all samples reaches the
+radiometer limit at any <var>f</var><sub>out</sub>: the information is set by bandwidth × time, not by the bin rate
+(<code>tests/expSamplingRate.m</code> shows this). For the small-antenna hardware this means: integrate before decimating.</p>
+<p>The centroid stamp matters. Stamping at the start would label every bin half a bin before its content, so every TOA would come out half
+a bin (0.5 µs) early. The centroid of a symmetric boxcar is the unbiased time, and with linear phase assignment in the fold
+(<a href="fold.html#assign">fold</a>) it carries through to the TOA.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 192" role="img" aria-label="Detected time bins are stamped at the centroid of their samples">
   <text class="ttl" x="40" y="20">detected time bins (drawn with binLen = 8; the reference uses 800)</text>
@@ -401,9 +397,9 @@ optimal (Neyman–Pearson) test statistic. So the optimal order is: square, then
   <text class="sub" x="224.0" y="178" text-anchor="middle">t_k = binTime0 + (k−1)·binDt: the centroid of the bin</text>
   <text class="sub" x="64" y="126" text-anchor="end" fill="var(--todo)">start</text>
 </svg>
-<figcaption>Each bin averages |<var>z</var>|² over <code>binLen</code> samples and is stamped at their centroid,
-<code>binTime0</code> = (<code>binLen</code> − 1)/(2<var>f</var><sub>s</sub>) for bin 1 (0.4994 µs at 800 MHz). A stamp at the bin start (red dashes)
-would label every bin (<code>binLen</code> − 1)/2 samples too early.</figcaption>
+<figcaption><b>Figure 6.1.</b> Each bin averages |<var>z</var>|² over <code>binLen</code> samples and is stamped at their centroid, <code>binTime0</code> =
+(<code>binLen</code> − 1)/(2<var>f</var><sub>s</sub>) for bin 1 (0.4994 µs at 800 MHz). A stamp at the bin start (red dashes) would label
+every bin (<code>binLen</code> − 1)/2 samples too early.</figcaption>
 </figure>
 <details><summary>Exact formulas, and the old channelized mode</summary>
 <ul>
@@ -416,29 +412,12 @@ of a full-baseband band sum exactly to the total. Up to ~32 clean channels at 1 
 </ul>
 </details>
 
-<h3 id="detect-why">Design choices</h3>
-
-<div class="callout why"><span class="ttl">Square first, then fold, then match the template</span>
-<p>The pulsar is noise, so its information is in the variance. Squaring turns variance into a mean; folding adds up the turns; the
-template match weights each phase by how much pulse it holds. For variance-modulated Gaussian noise that order is optimal
-(Neyman–Pearson). Everything linear (dedispersion, RFI blanking, later beamforming) must happen before the square, because after it the
-phase is gone.</p></div>
-
-<div class="callout why"><span class="ttl">Average <em>every</em> sample into the bin (integrate and dump)</span>
-<p><b>Alternative:</b> keep one squared sample per bin, as a simple power detector followed by a slow ADC would.</p>
-<p><b>Why not:</b> that throws away most of the data, and its SNR then grows with <var>f</var><sub>out</sub>. Averaging all samples reaches the
-radiometer limit at any <var>f</var><sub>out</sub>: the information is set by bandwidth × time, not by the bin rate
-(<code>tests/expSamplingRate.m</code> shows this). It also matters for the small-antenna hardware: integrate before decimating.</p></div>
-
-<div class="callout why"><span class="ttl">1 µs bins (<var>f</var><sub>out</sub> = 1 MHz)</span>
-<p>Because every bin averages all its samples, a finer bin does not add sensitivity; <var>f</var><sub>out</sub> is a resolution and
-cost knob. Two limits set it:</p>
-<ul>
-<li>bins must be much finer than the pulse, below about W/5 = 100 µs, or the error bars become too small (figure);</li>
-<li>with <code>NBin</code> = 2048 and one turn per sub-int, every phase bin needs data: bins of at most 4.9 µs.</li>
-</ul>
-<p>1 µs is far inside both, and still collapses the data rate 800-fold. A trial with 10 µs bins and 2048 phase bins gave no TOAs at
-all. The fold now warns about that (<code>foldProfile:coverage</code>).</p></div>
+<h3 id="detect-why">6.3 The bin width: 1 µs</h3>
+<p>Because every bin averages all its samples, a finer bin does not add sensitivity: <var>f</var><sub>out</sub> = 1 MHz is a resolution and
+cost knob. Two limits set it (Figure 6.2). Bins must be much finer than the pulse, below about W/5 = 100 µs, or the error bars become too
+small. And with <code>NBin</code> = 2048 and one turn per sub-int, every phase bin needs data, which allows bins of at most 4.9 µs. 1 µs is
+far inside both, and still collapses the data rate 800-fold. A trial with 10 µs bins and 2048 phase bins gave no TOAs at all; the fold now
+warns about that (<code>foldProfile:coverage</code>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Measured SNR and error-bar honesty against detected bin width: flat for fine bins, worse for bins coarser than a fifth of the pulse">
   <path class="axis" d="M80 236 H410"/>
@@ -504,24 +483,19 @@ all. The fold now warns about that (<code>foldProfile:coverage</code>).</p></div
   <text class="sub" x="602.9" y="99.1">in one turn</text>
   <text class="sub" x="768.1" y="71.7">2× too small</text>
 </svg>
-<figcaption>The <var>f</var><sub>out</sub> sweep (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
-<var>f</var><sub>out</sub>; <code>logs/2026-10-09_fout-study.md</code>). a: once a bin is finer than about a fifth of the pulse (W/5 = 100 µs),
-finer bins add no sensitivity: every bin averages <em>all</em> its samples, so the noise in a sum of bins does not change. b: coarse
-bins also smear the pulse, which the template does not know about, so the error bars become too small. The second dashed line is the
-coverage limit for <code>NBin</code> = 2048 with one turn per sub-int. <code>main.m</code> uses 0.96 µs (orange dot), well inside both limits.</figcaption>
+<figcaption><b>Figure 6.2.</b> The <var>f</var><sub>out</sub> sweep (channel path, −5 dB, 5 noise seeds, the same dedispersed data for every
+<var>f</var><sub>out</sub>; <code>logs/2026-10-09_fout-study.md</code>). (a) Once a bin is finer than about W/5 = 100 µs, finer bins add no
+sensitivity. (b) Coarse bins also smear the pulse, which the template does not know about, so the error bars become too small. The second
+dashed line is the coverage limit for <code>NBin</code> = 2048 with one turn per sub-int. <code>main.m</code> uses 0.96 µs (orange dot).</figcaption>
 </figure>
 
-<div class="callout why"><span class="ttl">The bin is stamped at its centroid, not its start</span>
-<p>Stamping at the start would label every bin half a bin before its content, so every TOA would come out half a bin (0.5 µs) early.
-The centroid of a symmetric boxcar is the unbiased time. With linear phase assignment in the fold (<a href="fold.html#assign">fold</a>)
-it carries through to the TOA.</p></div>
-
-<h3>Options and outputs</h3>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>NChan</code> (1), <code>Band</code>, <code>FineBinsPerChan</code> (8), <code>T0</code> (0), <code>FullySupported</code>, <code>BlockSamples</code> (2²²), <code>SaveInfo</code>, <code>Verbose</code></dd>
 <dt>File</dt><dd>float32 [nChan × nBins], column-major; value = mean power per input sample in the bin</dd>
 <dt>Info</dt><dd>layout, nChan, N (bins), fs = actualFout, fsIn, binLen, binDt, binTime0, chanFreqs, chanEdges, chanFftBins, frameLen, chanMeanPower, samplesDropped, fullySupportedBins</dd>
 </dl>
+</details>
 
 <h3 id="detect-valid">Validation</h3>
 <ul>
@@ -534,6 +508,17 @@ bin equals the mean of <var>I</var>² + <var>Q</var>² to 6.3·10⁻⁸, and a b
 variance matches the exact prediction from the noise spectrum within 1.1σ.</li>
 </ul>
 <p>Details in the <a href="results.html">validation record</a>.</p>
+
+<div class="callout why"><span class="ttl">Summary</span>
+<ul>
+<li>Stage 5 applies the forward chirp with the opposite sign (Eq. 5.1). The filter is non-causal, so it streams by overlap-save, and
+only fully supported samples go on.</li>
+<li>Coherent dedispersion of the voltage leaves no smear, unlike shifting channels.</li>
+<li>Stage 6 squares and averages every sample into 1 µs bins stamped at their centroids: the optimal first step for a pulse that is
+noise.</li>
+</ul></div>
+<p>The next page, the <a href="channels.html">channelized front end</a>, does the same work channel by channel, which is what the
+default path uses.</p>
 
 </main>
 <script src="nav.js"></script>

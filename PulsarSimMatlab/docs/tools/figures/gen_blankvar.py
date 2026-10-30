@@ -35,9 +35,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Experiment 3a: the variance of blanked detected bins against the two simple rules and the exact formula">
   ''' + '\\n  '.join(o) + '''
 </svg>
-<figcaption>The experiment behind this choice (<code>tests/expBlankingVariance.m</code>, from its saved results). It shows the
-variance of a detected bin after blanking and per-channel dedispersion, for three masks at DM 5 and DM 100, grouped by the bin's valid
-fraction <var>W</var>. Divided by the exact value, the measurement sits on 1. The two simple rules do not, and which one comes closer
-depends on the mask. Left out: groups with <var>W</var> &lt; 0.02, where the <var>W</var> rule is 30× too high, and unblanked bins.</figcaption>
+<figcaption><b>Figure E.5.</b> The experiment behind this choice (<code>tests/expBlankingVariance.m</code>, from its saved results): the variance of a
+detected bin after blanking and per-channel dedispersion, for three masks at DM 5 and DM 100, grouped by the bin's valid fraction
+<var>W</var> and divided by the exact value. The measurement sits on 1; the two simple rules do not, and which one comes closer depends on
+the mask. Left out: groups with <var>W</var> &lt; 0.02, where the <var>W</var> rule is 30× too high, and unblanked bins.</figcaption>
 </figure>'''
 open('blankvar.svg', 'w').write(svg.replace('\\n', '\n'))

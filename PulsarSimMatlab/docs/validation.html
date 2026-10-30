@@ -8,53 +8,56 @@
 </head>
 <body>
 <main>
-
 <h1>Stage 9 · Validation and check functions</h1>
 <p class="lede">The functions that compare the pipeline with the simulation's ground truth. They are the only
 processing-side code allowed to read <code>info_gen</code>, <code>info_disp</code> and <code>info_rx</code>, and they are never used to
 make a result, only to check one.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
-<p>A result counts as validated when a test predicts its own scatter and the code lands inside it, in Jasper's own run. The TOAs are
-judged against the simulation's true pulse times (<code>validateTOA</code>): the scatter of (TOA − truth) must match the stated error
-bars. The best possible error bar comes from <code>expectedPowerModel</code>, and the plot checks show each stage against its expected
-signal. Over hours and days, the fast simulator and the navigation fit are judged the same way, against their own truth: pulls at fixed
-times over many realizations, and an ideal twin on the same TOA schedule.</p></div>
+<div class="toc"><b>On this page</b><ol>
+<li><a href="#rule">9.1 How a result counts as validated</a></li>
+<li><a href="#longruns">9.2 Long runs and navigation</a></li>
+<li><a href="#validate">9.3 <code>validateTOA</code></a></li>
+<li><a href="#epm">9.4 <code>expectedPowerModel</code>: the best achievable</a></li>
+<li><a href="#plots">9.5 Plot checks and helpers</a></li>
+</ol></div>
+<p>Stages 1–8 produce good TOAs. This stage asks whether they are right: the scatter of (TOA − truth) must match the stated error bars
+(<code>validateTOA</code>), the error bars must be close to the best possible (<code>expectedPowerModel</code>), and each stage must
+show its expected signal (the plot checks). Over hours and days, the fast simulator and the navigation fit are judged the same way,
+against their own truth.</p>
 
-<h2>How a result counts as validated</h2>
-<p>Three kinds of check run throughout the project, and most tests use all three:</p>
+<h2 id="rule">9.1 How a result counts as validated</h2>
+<p>A result counts as validated when a test predicts its own scatter and the code lands inside it, in Jasper's own run. Three kinds of check
+run throughout the project, and most tests use all three:</p>
 <ul>
 <li><b>Regression:</b> a changed function reproduces old outputs <b>bit for bit</b> where nothing should change.</li>
 <li><b>Algebra:</b> the code equals the formula computed independently (often a slow explicit matrix), to machine precision (~10⁻¹⁵).</li>
 <li><b>Physics / statistics:</b> measured noisy quantities match predictions within <var>n</var>·σ, with σ <em>predicted</em>, not guessed.</li>
 </ul>
 <p>A result is marked <span class="badge validated">validated</span> only after Jasper's own MATLAB run.</p>
-<div class="callout why"><span class="ttl">Why predicted σ, not guessed tolerances</span>
-<p>A tolerance like "within 1 %" proves nothing unless you know how large the scatter should be. Every statistical test therefore
-predicts its own σ from the physics (the number of samples, the noise model) and passes at a few σ. A test that passes at 4σ of a
-<em>predicted</em> scatter says the code and the theory agree; a test that passes a guessed tolerance only says the number was not
-far off.</p></div>
-<div class="callout why"><span class="ttl">Why the truth is kept out of the processing</span>
-<p>The check functions are the only processing-side code that may read the simulation's truth, and they never feed a result. Every
-stage that produces a TOA must work unchanged on real data, where there is no truth to read (the <a href="conventions.html#truth">ground-truth
-rule</a>). Keeping the two apart is what makes a validated result mean something for real data.</p></div>
+<p>The scatter is predicted, not guessed, because a tolerance like "within 1 %" proves nothing unless one knows how large the scatter
+should be. Every statistical test therefore predicts its own σ from the physics (the number of samples, the noise model) and passes at a
+few σ. A test that passes at 4σ of a <em>predicted</em> scatter says the code and the theory agree; a test that passes a guessed tolerance
+only says the number was not far off.</p>
+<p>The truth is kept out of the processing. The check functions are the only processing-side code that may read it, and they never feed
+a result. Every stage that produces a TOA must work unchanged on real data, where there is no truth to read (the
+<a href="conventions.html#truth">ground-truth rule</a>). Keeping the two apart is what makes a validated result mean something for real
+data.</p>
 
-<h2 id="longruns">Long runs and navigation: judged against their truth</h2>
-<p>The fast simulator keeps its truth in a separate struct, and <code>trueResiduals</code> gives the true pulse phase of a moving
-receiver (<a href="simulator.html#truth">fast simulator</a>). The navigation results are judged against that truth in three ways:</p>
+<h2 id="longruns">9.2 Long runs and navigation: judged against their truth</h2>
+<p>The fast simulator keeps its truth in a separate struct, and <code>trueResiduals</code> gives the true pulse phase of a moving receiver
+(<a href="simulator.html#truth">fast simulator</a>). The navigation results are judged against that truth in three ways.</p>
 <ul>
-<li><b>The true residuals themselves.</b> <code>expNavFit</code> fits the noise-free true residuals first: they give the 100 km offset
-as 99.994 km. So the fit and the truth agree, and any error after that comes from the TOAs.</li>
-<li><b>Pulls at fixed times, over many realizations.</b> A smoothed track's errors are correlated along the whole track, so the pulls of
-all TOAs of one run are not independent. <code>testNavFilter</code> and the ship runs therefore take the pulls at four fixed times
-(in the ship runs days 3, 7, 10 and 14) and pool them over realizations.</li>
-<li><b>An ideal twin.</b> The same smoother runs on ideal TOAs: the truth averaged over the same sub-ints, plus Gaussian noise of the
-stated σ. If the
-real filter's errors match the twin's, the TOA chain adds nothing; if not, the difference is the chain's (<a href="navigation.html#ship">navigation</a>).</li>
+<li><b>The true residuals themselves.</b> <code>expNavFit</code> fits the noise-free true residuals first: they give the 100 km offset as
+99.994 km. The fit and the truth agree, so any error after that comes from the TOAs.</li>
+<li><b>Pulls at fixed times, over many realizations.</b> A smoothed track's errors are correlated along the whole track, so the pulls of all
+TOAs of one run are not independent. <code>testNavFilter</code> and the ship runs therefore take the pulls at four fixed times (in the ship
+runs days 3, 7, 10 and 14) and pool them over realizations (Figure 9.1).</li>
+<li><b>An ideal twin.</b> The same smoother runs on ideal TOAs: the truth averaged over the same sub-ints, plus Gaussian noise of the stated
+σ. If the real filter's errors match the twin's, the TOA chain adds nothing; if not, the difference is the chain's
+(<a href="navigation.html#ship">navigation</a>).</li>
 </ul>
-<p>A single ship run is far noisier than its pulls suggest, because its errors are correlated along the track. So the filter is judged
-over many seeds, never on one run.</p>
-
+<p>A single ship run is far noisier than its pulls suggest, because its errors are correlated along the track. The filter is therefore
+judged over many seeds, never on one run.</p>
 <!-- generated by docs/tools/figures/gen_pulls.py -->
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Pulls of a smoothed track: eight runs whose errors wander slowly over 14 days, sampled at four fixed times; and the spread of the measured pull width from one run alone, much wider than from the fixed-time pulls of eight runs">
@@ -154,17 +157,17 @@ over many seeds, never on one run.</p>
   <text class="sub" x="711.2" y="99.0" style="fill:var(--series-2)">eight runs, fixed times</text>
   <text class="ttl" x="560" y="24">b · what each way of judging says</text>
 </svg>
-<figcaption>Why long runs are judged at fixed times over many runs, illustrated with a filter whose error bars are exactly right. Its
-errors, divided by their stated σ, wander slowly: here they stay correlated for about 3 days. a: eight runs over 14 days. One run
-stays above or below zero for days, so its hourly pulls are far from independent. The orange dots are the pulls at days 3, 7, 10 and 14,
-as in the ship runs. b: the rms of the pulls that each method measures, over 2000 repetitions. From one run's hourly pulls it lands
-anywhere between 0.47 and 1.54 (90 % of the time), although the truth is 1. From the fixed-time pulls of
-eight runs it lands between 0.78 and 1.21. Generated by <code>docs/tools/figures/gen_pulls.py</code>.</figcaption>
+<figcaption><b>Figure 9.1.</b> Why long runs are judged at fixed times over many runs, for a filter whose error bars are exactly right but whose errors stay
+correlated for about 3 days. (a) Eight runs over 14 days: one run stays above or below zero for days. Orange: the pulls at days 3, 7, 10
+and 14, as in the ship runs. (b) The rms of the pulls each method measures, over 2000 repetitions. From one run's hourly pulls it lands
+anywhere between 0.47 and 1.54 (90 % of the time), although the truth is 1; from the fixed-time pulls of eight runs, between 0.78 and 1.21.
+Generated by <code>docs/tools/figures/gen_pulls.py</code>.</figcaption>
 </figure>
-<h2 id="validate"><code>validateTOA</code> <span class="badge validated">validated</span></h2>
+
+<h2 id="validate">9.3 <code>validateTOA</code> <span class="badge validated">validated</span></h2>
 <div class="sig">val = validateTOA(toa, info_gen, 'Plot', true, 'Label', '')</div>
 <p class="meta"><a href="api.html#validatetoa">Full interface and help text of <code>validateTOA</code> →</a></p>
-<p>Matches each valid TOA to the nearest true pulse centre (<code>info_gen.pulseCenters</code>) and reports:</p>
+<p><code>validateTOA</code> matches each valid TOA to the nearest true pulse centre (<code>info_gen.pulseCenters</code>) and reports:</p>
 <ul>
 <li>errors and normalized errors <var>z</var> = error / <code>toaErr</code>;</li>
 <li>mean ± its expected scatter; rms vs the rms of the predicted errors (the <b>ratio</b>, should be 1);</li>
@@ -172,16 +175,16 @@ eight runs it lands between 0.78 and 1.21. Generated by <code>docs/tools/figures
 <li>fractions |<var>z</var>| &lt; 1 and &lt; 2 (expected 68.3 % and 95.4 %);</li>
 <li>the total-fold offset in σ.</li>
 </ul>
-<p>Figure: errors with ±1σ bars, histogram vs N(0,1), Q-Q plot, amplitude and SNR per sub-int. For Monte Carlo, pass struct arrays
-<code>[toa1 toa2 …]</code> and <code>[info_gen1 …]</code>: all TOAs are pooled.</p>
+<p>Its figure shows the errors with ±1σ bars, a histogram against N(0,1), a Q-Q plot, and the amplitude and SNR per sub-int. For a Monte
+Carlo, pass struct arrays <code>[toa1 toa2 …]</code> and <code>[info_gen1 …]</code>: all TOAs are pooled. In <code>main.m</code> it runs on
+all valid TOAs and again on the good TOAs only, if some were rejected.</p>
 <div class="callout note"><span class="ttl">Reading the numbers</span>
 <ul>
-<li><b>Ratio = rms of actual errors / rms of stated errors.</b> 1 = honest error bars; &lt; 1 pessimistic; &gt; 1 optimistic. With <var>n</var> TOAs its own
-uncertainty is about 1/√(2<var>n</var>): ±0.075 for 90 TOAs, ±25 % for 8.</li>
-<li><b>Q-Q plot:</b> sorted <var>z</var> against the N(0,1) quantiles Φ⁻¹((<var>k</var>−½)/<var>n</var>). On the line y = x: correct. Steeper: error bars too small.
-Shifted: bias. S-shaped tails: outliers. It uses no binning and shows the tails, where outliers live.</li>
+<li><b>Ratio = rms of actual errors / rms of stated errors.</b> 1 = honest error bars; &lt; 1 pessimistic; &gt; 1 optimistic. With <var>n</var>
+TOAs its own uncertainty is about 1/√(2<var>n</var>): ±0.075 for 90 TOAs, ±25 % for 8.</li>
+<li><b>Q-Q plot:</b> sorted <var>z</var> against the N(0,1) quantiles Φ⁻¹((<var>k</var>−½)/<var>n</var>). On the line y = x: correct. Steeper:
+error bars too small. Shifted: bias. S-shaped tails: outliers. It uses no binning and shows the tails, where outliers live.</li>
 </ul></div>
-<p>In <code>main.m</code> it runs on all valid TOAs and again on the good TOAs only, if some were rejected.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Reading validateTOA: Q-Q plots for honest, too small and outlier-ridden error bars, and the uncertainty of the rms ratio against the number of TOAs">
   <path class="axis" d="M70 276 H400"/>
@@ -515,27 +518,28 @@ Shifted: bias. S-shaped tails: outliers. It uses no binning and shows the tails,
   <text class="sub" x="700.3" y="229.9" text-anchor="end">90 TOAs (Monte Carlo): ±7.5 %</text>
   <text class="ttl" x="520" y="20">b · how well a few TOAs test the error bars</text>
 </svg>
-<figcaption>How to read <code>validateTOA</code>. a: Q-Q plots of normalized errors for three simulated cases (illustrative, not pipeline output):
-honest error bars lie on the line, too small ones make it steeper, outliers bend the tails away. b: the rms ratio is itself uncertain by
-about 1/√(2<var>n</var>), so 8 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. This is why the
-validation record relies on Monte Carlo runs and sweeps, not on one <code>main.m</code> run.</figcaption>
+<figcaption><b>Figure 9.2.</b> How to read <code>validateTOA</code> (illustrative, not pipeline output). (a) Q-Q plots of normalized errors: honest error
+bars lie on the line, too small ones make it steeper, outliers bend the tails away. (b) The rms ratio is itself uncertain by about
+1/√(2<var>n</var>), so 8 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. The validation record
+therefore relies on Monte Carlo runs and sweeps, not on one <code>main.m</code> run.</figcaption>
 </figure>
 
-<h2 id="epm"><code>expectedPowerModel</code> <span class="badge written">written</span></h2>
+<h2 id="epm">9.4 <code>expectedPowerModel</code>: the best achievable <span class="badge written">written</span></h2>
 <div class="sig">M = expectedPowerModel(info_gen, info_disp, info_IQ, info_dedisp, info_rx)</div>
 <p class="meta"><a href="api.html#expectedpowermodel">Full interface and help text of <code>expectedPowerModel</code> →</a></p>
-<p>The ground-truth mean and variance of the detected power, shared by the plot checks, and the best achievable precision.</p>
-<h3>How it works</h3>
+<p>An honest error bar is not yet a good one. <code>expectedPowerModel</code> gives the ground-truth mean and variance of the detected
+power, which the plot checks share, and from them the best achievable precision. Without it one cannot tell whether FFTFIT is 2 % or 0.5 %
+from optimal (it is 0.5 % at −5 dB).</p>
 <ol>
-<li>A frequency grid across the band (200,001 points) with the simulator's dispersion taper <var>W</var><sub>f</sub> and the observer's dedispersion
-taper <var>W</var><sub>i</sub>.</li>
+<li>A frequency grid across the band (200,001 points) with the simulator's dispersion taper <var>W</var><sub>f</sub> and the observer's
+dedispersion taper <var>W</var><sub>i</sub>.</li>
 <li>The baseband power spectral density is <var>S</var> = <var>s</var><sub>s</sub>·<var>p</var>(<var>t</var>)·<var>W</var><sub>f</sub>²<var>W</var><sub>i</sub>² + <var>s</var><sub>n</sub>·<var>W</var><sub>i</sub>²: the pulsar passed both tapers, the receiver noise only
 <var>W</var><sub>i</sub> (it was added after dispersion).</li>
 <li>Five integrals: <var>J</var><sub>s</sub> = ∫(<var>W</var><sub>f</sub><var>W</var><sub>i</sub>)², <var>J</var><sub>n</sub> = ∫<var>W</var><sub>i</sub>² for the mean powers, and ∫(<var>W</var><sub>f</sub><var>W</var><sub>i</sub>)⁴, ∫<var>W</var><sub>f</sub>²<var>W</var><sub>i</sub>⁴,
 ∫<var>W</var><sub>i</sub>⁴ for the variance.</li>
-<li>Mean powers <var>P</var><sub>s</sub>(<var>t</var>) = sigScale·<var>p</var>(<var>t</var>), <var>P</var><sub>n</sub>; variance of a bin of length d<var>t</var>:</li>
+<li>Mean powers <var>P</var><sub>s</sub>(<var>t</var>) = sigScale·<var>p</var>(<var>t</var>), <var>P</var><sub>n</sub>; and the variance of a bin of length d<var>t</var>:</li>
 </ol>
-<div class="eq">\[ \operatorname{var} = \frac{c_{ss}\,P_s^2 + 2\,c_{sn}\,P_s P_n + c_{nn}\,P_n^2}{dt}, \qquad c_{ss} = \frac{\int (W_f W_i)^4}{J_s^2}, \quad c_{sn} = \frac{\int W_f^2 W_i^4}{J_s J_n}, \quad c_{nn} = \frac{\int W_i^4}{J_n^2} \]</div>
+<div class="eq"><span class="label">(9.1)</span>\[ \operatorname{var} = \frac{c_{ss}\,P_s^2 + 2\,c_{sn}\,P_s P_n + c_{nn}\,P_n^2}{dt}, \qquad c_{ss} = \frac{\int (W_f W_i)^4}{J_s^2}, \quad c_{sn} = \frac{\int W_f^2 W_i^4}{J_s J_n}, \quad c_{nn} = \frac{\int W_i^4}{J_n^2} \]</div>
 <dl class="where">
 <dt>\(\operatorname{var}\)</dt><dd>variance of the detected power of one time bin [V⁴]</dd>
 <dt>\(P_s\), \(P_n\)</dt><dd>mean pulsar power at that time, \(\texttt{sigScale}\cdot p(t)\), and mean receiver-noise power [V²]</dd>
@@ -544,24 +548,21 @@ taper <var>W</var><sub>i</sub>.</li>
 <dt>\(W_f\), \(W_i\)</dt><dd>the simulator's dispersion taper and the observer's dedispersion taper, as functions of frequency</dd>
 <dt>\(J_s\), \(J_n\)</dt><dd>\(\int (W_f W_i)^2\) and \(\int W_i^2\): the bandwidths that set the mean powers [Hz]</dd>
 </dl>
-<p>This is Isserlis' theorem with <var>S</var> = pulsar + noise: squaring the sum gives a self-noise term, a cross term and a noise
-term. For a flat band all <var>c</var> = 1/<var>B</var>, and var = (<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>).
-The formula was verified numerically, within 1 %, for 0 ≤ ρ ≤ 100.</p>
-<h3>Best achievable</h3>
-<p>The best achievable precision follows from the Fisher information. With \(v = c_{ss}P_s^2 + 2c_{sn}P_sP_n + c_{nn}P_n^2\), the variance
-above times \(dt\):</p>
-<div class="eq">\[ \mathrm{SNR}^2 = \int \frac{P_s^2}{v}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = \int \frac{P_s'^2}{v}\,dt, \qquad P_s' = \frac{dP_s}{dt} \]</div>
+<p>This is Isserlis' theorem with <var>S</var> = pulsar + noise: squaring the sum gives a self-noise term, a cross term and a noise term.
+For a flat band all <var>c</var> = 1/<var>B</var>, and var = (<var>P</var><sub>s</sub> + <var>P</var><sub>n</sub>)²/(<var>B</var>·d<var>t</var>). The
+formula was verified numerically, within 1 %, for 0 ≤ ρ ≤ 100. The best achievable precision then follows from the Fisher information.
+With \(v = c_{ss}P_s^2 + 2c_{sn}P_sP_n + c_{nn}P_n^2\), the variance above times \(dt\):</p>
+<div class="eq"><span class="label">(9.2)</span>\[ \mathrm{SNR}^2 = \int \frac{P_s^2}{v}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = \int \frac{P_s'^2}{v}\,dt, \qquad P_s' = \frac{dP_s}{dt} \]</div>
 <p>These give <code>M.snrPulse</code> and <code>M.toaErrPulse</code>. Without noise they are NaN, because the integrals diverge in the tails.
-At −5 dB they are 96.5 and 2.892 µs, also checked against a Python port. RFI is not in the model; it shows up as an excess in the
-checks.</p>
+At −5 dB they are 96.5 and 2.892 µs, also checked against a Python port. RFI is not in the model; it shows up as an excess in the checks.
+The integrals ∫<var>W</var>² for the mean and (∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance are also the prototype of the narrow-channel and
+blanking noise models. On real data with ripple, slopes and notches the difference from a flat band can be 10–30 %.</p>
 <details><summary>History</summary><p>Added 5 Oct 2026.</p></details>
-<div class="callout why"><span class="ttl">Why compute the exact optimum</span>
-<p>Without it you cannot tell whether FFTFIT is 2 % or 0.5 % from optimal (it is 0.5 % at −5 dB). The integrals ∫<var>W</var>² for the mean and
-(∫<var>W</var>²)²/∫<var>W</var>⁴ for the variance are also the prototype of the narrow-channel and blanking noise models. On real data with ripple,
-slopes and notches the difference can be 10–30 %.</p></div>
-<p>Status <span class="badge written">written</span> in the notes' file list: it is used and cross-checked, but not formally validated as a stage.</p>
+<p>Status <span class="badge written">written</span> in the notes' file list: it is used and cross-checked, but not formally validated as a
+stage.</p>
 
-<h2>Plot checks</h2>
+<h2 id="plots">9.5 Plot checks and helpers</h2>
+<p>The plot checks show each stage's output against its expected signal from Eq. (9.1).</p>
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>Shows</th><th>Status</th></tr>
 <tr><td><a href="api.html#plotdispersioncheck"><code>plotDispersionCheck</code></a></td><td>raw vs dispersed dynamic spectra with the expected sweep; band-integrated power</td><td><span class="badge validated">validated</span></td></tr>
@@ -569,20 +570,29 @@ slopes and notches the difference can be 10–30 %.</p></div>
 <tr><td><a href="api.html#plotdetectedpower"><code>plotDetectedPower</code></a></td><td>overview, optional channel waterfall, zoom vs expected, normalized residual; per-pulse centroid offsets on (P − off-pulse baseline); <code>DisplayAverage</code> for display only</td><td><span class="badge validated">validated</span> without noise. The noise version is <span class="badge written">written</span>.</td></tr>
 <tr><td><a href="api.html#plotfoldcheck"><code>plotFoldCheck</code></a></td><td>total profile vs expected (kernel-averaged: boxcar + assignment), zoom, normalized residual, sub-int stack, per-sub-int centroid offsets with covariance-correct errors</td><td><span class="badge validated">validated</span> without noise. The noise version is <span class="badge written">written</span>.</td></tr>
 </table></div>
-<p>Each function's options (time windows, display averaging, truth inputs) are listed with its help text in the <a href="api.html">function reference</a>. The IQ, detected and fold checks run on the full-band path only (<code>main.m</code> prints a note on the channel path).</p>
+<p>Each function's options (time windows, display averaging, truth inputs) are listed with its help text in the <a href="api.html">function
+reference</a>. The IQ, detected and fold checks run on the full-band path only (<code>main.m</code> prints a note on the channel path).</p>
 <div class="callout note"><span class="ttl">The centroid cross-check, and the +3.7 µs that was not a bias</span>
-<p>The plot checks estimate the pulse position independently with a centroid c = Σ<var>t</var>·<var>Q</var>/Σ<var>Q</var> over ±4σ (<var>Q</var> = power minus baseline). A
-noise blip far from the centre moves it more (the "lever arm"), and the window wings hold almost no pulse but full noise, so the
-centroid is ~2× noisier than FFTFIT, which weights by the slope. With noise seed 43 it came out +3.7 µs; five seeds gave −0.58 ± 0.93 µs:
-a 1.8σ fluctuation of one seed, closed on 6 Oct.</p></div>
-
-<h2>Helpers</h2>
+<p>The plot checks estimate the pulse position independently with a centroid c = Σ<var>t</var>·<var>Q</var>/Σ<var>Q</var> over ±4σ
+(<var>Q</var> = power minus baseline). A noise blip far from the centre moves it more (the "lever arm"), and the window wings hold almost no
+pulse but full noise, so the centroid is ~2× noisier than FFTFIT, which weights by the slope. With noise seed 43 it came out +3.7 µs; five
+seeds gave −0.58 ± 0.93 µs: a 1.8σ fluctuation of one seed, closed on 6 Oct.</p></div>
 <dl class="facts">
 <dt><a href="api.html#loadinfo"><code>loadInfo</code></a></dt><dd>reload <code>&lt;name&gt;_info.mat</code> of a stage that was skipped</dd>
 <dt><a href="api.html#gaussiantemplate"><code>gaussianTemplate</code></a></dt><dd>periodic Gaussian template, peak 1 at bin 1 (<a href="toa.html#template">TOA</a>)</dd>
 <dt><a href="api.html#noisebandwidth"><code>noiseBandwidth</code></a></dt><dd>(∫<var>W</var>²)²/∫<var>W</var>⁴ for products of raised-cosine edge tapers: 391.6 MHz for one 8 MHz taper in 400 MHz, 389.6 MHz for two</dd>
 <dt><a href="api.html#combinechannels"><code>combineChannels</code></a></dt><dd>channels used for a profile (exclusion rule), their sum and weights; shared by <code>estimateTOA</code> and <code>detectPulsar</code></dd>
 </dl>
+
+<div class="callout why"><span class="ttl">Summary</span>
+<ul>
+<li>A result is validated when a test predicts its own scatter and the code lands inside it, in Jasper's own run.</li>
+<li>Only the check functions read the truth, and they never feed a result.</li>
+<li><code>validateTOA</code> judges TOAs by the ratio of actual to stated scatter and by Q-Q plots; long runs are judged at fixed times
+over many realizations, against an ideal twin.</li>
+<li><code>expectedPowerModel</code> gives the best achievable SNR and TOA error (Eq. 9.2), against which FFTFIT is 0.5 % from optimal.</li>
+</ul></div>
+<p>The validated TOAs now go to the last stage, <a href="navigation.html">navigation</a>, which turns them into a position.</p>
 
 </main>
 <script src="nav.js"></script>

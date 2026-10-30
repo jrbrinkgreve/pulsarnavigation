@@ -8,18 +8,16 @@
 </head>
 <body>
 <main>
-
 <h1>Unit tests</h1>
 <p class="lede">Every function added since 6 October has a test in <code>tests/</code> that checks it three ways: regression
 (bit-identical where nothing should change), algebra (code = independently computed formula) and physics (measured noise
 = predicted noise, within a predicted σ).</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
 <p><code>tests/runAllTests.m</code> runs all 31 listed tests in one session (about 10 min), on their own frozen data. So a <code>main.m</code>
-run can never change what they check. A thirty-second, the slow <code>testRFIChain</code>, runs only when named.</p></div>
+run can never change what they check. A thirty-second, the slow <code>testRFIChain</code>, runs only when named.</p>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision), C (fast simulator) and D (motion, clock
 and navigation) were built in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2"
 and similar mean "the code before that step".</p>
@@ -41,7 +39,7 @@ its numbers, and tests can be run one after another in one MATLAB session.</p>
 The <code>demo*</code>, <code>exp*</code> and <code>make*</code> files are not run. A new <code>test*.m</code> that is not yet in the list
 runs last, with a note. Slow tests (<code>testRFIChain</code>, ~2.5 h for its two cases) are skipped in the default run, printed as
 skipped, and run only when named.</p>
-<div class="callout why"><span class="ttl">Design choice: tests are functions, not scripts</span>
+<div class="callout why"><span class="ttl">Tests are functions, not scripts</span>
 <p><b>Alternative:</b> test scripts, which are quicker to write and leave their variables in the workspace for inspection.</p>
 <p><b>Why not:</b> as scripts they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
 cleanup ran at once and changed the folder back, and the next test failed with "Unrecognized function 'pipelineParams'". It only showed
@@ -114,7 +112,7 @@ when several tests ran in one session, the way Jasper runs them (<a href="lesson
   <path class="line" marker-end="url(#ar-td)" d="M484 271 H504"/>
   <path class="line" marker-end="url(#ar-td)" d="M686 271 H706"/>
 </svg>
-<figcaption>Since 13 Oct 2026 the unit tests have their own frozen data. <code>makeTestData</code> copies <code>main.m</code>'s seed-43 files
+<figcaption><b>Figure 1.</b> Since 13 Oct 2026 the unit tests have their own frozen data. <code>makeTestData</code> copies <code>main.m</code>'s seed-43 files
 once, after checking along the info chain that they are the reference configuration; the infos in the copy point into
 <code>data/test/</code>. Rewriting the channel files in steps 2 and 3 reproduces the same contents, so a single test can also run on its
 own. Never run two test sessions at once: they share <code>data/test/chan/</code>.</figcaption>
@@ -388,12 +386,12 @@ time is fine (it does not touch <code>data/test/</code>).</li>
   <rect class="box proc" x="670" y="739" width="2.0" height="12" rx="2"/>
   <text class="sub" x="677.0" y="749">2 s</text>
 </svg>
-<figcaption>The 31 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption><b>Figure 2.</b> The 31 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>
 </figure>
-<div class="callout why"><span class="ttl">Design choice: pass criteria from the predicted σ</span>
+<div class="callout why"><span class="ttl">Pass criteria from the predicted σ</span>
 <p><b>Alternative:</b> a tolerance chosen by hand, such as "within 5 %".</p>
 <p><b>Why not:</b> a guessed tolerance proves nothing: it may be loose enough to hide a real error, or so tight that a correct code fails
 by chance. Each physics check therefore first predicts the scatter of what it measures (for example the variance of a variance estimate)

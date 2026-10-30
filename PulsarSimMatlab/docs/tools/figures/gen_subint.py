@@ -29,8 +29,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Turns per sub-int needed for SNR 6 or 7 against snrDB, with the time for the 10 ms pulsar">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How long a sub-int must be: the number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated
-10 ms pulsar (grid lines: the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int;
-at the design target one sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
+<figcaption><b>Figure 7.4.</b> The number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated 10 ms pulsar (grid lines:
+the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int; at the design target one
+sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
 </figure>'''
 open('subint.svg', 'w').write(svg)

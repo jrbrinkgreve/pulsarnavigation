@@ -68,10 +68,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Radar details: the spectrum of one pulse with instant and with smooth edges, and the gain of a rotating radar antenna over one scan">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Two radar details, computed with the code's formulas. a: the power spectrum of one 2 µs pulse (envelope only, no chirp; the
-sidelobe peaks drawn). With instant edges (orange) it falls only as 1/<var>f</var>²: still 2.5·10⁻⁴ of the carrier 10 MHz away, over many
-channels. With the default 0.1 µs raised-cosine edges (blue) it falls as 1/<var>f</var>⁶ beyond about 1/(2·<code>RiseTime</code>) = 5 MHz.
-b: the power gain of the realistic scenario's radar 1 towards us over one 10 s scan. Most of the time only its −30 dB sidelobes reach
-us, which puts its pulses close to the noise in their channels.</figcaption>
+<figcaption><b>Figure 3.5.</b> Two radar details, computed with the code's formulas. (a) The power spectrum of one 2 µs pulse (envelope only, sidelobe
+peaks drawn). With instant edges (orange) it falls as 1/<var>f</var>²: still 2.5·10⁻⁴ of the carrier 10 MHz away. With the default
+0.1 µs raised-cosine edges (blue) it falls as 1/<var>f</var>⁶ beyond about 5 MHz. (b) The power gain of the realistic scenario's radar 1
+towards us over one 10 s scan: most of the time only its −30 dB sidelobes reach us.</figcaption>
 </figure>'''
 open('radar.svg', 'w').write(svg)

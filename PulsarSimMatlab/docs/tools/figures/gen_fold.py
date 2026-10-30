@@ -52,9 +52,9 @@ svg = '''<figure class="scroll">
   </defs>
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Folding in three steps (simulated, coarse 40 µs bins, a bright pulse for visibility). Every time bin gets its phase from the
-ephemeris; the integer part is its turn, the rest its place in the profile. Turns are cut halfway between pulses, so each pulse stays
-whole. In the stored fold, bin <var>j</var> is centred at phase (<var>j</var> − 1)/<code>NBin</code> and negative phases wrap to the end, so the
-pulse sits at both ends of the array; it is drawn here from −½ to ½.</figcaption>
+<figcaption><b>Figure 7.1.</b> Folding in three steps (simulated, coarse 40 µs bins, a bright pulse for visibility). Every time bin gets its phase from the
+ephemeris: the integer part is its turn, the rest its place in the profile. Turns are cut halfway between pulses, so each pulse stays
+whole. In the stored fold, bin <var>j</var> is centred at phase (<var>j</var> − 1)/<code>NBin</code> and negative phases wrap to the end;
+the pulse is drawn here from −½ to ½.</figcaption>
 </figure>'''
 open('fold.svg', 'w').write(svg)

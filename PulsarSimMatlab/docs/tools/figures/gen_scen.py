@@ -34,7 +34,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Time per TOA against TOA precision for the candidate pulsars at the worst-case design point">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The table above as a map (worst case, both axes logarithmic). Down is more precise, left is faster. Along a dashed line the
+<figcaption><b>Figure R.1.</b> The table above as a map (worst case, both axes logarithmic). Down is more precise, left is faster. Along a dashed line the
 figure of merit σ<sub>TOA</sub>·√<var>t</var> is constant: averaging <var>N</var> TOAs trades time for precision along it. J0437 and Vela
 lead; B0329+54 is the only northern source with TOAs within a pass; the faint millisecond pulsars would be precise but take months.</figcaption>
 </figure>'''

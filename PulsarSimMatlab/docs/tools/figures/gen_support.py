@@ -35,11 +35,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 268" role="img" aria-label="Fully supported parts of the 0.1 s file after dedispersion, for the full band and the channel path, and the complete turns they contain">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The 0.1 s file of <code>main.m</code> after dedispersion (notes §4). Green: output samples that saw their complete dispersion
-sweep (<code>fullySupported</code>). Orange: samples that did not. At the end the low frequencies of the last 6.3 ms were delayed past the
-end of the file in stage 2; at the start the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see; 0.32 ms per
-channel). The fold uses only green data and the TOA fit only complete turns (lines), so the full band gives 9 TOAs
-and the channel path 8: the file starts exactly on a turn boundary, so the 0.32 ms channel guard leaves turn 0 with only 96.8 % of its
-phase bins covered, below <code>MinCoverage</code> = 1.</figcaption>
+<figcaption><b>Figure 5.2.</b> The 0.1 s file of <code>main.m</code> after dedispersion. Green: output samples that saw their complete sweep
+(<code>fullySupported</code>); orange: samples that did not. At the end, the low frequencies of the last 6.3 ms were delayed past the end
+of the file in stage 2. At the start, the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see;
+0.32 ms per channel). The fold uses only green data and the TOA fit only complete turns (lines): 9 TOAs on the full band, 8 on the
+channel path, where turn 0 keeps only 96.8 % of its phase bins, below <code>MinCoverage</code> = 1.</figcaption>
 </figure>'''
 open('support.svg', 'w').write(svg)

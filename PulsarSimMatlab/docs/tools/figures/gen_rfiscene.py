@@ -53,10 +53,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 412" role="img" aria-label="The realistic RFI scenario as a time-frequency sketch: continuous sources as horizontal bands, radar pulses and an impulse as short marks">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The realistic RFI list (<code>rfiRealistic</code> in <code>pipelineParams.m</code>) sketched in time and frequency over two pulsar
-turns. Frequencies and repetition rates are the scenario's; widths are each source's occupied band (for BPSK the main lobe,
-± the chip rate). Radar pulses (2 µs) and the impulse (200 ns) are drawn much wider than they are. Orange sources are on all the time
-and look like extra noise in their channels; red ones are short and strong, which is what the excision stage looks for (see
-<a href="excision.html">RFI excision</a>).</figcaption>
+<figcaption><b>Figure 3.4.</b> The realistic RFI list (<code>rfiRealistic</code> in <code>pipelineParams.m</code>) sketched in time and frequency over two
+pulsar turns. Widths are each source's occupied band (for BPSK the main lobe, ± the chip rate). Radar pulses (2 µs) and the impulse
+(200 ns) are drawn much wider than they are. Orange sources are on all the time and look like extra noise in their channels; red ones
+are short and strong, which is what <a href="excision.html">RFI excision</a> looks for.</figcaption>
 </figure>'''
 open('rfiscene.svg', 'w').write(svg)

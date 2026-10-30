@@ -50,10 +50,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 380" role="img" aria-label="Frequency plan: the RF band 1.2 to 1.6 GHz and the LO; at baseband the band sits at -100 to +300 MHz inside the IQ low-pass and the 800 MHz window, split into 128 channels">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The frequency plan, from the parameters. a: the simulated RF stream is real and sampled at 4 GHz, so it holds frequencies up
-to 2 GHz; the receiver band is 1.2–1.6 GHz and the LO sits at 1.3 GHz, off centre on purpose. b: after the IQ stage the band lies at
-−100…+300 MHz, lopsided around zero, so a mirrored frequency mapping would put it at −300…+100 MHz and fail visibly. The +300 MHz edge
-is why the sample rate is 800 MHz: it must sit inside the flat part of the IQ low-pass (cutoff 0.9·fs/2 = 360 MHz). The channelizer
-then cuts the band into 128 channels whose edges fall on the band edges (fine lines).</figcaption>
+<figcaption><b>Figure 1.</b> The frequency plan, from the parameters. (a) The simulated RF stream is real and sampled at 4 GHz, so it holds frequencies up to
+2 GHz; the receiver band is 1.2–1.6 GHz and the LO sits at 1.3 GHz, off centre on purpose. (b) After the IQ stage the band lies at
+−100…+300 MHz, lopsided around zero, so a mirrored frequency mapping would put it at −300…+100 MHz and fail visibly. The +300 MHz edge is
+why the sample rate is 800 MHz: it must sit inside the flat part of the IQ low-pass (cutoff 0.9·fs/2 = 360 MHz). The channelizer then cuts
+the band into 128 channels whose edges fall on the band edges (fine lines).</figcaption>
 </figure>'''
 open('freqplan.svg', 'w').write(svg)

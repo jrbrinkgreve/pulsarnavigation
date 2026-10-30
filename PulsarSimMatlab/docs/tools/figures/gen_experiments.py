@@ -35,7 +35,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {yb + 14}" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
+<figcaption><b>Figure 1.</b> Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
 interference alone. <code>runScenario</code> and <code>runShip</code> draw folds with the fast simulator instead of voltages, for real

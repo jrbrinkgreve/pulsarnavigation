@@ -53,9 +53,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 382" role="img" aria-label="The generated voltage: noise whose variance rises once per turn; its power follows the profile G">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>What <code>generatePulsarSignal</code> writes, computed with its formula <var>x</var> = <var>A</var>·√<var>G</var>·<var>n</var> but at a toy
-sample rate (300 kHz instead of 4 GHz) so single samples can be seen. There is no pulse <em>shape</em> in the voltage, only noise that gets
-louder once per turn (b). The pulse appears when you square and average (c): the mean power follows <var>A</var>²·<var>G</var>(<var>t</var>).
-That is why the processing detects power and folds. Off-pulse the generated signal is zero; receiver noise is added later (stage 3).</figcaption>
+<figcaption><b>Figure 1.1.</b> What <code>generatePulsarSignal</code> writes, by Eq. (1.1) but at a toy sample rate (300 kHz instead of 4 GHz) so that
+single samples can be seen. The voltage only gets louder once per turn (b). Squared and averaged, its power follows
+<var>A</var>²·<var>G</var>(<var>t</var>) (c). Off-pulse the generated signal is zero; receiver noise is added in stage 3.</figcaption>
 </figure>'''
 open('voltage.svg', 'w').write(svg)

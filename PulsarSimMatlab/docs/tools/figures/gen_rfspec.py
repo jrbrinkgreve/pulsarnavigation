@@ -42,9 +42,8 @@ svg = '''<figure class="scroll">
   </defs>
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The simulated RF stream in frequency, with the code's constants. A real (not complex) stream sampled at <var>f</var><sub>in</sub> = 4 GHz
-holds frequencies up to 2 GHz. The generator fills all of it with white noise; the dispersion stage keeps only the receiver band,
-1.2–1.6 GHz, with 8 MHz tapered edges (too narrow to see here). So 19.5 % of the generated power passes, the kernel energy Σ<var>h</var>²
-that <code>applyDispersionStream</code> reports.</figcaption>
+<figcaption><b>Figure 1.3.</b> The simulated RF stream in frequency. Sampled at <var>f</var><sub>in</sub> = 4 GHz, a real stream holds frequencies up to
+2 GHz, and the generator fills all of it with white noise. The dispersion stage keeps only 1.2–1.6 GHz, with 8 MHz tapered edges, so
+19.5 % of the generated power passes: the kernel energy Σ<var>h</var>² that <code>applyDispersionStream</code> reports.</figcaption>
 </figure>'''
 open('rfspec.svg', 'w').write(svg)

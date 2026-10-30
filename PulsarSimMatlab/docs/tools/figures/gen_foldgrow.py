@@ -55,10 +55,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 360" role="img" aria-label="Folding: the pulse emerges from the noise as more turns are added; SNR against observing time for several signal strengths">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Folding. a: simulated folded profiles at an SNR of 0.25 per turn, scaled so the noise per bin stays the same: the pulse
-grows as √<var>N</var> and is clear after a few thousand turns. b: SNR against observing time for the simulated 10 ms pulsar (SNR per
-turn ≈ 373·ρ). Each 10 dB weaker signal needs 100× longer. At −54 dB a TOA with SNR 7 takes about 62 hours; J0437, with its narrower
-pulse and both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h
-(16 h at nominal flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
+<figcaption><b>Figure P.5.</b> Folding. (a) Simulated folded profiles at an SNR of 0.25 per turn, scaled so the noise per bin stays the same: the pulse grows
+as √<var>N</var> and is clear after a few thousand turns. (b) SNR against observing time for the simulated 10 ms pulsar (SNR per turn ≈
+373·ρ): each 10 dB weaker signal needs 100× longer. At −54 dB a TOA with SNR 7 takes about 62 hours; J0437, with its narrower pulse and
+both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h (16 h at nominal
+flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>'''
 open('foldgrow.svg', 'w').write(svg)

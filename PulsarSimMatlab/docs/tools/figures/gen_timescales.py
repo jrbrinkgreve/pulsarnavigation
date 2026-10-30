@@ -55,9 +55,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 62 hours a TOA takes at -54 dB">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
-that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
-bins resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a million times longer, which
-is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
+<figcaption><b>Figure 2.</b> Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
+that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase bins
+resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a
+million times longer, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>'''
 open('timescales.svg', 'w').write(svg)

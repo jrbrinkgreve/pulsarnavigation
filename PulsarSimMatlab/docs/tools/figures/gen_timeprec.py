@@ -61,9 +61,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Why times are double precision from sample indices: float32 rounds a time to 60 ns at 1 s, and a clock built by adding 1/fs drifts">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Why every time is computed in double precision from the absolute sample index. a: a float32 number can only hold a time to
-about 60 ns at 1 s, and to milliseconds after a day; double stays below 10 ps even after a day. b: building a sample clock by adding 1/<var>f</var><sub>s</sub>
-step by step lets rounding errors pile up; in float32 the clock is off by about 1 µs after 1 ms and by 1 ms after 12 ms. Computing
-<var>k</var>/<var>f</var><sub>s</sub> from the index has no such drift, and it gives the same time whatever block size a stage streams with.</figcaption>
+<figcaption><b>Figure C.3.</b> (a) A float32 number holds a time only to about 60 ns at 1 s, and to milliseconds after a day; double stays below 10 ps even
+after a day. (b) A sample clock built by adding 1/<var>f</var><sub>s</sub> step by step piles up rounding errors: in float32 it is off by
+about 1 µs after 1 ms and by 1 ms after 12 ms. Computing <var>k</var>/<var>f</var><sub>s</sub> from the index has no such drift, and gives the
+same time whatever block size a stage streams with.</figcaption>
 </figure>'''
 open('timeprec.svg', 'w').write(svg)

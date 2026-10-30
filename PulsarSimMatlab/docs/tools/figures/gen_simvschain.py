@@ -39,9 +39,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Median TOA error and detection probability against rho: voltage chain and fast simulator agree">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The fast simulator against the voltage chain (full band, one turn per sub-int; <code>expSimVsChain</code>). Left: the median
-error bar of one TOA from −25 to +20 dB; right: the fraction of sub-ints detected at the unknown phase near the threshold. Large dots:
-the saved voltage-chain sweeps (90 and 180 TOAs per point); small: <code>simulateFold</code> (2000 sub-ints per point). The differences
-are within the chain's statistics; the two chain sweeps differ from each other by as much near the threshold.</figcaption>
+<figcaption><b>Figure F.3.</b> The fast simulator against the voltage chain (full band, one turn per sub-int; <code>expSimVsChain</code>). Left: the median
+error bar of one TOA from −25 to +20 dB. Right: the fraction of sub-ints detected at the unknown phase near the threshold. Large dots: the
+saved voltage-chain sweeps (90 and 180 TOAs per point); small: <code>simulateFold</code> (2000 sub-ints per point). The differences are
+within the chain's statistics; the two chain sweeps differ from each other by as much near the threshold.</figcaption>
 </figure>'''
 open('simvschain.svg', 'w').write(svg)

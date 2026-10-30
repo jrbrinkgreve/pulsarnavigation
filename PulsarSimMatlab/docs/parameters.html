@@ -8,20 +8,13 @@
 </head>
 <body>
 <main>
-
 <h1>Parameters: <code>pipelineParams.m</code></h1>
 <p class="lede">Every parameter of the pipeline, its value, what it means, why it has that value, and which stage
 uses it. <code>pipelineParams.m</code> is a script: <code>main.m</code> and every <code>run*.m</code> call it, so they all use the same
 values.</p>
 <p class="meta">Values checked line by line against <code>pipelineParams.m</code> as of commit <code>95a93bc</code> (21 Oct 2026, its last change;
-checked 22 Oct). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
+checked 22 Oct and again 30 Oct). Edit parameters there, not in the scripts. Side: <b>truth</b> = only the simulator
 uses it; <b>observer</b> = the processing may use it (the <a href="conventions.html#truth">ground-truth rule</a>).</p>
-
-<div class="callout note"><span class="ttl">In short</span>
-<p>One script, <code>pipelineParams.m</code>, sets every value. <b>Truth</b> parameters (the pulsar, the simulation, the noise and
-interference) only reach the simulator. <b>Observer</b> parameters (receiver, processing, ephemeris) are what the processing may use.
-The two pictures below show how the numbers fit together in frequency and in time; the tables after them give every value with the
-reason for it.</p></div>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#plan">The numbers at a glance</a></li>
@@ -36,9 +29,13 @@ reason for it.</p></div>
 <li><a href="#main">Run control in <code>main.m</code></a></li>
 <li><a href="#defaults">Where main overrides function defaults</a></li>
 </ol></div>
+<p>One script, <code>pipelineParams.m</code>, sets every value. <b>Truth</b> parameters (the pulsar, the simulation, the noise and
+interference) only reach the simulator; <b>observer</b> parameters (receiver, processing, ephemeris) are what the processing may use. The two
+figures below show how the numbers fit together in frequency and in time; the tables after them give every value with the reason for it.
+Each stage page explains the physics behind its values.</p>
 
 <h2 id="plan">The numbers at a glance</h2>
-<p>In frequency: the band, the LO, the two sample rates, the IQ filter and the channels.</p>
+<p>In frequency: the band, the LO, the two sample rates, the IQ filter and the channels (Figure 1).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 380" role="img" aria-label="Frequency plan: the RF band 1.2 to 1.6 GHz and the LO; at baseband the band sits at -100 to +300 MHz inside the IQ low-pass and the 800 MHz window, split into 128 channels">
   <defs><marker id="ar-fp" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
@@ -105,13 +102,13 @@ reason for it.</p></div>
   <text class="sub" x="440.0" y="378" text-anchor="middle">(f_LO)</text>
   <text class="ttl" x="60" y="210">b · complex baseband at fs = 800 MHz</text>
 </svg>
-<figcaption>The frequency plan, from the parameters. a: the simulated RF stream is real and sampled at 4 GHz, so it holds frequencies up
-to 2 GHz; the receiver band is 1.2–1.6 GHz and the LO sits at 1.3 GHz, off centre on purpose. b: after the IQ stage the band lies at
-−100…+300 MHz, lopsided around zero, so a mirrored frequency mapping would put it at −300…+100 MHz and fail visibly. The +300 MHz edge
-is why the sample rate is 800 MHz: it must sit inside the flat part of the IQ low-pass (cutoff 0.9·fs/2 = 360 MHz). The channelizer
-then cuts the band into 128 channels whose edges fall on the band edges (fine lines).</figcaption>
+<figcaption><b>Figure 1.</b> The frequency plan, from the parameters. (a) The simulated RF stream is real and sampled at 4 GHz, so it holds frequencies up to
+2 GHz; the receiver band is 1.2–1.6 GHz and the LO sits at 1.3 GHz, off centre on purpose. (b) After the IQ stage the band lies at
+−100…+300 MHz, lopsided around zero, so a mirrored frequency mapping would put it at −300…+100 MHz and fail visibly. The +300 MHz edge is
+why the sample rate is 800 MHz: it must sit inside the flat part of the IQ low-pass (cutoff 0.9·fs/2 = 360 MHz). The channelizer then cuts
+the band into 128 channels whose edges fall on the band edges (fine lines).</figcaption>
 </figure>
-<p id="scales">In time: every sampling grid, the pulse, the interference and the length of a run, on one ruler.</p>
+<p id="scales">In time: every sampling grid, the pulse, the interference and the length of a run, on one ruler (Figure 2).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 62 hours a TOA takes at -54 dB">
   <path class="axis" d="M40 150 H820"/>
@@ -208,13 +205,13 @@ then cuts the band into 128 channels whose edges fall on the band edges (fine li
   <circle cx="614" cy="276" r="4" style="fill:var(--fg)"/><text class="sub" x="623" y="280">runs and time per TOA</text>
   <text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to days (log scale)</text>
 </svg>
-<figcaption>Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
-that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase
-bins resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a million times longer, which
-is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
+<figcaption><b>Figure 2.</b> Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
+that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase bins
+resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a
+million times longer, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>
 
-<h2 id="pulsar">1. Pulsar (ground truth for generation)</h2>
+<h2 id="pulsar">1 · Pulsar (ground truth for generation)</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the millisecond pulsar of the design point. The
@@ -227,7 +224,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>DM</code></td><td>25 pc cm⁻³</td><td>dispersion measure</td><td>Close to B0329+54 (26.8), the pulsar for the Netherlands scenario. The sweep across the band is then 31.5 ms. The forward dispersion still fits the 2<sup>28</sup> FFT (~12 GB) that the DM-5 runs used; about DM 30 is this machine's limit. The target is up to 100 (<a href="roadmap.html#dm">roadmap</a>). History: 25 since 20 Oct (Jasper); 5 before, so all results before 20 Oct are at DM 5.</td><td>dispersion; <code>ephem.DM</code></td></tr>
 </table></div>
 
-<h2 id="sim">2. Simulation</h2>
+<h2 id="sim">2 · Simulation</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>f_in</code></td><td>4 GHz</td><td>real RF sample rate of the sky and receiver files</td><td>Nyquist 2 GHz covers the 1.6 GHz band edge with room for the IQ filter; 4 GHz / 800 MHz is an integer decimation (5).</td><td>generator, dispersion, noise, IQ</td></tr>
@@ -235,7 +232,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>seed</code></td><td>42</td><td>pulsar random stream</td><td>Fixed, so every run shares one pulsar realization; Monte Carlo scripts vary it explicitly.</td><td>generator</td></tr>
 </table></div>
 
-<h2 id="rx">3. Receiver (known to the observer)</h2>
+<h2 id="rx">3 · Receiver (known to the observer)</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 3×3 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
@@ -244,7 +241,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>filterOrder</code></td><td>2048</td><td>IQ low-pass order (2049 taps)</td><td>Transition ≈ 9.8 MHz at 80 dB, so the band sits well inside the flat passband; odd length → integer delay, removed exactly.</td><td>IQ</td></tr>
 </table></div>
 
-<h2 id="noise">4. Receiver noise and interference</h2>
+<h2 id="noise">4 · Receiver noise and interference</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.2 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
@@ -260,7 +257,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>scintSim</code></td><td>[] (= <code>scint</code> when <code>scintOn</code>)</td><td>what to pass as <code>simulateFold</code>'s <code>'Scintillation'</code> option</td><td>[] means off, bit for bit the same as leaving the option out.</td><td>scenario scripts</td></tr>
 </table></div>
 
-<h2 id="proc">5. Processing (observer)</h2>
+<h2 id="proc">5 · Processing (observer)</h2>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>refFreq</code></td><td><code>fHigh</code> = 1.6 GHz</td><td>dedispersion reference frequency; TOAs are referred to it</td><td>The same as the generator, so the round trip is exact; the top of the band keeps its time.</td><td>dispersion, dedispersion</td></tr>
@@ -277,7 +274,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>periodicArgs</code></td><td>{}</td><td>name-value options for <code>periodicRFI</code></td><td>Defaults: ≥ 6 pulses, ±4 samples, chance &lt; 10⁻⁶, PRF 50 Hz – 20 kHz.</td><td><code>periodicRFI</code></td></tr>
 </table></div>
 
-<h2 id="ephem">6. Ephemeris (<code>ephem</code>, observer)</h2>
+<h2 id="ephem">6 · Ephemeris (<code>ephem</code>, observer)</h2>
 <p>In real use these come from a pulsar catalogue. Here they are set from the truth so the timing model is exact; a deliberate error can be
 put in to test robustness.</p>
 <div class="table-wrap"><table>
@@ -289,9 +286,9 @@ put in to test robustness.</p>
 <tr><td><code>ephem.profileFWHM</code></td><td>0.05 turns, or <code>profileComponents</code> when that is set</td><td>template FWHM (power profile; <code>'amplitude'</code> mode would need /√2), or the component list</td></tr>
 </table></div>
 
-<h2 id="files">7. Files</h2>
-<p>The unit tests do not use these: <code>tests/testParams.m</code> defines the same names with every path under
-<code>data/test/</code> (a frozen copy made once by <code>tests/makeTestData.m</code>; <a href="tests.html#run">tests</a>).</p>
+<h2 id="files">7 · Files</h2>
+<p>The unit tests do not use these: <code>tests/testParams.m</code> defines the same names with every path under <code>data/test/</code> (a
+frozen copy made once by <code>tests/makeTestData.m</code>; <a href="tests.html#run">tests</a>).</p>
 <div class="table-wrap"><table>
 <tr><th>Variable</th><th>Path</th><th>Written by</th></tr>
 <tr><td><code>fileRaw</code></td><td><code>data/test.dat</code></td><td><code>generatePulsarSignal</code> (can be deleted after dispersion; only <code>plotDispersionCheck</code> reads it)</td></tr>
@@ -308,13 +305,11 @@ put in to test robustness.</p>
 <tr><td><code>fileChanWeight</code></td><td><code>data/chan/test_dedispB_chan_weights.dat</code></td><td><code>blankingWeights</code></td></tr>
 <tr><td><code>fileFoldChan</code></td><td><code>data/test_fold_chan.mat</code></td><td><code>foldProfile</code> (channels)</td></tr>
 </table></div>
-<div class="callout why"><span class="ttl">Design choice: excision writes its own files</span>
-<p><b>Alternative:</b> blank the channel files in place.</p>
-<p><b>Why not:</b> the unblanked channel files are the reference for with/without comparisons, and the source <code>tests/makeTestData.m</code> copies
-when the unit tests' data are re-frozen (the tests themselves read their own copy in <code>data/test/</code> since 13 Oct); switching
-<code>excision</code> never overwrites them.</p></div>
+<p>Excision writes its own files rather than blanking the channel files in place. The unblanked channel files are the reference for
+with/without comparisons, and the source <code>tests/makeTestData.m</code> copies when the unit tests' data are re-frozen (the tests
+themselves read their own copy in <code>data/test/</code> since 13 Oct); switching <code>excision</code> never overwrites them.</p>
 
-<h2 id="derived">8. Derived quantities (current settings)</h2>
+<h2 id="derived">8 · Derived quantities (current settings)</h2>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Value</th><th>From</th></tr>
 <tr><td>IQ decimation <var>D</var></td><td>5</td><td>round(<code>f_in</code>/<code>fs</code>)</td></tr>
@@ -335,7 +330,7 @@ starts exactly on a turn boundary</td></tr>
 <tr><td>Disk at 0.2 s</td><td>~12.2 GB on the full band; ~12.7 GB on the channel path; ~14.5 GB with excision (the default)</td><td>printed by <code>main.m</code> (its disk formula)</td></tr>
 </table></div>
 
-<h2 id="main">9. Run control in <code>main.m</code></h2>
+<h2 id="main">9 · Run control in <code>main.m</code></h2>
 <div class="table-wrap"><table>
 <tr><th>Switch</th><th>Committed value</th><th>Effect</th></tr>
 <tr><td><code>runStage.sky</code></td><td>false</td><td>generator + dispersion (slow; set true once, or after changing pulsar/simulation/band)</td></tr>
@@ -347,7 +342,7 @@ starts exactly on a turn boundary</td></tr>
 <tr><td><code>closeFigures</code></td><td>true</td><td><code>close all</code> at the start</td></tr>
 </table></div>
 
-<h2 id="defaults">10. Where <code>main.m</code> overrides function defaults</h2>
+<h2 id="defaults">10 · Where <code>main.m</code> overrides function defaults</h2>
 <p>The function defaults are generic; <code>main.m</code> passes the project's choices. Worth knowing when calling a function by hand.</p>
 <div class="table-wrap"><table>
 <tr><th>Function</th><th>Option</th><th>Function default</th><th><code>main.m</code> passes</th></tr>
@@ -359,6 +354,7 @@ starts exactly on a turn boundary</td></tr>
 <tr><td><code>detectChannels</code></td><td><code>f_out</code></td><td>(required)</td><td><var>f</var><sub>s,chan</sub>/round(<var>f</var><sub>s,chan</sub>/<code>f_out</code>) = 1.0417 MHz</td></tr>
 <tr><td><code>channelizeIQ</code></td><td><code>T0</code></td><td>0</td><td><code>info_IQ.t0</code></td></tr>
 </table></div>
+<p>The next page, the <a href="sky.html">sky stages</a>, starts the pipeline with these values.</p>
 
 </main>
 <script src="nav.js"></script>

@@ -40,10 +40,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Weight of each channel in the optimal TOA fit with the illustrative RFI: the carrier and GNSS channels get almost no weight">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The built-in notch of optimal weighting, worked out for the illustrative scenario's three continuous sources (expected levels
-from their INRs, not a measurement). The fit weights each channel by 1/level², so the carrier's channel gets about 1/1700 of a clean
-channel's weight and is in effect left out, which costs only ~0.4 % of the SNR (one channel of 128); with all three sources the loss is
-~3 %. This is why constant-envelope RFI needs no excision on the channel path (<a href="excision.html#results">excision results</a>: SNR
-91.9 with the carrier, against 74 on the full band, where it cannot be separated from the rest of the band).</figcaption>
+<figcaption><b>Figure 8.3.</b> The built-in notch of optimal weighting, for the illustrative scenario's three continuous sources (expected levels from
+their INRs, not a measurement). The fit weights each channel by 1/level², so the carrier's channel gets about 1/1700 of a clean channel's
+weight and is in effect left out, which costs only ~0.4 % of the SNR (one channel of 128); with all three sources the loss is ~3 %. This is
+why constant-envelope RFI needs no excision on the channel path (<a href="excision.html#results">excision results</a>: SNR 91.9 with the
+carrier, against 74 on the full band).</figcaption>
 </figure>'''
 open('chanweights.svg', 'w').write(svg)

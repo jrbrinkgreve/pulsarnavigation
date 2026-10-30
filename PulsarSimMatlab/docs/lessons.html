@@ -8,16 +8,14 @@
 </head>
 <body>
 <main>
-
 <h1>Bugs and lessons</h1>
 <p class="lede">Bugs found and fixed so far, and what each one taught. Many conventions on
 <a href="conventions.html">Conventions and why</a> exist because of one of these.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p>Most bugs were timing or bookkeeping errors that a quick check could not see: a sign shared by the forward and inverse filter, an
 unremoved filter delay, a missing covariance. Each one became a rule. Check each direction against the physics; remove every delay;
 track every correlation; test every branch, the way Jasper runs it. The statistical lessons are about checks themselves: quote their
-uncertainty, and do not trust one seed.</p></div>
+uncertainty, and do not trust one seed.</p>
 
 <h2 id="bugs">The bugs</h2>
 
@@ -157,7 +155,7 @@ bit.</td><td>A diagnostic computed in the data's precision can hide in its own r
   <text class="sub" x="816" y="74.9" text-anchor="end">→ 1.5: variance 1.5× too small</text>
   <text class="ttl" x="520" y="20">b · summing neighbours: the missing covariance</text>
 </svg>
-<figcaption>Lesson #8 in one picture. a: linear assignment splits a time bin's power between the two nearest phase bins, which removes
+<figcaption><b>Figure 1.</b> Lesson #8 in one picture. a: linear assignment splits a time bin's power between the two nearest phase bins, which removes
 a timing bias but makes neighbours share noise (schematic, split 70/30 as an example). b: any sum over bins, such as the template fit,
 then has more variance than a model with independent bins predicts: 1 + 2·0.25·(<var>k</var>−1)/<var>k</var>, up to 1.5× for a wide
 pulse. The fold now tracks this covariance (<code>weightX</code>), so the error bars include it.</figcaption>

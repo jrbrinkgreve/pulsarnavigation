@@ -45,8 +45,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Smear left inside one channel by incoherent dedispersion, against channel width, for DM 25 and DM 100">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>What incoherent dedispersion would leave behind: shifting a channel by one delay leaves the sweep <em>inside</em> it, here at the
-bottom of the band, where it is largest (τ(1.2 GHz) − τ(1.2 GHz + width), the code's constant). The dots are the pipeline's 3.125 MHz
-channels. Filtering the voltage with the inverse chirp, as <code>applyInverseDispersion</code> does, leaves no smear at any width.</figcaption>
+<figcaption><b>Figure 5.3.</b> What incoherent dedispersion would leave behind: the sweep <em>inside</em> one channel after shifting it by one delay, at
+the bottom of the band, where it is largest (τ(1.2 GHz) − τ(1.2 GHz + width)). The dots are the pipeline's 3.125 MHz channels. Filtering
+the voltage with the inverse chirp leaves no smear at any width.</figcaption>
 </figure>'''
 open('smear.svg', 'w').write(svg)

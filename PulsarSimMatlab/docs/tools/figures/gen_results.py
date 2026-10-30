@@ -43,7 +43,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 320" role="img" aria-label="TOA error versus SNR, and the yield of good TOAs versus SNR per sub-integration">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>a: the numbers of the table above (full band, 1 turn per sub-int). From −15 dB up the measured scatter follows the predicted
+<figcaption><b>Figure 2.</b> a: the numbers of the table above (full band, 1 turn per sub-int). From −15 dB up the measured scatter follows the predicted
 error bar; below, outliers (fits on noise peaks) blow up the rms while the core stays on the prediction. At high SNR FFTFIT stops
 improving (self-noise) while the optimum keeps falling. b: the threshold sweep of section 9: the detector and χ² remove every outlier,
 and above SNR 6–7 per sub-int nearly every TOA is usable.</figcaption>

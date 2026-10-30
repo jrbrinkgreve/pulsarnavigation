@@ -38,9 +38,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Hours per day each candidate pulsar is above 20 degrees elevation, against the latitude of the station">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Where you are decides which pulsars you can use: hours per day each candidate is more than 20° above the horizon,
-against the station's latitude (the scenario's visibility rule). J0437 and Vela, the two best sources, are southern: from 30° S
-each is up about 12 h a day, from 52° N never. B0329+54 is the only fast northern source. A TOA that needs 21 hours on source
-therefore takes about two days of calendar time for J0437 from 30° S (<a href="limits.html">limitations</a>).</figcaption>
+<figcaption><b>Figure R.2.</b> Hours per day each candidate is more than 20° above the horizon, against the station's latitude (the scenario's visibility
+rule). J0437 and Vela, the two best sources, are southern: from 30° S each is up about 12 h a day, from 52° N never. B0329+54 is the only
+fast northern source. A TOA that needs 21 hours on source therefore takes about two days of calendar time for J0437 from 30° S
+(<a href="limits.html">limitations</a>).</figcaption>
 </figure>'''
 open('visibility.svg', 'w').write(svg)

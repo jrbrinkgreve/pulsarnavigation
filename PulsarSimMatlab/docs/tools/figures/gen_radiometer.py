@@ -62,10 +62,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Radiometer equation: averaged power scatters less with more samples, as one over the square root of bandwidth times bin length">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The radiometer equation, simulated with complex Gaussian noise. a: one power sample scatters as much as its mean
-(100 %); an average over <var>n</var> samples scatters 1/√<var>n</var> as much. b: what counts is not the number of samples but how
-many are independent: <var>B</var>·Δ<var>t</var>. Noise filtered to half the band has neighbouring samples that are correlated, so
-an average of <var>n</var> samples holds only ~<var>n</var>/2 independent ones (orange). The lines are the exact sums of Isserlis'
-theorem, the formula behind the whole noise model.</figcaption>
+<figcaption><b>Figure P.4.</b> The radiometer equation, simulated with complex Gaussian noise. (a) One power sample scatters as much as its mean (100 %); an
+average over <var>n</var> samples scatters 1/√<var>n</var> as much. (b) What counts is how many samples are independent:
+<var>B</var>·Δ<var>t</var>. Noise filtered to half the band has correlated neighbours, so an average of <var>n</var> samples holds only
+~<var>n</var>/2 independent ones (orange). The lines are the exact sums of Eq. (P.8).</figcaption>
 </figure>'''
 open('radiometer.svg', 'w').write(svg)

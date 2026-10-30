@@ -64,7 +64,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {H}" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The 31 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption><b>Figure 2.</b> The 31 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>

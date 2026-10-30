@@ -8,30 +8,26 @@
 </head>
 <body>
 <main>
-
 <h1>Stage 7 · Phase prediction and folding</h1>
 <p class="lede">Stage 7a predicts the pulse phase that the receiver should see. Stage 7 folds the data on that phase.</p>
 
 <div class="toc"><b>On this page</b><ol>
-<li><a href="#prediction">Phase prediction (7a)</a>: <a href="#prediction-why">why it is needed</a> · <a href="#trajectory"><code>makeTrajectory</code></a> · <a href="#delay"><code>delayModel</code></a> ·
-<a href="#ephemeris"><code>loadEphemeris</code></a> · <a href="#makepredictor"><code>makePredictor</code></a></li>
-<li><a href="#fold">Folding (7), <code>foldProfile</code></a>: <a href="#idea">the idea</a> · <a href="#how">how it works</a> · <a href="#weights">the weights</a> ·
-<a href="#noisecoeffs">correlated time bins</a> · <a href="#dataweights">data weights</a> · <a href="#predictor">folding with a predictor</a> · <a href="#why">design choices</a> ·
-<a href="#choose">choosing NBin and the sub-int length</a></li>
+<li><a href="#prediction">7a · Phase prediction</a>: <a href="#prediction-why">why</a> · <a href="#trajectory"><code>makeTrajectory</code></a> ·
+<a href="#delay"><code>delayModel</code></a> · <a href="#ephemeris"><code>loadEphemeris</code></a> · <a href="#makepredictor"><code>makePredictor</code></a></li>
+<li><a href="#fold">7 · Folding, <code>foldProfile</code></a>: <a href="#idea">the phase model</a> · <a href="#how">folding a time bin</a> ·
+<a href="#weights">the weights</a> · <a href="#noisecoeffs">correlated time bins</a> · <a href="#dataweights">data weights</a> ·
+<a href="#predictor">with a predictor</a> · <a href="#choose">NBin and sub-int length</a></li>
 </ol></div>
 
 <h2 id="prediction">7a · Phase prediction for a moving receiver</h2>
-<p>A pulsar's rotation is a clock at the centre of mass of the solar system, the barycentre. The receiver moves with the
-Earth and with its ship, so the pulses reach it early or late by up to ±500 s over a year and ±8 ms over a day. This stage predicts
-that motion, so that the fold (stage 7) stays aligned over hours and days. What the prediction does not explain becomes the position,
-in stage 10.</p>
+<p>A pulsar's rotation is a clock at the centre of mass of the solar system, the barycentre. The receiver moves with the Earth and with
+its ship, so the pulses reach it early or late by up to ±500 s over a year and ±8 ms over a day. This stage predicts that motion, so that
+the fold (stage 7) stays aligned over hours and days. What the prediction does not explain becomes the position, in stage 10.</p>
 <p class="meta">Functions: <code>makeTrajectory</code> → <code>delayModel</code> (with <code>loadEphemeris</code>) → <code>makePredictor</code>, run by the observer
 from the ephemeris and the trajectory it assumes · the fold follows the result: <a href="#predictor"><code>foldProfile('Predictor',
 …)</code></a> · the simulator's truth: <a href="simulator.html#truth"><code>trueResiduals</code></a> and the receiver's clock
 <a href="receiver.html#clock"><code>makeClock</code></a> · frames, time scales and relativity: <a href="localisation.html">localisation</a>
 · block D</p>
-
-
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 170" role="img" aria-label="Stage 7a in the chain: a trajectory and the timing model give delays, the delays give a phase predictor, the fold evaluates the predictor; its TOAs feed navigation, which will later update the trajectory">
   <defs>
@@ -65,22 +61,21 @@ from the ephemeris and the trajectory it assumes · the fold follows the result:
   <path class="dash" d="M795 95 V150 H90 V130" marker-end="url(#ar-mo)"/>
   <text class="sub" x="440" y="145" text-anchor="middle">the filter updates the trajectory (runShip: every evening)</text>
 </svg>
-<figcaption>Stage 7a in the chain. The receiver's trajectory and the pulsar's timing model give the delays; the delays give a phase
-predictor; the fold (stage 7) only evaluates the predictor. Its TOAs go to navigation (stage 10). The dashed line is navigation's
-estimate fed back as an updated trajectory. The ship scenario does this every evening: the filter's corrected track becomes the next
-day's assumed trajectory, through <code>makeTrajectory('custom', …)</code> (<a href="scripts.html#ship"><code>runShip</code></a>).</figcaption>
+<figcaption><b>Figure 7a.1.</b> Stage 7a in the chain. The receiver's trajectory and the pulsar's timing model give the delays; the delays give a phase
+predictor; the fold only evaluates the predictor, and its TOAs go to navigation (stage 10). Dashed: navigation's estimate fed back as an
+updated trajectory, which the ship scenario does every evening through <code>makeTrajectory('custom', …)</code>
+(<a href="scripts.html#ship"><code>runShip</code></a>).</figcaption>
 </figure>
 
-<h2 id="prediction-why">Why the phase must be predicted</h2>
-<p>The fold assigns every time bin a pulse phase. Without a predictor it uses a constant spin rate: φ(<var>t</var>) = <var>f</var>₀·(<var>t</var> −
-TRef). That is only right for a receiver at rest relative to the barycentre.</p>
-<p>A real receiver moves. Its distance to the pulsar changes, so each pulse travels a little longer or shorter. The Earth's orbital
-speed changes the arrival rate by up to 10⁻⁴, a Doppler shift. Within one 120 s sub-integration that moves the pulse by 12 ms. That is
-more than B0329+54's 5 ms core width. For J0437 a 300 s sub-integration drifts by five whole turns. Without a prediction, every fold
-longer than a few minutes smears out.</p>
-<p>This stage therefore computes the delay from the receiver to the barycentre. It turns that into a predicted phase, and the fold
-follows it. In the test, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one without Doppler: the profiles agree to 10⁻⁸ of
-the peak.</p>
+<h3 id="prediction-why">7a.1 Why the phase must be predicted</h3>
+<p>The fold assigns every time bin a pulse phase. Without a predictor it uses a constant spin rate, φ(<var>t</var>) = <var>f</var>₀·(<var>t</var> −
+TRef), which is only right for a receiver at rest relative to the barycentre. A real receiver moves, so each pulse travels a little longer
+or shorter. The Earth's orbital speed changes the arrival rate by up to 10⁻⁴, a Doppler shift. Within one 120 s sub-integration that
+moves the pulse by 12 ms, more than B0329+54's 5 ms core width (Figure 7a.2). For J0437 a 300 s sub-integration drifts by five whole
+turns. Without a prediction, every fold longer than a few minutes smears out.</p>
+<p>This stage therefore computes the delay from the receiver to the barycentre, turns it into a predicted phase, and the fold follows
+it. In the test, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one without Doppler: the profiles agree to 10⁻⁸ of the
+peak.</p>
 <!-- generated by docs/tools/figures/gen_dopsmear.py -->
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="B0329+54's pulse within a 120 s sub-int with a Doppler factor of 1e-4: with a constant spin rate the pulse walks by 12 ms and the folded profile is smeared; with the predictor it stays in place and the fold is sharp">
@@ -250,13 +245,12 @@ the peak.</p>
   <text class="sub" x="723.9" y="141.1" style="fill:var(--series-2)">constant rate</text>
   <text class="ttl" x="600" y="22">b · the folded sub-int</text>
 </svg>
-<figcaption>Why the fold needs a predicted phase. B0329+54's pulse (its five components) in one 120 s sub-int, while the Earth's orbit
-changes the arrival rate by 10⁻⁴. a: one row every 5 s, at the phase the fold assigns. With a constant spin rate the pulse walks by
-12 ms, more than twice its 5 ms core. With the predictor every row stays in place. b: the fold is the average of the rows. The walk
-lowers its peak to 64 % and widens it, so the TOA loses precision. A J0437 sub-int of 300 s would walk by
-five whole turns, and its fold would be flat. Generated by <code>docs/tools/figures/gen_dopsmear.py</code>.</figcaption>
+<figcaption><b>Figure 7a.2.</b> B0329+54's pulse (five components) in one 120 s sub-int, while the Earth's orbit changes the arrival rate by 10⁻⁴. (a) One
+row every 5 s, at the phase the fold assigns. With a constant spin rate the pulse walks by 12 ms, more than twice its 5 ms core; with the
+predictor every row stays in place. (b) The fold, the average of the rows. The walk lowers its peak to 64 % and widens it. A J0437 sub-int
+of 300 s would walk by five whole turns. Generated by <code>docs/tools/figures/gen_dopsmear.py</code>.</figcaption>
 </figure>
-<p>The terms of the delay, and how large they are:</p>
+<p>The delay has several terms:</p>
 <div class="table-wrap"><table>
 <tr><th>Term</th><th>What it is</th><th>Size</th></tr>
 <tr><td>Roemer, Earth's orbit</td><td>Light-travel time across the Earth's offset from the barycentre</td><td>±412 s per year for
@@ -270,25 +264,25 @@ line of sight</td></tr>
 <tr><td>Dispersion at the Doppler-shifted frequency (not modelled)</td><td>The dispersion delay holds at the barycentric frequency, which
 the Earth's orbit shifts by up to 10⁻⁴</td><td>±7.1 µs per year for B0329+54</td></tr>
 </table></div>
-<p>The last two terms are not in <code>delayModel</code>. J0437's binary orbit was parked at the close of block D: J0437 never rises at
-52° N (<a href="navigation.html#next">navigation</a>). The Doppler-shifted dispersion delay cancels in the simulator, so it matters only
-for real data (<a href="limits.html#propagation">limitations</a>).</p>
-<p>Sections 2–4 build the prediction in three steps. The fold then follows it (<a href="#predictor">stage 7</a>). The fast
-simulator places the true pulses against it (<a href="simulator.html#truth"><code>trueResiduals</code></a>). The difference between
-the two is what navigation measures (<a href="navigation.html">stage 10</a>).</p>
+<p>The last two terms are not in <code>delayModel</code>. J0437's binary orbit was parked at the close of block D, because J0437 never
+rises at 52° N (<a href="navigation.html#next">navigation</a>). The Doppler-shifted dispersion delay cancels in the simulator, so it
+matters only for real data (<a href="limits.html#propagation">limitations</a>). Sections 7a.2–7a.5 build the prediction in three steps:
+where the receiver is, the delay to the barycentre, and the predicted phase. The fold then follows it (Section 7.6), the fast simulator
+places the true pulses against it (<a href="simulator.html#truth"><code>trueResiduals</code></a>), and the difference between the two is
+what navigation measures (<a href="navigation.html">stage 10</a>).</p>
 <details><summary>History</summary>
 <p>Block D's design was agreed on 21 Oct 2026: an analytic Earth orbit first and DE440 at the end, and a phase predictor with a
 trajectory interface, for sensor fusion. Later the same day it was decided that the observer folds with its own clock estimate. Steps
 D1 (where the receiver is, the delays) and D2 (the predictor, the fold that follows it) were built on 21 Oct. Their tests pass in
 Jasper's run of 22 Oct.</p></details>
 
-<h2 id="trajectory">7a · <code>makeTrajectory</code>: where the receiver is <span class="badge validated">validated</span></h2>
+<h3 id="trajectory">7a.2 <code>makeTrajectory</code>: where the receiver is <span class="badge validated">validated</span></h3>
 <div class="sig">traj = makeTrajectory(type, ...)</div>
 <p class="meta"><a href="api.html#maketrajectory">Full interface and help text of <code>makeTrajectory</code> →</a></p>
-<h3>In short</h3>
-<p><code>makeTrajectory</code> describes where the receiver is at any time. It returns one struct with a position function and a
-velocity function. The delay model and the predictor only ever see this struct, so they work the same for every kind of receiver.</p>
-<h3>How it works</h3>
+<p><code>makeTrajectory</code> describes where the receiver is at any time: one struct with a position function and a velocity
+function. The delay model and the predictor only ever see this struct, so they work the same for every kind of receiver. The end goal is
+sensor fusion, in which a motion predictor such as a Kalman filter supplies the trajectory; the <code>'custom'</code> type is where it
+plugs in, and nothing else in block D needs to know what kind of vehicle it is.</p>
 <div class="table-wrap"><table>
 <tr><th>Type</th><th>The receiver</th><th>Frame</th></tr>
 <tr><td><code>'fixed'</code></td><td>A site on the ground, given as latitude, longitude and height. An offset in east, north and up can move
@@ -298,13 +292,9 @@ it, for example to put the true site 100 km from the assumed one.</td><td>Earth-
 <tr><td><code>'barycentric'</code></td><td>A deep-space probe, given as positions relative to the barycentre.</td><td>Barycentric</td></tr>
 <tr><td><code>'custom'</code></td><td>Anything that can return positions, such as a Kalman filter's propagated state.</td><td>Either</td></tr>
 </table></div>
-<p>Times are seconds since J2000.0 (1 January 2000, 12:00 TT). Positions are in metres. The Earth-fixed frame rotates with the Earth;
-the delay model adds that rotation.</p>
-<div class="callout why"><span class="ttl">One entry point for every vehicle</span>
-<p>The end goal is sensor fusion: the pulsars combined with the vehicle's own motion sensors, on a ship or on a deep-space probe. A
-motion predictor such as a Kalman filter then supplies the trajectory. The <code>'custom'</code> type is where it plugs in. Nothing else
-in block D needs to know what kind of vehicle it is.</p></div>
-<h3>Options and outputs</h3>
+<p>Times are seconds since J2000.0 (1 January 2000, 12:00 TT). Positions are in metres. The Earth-fixed frame rotates with the Earth; the
+delay model adds that rotation.</p>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>Lat</code>, <code>Lon</code>, <code>Height</code> (0 m), <code>OffsetENU</code> ([0 0 0] m) for
 <code>'fixed'</code>; <code>Time</code> with <code>Lat</code>, <code>Lon</code>, <code>Height</code> for <code>'track'</code>, or with
@@ -316,8 +306,9 @@ given) for <code>'custom'</code></dd>
 <code>tRange</code> (where it is valid), <code>params</code>; for <code>'fixed'</code> also <code>ecef</code> (the point) and
 <code>enu</code> (its local east, north and up unit vectors)</dd>
 </dl>
-<h3>Tests (<code>tests/testMakeTrajectory.m</code>)</h3>
-<p>The positions and velocities agree with closed forms and with an independent conversion back to latitude and longitude.</p>
+</details>
+<p><b>Tests</b> (<code>tests/testMakeTrajectory.m</code>). The positions and velocities agree with closed forms and with an independent
+conversion back to latitude and longitude.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Fixed site</td><td>The ellipsoid geometry, and an offset of 100 km east.</td><td>Back to latitude and longitude to
@@ -333,23 +324,21 @@ bad inputs are refused.</td></tr>
 <p>Added 21 Oct 2026 as step D1a. The <code>'spline'</code> option was added while writing the test: <code>pchip</code> leaves metres of
 error on an hourly orbit, the spline 1 mm.</p></details>
 
-<h2 id="delay">7a · <code>delayModel</code>: from the receiver to the barycentre <span class="badge validated">validated</span></h2>
+<h3 id="delay">7a.3 <code>delayModel</code>: from the receiver to the barycentre <span class="badge validated">validated</span></h3>
 <div class="sig">d = delayModel(t, traj, psr, ...)</div>
 <p class="meta"><a href="api.html#delaymodel">Full interface and help text of <code>delayModel</code> →</a></p>
-<h3>In short</h3>
-<p><code>delayModel</code> gives the time to add to the receiver's arrival time to get the arrival time at the barycentre. It returns
-the total and each term separately.</p>
-<h3>How it works</h3>
+<p><code>delayModel</code> gives the time to add to the receiver's arrival time to get the arrival time at the barycentre: the total and
+each term separately. It works in three steps.</p>
 <ol>
 <li><b>The Earth:</b> by default, the centre of mass of the Earth and Moon follows a Keplerian orbit around the Sun, from JPL's
-approximate orbital elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU. The Moon moves the Earth around
+approximate orbital elements. Jupiter and Saturn move the Sun around the barycentre, by about 0.005 AU, and the Moon moves the Earth around
 the Earth–Moon centre by about 4700 km. With <code>'Ephemeris'</code> the Earth and the Sun come from JPL's DE440 instead
-(<a href="#ephemeris">loadEphemeris</a>).</li>
+(<a href="#ephemeris">Section 7a.4</a>).</li>
 <li><b>The receiver:</b> an Earth-fixed position is turned with the Earth's rotation angle and added to the Earth's position. With
-<code>'Ephemeris'</code> it is turned with the Earth's real axis instead: precession, nutation and apparent sidereal time. A
-barycentric trajectory is used as it is.</li>
-<li><b>The terms:</b> the Roemer delay projects the receiver's position onto the direction of the pulsar. The Einstein delay and the
-Shapiro delay are added from their standard formulas.</li>
+<code>'Ephemeris'</code> it is turned with the Earth's real axis instead: precession, nutation and apparent sidereal time. A barycentric
+trajectory is used as it is.</li>
+<li><b>The terms:</b> the Roemer delay projects the receiver's position onto the direction of the pulsar. The Einstein and Shapiro delays
+are added from their standard formulas.</li>
 </ol>
 <details><summary>The formulas and their signs</summary>
 <p>With <var>r</var> the receiver relative to the barycentre and <var>n̂</var> the unit vector to the pulsar:</p>
@@ -366,26 +355,24 @@ mean anomaly, plus a site term <var>v</var><sub>E</sub>·<var>r</var><sub>site</
 <var>T</var><sub>⊙</sub> = <var>GM</var><sub>⊙</sub>/<var>c</var>³ = 4.925 µs. It becomes strongly negative when the Sun is close to
 the line of sight.</li>
 </ul></details>
-<div class="callout why"><span class="ttl">An analytic Earth for simulations, DE440 for real data</span>
-<p>The analytic orbit puts the Earth within about 1.5·10⁴ km of its true distance from the Sun. The Sun itself is off by up to
-3·10⁵ km from the barycentre, because the analytic model leaves out Uranus and Neptune. B0329+54's Roemer delay is then off by up to
-0.66 s, and 71 ms of that varies within two years. In the simulator this does not matter, because the true delays and the predicted ones
-come from the same model. Only their difference reaches the navigation fit, and that difference is the same with either orbit to
-2·10⁻¹² s. Real data
-need JPL's planetary ephemeris DE440, which is accurate to centimetres, plus precession and nutation of the Earth's axis.
-<code>loadEphemeris</code> reads DE440 (<a href="#ephemeris">below</a>), and <code>delayModel</code> takes it behind the same interface,
-with the option <code>'Ephemeris'</code>. The analytic orbit stays the default, so every simulation keeps its numbers.</p></div>
+<p><b>An analytic Earth for simulations, DE440 for real data.</b> The analytic orbit puts the Earth within about 1.5·10⁴ km of its true
+distance from the Sun, but the Sun itself is off by up to 3·10⁵ km from the barycentre, because the model leaves out Uranus and Neptune.
+B0329+54's Roemer delay is then off by up to 0.66 s, and 71 ms of that varies within two years. In the simulator this does not matter: the
+true and the predicted delays come from the same model, and only their difference reaches the navigation fit, which is the same with
+either orbit to 2·10⁻¹² s. Real data need DE440, accurate to centimetres, plus precession and nutation of the Earth's axis.
+<code>delayModel</code> takes it behind the same interface, with the option <code>'Ephemeris'</code>. The analytic orbit stays the
+default, so every simulation keeps its numbers.</p>
 <div class="callout warn"><span class="ttl">What <code>delayModel</code> leaves out</span>
 <ul>
-<li><b>Dispersion.</b> The model has no dispersion term. The predictor takes the dispersion delay at the reference frequency as a constant,
-part of the phase reference. Against real data that misses the annual term of the Doppler-shifted dispersion delay: ±7.1 µs for
-B0329+54, ±0.3 µs for J0437 (<a href="limits.html#propagation">limitations</a>).</li>
-<li><b>UT1 − UTC and polar motion.</b> <code>'DeltaT'</code> (TT − UT1) is one number, 69.184 s by default; the real value changes by
-up to about 0.9 s, which moves a site by up to about 0.4 km (260 m at 52° N; <a href="localisation.html#missing">localisation</a>).
-Polar motion is about 10 m.</li>
-<li><b>A binary orbit</b> (above).</li>
+<li><b>Dispersion.</b> The predictor takes the dispersion delay at the reference frequency as a constant, part of the phase reference.
+Against real data that misses the annual term of the Doppler-shifted dispersion delay: ±7.1 µs for B0329+54, ±0.3 µs for J0437
+(<a href="limits.html#propagation">limitations</a>).</li>
+<li><b>UT1 − UTC and polar motion.</b> <code>'DeltaT'</code> (TT − UT1) is one number, 69.184 s by default; the real value changes by up to
+about 0.9 s, which moves a site by up to about 0.4 km (260 m at 52° N; <a href="localisation.html#missing">localisation</a>). Polar motion
+is about 10 m.</li>
+<li><b>A binary orbit</b> (Section 7a.1).</li>
 </ul></div>
-<h3>Options and outputs</h3>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>Terms</code> (all four: <code>"roemer"</code>, <code>"curvature"</code>, <code>"einstein"</code>,
 <code>"shapiro"</code>), <code>Moon</code> (true), <code>Planets</code> (true: Jupiter and Saturn move the Sun), <code>Ephemeris</code>
@@ -395,8 +382,8 @@ Polar motion is about 10 m.</li>
 <code>shapiro</code>) in seconds; <code>rObs</code>, <code>vObs</code> (the receiver relative to the barycentre); <code>rEarth</code>,
 <code>vEarth</code>, <code>rSun</code>; <code>nHat</code> (the direction to the pulsar); <code>frame</code>; <code>model</code></dd>
 </dl>
-<h3>Tests (<code>tests/testDelayModel.m</code>)</h3>
-<p>Each term agrees with a closed form computed independently in the test.</p>
+</details>
+<p><b>Tests</b> (<code>tests/testDelayModel.m</code>). Each term agrees with a closed form computed independently in the test.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Orbit</td><td>Perihelion and aphelion distances; the Sun's and the Moon's offsets.</td><td>a(1 ∓ e) to 2·10⁻⁷ AU. Both
@@ -428,33 +415,29 @@ The comparison with DE440 showed that the analytic orbit's absolute error had be
 the Sun, not for the barycentre. Precession, nutation and the <code>'DeltaT'</code> option followed the same day with test 11 (step D5d).
 Test 10's bound on the 100 km measurement then had to allow for the turn of the real axis.</p></details>
 
-<h2 id="ephemeris">7a · <code>loadEphemeris</code>: JPL's DE440 <span class="badge validated">validated</span></h2>
+<h3 id="ephemeris">7a.4 <code>loadEphemeris</code>: JPL's DE440 <span class="badge validated">validated</span></h3>
 <div class="sig">eph = loadEphemeris(file);  [r, v] = eph.earth(t)</div>
 <p class="meta"><a href="api.html#loadephemeris">Full interface and help text of <code>loadEphemeris</code> →</a></p>
-<h3>In short</h3>
-<p>JPL's planetary ephemeris DE440 gives the positions of the Sun, the Earth and the Moon relative to the barycentre. For the Earth
-today it is accurate to well below a metre. <code>loadEphemeris</code> reads JPL's binary file once. It returns functions that evaluate
-it, in the same way as a trajectory from <code>makeTrajectory</code>.</p>
-<h3>How it works</h3>
+<p>JPL's planetary ephemeris DE440 gives the positions of the Sun, the Earth and the Moon relative to the barycentre; for the Earth today
+it is accurate to well below a metre. <code>loadEphemeris</code> reads JPL's binary file once and returns functions that evaluate it, in
+the same way as a trajectory.</p>
 <ol>
-<li><b>The file:</b> <code>de440s.bsp</code> from JPL's NAIF server, 32.7 MB, covering 1850 to 2150. It lives in
-<code>data/ephem/</code>.</li>
-<li><b>The segments:</b> each body has a sequence of equal time intervals. Each interval holds Chebyshev polynomial coefficients for
-<var>x</var>, <var>y</var> and <var>z</var>.</li>
-<li><b>Evaluation:</b> the time selects the interval. The polynomials give the position, and their derivatives give the velocity.</li>
+<li><b>The file:</b> <code>de440s.bsp</code> from JPL's NAIF server, 32.7 MB, covering 1850 to 2150, in <code>data/ephem/</code>.</li>
+<li><b>The segments:</b> each body has a sequence of equal time intervals, each holding Chebyshev polynomial coefficients for <var>x</var>,
+<var>y</var> and <var>z</var>.</li>
+<li><b>Evaluation:</b> the time selects the interval; the polynomials give the position, and their derivatives the velocity.</li>
 <li><b>The chain:</b> the file stores the Earth relative to the Earth–Moon barycentre, and that barycentre relative to the solar-system
 barycentre. The function adds the links up.</li>
 <li><b>TDB − TT:</b> at loading, the function integrates the rate of a clock at the geocentre along the Earth's path, every 6 hours over
-the whole file. That rate follows from the Earth's speed and the potential of the Sun, the Moon and the planets. The integral takes
-0.8 s and replaces the analytic model's two terms.</li>
+the whole file, from the Earth's speed and the potential of the Sun, the Moon and the planets. The integral takes 0.8 s and replaces the
+analytic model's two terms.</li>
 </ol>
-<p>The time is TDB, the ephemeris' own time scale. The frame is ICRF, which is the J2000 equator and equinox to 0.02″.</p>
-<div class="callout why"><span class="ttl">Reading JPL's file directly</span>
-<p><b>Alternative:</b> MATLAB's <code>planetEphemeris</code> from the Aerospace Toolbox, or JPL's SPICE toolkit.</p>
-<p><b>Why not:</b> the toolbox is not installed, and SPICE is a large external dependency. The file format is simple: about 60 lines of
-MATLAB read it. JPL's own Horizons service then checks the result to centimetres.</p></div>
-<h3>Tests (<code>tests/testLoadEphemeris.m</code>)</h3>
-<p>The Earth from the file agrees with JPL's Horizons service to a few centimetres.</p>
+<p>The time is TDB, the ephemeris' own time scale. The frame is ICRF, which is the J2000 equator and equinox to 0.02″. The function reads
+JPL's file directly, rather than through MATLAB's <code>planetEphemeris</code> from the Aerospace Toolbox (not installed) or JPL's SPICE
+toolkit (a large external dependency): the format is simple, and about 60 lines of MATLAB read it. JPL's own Horizons service then checks
+the result to centimetres.</p>
+<p><b>Tests</b> (<code>tests/testLoadEphemeris.m</code>). The Earth from the file agrees with JPL's Horizons service to a few
+centimetres.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Horizons</td><td>The geocentre relative to the barycentre at three dates between 2000 and 2045, against JPL's Horizons
@@ -471,21 +454,19 @@ every time to 10⁻¹².</td></tr>
 go-ahead for D5. TDB − TT followed the same day (step D5c). A first comparison removed a linear trend from the integral; that trend is
 real over 2000–2050, and the published series has it too.</p></details>
 
-<h2 id="makepredictor">7a · <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h2>
+<h3 id="makepredictor">7a.5 <code>makePredictor</code>: the predicted pulse phase <span class="badge validated">validated</span></h3>
 <div class="sig">pred = makePredictor(psr, traj, [t1 t2], ...)</div>
 <p class="meta"><a href="api.html#makepredictor">Full interface and help text of <code>makePredictor</code> →</a></p>
-<h3>In short</h3>
-<p><code>makePredictor</code> computes the pulse phase the receiver should see, once per observation. It stores the phase as short
-polynomials, so the fold only has to evaluate them.</p>
-<h3>How it works</h3>
+<p><code>makePredictor</code> computes the pulse phase the receiver should see, once per observation, and stores it as short polynomials,
+so that the fold only has to evaluate them.</p>
 <ol>
 <li><b>The phase at the barycentre:</b> φ = Φ₀ + <var>f</var>₀·(<var>t</var><sub>SSB</sub> − TRef) + ½·<var>F</var>1·(<var>t</var><sub>SSB</sub> −
 TRef)², the pulsar's timing model.</li>
 <li><b>The arrival time:</b> a pulse received at time <var>t</var> reaches the barycentre at <var>t</var><sub>SSB</sub> = <var>t</var> +
 Δ(<var>t</var>), with Δ from <code>delayModel</code>.</li>
 <li><b>Segments:</b> the span is cut into one-hour segments. In each, the phase is fitted with a Chebyshev polynomial of degree 12.</li>
-<li><b>Checks:</b> each segment is compared with the direct computation between its fitting points. A segment that misses 1 ns is
-split in two, until it passes. A ship's sharp turn is the typical case: around it the segments shrink to a few seconds.</li>
+<li><b>Checks:</b> each segment is compared with the direct computation between its fitting points. A segment that misses 1 ns is split in
+two, until it passes. A ship's sharp turn is the typical case: around it the segments shrink to a few seconds (Figure 7a.3).</li>
 </ol>
 <!-- generated by docs/tools/figures/gen_predseg.py -->
 <figure class="scroll">
@@ -602,28 +583,26 @@ split in two, until it passes. A ship's sharp turn is the typical case: around i
   <text class="sub" x="744.0" y="216.4" style="fill:var(--series-2)">7 s</text>
   <text class="ttl" x="640" y="22">c · the segments near the turn</text>
 </svg>
-<figcaption>How <code>makePredictor</code> handles a ship's sharp turn, replayed from its test 5. a: the ship sails east, and after
-3.3 h turns north. b: the delay its position adds to a 100 Hz pulsar in B0329+54's direction. At the turn the delay has a kink, which no
-smooth polynomial can follow. The orange ticks mark where segments begin. c: the segment lengths near the turn. Every segment that
-misses the 1 ns check is split in two, so the segments halve towards the turn, from one hour down to 7 s. Away
-from the turn one hour passes. The result is 15 segments, and every one is within 1 ns. Generated by
+<figcaption><b>Figure 7a.3.</b> <code>makePredictor</code> around a ship's sharp turn, replayed from its test 5. (a) The ship sails east and after 3.3 h turns
+north. (b) The delay its position adds to a 100 Hz pulsar in B0329+54's direction, with a kink at the turn that no smooth polynomial can
+follow; orange ticks mark where segments begin. (c) The segment lengths: every segment that misses the 1 ns check is split in two, so they
+halve towards the turn, from one hour down to 7 s. The result is 15 segments, every one within 1 ns. Generated by
 <code>docs/tools/figures/gen_predseg.py</code>, with ports of <code>makePredictor</code>'s loop and of <code>delayModel</code>.</figcaption>
 </figure>
-<p>The predictor returns the phase and the observed spin frequency. That frequency includes the Doppler shift.</p>
-<p>The receiver's samples are timed by its own oscillator, so the data's time stamps are clock readings, not true time. With the option
-<code>'Clock'</code> the predictor gets the observer's estimate of its clock error. It turns each clock reading into its best estimate of
-true time before it computes the delays. A commercial SDR's oscillator is specified to ±2 ppm. Without this correction that rate would
-move the pulse by 240 µs within a 120 s sub-integration, like an uncorrected Doppler shift.</p>
-<div class="callout why"><span class="ttl">Polynomials instead of delays inside the fold</span>
-<p>Radio observatories do the same: they compute "polycos" before an observation. It keeps all the physics out of the streaming fold,
-which only evaluates a polynomial. That is also the interface an FPGA or GPU version needs. The trajectory is the predictor's only
-input about the receiver, so a motion predictor plugs in without touching the fold.</p></div>
+<p>The predictor returns the phase and the observed spin frequency, which includes the Doppler shift. The receiver's samples are timed by
+its own oscillator, so the data's time stamps are clock readings, not true time. With the option <code>'Clock'</code> the predictor gets the
+observer's estimate of its clock error, and turns each clock reading into its best estimate of true time before it computes the delays. A
+commercial SDR's oscillator is specified to ±2 ppm; without this correction that rate would move the pulse by 240 µs within a 120 s
+sub-integration, like an uncorrected Doppler shift.</p>
+<p>Radio observatories work the same way: they compute "polycos" before an observation. It keeps all the physics out of the streaming
+fold, which only evaluates a polynomial, and that is also the interface an FPGA or GPU version needs. The trajectory is the predictor's
+only input about the receiver, so a motion predictor plugs in without touching the fold.</p>
 <details><summary>Precision</summary>
 <p>Absolute times (about 8·10⁸ s) and absolute phases (up to about 10¹¹ turns) lose precision in double arithmetic. So the
 polynomials hold the phase counted from the integer turn at the start of the span, as a function of the time since that start. Only
 one constant carries the rounding of the large numbers, about 10⁻⁶ turns, and it is the same for every segment. There are therefore
 no steps between segments.</p></details>
-<h3>Options and outputs</h3>
+<details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>SegLength</code> (3600 s), <code>Degree</code> (12), <code>Tol</code> (10⁻⁹ s: the check every segment must
 pass), <code>MinSeg</code> (1 s: the shortest segment), <code>DelayArgs</code> (options passed on to <code>delayModel</code>, such as
@@ -634,8 +613,9 @@ integer turn <code>N0</code>, and the observed spin frequency), <code>tOrigin</c
 largest timing error the checks found), <code>clock</code>, <code>tOriginTrue</code>. Outside its span it refuses with
 <code>makePredictor:range</code>.</dd>
 </dl>
-<h3>Tests (<code>tests/testMakePredictor.m</code>)</h3>
-<p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns.</p>
+</details>
+<p><b>Tests</b> (<code>tests/testMakePredictor.m</code>). The predicted phase agrees with the timing model evaluated directly, to well
+within 1 ns.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Two days at 52° N</td><td>The phase of a 100 Hz pulsar.</td><td>48 segments, accurate to 1.9·10⁻¹⁰ s.</td></tr>
@@ -653,19 +633,19 @@ turn.</td></tr>
 <p>Added 21 Oct 2026 as step D2a. Three test criteria were corrected while writing the test: the step bound, a truth computed from
 absolute times, and a ship's turn that fell on a segment boundary. The option <code>'Clock'</code> was added the same day as the first
 part of D3c, after Jasper chose to fold with the observer's own clock estimate.</p></details>
+<p>The predictor is now ready. Stage 7 folds the detected power on it.</p>
 
 <h2 id="fold">7 · Folding: <code>foldProfile</code> <span class="badge validated">validated</span></h2>
-<p>Average all turns at the same rotational phase, so the pulse adds up and the noise averages down. The
-fold keeps not just the profile but everything needed to know its noise exactly: how much data went into every phase bin,
-and how strongly neighbouring bins share noise.</p>
 <div class="sig">[info, fold] = foldProfile(info_det, outFile, f0, 'F1', F1, 'TRef', TRef, 'NBin', nBin, 'SubintPeriods', n, ...)</div>
-<p class="meta"><a href="api.html#foldprofile">Full interface and help text of <code>foldProfile</code> →</a></p>
-<p class="meta">Used by both front ends. Channel path adds <code>'NoiseCoeffs'</code> (no excision) or <code>'DataWeights'</code> (with excision).</p>
+<p class="meta"><a href="api.html#foldprofile">Full interface and help text of <code>foldProfile</code> →</a> · used by both front ends;
+the channel path adds <code>'NoiseCoeffs'</code> (no excision) or <code>'DataWeights'</code> (with excision)</p>
+<p>Folding averages all turns at the same rotational phase, so the pulse adds up and the noise averages down. The fold keeps not just the
+profile, but everything needed to know its noise exactly: how much data went into every phase bin, and how strongly neighbouring bins
+share noise.</p>
 
-
-<h3 id="idea">The idea</h3>
-<p>Phase model from the ephemeris (observer knowledge only):</p>
-<div class="eq">\[ \phi(t) = \Phi_0 + f_0\,(t - T_\mathrm{ref}) + \tfrac{1}{2}\,F_1\,(t - T_\mathrm{ref})^2 \]</div>
+<h3 id="idea">7.1 The phase model</h3>
+<p>For a receiver at rest the phase comes from the ephemeris alone, observer knowledge only:</p>
+<div class="eq"><span class="label">(7.1)</span>\[ \phi(t) = \Phi_0 + f_0\,(t - T_\mathrm{ref}) + \tfrac{1}{2}\,F_1\,(t - T_\mathrm{ref})^2 \]</div>
 <dl class="where">
 <dt>\(\phi(t)\)</dt><dd>rotational phase at time \(t\) [turns]</dd>
 <dt>\(t\)</dt><dd>time of a detected time bin [s]</dd>
@@ -674,11 +654,16 @@ and how strongly neighbouring bins share noise.</p>
 <dt>\(f_0\)</dt><dd>spin frequency at \(T_\mathrm{ref}\) [Hz] (<code>f0</code> input, <code>ephem.f0</code>)</dd>
 <dt>\(F_1\)</dt><dd>its time derivative [Hz/s] (<code>'F1'</code>, <code>ephem.F1</code> = 0)</dd>
 </dl>
-<p>The model uses only what the observer knows: the ephemeris. <var>T</var><sub>ref</sub> is set to the first true pulse centre
-(<var>T</var>/2, from <code>ephem.TRef</code>), and Φ<sub>0</sub> = 0. Every true pulse peak is then at a whole number of turns.</p>
-<p>A moving receiver needs a predicted phase instead: see <a href="#predictor">folding with a predictor</a>.</p>
-<p>Each detected time bin is assigned to phase bins by its phase. Averaging over <var>N</var> turns improves the SNR by √<var>N</var>.</p>
-
+<p><var>T</var><sub>ref</sub> is the first true pulse centre (<var>T</var>/2, from <code>ephem.TRef</code>), and Φ<sub>0</sub> = 0, so every
+true pulse peak is at a whole number of turns. A moving receiver uses the predicted phase of Section 7a.5 instead (Section 7.6). Each
+detected time bin is assigned to phase bins by its phase, and averaging over <var>N</var> turns improves the SNR by √<var>N</var>
+(Figure 7.1).</p>
+<p>The fold works on detected power, after dedispersion. The pulsar is noise whose power changes with phase, so the profile is a profile
+of <em>power</em>: square first, then fold, then match the template (<a href="fullband.html#detect-why">full-band page</a>). After
+dedispersion, each time bin already holds every frequency of the same instant. The turns are cut halfway between pulses: with
+<code>ephem.TRef</code> at a pulse centre, the cut at φ = <var>k</var> + ½ falls in the off-pulse region, so a pulse is never split between
+two sub-ints. The pulse sits at phase 0, the start of the stored profile (and wraps to its end), which is where the TOA fit expects the
+template.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 380" role="img" aria-label="Folding: the time series is cut into turns by the ephemeris phase, the turns are stacked by phase and averaged into a profile">
   <defs>
@@ -747,21 +732,20 @@ and how strongly neighbouring bins share noise.</p>
   <path class="line" marker-end="url(#ar-fo)" d="M430 266 H508"/>
   <text class="sub" x="469" y="258" text-anchor="middle">average</text>
 </svg>
-<figcaption>Folding in three steps (simulated, coarse 40 µs bins, a bright pulse for visibility). Every time bin gets its phase from the
-ephemeris; the integer part is its turn, the rest its place in the profile. Turns are cut halfway between pulses, so each pulse stays
-whole. In the stored fold, bin <var>j</var> is centred at phase (<var>j</var> − 1)/<code>NBin</code> and negative phases wrap to the end, so the
-pulse sits at both ends of the array; it is drawn here from −½ to ½.</figcaption>
+<figcaption><b>Figure 7.1.</b> Folding in three steps (simulated, coarse 40 µs bins, a bright pulse for visibility). Every time bin gets its phase from the
+ephemeris: the integer part is its turn, the rest its place in the profile. Turns are cut halfway between pulses, so each pulse stays
+whole. In the stored fold, bin <var>j</var> is centred at phase (<var>j</var> − 1)/<code>NBin</code> and negative phases wrap to the end;
+the pulse is drawn here from −½ to ½.</figcaption>
 </figure>
-<h3 id="how">How it works</h3>
-<p>In plain steps, for every detected time bin:</p>
+
+<h3 id="how">7.2 Folding a time bin</h3>
 <ol>
 <li><b>Skip</b> it unless it saw the complete dedispersion sweep (<code>fullySupportedBins</code>).</li>
-<li><b>Phase:</b> compute its rotational phase φ from the ephemeris, in double precision.</li>
-<li><b>Turn and place:</b> the nearest whole number of φ is its turn; the rest (between −½ and ½) is its place in the profile. So each turn
-runs from half a turn before its pulse to half a turn after, and the cuts fall between pulses.</li>
-<li id="assign"><b>Share it</b> between the two nearest phase bins (linear assignment, figure below), and add it to that sub-int's sums.</li>
-<li><b>Divide:</b> the profile of each sub-int is its sum divided by how much data went in. Alongside, keep what is needed to know the
-noise of every phase bin exactly (<a href="#weights">the weights</a>).</li>
+<li><b>Phase:</b> compute its rotational phase φ, in double precision.</li>
+<li><b>Turn and place:</b> the nearest whole number of φ is its turn; the rest, between −½ and ½, is its place in the profile.</li>
+<li id="assign"><b>Share it</b> between the two nearest phase bins (linear assignment, Figure 7.2), and add it to that sub-int's sums.</li>
+<li><b>Divide:</b> the profile of each sub-int is its sum divided by how much data went in. Alongside, the fold keeps what is needed to
+know the noise of every phase bin exactly (Section 7.3).</li>
 </ol>
 <details><summary>The exact rules</summary>
 <ol>
@@ -780,7 +764,6 @@ frequency at <code>tRef</code>, <code>tMean</code>, <code>nTimeBins</code>. Thes
 <li>Saved to a <code>.mat</code> file (fold + info). Vectorized <code>accumarray</code>, chunked reading.</li>
 </ol>
 </details>
-
 <figure>
 <svg viewBox="0 0 860 150" role="img" aria-label="Linear assignment of a time bin to two phase bins">
   <path class="axis" d="M60 100 H800"/>
@@ -797,12 +780,11 @@ frequency at <code>tRef</code>, <code>tMean</code>, <code>nTimeBins</code>. Thes
   <text x="560" y="64" text-anchor="middle" font-size="13" font-weight="600">0.3</text>
   <text x="60" y="145" font-size="11" class="muted">phase bin centres (weights shown above the bins that receive them)</text>
 </svg>
-<figcaption>Linear assignment. The two bins share this time bin's noise: that shared noise is what <code>weightX</code> records.</figcaption>
+<figcaption><b>Figure 7.2.</b> Linear assignment. The two bins share this time bin's noise: that shared noise is what <code>weightX</code> records.</figcaption>
 </figure>
-<div class="callout why"><span class="ttl">Why linear assignment, not nearest bin</span>
-<p>Linear assignment preserves each sample's mean position exactly. <code>'nearest'</code> gave a 0.5 ns bias: the 1 µs time grid and the
-9.765625 µs phase grid repeat identically every turn, so the rounding errors do not average out. The price is that neighbouring
-phase bins share data and their noise is correlated, which the fold tracks explicitly.</p></div>
+<p>Linear assignment preserves each sample's mean position exactly. Nearest-bin assignment (<code>'nearest'</code>) gave a 0.5 ns bias: the
+1 µs time grid and the 9.765625 µs phase grid repeat identically every turn, so the rounding errors do not average out (Figure 7.3). The
+price is that neighbouring phase bins share data, so their noise is correlated, which the fold tracks explicitly.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Nearest-bin assignment: the rounding errors of the time bins near the pulse are identical in every turn">
   <path class="axis" d="M90 246 H810"/>
@@ -1074,14 +1056,15 @@ phase bins share data and their noise is correlated, which the fold tracks expli
   <path class="dot" d="M560 31 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/><text class="sub" x="572" y="35">turn 0</text>
   <path class="dot2" d="M630 31 a2 2 0 1 0 4 0 a2 2 0 1 0 -4 0"/><text class="sub" x="642" y="35">turn 7: on top of turn 0</text>
 </svg>
-<figcaption>Why <code>'nearest'</code> was biased. Each 1 µs time bin is put in the nearest of 1024 phase bins (9.77 µs), which moves it by up to
-±4.9 µs. With 10,000 time bins per turn the pattern repeats exactly every turn (turn 7, small dots, lies on top of turn 0), so the
-errors never average out; weighted by the pulse they left a TOA bias of 0.5 ns. Linear assignment splits each time bin between the two
-neighbouring phase bins so that its average position is exact: no rounding error at all.</figcaption>
+<figcaption><b>Figure 7.3.</b> Why <code>'nearest'</code> was biased. Each 1 µs time bin goes to the nearest of 1024 phase bins (9.77 µs), which moves it
+by up to ±4.9 µs. With 10,000 time bins per turn the pattern repeats exactly every turn (turn 7, small dots, lies on top of turn 0), so the
+errors never average out; weighted by the pulse they left a TOA bias of 0.5 ns. Linear assignment has no rounding error at all.</figcaption>
 </figure>
 
-<h3 id="weights">The weights: what each field is for</h3>
-<p>For phase bin <var>j</var> of one sub-int, sum<sub>j</sub> = Σ<sub>k</sub> <var>a</var><sub>kj</sub>·<var>P</var><sub>k</sub>, with <var>a</var><sub>kj</sub> how much of time bin <var>k</var> went into phase bin <var>j</var>.</p>
+<h3 id="weights">7.3 The weights</h3>
+<p>For phase bin <var>j</var> of one sub-int, sum<sub>j</sub> = Σ<sub>k</sub> <var>a</var><sub>kj</sub>·<var>P</var><sub>k</sub>, with
+<var>a</var><sub>kj</sub> how much of time bin <var>k</var> went into phase bin <var>j</var>. Three fields describe how the data were
+combined:</p>
 <div class="table-wrap"><table>
 <tr><th>Field</th><th>Formula</th><th>Purpose</th></tr>
 <tr><td><code>weight</code></td><td>Σ<sub>k</sub> <var>a</var><sub>kj</sub> (with data weights: Σ <var>a</var>·<var>W</var>)</td><td>normalizer: how much data is in bin <var>j</var>; <code>prof</code> = sum/weight</td></tr>
@@ -1090,11 +1073,10 @@ neighbouring phase bins so that its average position is exact: no rounding error
 </table></div>
 <p>An example. A time bin 30 % of the way from bin <var>j</var> to <var>j</var>+1 is split 0.7 and 0.3. It adds 0.49 and 0.09 to the two
 <code>weight2</code> values, and 0.21 to <code>weightX</code>. Over many turns the ratios settle at
-<var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6. That is a neighbour correlation of 0.25, exactly the 0.2484
+<var>W</var> : <var>W</var><sub>2</sub> : <var>W</var><sub>X</sub> = 1 : 2/3 : 1/6: a neighbour correlation of 0.25, exactly the 0.2484
 measured in the long noise-only run.</p>
-<div class="callout why"><span class="ttl">Why <code>weightX</code> matters (a real bug once)</span>
-<p>With linear assignment, a phase bin shares data with its neighbours. Its variance per turn then looks like (2/3)·σ²/<var>n</var>
-instead of σ²/<var>n</var>, with <var>n</var> the number of time bins per phase bin:</p>
+<p><b><code>weightX</code> matters; it was a real bug once.</b> With linear assignment, a phase bin's variance per turn looks like
+(2/3)·σ²/<var>n</var> instead of σ²/<var>n</var>, with <var>n</var> the number of time bins per phase bin:</p>
 <div class="table-wrap"><table>
 <tr><th>Phase bins</th><th>Apparent variance</th><th>Independent-bin value</th></tr>
 <tr><td>1024 (where the bug was found)</td><td class="num">σ²/14.7</td><td class="num">σ²/9.77</td></tr>
@@ -1102,14 +1084,16 @@ instead of σ²/<var>n</var>, with <var>n</var> the number of time bins per phas
 </table></div>
 <p>Ignoring the positive covariance between neighbours therefore underestimates the variance of any sum over bins, such as a TOA or a
 matched filter, by about 1.5×. Until <code>weightX</code> was added, the fold check predicted a centroid scatter of 0.226 µs instead of the
-correct 0.277 µs (<a href="lessons.html">bugs and lessons</a> #8).</p></div>
-<p>σ² itself is not stored in the fold; see <a href="#why">design choices</a>.</p>
+correct 0.277 µs (<a href="lessons.html">bugs and lessons</a> #8).</p>
+<p>σ² itself is <em>not</em> stored in the fold. The consumers (<code>estimateTOA</code>, <code>detectPulsar</code>) compute it from their
+own noise model: the radiometer equation with the fitted level, or the off-pulse residuals. The fold only stores how the data were
+combined, so one fold serves both noise models, and the fold never needs the true noise level, which only the simulator knows.</p>
 
-<h3 id="noisecoeffs">Correlated time bins: <code>'NoiseCoeffs'</code></h3>
+<h3 id="noisecoeffs">7.4 Correlated time bins: <code>'NoiseCoeffs'</code></h3>
 <p>In a narrow channel, neighbouring detected time bins are correlated. Relative to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>), a bin
 has variance <var>V</var>, and covariance <var>X</var>(<var>L</var>) with the bin <var>L</var> places further
-(see <a href="channels.html#powcov"><code>powerCovariance</code></a>). The covariance of two phase-bin sums is then:</p>
-<div class="eq">\[ \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k), \qquad c(0) = V, \quad c(\pm L) = X(L) \]</div>
+(<a href="channels.html#powcov"><code>powerCovariance</code></a>). The covariance of two phase-bin sums is then</p>
+<div class="eq"><span class="label">(7.2)</span>\[ \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k), \qquad c(0) = V, \quad c(\pm L) = X(L) \]</div>
 <dl class="where">
 <dt>\(S_j\)</dt><dd>the sum in phase bin \(j\) of one sub-int: \(\sum_k a_{kj}\,\times\) power of time bin \(k\) (<code>fold.sum</code>)</dd>
 <dt>\(j\), \(d\)</dt><dd>phase-bin index; phase-bin lag (1 … \(D\))</dd>
@@ -1127,61 +1111,51 @@ has variance <var>V</var>, and covariance <var>X</var>(<var>L</var>) with the bi
 bins of a chunk are kept for pairs with the next chunk (<code>addLagPairs</code>).</li>
 <li>Effect for the channel data: the phase-bin variance is 0.987 of the old model, and the lag-1 correlation 0.258 instead of 0.250.</li>
 </ul>
-<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 1–3). The new model fits the measured noise, and the old one is clearly rejected:</p>
-<ul>
-<li>the four reference folds from before this option reproduce bit for bit;</li>
-<li><code>weight2</code> and <code>weightX</code> equal <var>A</var>ᵀ·<var>C</var>·<var>A</var>, built explicitly, to 6·10⁻¹⁶;</li>
-<li>the measured fold noise on 128-channel data, compared with each model:</li>
-</ul>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 1–3). The four reference folds from before this option reproduce bit for bit, and
+<code>weight2</code> and <code>weightX</code> equal <var>A</var>ᵀ·<var>C</var>·<var>A</var>, built explicitly, to 6·10⁻¹⁶. The measured fold
+noise on 128-channel data fits the new model and clearly rejects the old one:</p>
 <div class="table-wrap"><table>
 <tr><th>Measured − predicted</th><th>New model</th><th>Old model (independent bins)</th></tr>
 <tr><td>Variance</td><td class="num">−1.4σ</td><td class="num">−13.1σ</td></tr>
 <tr><td>Lag-1 covariance</td><td class="num">+0.6σ</td><td class="num">+5.9σ</td></tr>
 </table></div>
 
-<h3 id="dataweights">Data weights per channel: <code>'DataWeights'</code></h3>
+<h3 id="dataweights">7.5 Data weights per channel: <code>'DataWeights'</code></h3>
 <p>With excision, every detected bin <var>k</var> of channel <var>c</var> has its own numbers, all exact from
 <a href="excision.html#weights"><code>blankingWeights</code></a>: a mean <var>W</var><sub>kc</sub>·<var>m</var><sub>c</sub> (with
 <var>W</var> the valid fraction), a variance <var>V</var><sub>kc</sub>·σ<sub>c</sub>², and a covariance
 <var>X</var><sub>kc</sub>(<var>L</var>)·σ<sub>c</sub>² with bin <var>k</var>+<var>L</var>. The fold uses them:</p>
 <ul>
 <li><code>weight</code> = Σ <var>a</var>·<var>W</var>, so <code>prof</code> = Σ<var>a</var>·<var>P</var> / Σ<var>a</var>·<var>W</var> is <b>unbiased even when blanking depends on pulse phase</b>;</li>
-<li><code>weight2</code> and <code>weightX</code> as in the section above, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>);</li>
-<li><b>a time bin with <var>W</var> = 0 adds no power</b> to the sum either. Leftovers from filter tails in such bins biased nearly empty
+<li><code>weight2</code> and <code>weightX</code> as in Section 7.4, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>);</li>
+<li><b>a time bin with <var>W</var> = 0 adds no power</b> to the sum either; leftovers from filter tails in such bins biased nearly empty
 phase bins (found while building <code>blankingWeights</code>);</li>
 <li>output arrays get a channel dimension: <code>weight</code>, <code>weight2</code> [NBin × nSub × nChan], <code>weightX</code> [NBin × nSub × nChan × D];
 <code>prof</code>, <code>profTotal</code> per channel with its own weights;</li>
 <li>option value: an info struct with <code>file</code>, <code>nChan</code>, <code>N</code>, <code>Lmax</code>, <code>byteOrder</code>; replaces <code>NoiseCoeffs</code> (error if both).</li>
 </ul>
-<div class="callout why"><span class="ttl">Why divide by Σ<var>a</var>·<var>W</var> instead of Σ<var>a</var></span>
-<p>A bin with <var>W</var> = 0.5 contributes half the power to the numerator, and 0.5 to the denominator. So it counts as half a
-sample, with the right mean. A fully blanked bin contributes nothing.</p>
-<p>A test with fake blanking at phase 0.30–0.36 shows the difference. The weighted fold is unbiased (−0.0019 ± 0.0009). A naive fold
-is off by −0.574: exactly the predicted 1 − 0.425.</p></div>
-<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 4–6). The data weights are exact, and the fake-blanking fold is unbiased with the
-modelled noise:</p>
-<ul>
-<li>a weight file of constants gives the <code>NoiseCoeffs</code> fold bit for bit;</li>
-<li>random weight streams give <var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶;</li>
-<li>fake blanking: unbiased, and the noise as modelled.</li>
-</ul>
-<p>Cost: 1.8 s for 0.1 s of 128 channels with weights, 0.25 s without.</p>
+<p>Dividing by Σ<var>a</var>·<var>W</var> rather than Σ<var>a</var> makes a bin with <var>W</var> = 0.5 count as half a sample, with the
+right mean: it contributes half the power to the numerator and 0.5 to the denominator. A fully blanked bin contributes nothing. A test
+with fake blanking at phase 0.30–0.36 shows the difference: the weighted fold is unbiased (−0.0019 ± 0.0009), while a naive fold is off by
+−0.574, exactly the predicted 1 − 0.425.</p>
+<p><b>Tests</b> (<code>tests/testFoldWeights.m</code> 4–6). A weight file of constants gives the <code>NoiseCoeffs</code> fold bit for bit.
+Random weight streams give <var>A</var>ᵀ<var>W</var> and <var>A</var>ᵀ<var>CA</var> to 7·10⁻¹⁶. The fake-blanking fold is unbiased, with
+the noise as modelled. Cost: 1.8 s for 0.1 s of 128 channels with weights, 0.25 s without.</p>
 <details><summary>History</summary>
 <p><code>'NoiseCoeffs'</code>: step A1a, 7 Oct 2026. <code>'DataWeights'</code>: step A1b, the same day. The rule for bins with
 <var>W</var> = 0 was found in step A3a (<code>blankingWeights</code>).</p></details>
 
-<h3 id="predictor">Folding with a predictor: <code>'Predictor'</code> <span class="badge validated">validated</span></h3>
-<p><code>foldProfile</code> takes the predictor of <a href="#makepredictor">stage 7a</a> with the option <code>'Predictor'</code>. Each time bin then gets its phase from the
-predictor instead of from a constant spin rate. The predictor must be built with its start at the recording's time zero.</p>
-<p>Each sub-integration still gets a reference time and frequency, so that a TOA is the reference time plus the fitted phase offset
-divided by the frequency. The reference time is where the predicted phase reaches the sub-integration's middle turn. For a partial last
-sub-integration that turn can fall just after the data. There the phase continues linearly with the last frequency.</p>
-<p>Without a predictor nothing changes: the old constant-rate fold is bit for bit the same.</p>
+<h3 id="predictor">7.6 Folding with a predictor: <code>'Predictor'</code> <span class="badge validated">validated</span></h3>
+<p><code>foldProfile</code> takes the predictor of <a href="#makepredictor">Section 7a.5</a> with the option <code>'Predictor'</code>. Each time
+bin then gets its phase from the predictor instead of Eq. (7.1). The predictor must be built with its start at the recording's time zero.
+Each sub-integration still gets a reference time and frequency, so that a TOA is the reference time plus the fitted phase offset divided by
+the frequency. The reference time is where the predicted phase reaches the sub-integration's middle turn. For a partial last
+sub-integration that turn can fall just after the data; there the phase continues linearly with the last frequency. Without a predictor
+nothing changes: the constant-rate fold is bit for bit the same.</p>
 <p>The tests fold synthetic power series with a known phase. The voltage generator has a fixed period, so the voltage chain has never
-folded with a predictor. The fast simulator draws its folds in the predictor's frame, and shifts each sub-int's pulse by what the
-predictor misses (<a href="simulator.html#motion">fast simulator</a>).</p>
-<h4>Tests (<code>tests/testFoldPredictor.m</code>)</h4>
-<p>Folding with a predictor removes the Doppler shift completely.</p>
+folded with a predictor. The fast simulator draws its folds in the predictor's frame, and shifts each sub-int's pulse by what the predictor
+misses (<a href="simulator.html#motion">fast simulator</a>).</p>
+<p><b>Tests</b> (<code>tests/testFoldPredictor.m</code>). Folding with a predictor removes the Doppler shift completely.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · Doppler removed</td><td>A pulsar with a Doppler factor of 10⁻³, folded with the predictor.</td><td>Equal to the fold with
@@ -1202,57 +1176,29 @@ sub-integration 0.39 turns off. It now extrapolates linearly.</p>
 from the f0 model for every fold. For a predictor fold that is off by about the Doppler factor times the time since the file's start:
 0.3 s per hour of recording for B0329+54.</p></details>
 
-<h3 id="why">Design choices</h3>
-<p>The reasons for linear assignment, <code>weightX</code> and the data weights are with those sections above. Four more:</p>
-<div class="callout why"><span class="ttl">Fold the detected power, after dedispersion</span>
-<p>The pulsar is noise whose power changes with phase, so the profile is a profile of <em>power</em>: square first, then fold, then
-match the template (the optimal order, <a href="fullband.html#detect-why">full-band page</a>). Folding after dedispersion means each
-time bin already holds every frequency of the same instant.</p></div>
-<div class="callout why"><span class="ttl">Cut each turn halfway between pulses</span>
-<p>With <code>ephem.TRef</code> at a pulse centre, the cut at φ = <var>k</var> + ½ falls in the off-pulse region. So every sub-int contains
-whole pulses, and a pulse is never split between two sub-ints. The pulse sits at phase 0, the start of the stored profile (and wraps to
-its end), which is where the TOA fit expects the template.</p></div>
-<div class="callout why"><span class="ttl">Store the geometry, not the noise level</span>
-<p>σ² itself is <em>not</em> stored in the fold: the consumers (<code>estimateTOA</code>, <code>detectPulsar</code>) compute it from their own
-noise model, the radiometer equation with the fitted level or the off-pulse residuals. The fold only stores how the data were combined
-(<code>weight</code>, <code>weight2</code>, <code>weightX</code>). So one fold serves both noise models, and the fold never needs to know the true
-noise level, which only the simulator knows.</p></div>
-<div class="callout why"><span class="ttl">Sub-integrations, not one profile per observation</span>
-<p>One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (constant profile, exact phase model). Sub-ints
-are there to validate the error bars, to see drift (phase-model errors, motion, clock, position error: the navigation signal itself)
-and to catch bad data (notes §12).</p></div>
-
-<h3>Options and outputs</h3>
-<dl class="facts">
-<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>Predictor</code> (none; <a href="#predictor">above</a>), <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>ChannelNoise</code> (none; the measured noise of every channel, e.g. <code>processIQ</code>'s noise calibration: the error bars and χ² then follow each channel's real noise), <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
-<dt>Fold</dt><dd><code>sum</code>, <code>weight</code>, <code>weight2</code>, <code>weightX</code>, <code>prof</code>, <code>profTotal</code>, per sub-int <code>turnRef</code>, <code>tRef</code>, <code>fRef</code>, <code>tMean</code>, <code>nTimeBins</code></dd>
-<dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
-</dl>
-
-<h3 id="choose">Choosing NBin and the sub-int length</h3>
-<div class="callout why"><span class="ttl">NBin = 2048 is more than enough</span>
-<p>Binning only costs information if bins are coarse compared with the pulse: σ<sub>eff</sub>² ≈ σ<sub>t</sub>² + Δ²/12. For the simulated pulsar
-Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. Rule of thumb NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter
-SNR do not depend on NBin once bins are fine. What NBin does change is cost: weights scale as NBin × sub-ints × channels × lags,
-so long observations will likely use fewer bins or sub-bands.</p></div>
+<h3 id="choose">7.7 Choosing NBin and the sub-int length</h3>
+<p><b>NBin = 2048 is more than enough.</b> Binning only costs information if bins are coarse compared with the pulse:
+σ<sub>eff</sub>² ≈ σ<sub>t</sub>² + Δ²/12. For the simulated pulsar Δ²/12 ÷ σ<sub>t</sub>² = 4·10⁻⁵, for J0437 2·10⁻⁴: negligible. A rule
+of thumb is NBin ≳ 10·<var>P</var>/<var>W</var><sub>50</sub> (~400 for J0437). Detection and matched-filter SNR do not depend on NBin
+once bins are fine. What NBin does change is cost: the weights scale as NBin × sub-ints × channels × lags, so long observations will
+likely use fewer bins or sub-bands.</p>
 <div class="callout warn"><span class="ttl">NBin and f_out together: every phase bin needs data</span>
-<p>Consecutive time bins are <var>f</var>·binDt·NBin phase bins apart. If that is above 1, a sub-int can leave phase bins empty.
-<code>estimateTOA</code> and <code>detectPulsar</code> (MinCoverage 1) then reject every sub-int.</p>
-<p>An example from the f_out sweep: f_out = 100 kHz (10.08 µs bins) with NBin 2048 and 1 turn per sub-int fills only 1984 of the 2048
-bins. That run gave no TOAs at all.</p>
-<p>So <code>foldProfile</code> checks the time grid of the first complete sub-int before folding. If bins would stay empty, it warns
+<p>Consecutive time bins are <var>f</var>·binDt·NBin phase bins apart. If that is above 1, a sub-int can leave phase bins empty, and
+<code>estimateTOA</code> and <code>detectPulsar</code> (MinCoverage 1) then reject every sub-int. In the f_out sweep, f_out = 100 kHz
+(10.08 µs bins) with NBin 2048 and 1 turn per sub-int filled only 1984 of the 2048 bins, and that run gave no TOAs at all.
+<code>foldProfile</code> therefore checks the time grid of the first complete sub-int before folding. If bins would stay empty, it warns
 (<code>foldProfile:coverage</code>) and names the fixes: NBin ≤ time bins per turn, binDt ≤ 1/(<var>f</var>·NBin), or more turns per
 sub-int. Main's settings, 0.96 µs time bins and 4.9 µs phase bins, are far inside the limit.</p>
 <details><summary>History</summary><p>The check exists since 9 Oct 2026, after the f_out sweep.</p></details></div>
-<div class="callout why"><span class="ttl">Sub-int length: SNR ≥ 6–7</span>
-<p>Why sub-ints exist at all is explained <a href="#why">above</a>. How long each should be follows from one fact: below an SNR of
-about 6 per sub-int, TOAs start to lock onto noise peaks (<a href="results.html#threshold">threshold sweep</a>). So the number of turns
-per sub-int is <var>N</var> = (SNR<sub>target</sub>/SNR<sub>turn</sub>)² (figure below).</p>
-<p>Here SNR<sub>turn</sub> ≈ 373·ρ, the flat-band value. With the real band tapers it is 368·ρ on the full band and 360·ρ on the
-channel path, which needs about 3 % and 7 % more turns.</p>
-<p>For long observations the length can also be chosen from the data. <code>adaptiveSubints</code> folds into short sub-ints, and
-merges consecutive ones until the merged profile reaches SNR ~7. This matters when scintillation changes the flux from hour to hour
-(<a href="simulator.html">fast simulator</a>).</p></div>
+<p><b>Why sub-integrations.</b> One profile of all turns gives the same precision as the weighted mean of per-sub-int TOAs (for a constant
+profile and an exact phase model). Sub-ints are there to validate the error bars, to see drift (phase-model errors, motion, clock,
+position error: the navigation signal itself) and to catch bad data (notes §12).</p>
+<p><b>Sub-int length: SNR ≥ 6–7.</b> Below an SNR of about 6 per sub-int, TOAs start to lock onto noise peaks
+(<a href="results.html#threshold">threshold sweep</a>). The number of turns per sub-int is therefore <var>N</var> =
+(SNR<sub>target</sub>/SNR<sub>turn</sub>)² (Figure 7.4). Here SNR<sub>turn</sub> ≈ 373·ρ, the flat-band value; with the real band tapers it
+is 368·ρ on the full band and 360·ρ on the channel path, which needs about 3 % and 7 % more turns. For long observations the length can
+also be chosen from the data. <code>adaptiveSubints</code> folds into short sub-ints, and merges consecutive ones until the merged profile
+reaches SNR ~7. This matters when scintillation changes the flux from hour to hour (<a href="simulator.html">fast simulator</a>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Turns per sub-int needed for SNR 6 or 7 against snrDB, with the time for the 10 ms pulsar">
   <path class="axis" d="M90 290 H650"/>
@@ -1308,15 +1254,35 @@ merges consecutive ones until the merged profile reaches SNR ~7. This matters wh
   <path class="curve" d="M519.3333333333334 68.47980091355498 h18"/><text class="sub" x="543.3333333333334" y="72.47980091355498">SNR 7 per sub-int</text>
   <path class="curve2" d="M519.3333333333334 84.47980091355498 h18"/><text class="sub" x="543.3333333333334" y="88.47980091355498">SNR 6</text>
 </svg>
-<figcaption>How long a sub-int must be: the number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated
-10 ms pulsar (grid lines: the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int;
-at the design target one sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
+<figcaption><b>Figure 7.4.</b> The number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated 10 ms pulsar (grid lines:
+the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int; at the design target one
+sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
 </figure>
+
+<details><summary>Options and outputs</summary>
+<dl class="facts">
+<dt>Options</dt><dd><code>F1</code>, <code>TRef</code>, <code>Phi0</code>, <code>Predictor</code> (none; Section 7.6), <code>NBin</code> (1024; main uses 2048), <code>SubintPeriods</code> (1), <code>SubintTime</code>, <code>Assign</code> (<code>'linear'</code> / <code>'nearest'</code>), <code>NoiseCoeffs</code> (1), <code>DataWeights</code>, <code>ChannelNoise</code> (none; the measured noise of every channel, e.g. <code>processIQ</code>'s noise calibration: the error bars and χ² then follow each channel's real noise), <code>UseSupportedOnly</code> (true), <code>ChunkBins</code>, <code>MaxMemoryGB</code> (2), <code>SaveFile</code>, <code>Verbose</code></dd>
+<dt>Fold</dt><dd><code>sum</code>, <code>weight</code>, <code>weight2</code>, <code>weightX</code>, <code>prof</code>, <code>profTotal</code>, per sub-int <code>turnRef</code>, <code>tRef</code>, <code>fRef</code>, <code>tMean</code>, <code>nTimeBins</code></dd>
+<dt>Info</dt><dd>phase model, NBin, sub-int settings, noiseCoeffs, covLags, dataWeights, nWeightChan, validFraction, …</dd>
+</dl>
+</details>
 
 <h3>Limits</h3>
 <div class="callout warn"><span class="ttl">Not stored: covariance between consecutive sub-ints</span>
 <p>With correlated time bins, the last bins of one sub-int correlate with the first of the next. Only the 2–3 phase bins at the
 boundary (phase 0.5, off-pulse) are affected, by ~1–4 % of their variance. Negligible for TOAs (template slope ≈ 0 there) and detection (~10⁻⁵).</p></div>
+
+<div class="callout why"><span class="ttl">Summary</span>
+<ul>
+<li>A moving receiver sees the pulses Doppler-shifted, by up to 10⁻⁴ from the Earth's orbit alone, so the fold needs a predicted phase.</li>
+<li>Stage 7a builds it from a trajectory, the delays to the barycentre (Roemer, Einstein, Shapiro) and the timing model, stored as
+Chebyshev segments that are checked to 1 ns.</li>
+<li>Stage 7 folds every fully supported time bin by linear assignment, and keeps <code>weight</code>, <code>weight2</code> and
+<code>weightX</code>, so that the noise of every phase bin is known exactly (Eq. 7.2), with or without blanking.</li>
+<li>Sub-ints are long enough for an SNR of 6–7, and NBin = 2048 is fine enough to lose nothing.</li>
+</ul></div>
+<p>Each sub-int's profile now goes to the TOA fit of stage 8 (<a href="toa.html">TOA estimation</a>). The next page in reading order, the
+<a href="simulator.html">fast simulator</a>, draws such folds directly for runs of days.</p>
 
 </main>
 <script src="nav.js"></script>

@@ -57,9 +57,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 236" role="img" aria-label="Distributions of the detection statistics under H0 and H1, with the thresholds for a false-alarm probability of 1e-3">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The two tests at <var>P</var><sub>FA</sub> = 10⁻³, for a 5 % Gaussian template in 2048 phase bins and a pulse with SNR 5
-(left: exact normal densities; right: 40,000 simulated profiles per curve, white noise). Not knowing the phase costs threshold:
-the maximum over all shifts of pure noise is already ~2σ, so η rises from 3.09 to 4.15 and the detection probability (green area)
-drops from ''' + f'{0.5*erfc((eta0-snr)/sqrt(2)):.2f} to {pdm:.2f}' + '''. Simulated false-alarm rate of the 4.15 threshold: ''' + f'{(h0_m > etam).mean()*1e3:.1f}' + '''·10⁻³.</figcaption>
+<figcaption><b>Figure D.2.</b> The two tests at <var>P</var><sub>FA</sub> = 10⁻³, for a 5 % Gaussian template in 2048 phase bins and a pulse with SNR 5
+(left: exact normal densities; right: 40,000 simulated profiles per curve, white noise). The maximum over all shifts of pure noise is already
+~2σ, so η rises from 3.09 to 4.15 and the detection probability (green area) drops from ''' + f'{0.5*erfc((eta0-snr)/sqrt(2)):.2f} to {pdm:.2f}' + '''. Simulated false-alarm rate of the
+4.15 threshold: ''' + f'{(h0_m > etam).mean()*1e3:.1f}' + '''·10⁻³.</figcaption>
 </figure>'''
 open('detection.svg', 'w').write(svg)

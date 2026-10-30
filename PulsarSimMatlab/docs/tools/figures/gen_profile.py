@@ -53,9 +53,9 @@ svg = '''<figure class="scroll">
   </defs>
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Left: the power profile <var>G</var> of one pulse at the default 5 % duty, computed as in the code. Right: at 20 % duty
-the generator adds one neighbouring pulse on each side (<code>nNeighbors</code> = 1). It matters only far out in the tails: halfway
-between two pulses both contribute equally, so the nearest pulse alone would give half the true value (and a kink). At 5 % the neighbours are below 10⁻¹²⁰ there,
-so the code uses the nearest pulse alone. Test 4 of <code>testGeneratePulsarSignal</code> checks exactly these tail bins.</figcaption>
+<figcaption><b>Figure 1.2.</b> The power profile <var>G</var> at the default 5 % duty (left) and at 20 % duty (right), computed as in the code. At 20 %
+the generator adds one neighbouring pulse on each side (<code>nNeighbors</code> = 1): halfway between two pulses both contribute
+equally, so the nearest pulse alone would give half the true value. At 5 % the neighbours are below 10⁻¹²⁰ there. Test 4 of
+<code>testGeneratePulsarSignal</code> checks these tail bins.</figcaption>
 </figure>'''
 open('profile.svg', 'w').write(svg)

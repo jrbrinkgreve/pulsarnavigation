@@ -48,9 +48,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 410" role="img" aria-label="Spectra through the IQ stage: RF band, mixing with the LO, low-pass and decimation to complex baseband">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Where the band goes in <code>applyIQmodulation</code> (to scale; amplitudes schematic). 1: a real RF signal has its band at
-±(1.2–1.6) GHz. 2: the complex LO shifts everything down by 1.3 GHz; the band lands at −0.1…+0.3 GHz and the mirror far away (at 4 GHz
-sampling, −2.9…−2.5 GHz is the same as +1.1…+1.5 GHz), where the low-pass (cut-off 360 MHz, 2049 taps) removes it. 3: after keeping every
-5th sample the band sits inside ±400 MHz, off-centre on purpose: a mirrored mapping would move it to −300…+100 MHz and fail visibly.</figcaption>
+<figcaption><b>Figure 4.1.</b> Where the band goes in <code>applyIQmodulation</code> (to scale; amplitudes schematic). (1) A real RF signal has its band
+at ±(1.2–1.6) GHz. (2) The complex LO shifts everything down by 1.3 GHz: the band lands at −0.1…+0.3 GHz, and the mirror far away (at
+4 GHz sampling, −2.9…−2.5 GHz is the same as +1.1…+1.5 GHz), where the low-pass removes it. (3) After keeping every 5th sample the band
+sits inside ±400 MHz, off-centre on purpose.</figcaption>
 </figure>'''
 open('iqspec.svg', 'w').write(svg)

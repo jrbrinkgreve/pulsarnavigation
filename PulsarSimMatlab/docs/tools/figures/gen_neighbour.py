@@ -44,7 +44,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Bug 8: linear assignment makes neighbouring phase bins share noise; ignoring it makes the variance of a sum of bins up to 1.5 times too small">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Lesson #8 in one picture. a: linear assignment splits a time bin's power between the two nearest phase bins, which removes
+<figcaption><b>Figure 1.</b> Lesson #8 in one picture. a: linear assignment splits a time bin's power between the two nearest phase bins, which removes
 a timing bias but makes neighbours share noise (schematic, split 70/30 as an example). b: any sum over bins, such as the template fit,
 then has more variance than a model with independent bins predicts: 1 + 2·0.25·(<var>k</var>−1)/<var>k</var>, up to 1.5× for a wide
 pulse. The fold now tracks this covariance (<code>weightX</code>), so the error bars include it.</figcaption>

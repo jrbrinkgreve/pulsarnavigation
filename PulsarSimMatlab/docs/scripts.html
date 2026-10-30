@@ -8,16 +8,14 @@
 </head>
 <body>
 <main>
-
 <h1>Run scripts</h1>
 <p class="lede">The scripts in the <code>PulsarSimMatlab</code> folder. <code>main.m</code> runs one realization; the
 <code>run*.m</code> scripts are experiments that run the same stages many times and compare with the truth. All read
 their parameters from <code>pipelineParams.m</code> and must be run with MATLAB's current folder = <code>PulsarSimMatlab</code>.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p><code>main.m</code> runs the pipeline once and compares its TOAs with the truth. One run cannot show whether the error bars are
 honest (the 8–9 TOAs of 0.1 s at DM 5, or 15 of 0.2 s at DM 25, say little), so the experiments repeat the same stages many times, each time changing one thing on purpose: the
-noise, the pulsar, the signal strength or the interference. Each experiment answers one question.</p></div>
+noise, the pulsar, the signal strength or the interference. Each experiment answers one question.</p>
 
 <div class="table-wrap"><table>
 <tr><th>Script</th><th>Question it answers</th><th>Files</th><th>Cost (measured at L = 0.1 s, DM 5; about twice at the 0.2 s default since 20 Oct)</th></tr>
@@ -141,7 +139,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="300" y="353" width="22" height="14" rx="3"/><text class="sub" x="330" y="364">kept fixed</text>
   <text class="sub" x="440" y="364">* weak signals from noise-free folds plus the measured leftover</text>
 </svg>
-<figcaption>Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
+<figcaption><b>Figure 1.</b> Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
 interference alone. <code>runScenario</code> and <code>runShip</code> draw folds with the fast simulator instead of voltages, for real
@@ -154,7 +152,7 @@ simulate the receiver themselves, and call <code>processIQ</code>, then <code>fo
 <p><code>runRFITest</code> (also on <code>processIQ</code>) and <code>runLockedRadar</code> (with its own superposition method) run the
 <b>channel</b> path. Besides its unit tests, the default channel path is validated end to end over seeds by <code>runMonteCarlo</code>.</p>
 <p>(Until 19 Oct the first three ran on the full band only, with a <code>…:fullBandOnly</code> warning.)</p></div>
-<div class="callout why"><span class="ttl">Design choice: each experiment writes its own files</span>
+<div class="callout why"><span class="ttl">Each experiment writes its own files</span>
 <p><b>Alternative:</b> write into <code>data/</code>, like <code>main.m</code>.</p>
 <p><b>Why not:</b> a later <code>main.m</code> run with skipped stages reloads files from <code>data/</code>. If an experiment overwrote them
 with another noise realization, main would pick it up. (Since 13 Oct <code>checkConsistency</code> would notice another noise seed.)
@@ -191,7 +189,7 @@ structs from <code>pipelineParams</code>. It runs either the full band (dedisper
 <details><summary>History</summary>
 <p>The <code>main:brightExcision</code> warning exists since 14 Oct 2026. The processing has been one <code>processIQ</code> call since
 19 Oct.</p></details>
-<div class="callout why"><span class="ttl">Design choice: the stages can be skipped</span>
+<div class="callout why"><span class="ttl">The stages can be skipped</span>
 <p><b>Alternative:</b> always run the whole chain.</p>
 <p><b>Why not:</b> the sky stage is by far the slowest (random numbers and a 126-million-tap filter at 4 GHz at DM 25; 25 million at DM 5) and does not depend on the noise. Changing
 the SNR, RFI or processing only needs the later stages. Each skipped stage reloads its <code>info</code>, and <code>checkConsistency</code>,
@@ -250,12 +248,12 @@ noise without a pulsar, so the pulsar's own noise is not in it. That only matter
 </ul></li>
 <li>Figure: σ<sub>TOA</sub> vs SNR (rms, robust, predicted, optimum), ratios, |<var>z</var>| &lt; 1 and outliers, detection.</li>
 </ul>
-<div class="callout why"><span class="ttl">Design choice: H0 is a zero sky</span>
+<div class="callout why"><span class="ttl">H0 is a zero sky</span>
 <p><b>Alternative:</b> use a very low SNR, such as −50 dB, as "no pulsar".</p>
 <p><b>Why not:</b> −50 dB is not "no pulsar". It is a real small-antenna operating point that only needs long integrations. H0 must be a
 sky with no pulsar at all.</p>
 <details><summary>History</summary><p>Jasper, 5 Oct 2026.</p></details></div>
-<div class="callout why"><span class="ttl">Design choice: the same random numbers at every SNR</span>
+<div class="callout why"><span class="ttl">The same random numbers at every SNR</span>
 <p><b>Alternative:</b> new pulsar and noise realizations at every SNR point.</p>
 <p><b>Why not:</b> with the same sky and noise seed at every SNR (only the noise level is rescaled), the curves against SNR are smooth: the
 differences between points come from the SNR, not from new random numbers. The TOAs within one SNR point stay independent, so the
@@ -354,7 +352,7 @@ coherently into the profile. This script measures how much. It stops if main's s
 <li>TOA bias at −5 dB: full data − reference (same noise), cross-checked with reference + leftover.</li>
 <li>Bias at weak SNR: noise-free folds ρ·template + <var>L</var> through <code>estimateTOA</code>, ρ from −5 to −60 dB; the ρ where the bias reaches 1 µs.</li>
 </ol>
-<div class="callout why"><span class="ttl">Design choice: measure the leftover in baseline units, not as a TOA error</span>
+<div class="callout why"><span class="ttl">Measure the leftover in baseline units, not as a TOA error</span>
 <p><b>Alternative:</b> measure the TOA error caused by the radar at −5 dB.</p>
 <p><b>Why not:</b> the pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
 the noise baseline does not depend on the pulsar, and comparing it with the pulse height ρ gives the bias at any SNR from one run.</p></div>

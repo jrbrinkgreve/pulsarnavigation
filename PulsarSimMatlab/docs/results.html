@@ -8,7 +8,6 @@
 </head>
 <body>
 <main>
-
 <h1>Validation record</h1>
 <p class="lede">Every major measured result against its prediction, in time order, with what each one established.
 The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
@@ -16,7 +15,6 @@ The complete tables are in <code>logs/current_project_notes.md</code> §7.</p>
 and the good-TOA rule. Blocks A (channelized front end), B (RFI excision), C (the fast simulator) and D (motion, the clock and
 navigation) were done in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p>Every check so far tells the same story. When a sub-integration has an SNR of about 6 or more, the stated TOA error bars are honest
 to within a few percent, from weak signals to strong ones. The noise model is complete, and the detector's false-alarm rate is as
 designed. Below that SNR some TOAs lock onto noise peaks, and the good-TOA rule removes them. Interference is the exception: a radar
@@ -25,7 +23,7 @@ destroys TOAs unless it is excised.</p>
 days the core of the error bars stays honest, but 1.9 % of B0329+54's TOAs lie beyond 3σ, so the navigation fit expects outliers.
 With motion and a drifting clock, the navigation fit and filter find the position with honest error bars. B0329+54 alone gives ±30 km
 per 30 days for a fixed site. A ship with a calibrated start stays within 73 km rms of its track at nominal flux. At worst-case flux it is at 298 km rms, against 372 km
-for dead reckoning (<a href="navigation.html#ship-worst">navigation</a>; Claude's run).</p></div>
+for dead reckoning (<a href="navigation.html#ship-worst">navigation</a>; Claude's run).</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#glance">At a glance: are the error bars honest?</a></li>
@@ -200,7 +198,7 @@ for dead reckoning (<a href="navigation.html#ship-worst">navigation</a>; Claude'
   <text class="sub" x="575.0" y="864" text-anchor="middle">measured scatter ÷ stated error bar (1 = honest; green band ±5 %)</text>
   <text class="ttl" x="10" y="18">Are the error bars honest? Every check in the record</text>
 </svg>
-<figcaption>Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
+<figcaption><b>Figure 1.</b> Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
 own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs or pulls). The voltage-chain checks agree with 1
 within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
 of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection
@@ -371,7 +369,7 @@ core stays right (robust 83.9 vs 82.2 µs). Navigation needs outlier rejection �
   <text class="sub" x="655.6" y="251.1">outliers (all TOAs)</text>
   <text class="ttl" x="600" y="16">b · threshold sweep (6 Oct)</text>
 </svg>
-<figcaption>a: the numbers of the table above (full band, 1 turn per sub-int). From −15 dB up the measured scatter follows the predicted
+<figcaption><b>Figure 2.</b> a: the numbers of the table above (full band, 1 turn per sub-int). From −15 dB up the measured scatter follows the predicted
 error bar; below, outliers (fits on noise peaks) blow up the rms while the core stays on the prediction. At high SNR FFTFIT stops
 improving (self-noise) while the optimum keeps falling. b: the threshold sweep of section 9: the detector and χ² remove every outlier,
 and above SNR 6–7 per sub-int nearly every TOA is usable.</figcaption>

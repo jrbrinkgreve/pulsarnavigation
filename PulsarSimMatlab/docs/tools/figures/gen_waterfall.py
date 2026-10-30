@@ -48,10 +48,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 336" role="img" aria-label="The pulse in 16 sub-bands before and after dispersion: after dispersion lower frequencies arrive later, along a 1/f-squared curve">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The expected pulse power (no noise) in 16 sub-bands of 25 MHz, with the code's constants. a: the generator's pulses arrive at all
-frequencies at once. b: after <code>applyDispersionStream</code> each frequency <var>f</var> is late by τ(<var>f</var>) − τ(1.6 GHz) (dashed), up to
-6.3 ms at the bottom: more than half a turn and 12 pulse widths. Inside each sub-band the delay changes too, so the pulse is also
-smeared (by 0.6 ms in the lowest 25 MHz, which is why its peak is lower). Shifting whole sub-bands back cannot undo that smear;
-filtering the voltage with the inverse chirp can (stages 5 and 5b).</figcaption>
+<figcaption><b>Figure 2.1.</b> The expected pulse power, without noise, in 16 sub-bands of 25 MHz. (a) The generator's pulses arrive at all frequencies
+at once. (b) After <code>applyDispersionStream</code>, frequency <var>f</var> is late by τ(<var>f</var>) − τ(1.6 GHz) (dashed), up to
+6.3 ms at the bottom: more than half a turn and 12 pulse widths. In the lowest 25 MHz the pulse is also smeared by 0.6 ms, which lowers
+its peak.</figcaption>
 </figure>'''
 open('waterfall.svg', 'w').write(svg)

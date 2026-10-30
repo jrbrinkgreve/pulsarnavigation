@@ -344,6 +344,16 @@ multiple of 6·10⁻⁸ instead of about 10⁻¹². The sums are now in double; 
 <li>A read-only scan of all docs pages, against each other, the code and the project notes, then found about thirty smaller
 inconsistencies; most were fixed the same day.</li>
 </ul>
+<h3>30 October — stage 5a, and the docs as a textbook</h3>
+<ul>
+<li>Jasper walked through the filterbank of stage 5a (the fold of 16 frames, the channel response as a block, the FFT as a bank of
+mixers) and derived it himself.</li>
+<li>Stage 5a was rewritten as a textbook section, with numbered subsections that lead into each other, numbered equations and four new
+computed figures (Jasper: "write more like a textbook", then "more compact").</li>
+<li>All other pages followed in the same form (Jasper: "Textbook, linked, yet relatively short format"). Each page was compared with the
+previous version, so that no number, name or link was lost, and the settings were checked against the code again. The restore point is
+the git tag <code>docs-before-textbook</code>.</li>
+</ul>
 
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
@@ -450,6 +460,7 @@ the order of the chain.</td></tr>
 <tr><td>26 Oct</td><td>The receiver clock and the phase prediction back into their stage pages (Jasper)</td><td>A separate 4a and 7a in the sidebar looked out of place; one page per stage.</td></tr>
 <tr><td>27 Oct</td><td>Filling in the missing unit tests is part of the review week (Jasper)</td><td>Stages 2–6 had been checked only by NumPy ports and end-to-end runs; a test per stage makes every later change checkable.</td></tr>
 <tr><td>27 Oct</td><td><code>applyInverseDispersion</code>'s leakage check summed in double (Jasper)</td><td>In single precision it could not tell 10⁻¹² from 10⁻⁷; the output data stay bit for bit.</td></tr>
+<tr><td>30 Oct</td><td>The docs as a textbook: numbered sections that lead into each other, numbered equations and figures, a Summary box, reference material collapsed (Jasper)</td><td>Jasper found stage 5a in this form much easier to follow ("I like this style much better!").</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -501,6 +512,7 @@ the order of the chain.</td></tr>
 <tr><td><a href="../logs/2026-10-22_review-C-D.md"><code>2026-10-22_review-C-D.md</code></a></td><td>the review of blocks C and D, day 1, and a read-only docs check</td></tr>
 <tr><td><a href="../logs/2026-10-23_review-C-D.md"><code>2026-10-23_review-C-D.md</code></a></td><td>the review of C and D, day 2: Jasper's validation list, TOA corrections noted, block E revised</td></tr>
 <tr><td><a href="../logs/2026-10-26_review-week.md"><code>2026-10-26_review-week.md</code></a></td><td>the review week E0: stages 4–6b walked through, the missing unit tests filled in, the running list</td></tr>
+<tr><td><a href="../logs/2026-10-30_docs-textbook.md"><code>2026-10-30_docs-textbook.md</code></a></td><td>these docs: the textbook rewrite, page by page, with the checks against the previous version</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

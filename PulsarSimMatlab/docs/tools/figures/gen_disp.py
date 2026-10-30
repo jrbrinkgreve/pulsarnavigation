@@ -35,8 +35,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 310" role="img" aria-label="Dispersion delay across the band and the band taper W(f)">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>What <code>applyDispersionStream</code> applies, computed with the code's constants. Bottom: the delay relative to 1.6 GHz;
-low frequencies arrive up to 6.302 ms later. Top: the taper <var>W</var>(<var>f</var>) that limits the filter to the band (it models the
-receiver bandpass); outside it nothing is passed, so no finite kernel has to represent the delays that diverge towards 0 Hz.</figcaption>
+<figcaption><b>Figure 2.2.</b> What <code>applyDispersionStream</code> applies. Bottom: the delay relative to 1.6 GHz, up to 6.302 ms. Top: the taper
+<var>W</var>(<var>f</var>) that limits the filter to the band. Outside it nothing passes, so no finite kernel has to hold the delays that
+diverge towards 0 Hz.</figcaption>
 </figure>'''
 open('dispersion.svg', 'w').write(svg)

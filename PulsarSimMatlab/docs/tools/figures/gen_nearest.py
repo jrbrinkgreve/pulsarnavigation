@@ -27,9 +27,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Nearest-bin assignment: the rounding errors of the time bins near the pulse are identical in every turn">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Why <code>'nearest'</code> was biased. Each 1 µs time bin is put in the nearest of 1024 phase bins (9.77 µs), which moves it by up to
-±4.9 µs. With 10,000 time bins per turn the pattern repeats exactly every turn (turn 7, small dots, lies on top of turn 0), so the
-errors never average out; weighted by the pulse they left a TOA bias of 0.5 ns. Linear assignment splits each time bin between the two
-neighbouring phase bins so that its average position is exact: no rounding error at all.</figcaption>
+<figcaption><b>Figure 7.3.</b> Why <code>'nearest'</code> was biased. Each 1 µs time bin goes to the nearest of 1024 phase bins (9.77 µs), which moves it
+by up to ±4.9 µs. With 10,000 time bins per turn the pattern repeats exactly every turn (turn 7, small dots, lies on top of turn 0), so the
+errors never average out; weighted by the pulse they left a TOA bias of 0.5 ns. Linear assignment has no rounding error at all.</figcaption>
 </figure>'''
 open('nearest.svg', 'w').write(svg)

@@ -64,11 +64,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="The daily position signal of B0329+54 for a site 100 km east, with the time spans that two TOAs average over, and the value one time per TOA would give">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>Why a TOA's row must be averaged. The grey curve is the residual that a site 100 km east gives B0329+54: a daily sine of
-{A:.0f} µs against the hour angle (grey bands: the pulsar below 20°). Left: a TOA from 10 hours of one pass measures the average
-over its data, {avg1:.0f} µs; the model at one time, the data's mean hour angle, says {r(4):.0f} µs, so the fit sees the offset
-{avg1 / r(4):.2f} times too small. Right: a TOA from 5 hours on each of two days at the same hour angle measures +{avg2:.0f} µs; the
-middle of its time span lies at the opposite hour angle, where the model says {r(mid):.0f} µs. With <code>toa.tSub</code> the fit
-averages the model over the same data and both cases are exact.</figcaption>
+<figcaption><b>Figure 10.2.</b> Why a TOA's row must be averaged. Grey: the residual a site 100 km east gives B0329+54, a daily sine of {A:.0f} µs against hour
+angle (grey bands: the pulsar below 20°). Left: a TOA from 10 hours of one pass measures the average over its data, {avg1:.0f} µs; the model at
+the data's mean hour angle says {r(4):.0f} µs, so the fit sees the offset {avg1 / r(4):.2f} times too small. Right: a TOA from 5 hours on each of two days at
+the same hour angle measures +{avg2:.0f} µs, but the middle of its span lies at the opposite hour angle, where the model says {r(mid):.0f} µs. With
+<code>toa.tSub</code> the fit averages the model over the same data, and both cases are exact.</figcaption>
 </figure>'''
 open('navavg.svg', 'w').write(svg)

@@ -55,10 +55,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 352" role="img" aria-label="What dedispersion does: the pulsar sweep becomes aligned, a broadband impulse becomes an inverse sweep, a carrier stays a carrier">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Why noise and RFI are added <em>after</em> dispersion (expected power in 16 sub-bands of 25 MHz, the code's constants). a: the
-receiver sees the pulsar already dispersed, but an impulse made at the receiver arrives at all frequencies at once, and a carrier is
-simply on. b: dedispersion moves each frequency earlier by τ(<var>f</var>) − τ(1.6 GHz). The pulsar lines up; the impulse becomes an
-<em>inverse</em> sweep, 6.3 ms long at the DM 5 drawn here (31.5 ms at DM 25); the carrier stays where it was. Real data behaves like this, so the simulator must add RFI at this
-point. It also shows why excision works <em>before</em> dedispersion: there the impulse is short and in one place.</figcaption>
+<figcaption><b>Figure 3.2.</b> Why noise and RFI are added <em>after</em> dispersion (expected power in 16 sub-bands of 25 MHz). (a) The receiver sees the
+pulsar already dispersed, an impulse made at the receiver at all frequencies at once, and a carrier simply on. (b) Dedispersion lines the
+pulsar up, turns the impulse into an <em>inverse</em> sweep (6.3 ms at the DM 5 drawn here, 31.5 ms at DM 25), and leaves the carrier
+where it was. Excision therefore works <em>before</em> dedispersion, where the impulse is short and in one place.</figcaption>
 </figure>'''
 open('rxorder.svg', 'w').write(svg)

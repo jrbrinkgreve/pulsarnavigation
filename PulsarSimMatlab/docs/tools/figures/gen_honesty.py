@@ -65,7 +65,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {ybot + 46}" role="img" aria-label="Error-bar honesty across the validation record: measured over predicted scatter for every check, all near 1">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
+<figcaption><b>Figure 1.</b> Every honesty check of the record on one axis: the measured scatter of (TOA − truth) divided by the stated error bar, with its
 own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs or pulls). The voltage-chain checks agree with 1
 within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
 of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection

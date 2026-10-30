@@ -8,13 +8,11 @@
 </head>
 <body>
 <main>
-
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
 <p class="meta">Status as of 27 October 2026: blocks A–D closed. Block E, revised on 23 Oct, leads to a fixed position in the Netherlands
 from several pulsars; its first step, E0, is a review week (five review sessions, agreed 26 Oct), now at day 2. F later. Session-by-session history: <code>logs/</code>.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p><b>Done:</b> the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
 review week (12–16 Oct), and the processing as one function, <code>processIQ</code> (19 Oct).</p>
 <p><b>Block C closed</b> (22 Oct). The fast simulator <code>simulateFold</code> is validated. It covers channels, RFI profiles,
@@ -37,7 +35,7 @@ estimated from several pulsars, with all 18 data streams beamformed and the full
 worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development. The ship's
 navigation filter is parked.</p>
 <p><b>Then block F</b>, the real implementation: IQ recordings at the Netherlands site from the antenna, mixer and SDR through
-<code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p></div>
+<code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p>
 
 <h2>Timeline so far</h2>
 <div class="table-wrap"><table>
@@ -232,7 +230,7 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
   <rect class="box" x="640" y="695" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
   <text class="sub" x="670" y="706">next / open</text>
 </svg>
-<figcaption>The roadmap on 23 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
+<figcaption><b>Figure 1.</b> The roadmap on 23 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
 TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
@@ -289,7 +287,7 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 <p><b>Alternative:</b> add motion (D) first, in the voltage simulator.</p>
 <p><b>Why not:</b> at the worst-case design point a J0437 TOA takes many hours, longer than one pass. The catalogue estimate of 6 Oct
 gave ~20 h. The fast simulator with J0437's measured profile later gave 82–95 h in the worst case, and 16 h at nominal flux
-(<a href="scenario.html#hundred">scenario</a>). Hours cannot be simulated at voltage level: the default path writes ~72 GB per second
+(<a href="scenario.html#hundred">scenario</a>). Hours cannot be simulated at voltage level: the default path writes ~72.5 GB per second
 (~61 GB on the full band). The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so
 <code>detectPulsar</code> and <code>estimateTOA</code> run unchanged on it. Motion (D) is then a hard requirement: folding across passes
 needs a phase that stays coherent over days.</p></div>
@@ -427,12 +425,11 @@ truth, against 379 km for dead reckoning. Its error bars agree with those of an 
 <p>Details: <a href="fold.html#prediction">phase prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>.</p>
 
 <h2 id="blockE">Block E: a fixed position from several pulsars (revised 23 Oct)</h2>
-<div class="callout note"><span class="ttl">In short</span>
 <p>Jasper (23 Oct): "I have a clear endpoint of the development pipeline for now: estimating a fixed position on earth using multiple
 pulsars. We can develop towards that point, and refine as much as possible."</p>
 <p>The endpoint: a fixed site in the Netherlands, its position estimated from several pulsars, each in its own digital beam formed from
 all 18 data streams. The Earth–pulsar motion is modelled in full. The design point is the worst-case flux. The headline is the
-precision against integration time, with the shortest time as the aim.</p></div>
+precision against integration time, with the shortest time as the aim.</p>
 <h3>Decisions (Jasper, 23 Oct)</h3>
 <div class="table-wrap"><table>
 <tr><th>Topic</th><th>Decision</th></tr>

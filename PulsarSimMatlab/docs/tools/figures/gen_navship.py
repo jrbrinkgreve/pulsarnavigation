@@ -42,9 +42,9 @@ svgA = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="One ship over 14 days: the true drift off its dead-reckoning track, east and north, against the navigation filter's estimate">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>One simulated ship (<code>runShip</code>, seed {SEED}, self-calibrated start): over 14 days an unknown current pushes it
-{np.hypot(*F.truth[:, -1]) / 1e3:.0f} km off its dead-reckoning track. B0329+54 and B0950+08 alone, with a drifting SDR clock, keep the smoothed
-track within its error band. The band widens towards the end, where no later TOAs help.</figcaption>
+<figcaption><b>Figure 10.5.</b> One simulated ship (<code>runShip</code>, seed {SEED}, self-calibrated start): over 14 days an unknown current pushes it {np.hypot(*F.truth[:, -1]) / 1e3:.0f} km off
+its dead-reckoning track. B0329+54 and B0950+08 alone, with a drifting SDR clock, keep the smoothed track within its error band. The band
+widens towards the end, where no later TOAs help.</figcaption>
 </figure>'''
 open('navship.svg', 'w').write(svgA)
 # (B) all seeds
@@ -81,9 +81,9 @@ svgB = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {H}" role="img" aria-label="Track errors of eight simulated ships: dead reckoning against the navigation filter with a self-calibrated and a calibrated start">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption>Eight ships with different currents, clocks and noise (<code>runShip</code>, seeds 1–8, 14 days): the rms distance of the
-track from the truth for dead reckoning alone, and for the smoothed filter with a self-calibrated and with a calibrated start. Medians
-{med[0]:.0f}, {med[1]:.0f} and {med[2]:.0f} km.</figcaption>
+<figcaption><b>Figure 10.6.</b> Eight ships with different currents, clocks and noise (<code>runShip</code>, seeds 1–8, 14 days): the rms distance of the
+track from the truth for dead reckoning alone, and for the smoothed filter with a self-calibrated and with a calibrated start. Medians {med[0]:.0f},
+{med[1]:.0f} and {med[2]:.0f} km.</figcaption>
 </figure>'''
 open('navships.svg', 'w').write(svgB)
 print('rows', [(r[0], round(r[1]), round(r[2]), None if np.isnan(r[3]) else round(r[3])) for r in rows])

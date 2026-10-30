@@ -61,9 +61,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 236" role="img" aria-label="FFTFIT: the profile, the cross-correlation with the template and its peak, and the weights that set the TOA error">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>FFTFIT on a simulated profile (2048 bins, 5 % Gaussian, true shift 40 µs, white noise). a: the data and the fitted
-<var>a</var> + <var>b</var>·<var>s</var>(φ − τ̂). b: the cross-correlation with the template, evaluated exactly between bins from the Fourier
-phases; τ̂ is its peak. c: the error follows from <var>C</var>′ being linear in the data, var(τ̂) = <var>d</var>ᵀ·Cov·<var>d</var> / <var>C</var>″²;
-<var>d</var> is the template slope, so only the pulse flanks contribute.</figcaption>
+<figcaption><b>Figure 8.1.</b> FFTFIT on a simulated profile (2048 bins, 5 % Gaussian, true shift 40 µs, white noise). (a) The data and the fitted
+<var>a</var> + <var>b</var>·<var>s</var>(φ − τ̂). (b) The cross-correlation with the template, exact between bins from the Fourier phases;
+τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.4): the template slope, so only the pulse flanks set the error.</figcaption>
 </figure>'''
 open('toa.svg', 'w').write(svg)

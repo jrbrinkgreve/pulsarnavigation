@@ -54,9 +54,8 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 322" role="img" aria-label="Gain of the IQ low-pass filter against baseband frequency, with the band, the zones that would alias onto the band and the mirror image">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The low-pass of <code>applyIQmodulation</code>, computed with its design formula (Kaiser-windowed sinc). After mixing, the
-band sits at −100…+300 MHz (green): inside the flat passband. Keeping every 5th sample (800 MHz) folds frequencies 800 MHz apart onto
-each other, so the orange zones would land on the band; the filter suppresses them by about 80 dB or more. The mixer's mirror image of the
-band (grey) and the receiver noise at all other frequencies are removed the same way.</figcaption>
+<figcaption><b>Figure 4.2.</b> The low-pass of <code>applyIQmodulation</code>, computed with its design formula (Kaiser-windowed sinc). After mixing, the
+band sits at −100…+300 MHz (green), inside the flat passband. Keeping every 5th sample folds frequencies 800 MHz apart onto each other,
+so the orange zones would land on the band; the filter suppresses them by about 80 dB or more, as it does the mirror image (grey).</figcaption>
 </figure>'''
 open('iqfilter.svg', 'w').write(svg)

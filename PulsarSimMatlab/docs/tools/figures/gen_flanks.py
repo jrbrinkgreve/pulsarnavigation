@@ -50,9 +50,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 344" role="img" aria-label="Timing information sits on the flanks of the pulse; the best TOA error falls as pulse width over SNR">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>Where the precision of a TOA comes from (weak-signal limit). a: a small shift of the pulse changes the profile most where
-it is steepest, so the timing information (∝ <var>p</var>′², green) sits on the flanks, one σ<sub>t</sub> either side of the peak
-(dashed); the peak itself says nothing about time. b: the resulting bound for a Gaussian pulse: proportional to the pulse width and
-inversely to the SNR. At the design threshold SNR 7 the simulated pulsar gives ~43 µs and the narrower J0437 ~12 µs.</figcaption>
+<figcaption><b>Figure P.6.</b> Where the precision of a TOA comes from (weak-signal limit). (a) A small shift changes the profile most where it is steepest,
+so the timing information (∝ <var>p</var>′², green) sits on the flanks, one σ<sub>t</sub> either side of the peak (dashed); the peak itself
+says nothing about time. (b) The resulting bound for a Gaussian pulse, proportional to the pulse width and inversely to the SNR. At the design
+threshold SNR 7 the simulated pulsar gives ~43 µs and the narrower J0437 ~12 µs.</figcaption>
 </figure>'''
 open('flanks.svg', 'w').write(svg)

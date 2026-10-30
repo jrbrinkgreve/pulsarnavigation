@@ -46,9 +46,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Reading validateTOA: Q-Q plots for honest, too small and outlier-ridden error bars, and the uncertainty of the rms ratio against the number of TOAs">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>How to read <code>validateTOA</code>. a: Q-Q plots of normalized errors for three simulated cases (illustrative, not pipeline output):
-honest error bars lie on the line, too small ones make it steeper, outliers bend the tails away. b: the rms ratio is itself uncertain by
-about 1/√(2<var>n</var>), so 8 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. This is why the
-validation record relies on Monte Carlo runs and sweeps, not on one <code>main.m</code> run.</figcaption>
+<figcaption><b>Figure 9.2.</b> How to read <code>validateTOA</code> (illustrative, not pipeline output). (a) Q-Q plots of normalized errors: honest error
+bars lie on the line, too small ones make it steeper, outliers bend the tails away. (b) The rms ratio is itself uncertain by about
+1/√(2<var>n</var>), so 8 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. The validation record
+therefore relies on Monte Carlo runs and sweeps, not on one <code>main.m</code> run.</figcaption>
 </figure>'''
 open('qq.svg', 'w').write(svg)

@@ -42,9 +42,9 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Detection thresholds against false-alarm probability: known phase, unknown phase from Rice's formula, and two naive counts of independent trials">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption>The thresholds of <code>detectPulsar</code> against the false-alarm probability, for the 5 % Gaussian template in 2048 phase bins
-(Rice factor 5.51). Known phase: one Gaussian test. Unknown phase: Rice's formula for the maximum over all shifts. The two dotted lines show
-why neither naive count works: 5.5 independent trials gives too low a threshold (3.57 at 10⁻³: too many false alarms), 2048 gives too high
-a one (4.90: detections lost). The false-alarm rate is validated at 10⁻²–10⁻³ (green); 10⁻⁶ relies on the Gaussian and Rice tails.</figcaption>
+<figcaption><b>Figure D.1.</b> The thresholds of <code>detectPulsar</code> against the false-alarm probability, for the 5 % Gaussian template in 2048 phase
+bins (Rice factor 5.51). Known phase: one Gaussian test. Unknown phase: Eq. (D.3). The dotted lines show why neither naive count works:
+5.5 independent trials gives too low a threshold (3.57 at 10⁻³), 2048 too high a one (4.90). The false-alarm rate is validated at
+10⁻²–10⁻³ (green); 10⁻⁶ relies on the Gaussian and Rice tails.</figcaption>
 </figure>'''
 open('rice.svg', 'w').write(svg)
