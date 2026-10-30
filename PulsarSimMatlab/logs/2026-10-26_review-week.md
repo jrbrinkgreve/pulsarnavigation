@@ -285,7 +285,8 @@ detectPower.m:
 - **What it does.** It splits the 800 MS/s IQ stream into 128 channels of 3.125 MHz that tile 1.2–1.6 GHz. Each
   channel is a complex voltage stream at 4.17 MS/s.
   - It is exactly what 128 separate receivers would give (mix down to the channel centre, low-pass, keep every
-    192nd sample), computed at ~1/256 of the cost by a polyphase filterbank.
+    192nd sample), computed at ~1/100 of the cost by a polyphase filterbank (27 against 2700 complex multiplies per
+  input sample; corrected 28 Oct, was "~1/256").
   - Per output time: weight a frame of 4096 input samples with the prototype filter, fold it into 256 bins, and one
     256-point IFFT gives all channels at once, followed by a phase correction from the absolute sample index.
 - **Why channels:**
@@ -320,7 +321,8 @@ detectPower.m:
 - Parseval on real data 1.00007;
 - 6 blocks.
 
-Only today's grid is tested (R-C1: β = 0, oversampling 2, `BlockOut` bit for bit, the refusals).
+Tests 1–3 cover only today's grid. Since 27 Oct, tests 4–7 (R-C1) also cover: β = 0 and 0.18, oversampling 2,
+`BlockOut` bit for bit, and the refusals (section "missing unit tests, stage 5a").
 
 ## Day 2: RFI excision (`detectRFI`, `periodicRFI`, `blankChannels`)
 
@@ -848,6 +850,39 @@ up to d18c281).
   4. long bins (the 12 Oct crash).
 - testFoldWeights 1–7 (the fold side, day 3).
 
+## 28–30 Oct, stage 5a: Jasper's own walk-through, and the 5a docs as a textbook section
+
+Jasper went through `channelizeIQ` himself, question by question, and derived the filterbank ("okay, i derived it!",
+30 Oct). The points that made it click, in order:
+
+- The prototype is a low-pass centred on 0 Hz. Every channel's filter is that one low-pass times a phasor
+  (shift theorem). Output k of the inverse DFT *is* that phasor, so bin k is a receiver tuned to (k + β)·3.125 MHz:
+  demodulate, then low-pass with h. The phase correction e^(−i2π(k+β)c/K) puts the frame-relative phasor back on
+  absolute time. There is one low-pass per mixing: stage 4 (after the LO) and h in 5a (after the mixing by f_k).
+- The fold: for a whole number k the phasor repeats every 256 samples, so the 16 blocks can be added first. The
+  256-point DFT of the fold is every 16th bin of the 4096-point DFT. The bins in between are redundant: the weighted
+  frame's spectrum is smoothed by the ~4 MHz block, and neighbouring fine bins correlate at 0.986 (neighbouring
+  channels 0.26). 94 % of h² lies within ±192 samples, so one frame resolves ~4 MHz; the long tails buy the 1 MHz
+  edges, not resolution. The frequency within a channel moves into the channel stream, where 5b resolves it.
+- The block: edge at fs/(2D) = 2.083 MHz, so the zero crossings are D = 192 samples apart. The slope
+  fs/D − ChanWidth = 1.042 MHz fits between the useful band (1.5625) and the start of the copies (2.604), and sets
+  M = 3853 taps. The slide by 192 samples each channel at 4.17 MHz; with D = 256 the copies would reach 1 MHz into
+  the useful band. Oversampling 8/7 / 4/3 / 2 gives 8989 / 3853 / 1285 taps, that is 36 / 16 / 6 blocks (I said
+  5 blocks for oversampling 2 on 29 Oct; it is 6, since 1285 > 5 × 256).
+
+**Docs (Jasper: "can you try and write more like a textbook? provide a draft to me first", then "better
+connections between the subsections", then "make it more compact"; applied 30 Oct, not committed).** The 5a part of
+`channels.html` from "What a channel is" to the end of "Oversampling by 4/3" is now sections 5a.1–5a.6, each opening
+from the one before: what a channel is, the prototype, one filter for every channel, folding, sliding, the complete
+algorithm. Six numbered equations, a worked example of the fold, three tables and four new computed figures
+(`docs/tools/figures/gen_proto.py`, `gen_pfbbank.py`, `gen_pfbfold.py`, `gen_pfbalias.py`, helper `pfb.py`, which
+uses channelizeIQ's grid and Kaiser design). The hand-drawn sketch of three channel responses is replaced by
+Figure 5a.4. Two fixes in the algorithm diagram: "about 1/256 of the arithmetic" → "about 1/100"; the frame "centred
+on sample m·D + G" → "ending at sample m·D + G" (the code reads x(c − r), c = mD + G, so the prototype is centred on
+mD). Checked by rendering: 75 equations, no KaTeX or console errors, 46 links on the two changed pages, none broken.
+Figures README and the maintenance changelog updated. Seen in passing, not from this change: at a very narrow pane
+(303 px) the channels page scrolls 22 px sideways, before and after the rewrite.
+
 ## Running list of smaller details
 
 | # | Part | Where | Detail | Weight |
@@ -907,3 +942,4 @@ up to d18c281).
 | D2-24 | 6b weights | testBlankingWeights header 3(a) | Says the white-input W is "~4 % off" near W = 1e-6. blankingWeights' header (A3a) says ~1 %, and that the earlier ~4 % was over-stated. Stale test comment | comment (tests) |
 | D2-25 | 6b weights | V, X white form | The mean uses the true channel spectrum, but V and X keep the white form: 1–2 % error in the error bars of heavily blanked bins (header) | none |
 | D2-26 | 6b detection | bin length | Bins are whole channel samples: 4 × 0.24 µs = 0.96 µs (1.0417 MHz, not the requested 1 MHz; one warning). The full-band path gives 1.000 µs, so the two front ends fold slightly different bins | understanding |
+| D2-27 | 5a filterbank | ChanWidth 3.125 MHz | Jasper's question (28 Oct): which optimum? None was computed: it is a reasoned choice (notes §11 design choices, channels page). Without RFI the pulsar SNR does not depend on the width (same ∫W² 390.0 MHz, B_noise 391.6 MHz). Narrower: a carrier costs less band (0.78 % per channel at 3.125 MHz) and the FFTs are smaller. Wider: shorter guards (2.41 µs × 3.125 MHz/B), less impulse blanking (0.027 % at 50/s), fewer channel streams (power 0.53 GB/s, weights 4.8 GB/s at 128). Filterbank cost is nearly flat (∝ 16 + log2 K / 2). Over 0.78–12.5 MHz no cost is binding at the weak target. A sweep (runRFITest, rfiRealistic, ChanWidth 1.5625 / 3.125 / 6.25) would show the real optimum, only if the RFI cost becomes critical | note; sweep only if needed |

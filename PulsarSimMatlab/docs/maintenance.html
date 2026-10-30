@@ -279,6 +279,13 @@ project notes) and its fixes: the oversampling-2 wording, the in-channel sweep 3
 regenerated), parameters' current-settings rows at DM 25, the test run time, the per-channel leakage after the fix, the home and
 roadmap status (27 Oct, E0), history (22–27 Oct, decisions, logs), lessons row 19, "5a–6b" in the sidebar, <code>Chi2Alarm</code> on the
 toa page, and smaller wording and rounding. Links checked: 1070, none broken. <code>api.html</code> regenerated after this commit.</td></tr>
+<tr><td>30 Oct 2026</td><td>after <code>571704a</code></td><td>Stage 5a on the channels page rewritten as a textbook section (Jasper: "can you try
+and write more like a textbook?", then "make it more compact"): numbered subsections 5a.1–5a.6, each opening from the one before; six
+numbered equations; four new computed figures (<code>tools/figures/gen_proto.py</code>, <code>gen_pfbbank.py</code>,
+<code>gen_pfbfold.py</code>, <code>gen_pfbalias.py</code>, with the shared helper <code>pfb.py</code>); a worked example of the fold; tables
+of the filter regions, the channel rows and the oversampling choices. The hand-drawn sketch of three channel responses is replaced by
+Figure 5a.4. Fixed in the algorithm diagram: "about 1/256 of the arithmetic" is now "about 1/100" (27 against 2700 multiplications per
+input sample), and the frame now ends at sample m·D + G instead of being centred on it. No code change.</td></tr>
 </table></div>
 
 </main>

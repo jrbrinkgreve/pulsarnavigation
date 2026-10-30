@@ -4,7 +4,7 @@ Each `gen_*.py` computes one figure from the code's formulas and constants (or f
 numbers in a results table or a logged experiment) and writes the `<figure>` snippet as `<name>.svg` in the
 current folder (e.g. `python3 docs/tools/figures/gen_toa.py` from anywhere). To update a figure,
 run its script and replace the matching `<figure>`
-block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
+block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates. `pfb.py` holds the prototype of `channelizeIQ` (same grid and design formula), shared by the four 5a figures.
 
 | Script | Figure | Page |
 |---|---|---|
@@ -42,6 +42,10 @@ block in the page. Needs numpy; `plotsvg.py` maps data to SVG coordinates.
 | `gen_fout.py` | the f_out sweep of 9 Oct (logged numbers): SNR and error-bar honesty vs bin width | fullband.html (stage 6) |
 | `gen_dmmem.py` | memory of the dispersion filters vs DM (each function's sizing rule) | channels.html |
 | `gen_powcov.py` | powerCovariance for the 3.125 MHz channels: power correlation, V and X(L) | channels.html |
+| `gen_proto.py` | the 5a prototype: a tapered sinc in time (zero crossings every 192 samples), a block with sloped edges in frequency | channels.html (5a.2) |
+| `gen_pfbbank.py` | the 256 DFT slots and the 128 kept rows; six channel responses around the LO | channels.html (5a.3) |
+| `gen_pfbfold.py` | folding keeps every 16th bin: a weighted frame with three tones; correlation of two outputs against their spacing | channels.html (5a.4) |
+| `gen_pfbalias.py` | the copies of a channel response when the frame slides by D = 192 and by 256 | channels.html (5a.5) |
 | `gen_blanksub.py` | energy of a radar pulse vs SNR; what subtraction would leave | excision.html |
 | `gen_windows.py` | detectRFI thresholds vs window length (needs scipy) | excision.html |
 | `gen_blankvar.py` | experiment 3a: blanked-bin variance vs the W and W² rules (reads `data/mc/expBlankingVariance.mat`, local only; needs scipy) | excision.html |
