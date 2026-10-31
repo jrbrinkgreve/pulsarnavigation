@@ -29,7 +29,8 @@ omission would cost against real data.</p>
 Earth that orbits the Sun, and it time-stamps the data with its own oscillator. The code therefore carries every arrival time through two
 chains (Figure L.1): from the clock reading to true time, from the Earth's clock to the barycentre's clock, and from the receiver's position
 to the barycentre. What is left after them is the position error, seen along the pulsar's direction. One microsecond of residual is 300 m
-along the line of sight. The delays that are removed are up to ±412 s over a year for B0329+54, several hundred million times larger.</p>
+along the line of sight. The delays that are removed are up to ±412 s over a year for B0329+54, several hundred million times larger. Before those delays, though,
+comes the question of how a residual becomes a position at all.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="Two chains. Position: the barycentre, the Sun, the Earth-Moon barycentre, the geocentre, the site and the ship, each an offset from the one before. Time: the clock reading, the clock estimate, terrestrial time, the Einstein term to barycentric time at the receiver, then the Roemer, curvature and Shapiro terms to barycentric time at the barycentre, and the pulsar's phase.">
   <defs>
@@ -91,16 +92,18 @@ direction <var>n̂</var>. The residual of a TOA is the measured arrival time min
 from where the observer thinks it is, and a clock that is off by δ<var>b</var>, the residual is</p>
 <div class="eq"><span class="label">(L.1)</span>\[ r = -\frac{\delta\mathbf{r}\cdot\hat{\mathbf{n}}}{c} + \delta b + \text{noise}. \]</div>
 <p>A true receiver closer to the pulsar gives a negative residual: the pulse arrives early. One microsecond is 300 m.</p>
-<p><b>One pulsar on a rotating Earth.</b> On the Earth, the pulsar's direction turns once per sidereal day, so a fixed position error shows
+<p>Eq. (L.1) has one residual and four unknowns, so one TOA cannot find them all. What one pulsar can find depends on the Earth's rotation.
+On the Earth, the pulsar's direction turns once per sidereal day, so a fixed position error shows
 up as a daily sine. Its amplitude is the offset's equatorial part times cos δ, where δ is the pulsar's declination. For B0329+54, with
 cos δ = 0.58, a site 100 km east of the assumed one gives a daily sine of 193.33 µs. The offset's component along the Earth's axis does not
 rotate: it gives a constant, which cannot be told apart from the clock offset. One pulsar therefore finds the two equatorial components of a
 fixed site, and the third merges with the clock.</p>
-<p><b>Several pulsars, and a moving ship.</b> Each pulsar measures the position along its own direction. With pulsars in well-separated
+<p>Several pulsars remove that limit, because each pulsar measures the position along its own direction. With pulsars in well-separated
 directions, the three components and the clock offset are four unknowns, so four TOAs at one moment fix them. A moving ship adds its
 velocity, and the clock adds its rate. These unknowns change in time, so a Kalman filter estimates them together, with a motion model per
 vehicle.</p>
-<p><b>How precise, and the half-turn limit.</b> One TOA with an uncertainty σ locates the receiver to <var>c</var>·σ along the pulsar's
+<p>How well each component is known depends on the TOA precision, and the precision runs into a limit at half a turn. One TOA with an
+uncertainty σ locates the receiver to <var>c</var>·σ along the pulsar's
 direction. B0329+54's TOAs have about 734 µs, which is 220 km per TOA; after 30 days of TOAs, each equatorial component of a fixed site
 should be known to about ±30 km. J0437's TOAs have about 13 µs, which is 3.9 km per TOA, but J0437 is too far south to be seen from the
 Netherlands. The fold cannot tell a pulse that is <var>f</var>·<var>r</var> turns late from one that is a whole turn later, so a TOA is
@@ -134,11 +137,11 @@ such as the true site 100 km east of the assumed one.</td></tr>
 The site's velocity gets the rotation's 465 m/s at the equator added. The geocentre's own position comes from the position chain of
 Figure L.1. Every trajectory is either Earth-fixed or barycentric. A ship and a ground site are naturally Earth-fixed, because their tracks
 come as latitude and longitude; a deep-space probe is naturally barycentric. The delay model turns both into the barycentric frame itself,
-so the predictor and a later Kalman filter never need to know which kind of vehicle they handle
-(<a href="fold.html#trajectory">phase prediction</a>).</p>
+so the predictor and a later Kalman filter never need to know which kind of vehicle they handle (<a href="fold.html#trajectory">phase
+prediction</a>). The frame settles where the receiver is; when it receives each pulse needs the same care.</p>
 
 <h2 id="time">L3 · Time scales and the receiver's clock</h2>
-<p>Several clocks are involved, and they disagree by up to minutes. The code counts every time in seconds since J2000.0, which is 2000-01-01
+<p>The difficulty is that several clocks are involved, and they disagree by up to minutes. The code counts every time in seconds since J2000.0, which is 2000-01-01
 12:00 in terrestrial time.</p>
 <div class="table-wrap"><table>
 <tr><th>Time scale</th><th>What it is</th><th>Relation</th></tr>
@@ -445,10 +448,12 @@ one scale, with the 100 km signal that navigation wants in orange, and the TOA n
 <p>\[ \frac{d(\mathrm{TDB}-\mathrm{TT})}{dt} = \frac{v_\oplus^2/2 + U}{c^2} - L_C, \qquad U = \sum_i \frac{GM_i}{|\mathbf r_\oplus - \mathbf r_i|}, \]</p>
 <p>with the sum over the Sun, the Moon and the planets, and <var>L</var><sub>C</sub> = 1.48082686741·10⁻⁸ the IAU's mean rate, which
 keeps TDB in pace with TT on average.</p></details>
+<p>The Roemer terms are geometry: the light-travel time across a distance. The Einstein and Shapiro terms are not. They come from relativity,
+and they need a closer look.</p>
 
 <h2 id="relativity">L5 · Relativistic corrections</h2>
 <p>Two effects of general relativity are large enough to matter, and a third concerns which clock is meant.</p>
-<p><b>The Einstein delay: the receiver's clock runs at a varying rate.</b> A clock on the Earth moves at 30 km/s through the Sun's
+<p>The first is the Einstein delay: the receiver's clock runs at a varying rate. A clock on the Earth moves at 30 km/s through the Sun's
 gravitational field, and both the speed and the field strength change along the slightly eccentric orbit. The clock therefore runs a little
 slow near perihelion, where it is faster and deeper in the field, and a little fast near aphelion, compared with the uniform barycentric time
 TDB. Accumulated over a year this is ±1.66 ms. The site adds a smaller daily term, because it moves with the Earth's rotation: up to about
@@ -456,16 +461,16 @@ TDB. Accumulated over a year this is ±1.66 ms. The site adds a smaller daily te
 its two largest terms: 1.657 ms over a year and 14 µs over half a year. The Moon and the planets add many smaller terms, up to about 60 µs
 together. With JPL's DE440 the code instead integrates the clock's rate along the Earth's actual path through the solar system, which
 matches the published series to about 2 µs.</p>
-<p><b>The Shapiro delay: gravity slows the pulse.</b> A pulse that passes the Sun travels through curved space-time and arrives later, the
+<p>The second is the Shapiro delay, in which gravity slows the pulse itself. A pulse that passes the Sun travels through curved space-time and arrives later, the
 more so the closer the line of sight passes the Sun. For B0329+54 it varies between −17 and +6 µs over a year. For a pulsar near the
 ecliptic the line of sight can graze the Sun, and the delay reaches about −110 µs. Jupiter adds up to about 180 ns, but only when the line
 of sight passes close to it.</p>
-<p><b>Whose clock: TT, TDB and a probe's own time.</b> The Einstein term converts terrestrial time into barycentric time, which is right for a
+<p>The third is the question of whose clock is meant: TT, TDB or a probe's own time. The Einstein term converts terrestrial time into barycentric time, which is right for a
 receiver on the Earth. A deep-space probe's clock follows neither: its proper time runs at a rate set by its own speed and its distance from
 the Sun. TDB's rate already contains the Earth's orbital speed and the Sun's pull at 1 AU, so a probe near the Earth's orbit runs within
 about 10⁻⁹ of TDB. A probe at Jupiter's distance feels less of both, and runs 1.3·10⁻⁸ fast: 1.1 ms per day. Most of that is a constant rate,
 which the clock estimate absorbs. The code does not yet model a probe's own clock; it treats a probe's time stamps as TDB.</p>
-<p><b>Height.</b> A clock higher up runs faster: 1.1·10⁻¹³ per km of height. At sea level this is part of TT's definition. On an aircraft at
+<p>Height changes a clock's rate as well. A clock higher up runs faster: 1.1·10⁻¹³ per km of height. At sea level this is part of TT's definition. On an aircraft at
 10 km it is 95 ns per day, again a rate that the clock estimate absorbs.</p>
 <p>In the simulator, the truth and the observer's prediction use the same delay model. Its own errors therefore cancel in the residual, and
 only the difference between the true and the assumed trajectory and clock remains. That is why an analytic Earth orbit was enough to start

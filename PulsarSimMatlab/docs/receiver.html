@@ -28,9 +28,9 @@ receiver followed by an ADC would. The receiver's clock (4a) times every one of 
 <div class="sig">info = addNoiseAndRFI(inFile, outFile, fs, 'Band', [fLow fHigh], 'SNRdB', snrDB, 'SignalInfo', info_gen, 'RFI', rfi, 'Seed', noiseSeed)</div>
 <p class="meta"><a href="api.html#addnoiseandrfi">Full interface and help text of <code>addNoiseAndRFI</code> →</a></p>
 
-<h3 id="noise-short">In short</h3>
-<p>It adds white Gaussian receiver noise at a chosen SNR to the dispersed sky signal, plus any list of interference sources. It also
-prints what that SNR means in practice: how bright one pulse is, and how precise a TOA can be.</p>
+<p id="noise-short">Stage 3 adds white Gaussian receiver noise at a chosen SNR to the dispersed sky signal, plus any list of interference
+sources. It also prints what that SNR means in practice: how bright one pulse is, and how precise a TOA can be. The first question is
+where in the chain the noise belongs.</p>
 
 <h3 id="noise-phys">3.1 Where noise and RFI enter</h3>
 <p>Receiver noise and interference enter at the receiver, after the pulsar's signal has crossed the interstellar medium (Figure 3.1).
@@ -190,11 +190,11 @@ peak of the pulse, and the receiver noise's. In radio-astronomy terms it is <var
 the same sample rate (4 GHz) and dispersion does not change the in-band density, so the PSD ratio is \(A^2/\sigma_n^2\)</dd>
 <dt>\(\rho\)</dt><dd>the same ratio on a linear scale, no unit</dd>
 </dl>
-<p><code>Inf</code> means no noise. An SNR per sample, per time bin or after folding would depend on later processing choices: the
-bandwidth, the time resolution, how long one folds. The ratio of spectral densities does not, and neither does dispersion, because each
+<p>A ratio of spectral densities is used because an SNR per sample, per time bin or after folding would depend on later processing choices:
+the bandwidth, the time resolution, how long one folds. The ratio of spectral densities does not, and neither does dispersion, because each
 frequency still sees the full pulse height, only later. It therefore describes the <em>sky and antenna</em>. A small-antenna design point
-translates straight into it: −54 dB for J0437 on the 0.61 m² array. Every "SNR per pulse" or "per sub-int" follows from it through the
-radiometer equation (Figure 3.3).</p>
+translates straight into it: −54 dB for J0437 on the 0.61 m² array. Every "SNR per pulse" or "per sub-int" follows from it through the radiometer equation (Figure 3.3). A value of <code>Inf</code> means
+no noise.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design target and the test runs marked">
   <path class="axis" d="M90 290 H650"/>
@@ -267,7 +267,7 @@ radiometer equation (Figure 3.3).</p>
 <code>snrDB</code> the pulsar's own noise takes over. The time per TOA (side note) uses the fold's 373·ρ per turn, which includes the
 baseline loss; the 62 h is the <a href="scenario.html">scenario page</a>'s number for this pulsar.</figcaption>
 </figure>
-<p>At run time the stage prints the radiometer prediction for a Gaussian power profile <var>p</var>(<var>t</var>), including self-noise,
+<p>To make a value of <code>snrDB</code> concrete, the stage prints at run time the radiometer prediction for a Gaussian power profile <var>p</var>(<var>t</var>), including self-noise,
 in a flat band <var>B</var> = 400 MHz (stored in <code>info.prediction</code>):</p>
 <div class="eq"><span class="label">(3.2)</span>\[ \mathrm{SNR}_\mathrm{pulse}^2 = B \int \frac{\left(\rho\,p(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = B \int \frac{\left(\rho\,p'(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt \]</div>
 <dl class="where">
@@ -297,6 +297,7 @@ optimum is slightly worse:</p>
 The quick version stays because it needs nothing but the parameters, so <code>snrDB</code> can be chosen before anything runs.</p></div>
 
 <h3 id="noise-how">3.3 Adding noise and RFI, block by block</h3>
+<p>With the noise level fixed, the stage works in three steps.</p>
 <ol>
 <li><b>Noise level.</b> σ<sub>n</sub> = <var>A</var>/√ρ from Eq. (3.1). From it follows the receiver-noise power in the band,
 <var>P</var><sub>band</sub> = σ<sub>n</sub>²·<var>B</var>/(<var>f</var><sub>s</sub>/2). All RFI strengths are relative to that.</li>
@@ -323,7 +324,7 @@ stream (seed + 1000·source index), with substreams per 65,536-chip chunk (bpsk)
 <h3 id="rfi">3.4 The RFI model: <code>rfiSource</code></h3>
 <div class="sig">src = rfiSource(type, 'Freq', …, 'INRdB', …, 'Label', …)</div>
 <p class="meta"><a href="api.html#rfisource">Full interface and help text of <code>rfiSource</code> →</a></p>
-<p>Each source is a struct with the same fields, so a scenario is just an array: <code>rfi = [rfiSource(…), rfiSource(…)]</code>. Its
+<p>The RFI sources of step 2 are all described in the same way. Each source is a struct with the same fields, so a scenario is just an array: <code>rfi = [rfiSource(…), rfiSource(…)]</code>. Its
 strength is <code>INRdB</code>, the <b>interference-to-noise ratio</b>: its power while it is on, relative to <em>all</em> the
 receiver-noise power in the band. 0 dB means as much power as the whole in-band noise. Total power, not power per Hz, is the one measure
 that means the same for a carrier, a 20 MHz LTE block and a 200 ns burst. Per Hz, a carrier would be infinitely strong, yet it touches
@@ -441,7 +442,7 @@ are short and strong, which is what <a href="excision.html">RFI excision</a> loo
 </figure>
 
 <h4 id="risetime">Radar edges: <code>RiseTime</code></h4>
-<p>A real transmitter ramps its pulse up and down. Here the envelope rises and falls as a raised cosine lasting <code>RiseTime</code>,
+<p>The radar type has two features that matter for excision. The first is its edges: a real transmitter ramps its pulse up and down. Here the envelope rises and falls as a raised cosine lasting <code>RiseTime</code>,
 centred on the nominal edges. <code>PulseWidth</code> is still the width between the 50 % points (the radar definition), and the energy is
 (<code>PulseWidth</code> − <code>RiseTime</code>/4) × the power while on. With instant edges the spectrum falls only as 1/<var>f</var>² away
 from the carrier: weak sidelobes over tens of MHz, in many channels, too weak per channel to be detected. With raised-cosine edges it falls
@@ -453,7 +454,7 @@ emission masks. <code>RiseTime</code> = 0 gives instant edges, and reproduces th
 <p>Radar edges: step B5a, 8 Oct 2026. The 0.1 µs default is Jasper's choice.</p></details>
 
 <h4 id="rotation">Rotating antenna <span class="badge validated">validated</span></h4>
-<p>Any source can have a rotating antenna (<code>ScanPeriod</code>, <code>BeamTime</code>, <code>BeamWidth</code>, <code>SidelobeDB</code>). A
+<p>The second is a rotating antenna, which any source can have (<code>ScanPeriod</code>, <code>BeamTime</code>, <code>BeamWidth</code>, <code>SidelobeDB</code>). A
 surveillance radar's antenna turns at 5–6 rpm, a scan of 10–12 s. Its main beam points at us once per scan; the rest of the time only
 its sidelobes do, 25–35 dB weaker. The source's power is multiplied by the antenna gain towards us:</p>
 <div class="eq"><span class="label">(3.3)</span>\[ g(t) = \max\!\left( \exp\!\left(-4\ln 2\,\left(\frac{\delta t}{\texttt{BeamWidth}}\right)^{2}\right),\; 10^{\,\texttt{SidelobeDB}/10} \right) \]</div>
@@ -533,7 +534,7 @@ peaks drawn). With instant edges (orange) it falls as 1/<var>f</var>²: still 2.
 0.1 µs raised-cosine edges (blue) it falls as 1/<var>f</var>⁶ beyond about 5 MHz. (b) The power gain of the realistic scenario's radar 1
 towards us over one 10 s scan: most of the time only its −30 dB sidelobes reach us.</figcaption>
 </figure>
-<p><b>Test</b> (<code>tests/testRfiGating.m</code>, ~10 s). Without rotation, the output equals the older reference (from before radar
+<p>The test <code>tests/testRfiGating.m</code> (~10 s) checks both features. Without rotation, the output equals the older reference (from before radar
 edges were added) bit for bit. Invalid rotation settings are refused. Radar pulses and a carrier pass through two beam passages (toy
 scan 1 ms, beam 100 µs, −25 dB floor); the energy with rotation, divided by the energy without, equals <var>g</var> averaged over each
 pulse, to 10⁻⁵.</p>
@@ -541,7 +542,7 @@ pulse, to 10⁻⁵.</p>
 <p>Rotating antenna: step B5c-1, 8 Oct 2026.</p></details>
 
 <h4 id="noisetype">Band-limited Gaussian noise: <code>'noise'</code> <span class="badge validated">validated</span></h4>
-<p>An LTE downlink is OFDM: hundreds of subcarriers carrying random data. By the central limit theorem its voltage is Gaussian, so it
+<p>The last type models a common source that looks like no RFI at all. An LTE downlink is OFDM: hundreds of subcarriers carrying random data. By the central limit theorem its voltage is Gaussian, so it
 looks like extra receiver noise with a raised level in its band. The <code>'noise'</code> type makes exactly that: white Gaussian noise
 through a Kaiser band-pass centred on <code>Freq</code> (−6 dB at <code>Freq</code> ± <code>Bandwidth</code>/2, transition 5 % of the
 bandwidth, 60 dB stopband).</p>
@@ -555,7 +556,7 @@ Each source's filter spectrum is therefore computed once and kept for all full b
 <p>No power or kurtosis test can find Gaussian RFI. Its only signature is the higher level in its channels, which the optimal TOA fit
 already handles (weights 1/level²). In <code>runRFITest</code> (20 MHz at 1472 MHz) it costs 2–3 % SNR and is not flagged. But the two
 channels that the band only partly covers break the flat-spectrum assumption (<a href="excision.html#limits">excision limits</a>).</p>
-<p><b>Test</b> (<code>tests/testRfiNoise.m</code>, ~5 s). The source has the right power, band and statistics, and changes nothing
+<p>The test <code>tests/testRfiNoise.m</code> (~5 s) checks that the source has the right power, band and statistics, and changes nothing
 else. The other RFI types still give the older reference bit for bit, and an odd block size gives the same output as one single block.
 The power is 0.9945 of INR × the in-band noise (σ 0.0045). The spectrum is flat in band and ≤ 2·10⁻⁷ out of band. The kurtosis is 3.004
 (σ 0.016), as for Gaussian noise (3).</p>
@@ -564,7 +565,7 @@ The power is 0.9945 of INR × the in-band noise (σ 0.0045). The spectrum is fla
 (bit-identical).</p></details>
 
 <h3 id="scenarios">3.5 Two scenarios</h3>
-<p>Two lists of sources come with the pipeline. The illustrative list has a few sources of different kinds at round levels, which makes
+<p>With these types, a scenario is just a list of sources, and two lists come with the pipeline. The illustrative list has a few sources of different kinds at round levels, which makes
 it good for testing each kind on its own. It is the default, so that <code>main.m</code> and all tests stayed unchanged. In
 <code>pipelineParams.m</code>, <code>rfiOn</code> switches it on and <code>rfiSelect</code> picks sources by index ([] = all).</p>
 <div class="table-wrap"><table>
@@ -580,8 +581,9 @@ fold coherently into the profile and bias the TOAs. That hazard is tested separa
 carrier is at 1351.3 MHz, not 1350 MHz, because 1350 MHz is exactly the edge between channels 48 and 49 of the channelizer, an
 unrepresentative special case.</p>
 <details><summary>History</summary><p>Jasper's decision, 9 Oct 2026.</p></details>
-<p id="realistic"><b>The realistic scenario</b> <span class="badge validated">validated</span>, <code>rfiRealistic</code>, is chosen with
-<code>rfiList = 'realistic'</code>. It estimates what the reference hardware would actually see: a 3×3 array,
+<p id="realistic">The illustrative list tests each kind of source on its own. The <b>realistic scenario</b> <span class="badge validated">validated</span>,
+<code>rfiRealistic</code>, chosen with <code>rfiList = 'realistic'</code>, instead estimates what the reference hardware would actually
+see: a 3×3 array,
 <var>T</var><sub>sys</sub> ≈ 70 K, a ground station. Receiver noise <var>kT</var><sub>sys</sub><var>B</var> = −124 dBW in 400 MHz, and INR is
 relative to that. The array gain is ~22 dBi in the main beam (~15°), ~0–3 dBi to the rest of the sky, and −10 dBi assumed towards the
 horizon. GNSS levels are the published minimum received power + ~3 dB, summed over the visible satellites. The other levels are
@@ -606,11 +608,12 @@ link-budget estimates (±10 dB).</p>
 <tr><td>Local spurious carrier</td><td>cw</td><td>1388.9 MHz</td><td>−15 dB</td></tr>
 </table></div>
 <p>Radar 1 at +40 dB is a radar some tens of km away, with terrain in between. A nearby radar is much stronger, and would clip a real
-ADC; that is not modelled. Results: <a href="results.html#b5e">results</a>.</p>
+ADC; that is not modelled. The scenario's results are on the <a href="results.html#b5e">results</a> page.</p>
 <details><summary>History</summary>
 <p>The realistic scenario: step B5e, 9 Oct 2026; validated by a rerun on 12 Oct.</p></details>
 
 <h3 id="noise-why">Design choices</h3>
+<p>One choice runs through this whole section: the interference is built from simple types rather than taken from a recording.</p>
 <div class="callout why"><span class="ttl">A few simple RFI types, not recorded real RFI</span>
 <p>A recording of a real radio environment has no ground truth: one cannot know what part of a result was caused by which source. Each
 type here isolates one signature (Section 3.4), and the reasons for individual features (edges, rotation, the <code>'noise'</code> type,
@@ -624,15 +627,13 @@ the scenario values) are given with each feature.</p></div>
 </details>
 
 <h3 id="noise-valid">Validation and limits</h3>
-<ul>
-<li>Noise: the −5 dB reference run (noise seed 43) and a Monte Carlo over 10 noise seeds: noise baseline 1.232 measured vs 1.233
-predicted; error bars honest (<a href="results.html#mc">validation record</a>).</li>
-<li>All five RFI types were observed and checked in the <a href="results.html#rfi5oct">RFI test</a> of 5 Oct 2026. The radar edges
-are checked by <code>tests/testRadarEdges.m</code>, and rotation and the <code>'noise'</code> type by their tests above.</li>
-<li><code>testAddNoiseAndRFI</code> checks the noise level and the RFI powers against their formulas (<a href="tests.html#rx">unit
-tests</a>). A peak-level pulsar's in-band power over the noise's equals ρ, within 1.3σ. The carrier matches its formula to
-1.5·10⁻⁷ of its amplitude. The output is the same for any block size, bit for bit.</li>
-</ul>
+<p>The noise is validated by the −5 dB reference run (noise seed 43) and a Monte Carlo over 10 noise seeds: the noise baseline is 1.232
+measured against 1.233 predicted, and the error bars are honest (<a href="results.html#mc">validation record</a>). All five RFI types
+were observed and checked in the <a href="results.html#rfi5oct">RFI test</a>; the radar edges are checked by <code>tests/testRadarEdges.m</code>,
+and rotation and the <code>'noise'</code> type by their tests above. <code>testAddNoiseAndRFI</code> checks the noise level and the RFI
+powers against their formulas (<a href="tests.html#rx">unit tests</a>): a peak-level pulsar's in-band power over the noise's equals ρ,
+within 1.3σ; the carrier matches its formula to 1.5·10⁻⁷ of its amplitude; and the output is the same for any block size, bit for bit.
+Two simplifications remain.</p>
 <div class="callout warn"><span class="ttl">Known simplifications</span>
 <ul>
 <li>Receiver noise does not pass the dispersion-stage taper <var>W</var>(<var>f</var>); real noise passes the same analog band-pass as the
@@ -648,11 +649,11 @@ shaping the noise with the same taper, or by taking the channel gains from the o
 <div class="sig">info = applyIQmodulation(inFile, outFile, f_in, fs, fLO, 'FilterOrder', 2048, 'Band', [fLow fHigh])</div>
 <p class="meta"><a href="api.html#applyiqmodulation">Full interface and help text of <code>applyIQmodulation</code> →</a></p>
 
-<h3 id="iq-short">In short</h3>
-<p>It turns the real 4 GHz stream into complex (I/Q) samples at 800 MHz. It mixes with a 1.3 GHz local oscillator (LO), low-pass
+<p id="iq-short">Stage 4 turns the real 4 GHz stream into complex (I/Q) samples at 800 MHz. It mixes with a 1.3 GHz local oscillator (LO), low-pass
 filters, and keeps every 5th sample. That is what an analog I/Q receiver followed by an ADC does.</p>
 
 <h3 id="iq-phys">4.1 Mixing to complex baseband</h3>
+<p>The receiver first multiplies the RF voltage by the LO and keeps only the low-frequency part:</p>
 <div class="eq"><span class="label">(4.1)</span>\[ z(t) = \mathrm{LPF}\!\left\{ 2\,x(t)\, e^{-i 2\pi f_\mathrm{LO}\, t} \right\} \quad\text{so}\quad x(t) = \mathrm{Re}\!\left\{ z(t)\, e^{\,i 2\pi f_\mathrm{LO}\, t} \right\} \]</div>
 <dl class="where">
 <dt>\(x(t)\)</dt><dd>the real RF voltage at 4 GHz sampling (<code>f_in</code>): pulsar + noise + RFI [V]</dd>
@@ -751,6 +752,7 @@ sits inside ±400 MHz, off-centre on purpose.</figcaption>
 </figure>
 
 <h3 id="iq-how">4.2 Filter and keep every 5th sample</h3>
+<p>In the code, Eq. (4.1) takes four steps per block.</p>
 <ol>
 <li><b>Mix.</b> Multiply each block by the LO, e<sup>−<var>i</var>2π<var>f</var><sub>LO</sub><var>t</var></sup>. The LO phase is computed in double
 from the absolute sample index, so it never drifts.</li>
@@ -848,6 +850,7 @@ in the flat passband.</li>
 </details>
 
 <h3 id="iq-why">4.3 The LO at 1.3 GHz</h3>
+<p>One setting in this stage looks odd and is deliberate: the LO is not at the centre of the band.</p>
 <div class="callout why" id="lo"><span class="ttl">The LO at 1.3 GHz, not in the middle of the band</span>
 <p>With <var>f</var><sub>LO</sub> = 1.4 GHz (the band centre), 1.2–1.6 GHz maps to −200…+200 MHz, and its mirror image is the same
 interval. A sign error in the mapping (I and Q swapped, or a conjugated stream) would then be invisible: power, bandwidth and filter
@@ -865,14 +868,11 @@ half the band outside the dedispersion filter and fail visibly.</p>
 </details>
 
 <h3 id="iq-valid">Validation</h3>
-<ul>
-<li><code>testApplyIQmodulation</code> checks the stage against the complex-envelope formula (<a href="tests.html#iq">unit
-tests</a>). Six tones from 1.2 to 1.6 GHz match it to 5.3·10⁻⁶ of their amplitude. A burst lands within 10⁻⁵ output sample of
-its true time. The mirror and two out-of-band tones stay at least 91.7 dB down.</li>
-<li>With noise at −5 dB and the off-centre LO, the whole chain validates, so the off-centre mapping is right (see the
-<a href="results.html#noise5">validation record</a>).</li>
-<li><code>plotIQCheck</code>: the dynamic spectra of the dispersed and dedispersed IQ data follow the expected sweep.</li>
-</ul>
+<p><code>testApplyIQmodulation</code> checks the stage against the complex-envelope formula (<a href="tests.html#iq">unit tests</a>):
+six tones from 1.2 to 1.6 GHz match it to 5.3·10⁻⁶ of their amplitude, a burst lands within 10⁻⁵ output sample of its true time, and
+the mirror and two out-of-band tones stay at least 91.7 dB down. With noise at −5 dB and the off-centre LO the whole chain validates,
+so the off-centre mapping is right (see the <a href="results.html#noise5">validation record</a>). <code>plotIQCheck</code> shows that
+the dynamic spectra of the dispersed and dedispersed IQ data follow the expected sweep.</p>
 <p>Every IQ sample now carries a time stamp: sample <var>k</var> is at <var>k</var>/<var>f</var><sub>s</sub>. In a real receiver that time
 comes from an oscillator, and the oscillator is not perfect. Stage 4a models it.</p>
 
@@ -882,8 +882,7 @@ comes from an oscillator, and the oscillator is not perfect. Stage 4a models it.
 samples of <a href="#iq">stage 4</a> · the observer estimates it in the predictor (<a href="fold.html#makepredictor">stage
 7a</a>) and in <a href="navigation.html">navigation</a> · block D</p>
 
-<h3 id="clock-short">In short</h3>
-<p>Every time stamp comes from the receiver's oscillator, so the oscillator's error goes straight into every TOA. A
+<p id="clock-short">Every time stamp comes from the receiver's oscillator, so the oscillator's error goes straight into every TOA. A
 commercial SDR's oscillator is specified to ±2 ppm. Left uncorrected, that is up to about 170 ms a day. <code>makeClock</code> draws one
 realization of the clock's error over time, for the simulator's truth. The observer never sees it; its navigation filter estimates the
 clock's offset and rate instead (<a href="navigation.html#navfilter">stage 10</a>). In the voltage chain every time stamp is exact, and a
@@ -904,14 +903,11 @@ negligible for the pulsar, a noise floor under strong RFI.</td></tr>
 </table></div>
 
 <h3 id="clock-how">4a.2 The clock model</h3>
-<ol>
-<li><b>The fixed part:</b> an offset at the start, a rate and an ageing drift. A commercial SDR's reference oscillator is specified to
-±2 ppm, so its rate can be up to 2·10⁻⁶, which adds 7.2 ms per hour.</li>
-<li><b>The noise:</b> the oscillator's frequency also wanders at random. Its spectrum has three parts, each set by one coefficient:
-white frequency noise (<var>h</var>₀), flicker (<var>h</var>₋₁) and a random walk (<var>h</var>₋₂).</li>
-<li><b>The grid:</b> the noise is drawn on a 60 s grid over the whole span and is linear in between.</li>
-</ol>
-<p>An oscillator's stability is usually given as its Allan deviation σ<sub><var>y</var></sub>(τ): the typical change of the average
+<p>The model has a fixed part and a random part. The fixed part is an offset at the start, a rate and an ageing drift. A commercial SDR's
+reference oscillator is specified to ±2 ppm, so its rate can be up to 2·10⁻⁶, which adds 7.2 ms per hour. On top of that, the oscillator's
+frequency wanders at random. Its spectrum has three parts, each set by one coefficient: white frequency noise (<var>h</var>₀), flicker
+(<var>h</var>₋₁) and a random walk (<var>h</var>₋₂). The noise is drawn on a 60 s grid over the whole span and is linear in between.</p>
+<p>The size of each noise is easiest to read from the usual measure of an oscillator's stability, its Allan deviation σ<sub><var>y</var></sub>(τ): the typical change of the average
 frequency from one interval of length τ to the next. White noise makes it fall with τ, flicker keeps it flat, and a random walk makes it
 grow (Figure 4a.1).</p>
 <figure class="scroll">
@@ -1134,21 +1130,17 @@ the grid are refused (<code>makeClock:range</code>).</dd>
 
 <h3 id="clock-runs">4a.3 How the runs use the clock</h3>
 <p>Both scenario scripts give the receiver an SDR clock: the crystal preset's noise, and a rate drawn uniformly within ±2 ppm.</p>
-<ul>
-<li><b><code>runScenario</code></b> with <code>motion.clock</code> <code>"sdr"</code>. The observer knows the clock from a port calibration
+<p>In <code>runScenario</code>, with <code>motion.clock</code> <code>"sdr"</code>, the observer knows the clock from a port calibration
 to 1 ms in offset and 10⁻⁹ in rate. By default it then tracks the clock day by day: after each day it fits all its TOAs with
 <code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run (true rate
-−1.17·10⁻⁶) it keeps 300 of 302 TOAs, and the position is the same as with a perfect clock
-(<a href="navigation.html#navfit">navigation</a>).</li>
-<li><b><code>runShip</code></b>. Each seed draws its own clock. The observer's filter carries the clock's offset and rate. With a
-calibrated start the port calibration's errors, 1 ms and 10⁻⁹, are drawn and given to the filter as <code>'ClockPrior'</code>
-(<a href="navigation.html#ship">navigation</a>).</li>
-</ul>
+−1.17·10⁻⁶) it keeps 300 of 302 TOAs, and the position is the same as with a perfect clock (<a href="navigation.html#navfit">navigation</a>). In <code>runShip</code> each
+seed draws its own clock, and the observer's filter carries the clock's offset and rate. With a calibrated start the port calibration's errors, 1 ms and 10⁻⁹, are drawn and given to the filter as <code>'ClockPrior'</code>
+(<a href="navigation.html#ship">navigation</a>).</p>
 <p>The clock the observer has not estimated then stays at a few hundred µs per day. That is harmless for B0329+54's 6.6 ms pulse, but
 too much for J0437's 0.14 ms.</p>
 
 <h3 id="clock-tests">Tests (<code>tests/testMakeClock.m</code>)</h3>
-<p>The drawn clocks have the Allan deviation that their coefficients prescribe, from 5 minutes to 17 hours.</p>
+<p>Five tests check the model. Above all, the drawn clocks have the Allan deviation that their coefficients prescribe, from 5 minutes to 17 hours.</p>
 <div class="table-wrap"><table>
 <tr><th>Test</th><th>What it checks</th><th>Result</th></tr>
 <tr><td>1 · No noise</td><td>Offset, rate and ageing.</td><td>Exact. As <code>trueResiduals</code>' clock it gives exactly its

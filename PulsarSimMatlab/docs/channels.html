@@ -26,18 +26,15 @@ coherently to one common reference (5b), and detects each channel with an exact 
 <h2 id="why">Why channels</h2>
 <p>The <a href="fullband.html">full-band path</a> of stages 5–6 dedisperses the whole 400 MHz band at once. It was validated first.
 The channelized path splits the band before anything else, for four reasons.</p>
-<ol>
-<li><b>RFI excision needs it.</b> At −54 dB, one radar pulse outweighs about 80,000 pulsar pulses. It must therefore be blanked on the
+<p>The first and most important is that RFI excision needs it. At −54 dB, one radar pulse outweighs about 80,000 pulsar pulses. It must therefore be blanked on the
 voltages, before dedispersion spreads it out. In a 3.125 MHz channel, a 2 µs radar pulse is about 8 samples in about 2 channels: easy to
-find and cheap to remove. The full band has no place where it is that compact.</li>
-<li><b>Memory at high DM.</b> A full-band dedispersion filter grows with the sweep, to about 15 GB at DM 100. A channel's filter spans
-the sweep only at the channel rate of 4.17 MHz: about 10⁵ samples instead of 10⁸, one channel at a time (Section 5b.4).</li>
-<li><b>Sub-band TOAs later.</b> Arrival times per group of channels give a check of the DM from the data itself (planned;
-<a href="roadmap.html">roadmap</a>, longer term).</li>
-<li><b>Nothing is lost.</b> Each channel is still dedispersed <em>coherently</em>, on its voltage, so no smear is left inside a channel.
+find and cheap to remove. The full band has no place where it is that compact.</p>
+<p>The second is memory at high DM. A full-band dedispersion filter grows with the sweep, to about 15 GB at DM 100. A channel's filter spans
+the sweep only at the channel rate of 4.17 MHz: about 10⁵ samples instead of 10⁸, one channel at a time (Section 5b.4). The third is a later use: arrival times per group of channels give a check of the DM from the data
+itself (planned; <a href="roadmap.html">roadmap</a>, longer term).</p>
+<p>The fourth is that none of this costs precision. Each channel is still dedispersed <em>coherently</em>, on its voltage, so no smear is left inside a channel.
 The <a href="fullband.html#dedisp-why">full-band page</a> shows what shifting channels would leave. The full-band path stays as the
-validated reference: with all new options off, every changed function reproduces its old output bit for bit.</li>
-</ol>
+validated reference: with all new options off, every changed function reproduces its old output bit for bit.</p>
 <details><summary>History</summary><p>Jasper's decision, 6 Oct 2026.</p></details>
 <p>The page follows the data. Stage 5a splits the band, stage 5b removes the dispersion in every channel, and stage 6b turns the
 voltages into detected power with a known noise.</p>
@@ -46,8 +43,7 @@ voltages into detected power with a known noise.</p>
 <div class="sig">info_chan = channelizeIQ(inFile, outBase, fs, fLO, fLow, fHigh, 'ChanWidth', 3.125e6, 'T0', info_IQ.t0)</div>
 <p class="meta"><a href="api.html#channelizeiq">Full interface and help text of <code>channelizeIQ</code> →</a></p>
 
-<h3>In short</h3>
-<p>It splits the 800 MHz IQ stream into 128 channels that tile 1.2–1.6 GHz exactly. Each channel is a complex voltage stream at 4.17 MHz,
+<p>Stage 5a splits the 800 MHz IQ stream into 128 channels that tile 1.2–1.6 GHz exactly. Each channel is a complex voltage stream at 4.17 MHz,
 written to its own file.</p>
 
 <h3>5a.1 What a channel is</h3>
@@ -201,16 +197,16 @@ moves the filter to them.</p>
 <div class="eq"><span class="label">(5a.3)</span>\[ h_k(r) = h(r)\, e^{+i 2\pi f_k r / f_s} \quad\Longleftrightarrow\quad H_k(f) = H(f - f_k) \]</div>
 <p>Every channel's band-pass filter is therefore the prototype times a phasor. Only the centre moves, which is why <var>h</var> is called
 the prototype.</p>
-<p><b>The inverse DFT does all channels at once.</b> Output <var>k</var> of a <var>K</var>-point inverse DFT multiplies its input by
+<p>One inverse DFT applies all these phasors at once. Output <var>k</var> of a <var>K</var>-point inverse DFT multiplies its input by
 \(e^{+i2\pi kr/K}\) and sums. That phasor turns at <var>k</var>·<var>f</var><sub>s</sub>/<var>K</var>. Applied to a frame weighted by
 <var>h</var>, output <var>k</var> is the frame filtered by <var>h</var><sub>k</sub>. With <var>K</var> = <var>f</var><sub>s</sub>/<code>ChanWidth</code>
 = 256, the outputs lie one channel width apart. The frame is longer than <var>K</var> samples, and Section 5a.4 deals with that.</p>
-<p><b>It is the same as mixing first.</b> Take the frame that ends at input sample <var>c</var>, with the taps <var>r</var> counted back
+<p>Filtering with a shifted prototype is the same as mixing first and filtering after. Take the frame that ends at input sample <var>c</var>, with the taps <var>r</var> counted back
 from <var>c</var>. Substituting <var>n</var> = <var>c</var> − <var>r</var> gives</p>
 <div class="eq"><span class="label">(5a.4)</span>\[ \sum_r h(r)\, e^{+i 2\pi f_k r/f_s}\, x(c - r) \;=\; e^{+i 2\pi f_k c/f_s} \sum_n \Big[ x(n)\, e^{-i 2\pi f_k n/f_s} \Big]\, h(c - n) \]</div>
 <p>The bracket is the mixer of Eq. (5a.1), and the outer sum is the low-pass. Section 5a.6 removes the leftover rotation in front. Output
 <var>k</var> is therefore a receiver tuned to <var>f</var><sub>k</sub>, and a channel's content comes out there for that reason.</p>
-<p><b>Placing the grid.</b> The LO sits on the edge between channels 32 and 33. The channel centres therefore lie half a step off the DFT
+<p>The DFT outputs must also land on the channel centres. The LO sits on the edge between channels 32 and 33. The channel centres therefore lie half a step off the DFT
 grid: \(f_{c,j} - f_\mathrm{LO} = (k_j + \beta)\, f_s/K\), with β = ½. The DFT does the whole-number part <var>k</var><sub>j</sub>. The
 code multiplies the common β into the prototype once, \(h_b(r) = h(r)\,e^{+i2\pi\beta r/K}\). Below the LO, <var>k</var><sub>j</sub> is
 negative, and its phasor equals that of <var>k</var><sub>j</sub> + 256. Those channels come from the last rows (Figure 5a.2a).</p>
@@ -331,7 +327,7 @@ fold has lost that information. Folding by 16 in time keeps every 16th bin in fr
 <var>x</var><sub>3</sub>+<var>x</var><sub>7</sub>). Bin 2 of the 8-point DFT has the phasors 1, <var>i</var>, −1, −<var>i</var>, 1,
 <var>i</var>, −1, −<var>i</var>. They repeat after 4 samples, so bin 2 equals output 1 of the folded 4-point DFT. Bin 1 has the phasors 1
 and −1 at <var>r</var> = 0 and 4. It needs <var>x</var><sub>0</sub> − <var>x</var><sub>4</sub>, which the fold has lost.</p></div>
-<p><b>Nothing useful is lost.</b> The weighted frame's spectrum is the input convolved with the 4 MHz block. It is smooth on the scale of
+<p>Nothing useful is lost by the fold. The weighted frame's spectrum is the input convolved with the 4 MHz block. It is smooth on the scale of
 a fine bin, and neighbouring fine bins correlate at 0.986 (Figure 5a.3). The frequency within a channel is not lost either. It shows from
 frame to frame: a tone 1 MHz above a channel centre makes that channel's output turn at 1 MHz. Stage 5b needs this frequency, because the
 dispersion delay changes across a channel. It resolves the frequency with long FFTs along the channel stream. One frame gives the channel,
@@ -717,10 +713,10 @@ then centred on sample <var>mD</var> (5a.2, 5a.3).</li>
 <li>Do one 256-point inverse FFT. Output <var>k</var> is tuned to (<var>k</var> + β)·3.125 MHz (5a.3).</li>
 <li>Correct each channel's phase, and keep the 128 rows inside the band.</li>
 </ol>
-<p><b>The phase correction</b> removes the leftover rotation of Eq. (5a.4). The DFT measures its phasor from the frame's end, while a mixer
+<p>The phase correction of step 4 removes the leftover rotation of Eq. (5a.4). The DFT measures its phasor from the frame's end, while a mixer
 turns with absolute time. The code multiplies by \(e^{-i2\pi(k+\beta)c/K}\), computed in double precision from the absolute index
 <var>c</var>. Without it, the phase of channel <var>k</var> would jump by 2π(<var>k</var> + β)·¾ from frame to frame.</p>
-<p><b>The cost</b> per output time is 4096 multiplications for the weights, about 1000 for the FFT and 128 for the phases. That is about
+<p>The cost per output time is 4096 multiplications for the weights, about 1000 for the FFT and 128 for the phases. That is about
 27 per input sample, against about 2700 for Eq. (5a.1) evaluated directly.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 290" role="img" aria-label="Polyphase filterbank: weight a frame by the prototype, fold it into 256 bins, one inverse FFT, phase correction, keep the 128 in-band channels">
@@ -807,6 +803,7 @@ dedisperses each channel and trims it to its useful band.</p>
 </ul></div>
 
 <h3>Design choices</h3>
+<p>One number was taken as given throughout: the channel width.</p>
 <div class="callout why"><span class="ttl">128 channels of 3.125 MHz</span>
 <p>The channel width is a trade-off. Narrower channels blur a short RFI pulse in time, because a channel of width <var>B</var> cannot
 show anything shorter than about 1/<var>B</var>. They also leave fewer independent samples per detected bin (Section 6b.2). Wider
@@ -848,8 +845,7 @@ other channels. Stage 5b removes both.</p>
 <div class="sig">info_dc = dedisperseChannels(info_chan, outBase, DM, 'RefFreq', refFreq)</div>
 <p class="meta"><a href="api.html#dedispersechannels">Full interface and help text of <code>dedisperseChannels</code> →</a></p>
 
-<h3>In short</h3>
-<p>It dedisperses every channel coherently, and brings all channels to one common reference frequency (1.6 GHz, the top of the band).
+<p>Stage 5b dedisperses every channel coherently, and brings all channels to one common reference frequency (1.6 GHz, the top of the band).
 Afterwards a pulse arrives at the same time in every channel.</p>
 
 <h3>5b.1 One validated filter, run per channel</h3>
@@ -861,7 +857,7 @@ The only change was the option <code>AllowRefOutsideBand</code> of Section 5b.2.
 bit-identical.</p>
 
 <h3>5b.2 One reference for all channels</h3>
-<p>Every channel uses <code>RefFreq</code> = 1.6 GHz, with <code>AllowRefOutsideBand</code>. The inverse chirp is exact for any
+<p>Run per channel, the filter still needs a reference frequency. Every channel uses <code>RefFreq</code> = 1.6 GHz, with <code>AllowRefOutsideBand</code>. The inverse chirp is exact for any
 reference: its phase is the dispersion term, plus a pure delay and a constant. With a common reference, each channel's delay to
 1.6 GHz is part of the same filter. <b>All channels therefore come out aligned.</b></p>
 <p>The alternative is to dedisperse each channel to its own centre and then shift it by its delay to 1.6 GHz. That shift is a whole
@@ -869,7 +865,8 @@ number of samples plus a fractional delay, which costs an extra FFT pass per cha
 no interpolation.</p>
 
 <h3>5b.3 A taper inside each channel</h3>
-<p>Each channel's band gets a taper inside its own edges (<code>EdgeFrac</code> 0.02 of the channel: 62.5 kHz). Neighbouring channels then
+<p>Trimming each channel to its useful band leaves the shape of its edges to choose. Each channel's band gets a taper inside its own
+edges (<code>EdgeFrac</code> 0.02 of the channel: 62.5 kHz). Neighbouring channels then
 do not overlap, so their noise is exactly independent. Overlapping, power-complementary tapers would keep the summed band flat at the
 boundaries, but neighbours would share noise, and every later step would have to carry that correlation.</p>
 <p>The price is a small notch at each of the 127 boundaries. Together these cost 2.5 % of band power, the same as the full band's two
@@ -877,7 +874,8 @@ edges. In total ∫<var>W</var>² = 390.0 MHz, as in the full-band path. The noi
 channel, and 128 × that = 391.6 MHz in total (<code>BnoiseTotal</code>).</p>
 
 <h3 id="dedisp-mem">5b.4 Memory per channel</h3>
-<p>A channel's filter spans that channel's sweep to the reference, at 4.17 MHz. For the bottom channel at DM 100 that is about
+<p>The per-channel filter also solves the memory problem that was the second reason for channels. A channel's filter spans that channel's
+sweep to the reference, at 4.17 MHz. For the bottom channel at DM 100 that is about
 5·10⁵ samples, or about 120 MB. A full-band filter at the same DM needs about 15 GB (Figure 5b.1). At DM 5 the FFT sizes are 2¹⁴…2¹⁸, the
 largest leakage is 3·10⁻¹² (2·10⁻¹² at DM 25), and all 128 channels take 1.7 s.</p>
 <figure class="scroll">
@@ -947,6 +945,7 @@ forward filter (stage 2, real samples at 4 GHz) is the remaining problem (<a hre
 </details>
 
 <h3>Tests (<code>tests/testDedisperseChannels.m</code>)</h3>
+<p>Four tests check the stage.</p>
 <ol>
 <li><b>Regression:</b> the full-band <code>applyInverseDispersion</code> with defaults is bit-identical to <code>test_IQ_dedispersed.dat</code>.</li>
 <li><b>Commutation</b>, the precise test. It compares channelize(full-band dedispersed) with dedisperseChannels(channelize(IQ)). Both
@@ -964,8 +963,7 @@ lag-1 correlation 0.054 (predicted 0.052 ± 0.004). This test revealed the narro
 <div class="sig">info_det = detectChannels(info_dc, outFile, f_out)</div>
 <p class="meta"><a href="api.html#detectchannels">Full interface and help text of <code>detectChannels</code> →</a></p>
 
-<h3>In short</h3>
-<p>It squares and bins every dedispersed channel into one file of [128 channels × time bins], the layout <code>foldProfile</code> reads.
+<p>Stage 6b squares and bins every dedispersed channel into one file of [128 channels × time bins], the layout <code>foldProfile</code> reads.
 It also attaches the exact noise model of the bins.</p>
 
 <h3>6b.1 Square and bin each channel</h3>
@@ -983,7 +981,8 @@ of Section 6b.3, the same for every channel and bin without blanking.</p>
 <div class="sig">noise = powerCovariance(chanWidth, edgeWidth, fs, nPerBin, ...)</div>
 <p class="meta"><span class="badge validated">validated</span> · <a href="api.html#powercovariance">Full interface and help text of
 <code>powerCovariance</code> →</a></p>
-<p>The radiometer equation, var = <var>m</var>²/(<var>B</var>·Δ<var>t</var>), treats time bins as <em>independent</em>. That needs
+<p>A separate noise model is needed because the simple one fails in narrow channels. The radiometer equation, var = <var>m</var>²/(<var>B</var>·Δ<var>t</var>),
+treats time bins as <em>independent</em>. That needs
 <var>B</var>·Δ<var>t</var> ≫ 1. In the full band, <var>B</var>·Δ<var>t</var> ≈ 400. In a 3.125 MHz channel with 0.96 µs bins it is only
 about 3. The detected power stays correlated for about 1/<var>B</var><sub>ch</sub> ≈ 0.3 µs, which is a good part of a bin.</p>
 <p>Two things follow (Figure 6b.1). Each bin has less variance than the formula says: 0.888 of it. And neighbouring bins are correlated:
@@ -1094,7 +1093,7 @@ error bars are exact phase bin by phase bin.</figcaption>
 </figure>
 
 <h3>6b.3 The exact noise model</h3>
-<p>A bin is the mean of |<var>y</var>|² over <var>n</var> samples. For a Gaussian <var>y</var> with normalized autocorrelation <var>R</var>,
+<p>Both numbers follow exactly from the channel's spectrum. A bin is the mean of |<var>y</var>|² over <var>n</var> samples. For a Gaussian <var>y</var> with normalized autocorrelation <var>R</var>,
 Isserlis' theorem (see <a href="physics.html#isserlis">physics</a>) gives the bin's variance and covariances, relative to the radiometer
 value:</p>
 <div class="eq"><span class="label">(6b.1)</span>\[ V = \frac{C(0)}{\mathrm{rad}}, \qquad X_L = \frac{C(L)}{\mathrm{rad}}, \qquad C(L) = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a - b + Ln)\right|^2, \qquad \mathrm{rad} = \frac{1}{n}\sum_{l} \left|R(l)\right|^2 \]</div>
@@ -1119,13 +1118,14 @@ falls as 1/<var>L</var>², because the channel edges are sharp. <code>Lmax</code
 <tr><td>3.125 MHz channel, <var>n</var> = 16</td><td class="num">0.9625</td><td>0.0173 …</td><td class="num">2</td></tr>
 <tr><td>Full band, <var>n</var> = 800</td><td class="num">0.9986</td><td>7·10⁻⁴</td><td class="num">1</td></tr>
 </table></div>
-<p><b>Why carry this exactly.</b> Within one phase bin the two effects nearly cancel: the variance is 0.987 of the simple model. The
+<p>Carrying this exactly may look excessive, because within one phase bin the two effects nearly cancel: the variance is 0.987 of the simple model. The
 effect looks negligible, but there are three reasons to carry it. Error bars and false-alarm thresholds must be exact at weak signal.
 Phase bins can be shorter for other pulsars. And the same machinery is needed for blanking anyway, where the effect is large
 (±45 %). So <code>V</code> and <code>X(L)</code> travel with the data through the fold
 (<a href="fold.html#noisecoeffs"><code>NoiseCoeffs</code></a>).</p>
 
 <h3>Tests (<code>tests/testDetectChannels.m</code>)</h3>
+<p>Four tests check the stage and its noise model.</p>
 <ol>
 <li><code>powerCovariance</code> agrees with the statistics of the actual dedispersion impulse response of channel 1: the largest
 difference |Δ<var>X</var>| is 6·10⁻¹⁰.</li>
@@ -1156,14 +1156,12 @@ exactly.</li>
 <tr><td>full band</td><td class="num">9</td><td class="num">2.880 µs</td><td class="num">93.4</td><td>−0.21 ± 0.96 µs</td></tr>
 <tr><td>channels, optimal weighting</td><td class="num">8</td><td class="num">2.943 µs</td><td class="num">92.3</td><td>+0.12 ± 0.98 µs</td></tr>
 </table></div>
-<ul>
-<li>Channel path: reduced χ² 1.008, all sub-ints detected, noise ratio 0.990. Per sub-int, the two paths differ by 0.26σ rms.</li>
-<li><b>One TOA fewer.</b> The per-channel dedispersion guard (20/62.5 kHz = 320 µs) leaves out the first 0.32 ms of the file. The file
+<p>On the channel path the reduced χ² is 1.008, all sub-ints are detected, and the noise ratio is 0.990. Per sub-int, the two paths differ
+by 0.26σ rms. Two differences remain, and both are understood. The channel path has one TOA fewer, because the per-channel dedispersion
+guard (20/62.5 kHz = 320 µs) leaves out the first 0.32 ms of the file. The file
 starts exactly on a turn boundary, so turn 0 is then incomplete. Both paths lose the last turn to the sweep, which is 6.3 ms at the DM 5
-of this run (timeline on the <a href="fullband.html#dedisp-how">full-band page</a>).</li>
-<li><b>Error bars 2.2 % larger.</b> The simulator tapers only the pulsar at the band edges, not the receiver noise (see
-<a href="limits.html">limitations</a>). With a realistic receiver the difference would be 0.37 %.</li>
-</ul>
+of this run (timeline on the <a href="fullband.html#dedisp-how">full-band page</a>). Its error bars are 2.2 % larger, because the simulator tapers only the pulsar at the band edges, not the receiver noise (see
+<a href="limits.html">limitations</a>). With a realistic receiver the difference would be 0.37 %.</p>
 <details><summary>History</summary>
 <p>This comparison is step A4, 8 Oct 2026, which made the channel path the default.</p></details>
 <p>The next page, <a href="excision.html">RFI excision</a>, works on the channel streams of 5a, before 5b spreads any interference

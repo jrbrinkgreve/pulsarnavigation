@@ -71,6 +71,10 @@ Instead of a slash list ("1.02 / 1.04 / 1.08 at 10⁻³ / 10⁻⁴ / 10⁻⁶"),
 <li><b>Say each thing once.</b> The opening paragraph says what a stage does, the numbered sections explain it, the Summary box
 collects the conclusions, and the exact rules and formulas go in <code>&lt;details&gt;</code>.</li>
 <li><b>Test results:</b> one sentence with the conclusion. The numbers go in a table or in <code>&lt;details&gt;</code>.</li>
+<li><b>One line of reasoning.</b> Each paragraph opens from the one before, and the reason comes before the mechanism. No paragraph
+or list item starts with a bold label ("Caveat.", "Tests:", "In the code:"); the label becomes a topic sentence. A list whose items
+form an argument (findings, consequences, reasons, limits) becomes paragraphs. Procedures, catalogues (tests, settings, parked items)
+and tables stay lists.</li>
 </ol>
 <p>Record pages (tests, scripts, results, validation, limits, roadmap, history) are dated by nature: there rules 1, 4, 5 and 6 apply.
 When a page is rewritten, no number or name may disappear by accident: compare the page text before and after (the textbook
@@ -306,6 +310,14 @@ second 72.5 GB on the default path (was "72") and 63.5 GB on the channel path; t
 default); the kernel size on conventions (126 million taps at DM 25); the closing "next page" of scenario. The 72 figure scripts now
 write the page's caption word for word, with its label, and running all of them reproduces all 73 figures exactly; their README lists each figure's
 label. The writing-style rules above describe the textbook form. Links checked: 1052, none broken. No code change.</td></tr>
+<tr><td>31 Oct 2026</td><td>after <code>7fccde4</code></td><td>Paragraph flow on every page (Jasper: "audit all the docs thoroughly to
+be in
+this explainative, textbook, paragraph, fully connected train-of-reasoning style"). Restore point: the git tag <code>docs-before-flow</code>. Bridges between paragraphs and sections; bold-label
+openers turned into topic sentences; argument lists (findings, consequences, limits, validation results) turned into paragraphs, with
+procedures, catalogues and tables kept; the "In short" headings of the stage pages turned into opening paragraphs, with their ids kept;
+dates and run provenance moved out of the running text into History or Runs boxes on the explanatory pages (record pages keep theirs).
+Writing-style rule 9 added. Every page compared with the previous commit: no number, code name, link or id lost. <code>api.html</code>
+is generated and was not touched. Log: <code>logs/2026-10-31_docs-flow.md</code>. No code change.</td></tr>
 </table></div>
 
 </main>

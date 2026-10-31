@@ -33,10 +33,9 @@ C7–C10 keep the code and its history under control.</p>
 <code>F1</code>, <code>TRef</code>, <code>DM</code>, <code>profileFWHM</code>), and the receiver settings (band, LO frequency, sample rate,
 taken from the receiver's <code>info</code>). The ground truth (<code>info_gen</code>, <code>info_disp</code>, <code>info_rx</code>: true pulse
 times, noise level, RFI parameters) is used only by the simulation stages and by the check and validation functions (Figure C.1).</p>
-<p>For a moving receiver the same split holds. The observer predicts its pulses from the trajectory it <em>assumes</em> and from its own clock
-estimate (<code>makePredictor</code>, <a href="fold.html#prediction">stage 7a</a>). The true trajectory and the true clock
-(<code>trueResiduals</code>, <code>makeClock</code>) belong to the truth: only the fast simulator uses them, to place the pulses, and keeps them
-in its separate <code>truth</code> struct (<a href="simulator.html#truth">fast simulator</a>).</p>
+<p>The rule exists because the processing must later run unchanged on real receiver data, where there is no truth. A stage that quietly
+used the true noise level would look perfect in simulation and fail on the sky. The rule also keeps validation meaningful: comparing
+a result with the truth only proves something if the truth was not used to make it.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 300" role="img" aria-label="The ground-truth rule: the processing sees only the data, the receiver settings and the ephemeris; only validation sees the truth">
   <defs>
@@ -87,29 +86,30 @@ in its separate <code>truth</code> struct (<a href="simulator.html#truth">fast s
 catalogue ephemeris. The truth bypasses it and reaches only the checks, so a validated result was not made with the answer it is compared
 with.</figcaption>
 </figure>
-<p>The processing must later run unchanged on real receiver data, where there is no truth. A stage that quietly used the true noise level
-would look perfect in simulation and fail on the sky. The rule also keeps validation meaningful: comparing a result with the truth only
-proves something if the truth was not used to make it. Examples of the rule in action:</p>
-<ul>
-<li>The TOA noise model uses the <em>fitted</em> baseline and amplitude, not the simulated noise level.</li>
-<li><code>main.m</code> passes the noise bandwidth of the observer's own dedispersion taper (391.6 MHz), not the product of both tapers
-(389.6 MHz), because the observer does not know the simulator's dispersion taper.</li>
-<li><code>detectRFI</code> uses only the channel data and the channelizer settings, never the RFI parameters.</li>
-<li><code>expectedPowerModel</code>, which uses all the truth, is only called by plot checks and to print the best achievable precision.</li>
-</ul>
+<p>The rule shows up throughout the code. The TOA noise model uses the <em>fitted</em> baseline and amplitude, not the simulated noise
+level. <code>main.m</code> passes the noise bandwidth of the observer's own dedispersion taper (391.6 MHz), not the product of both tapers
+(389.6 MHz), because the observer does not know the simulator's dispersion taper. <code>detectRFI</code> uses only the channel data and
+the channelizer settings, never the RFI parameters. <code>expectedPowerModel</code>, which uses all the truth, is only called by plot
+checks and to print the best achievable precision.</p>
+<p>For a moving receiver the same split holds. The observer predicts its pulses from the trajectory it <em>assumes</em> and from its
+own clock estimate (<code>makePredictor</code>, <a href="fold.html#prediction">stage 7a</a>). The true trajectory and the true clock
+(<code>trueResiduals</code>, <code>makeClock</code>) belong to the truth: only the fast simulator uses them, to place the pulses, and
+keeps them in its separate <code>truth</code> struct (<a href="simulator.html#truth">fast simulator</a>).</p>
 
 <h2 id="io">C2 · Streaming file I/O</h2>
-<p>Every stage is <b>file in → file out, streamed in blocks</b>: read a block of samples from the input file; process it (filters that reach
-across blocks keep the overlap they need); write the result and check that every sample was written. Memory is bounded by the block or FFT
-size, never by the file size. Filters that span many samples (the dispersion kernel has 126 million taps at the default DM 25) use FFT convolution with
-<b>overlap-add</b> (forward dispersion, IQ filter) or <b>overlap-save</b> (dedispersion), with the FFT size chosen automatically to minimise
-the total cost within a <code>MaxMemoryGB</code> limit.</p>
-<p>Whole signals cannot be held in memory: one second of simulated data at 4 GHz is 16 GB per real file, and a one-second run writes about
-61 GB of files on the full band and about 72.5 GB on the default channel path with excision (<a href="pipeline.html#sizes">sizes per
-stage</a>), against 24 GB of memory. Streaming also mirrors how real recorded data would be processed. Checking every <code>fwrite</code>
-count prevents the worst failure: a run that "succeeds" on a half-written file because the disk was full.</p>
+<p>Whole signals cannot be held in memory. One second of simulated data at 4 GHz is 16 GB per real file, and a one-second run writes
+about 61 GB of files on the full band and about 72.5 GB on the default channel path with excision (<a href="pipeline.html#sizes">sizes
+per stage</a>), against 24 GB of memory.</p>
+<p>Every stage is therefore <b>file in → file out, streamed in blocks</b>: read a block of samples from the input file; process it (filters
+that reach across blocks keep the overlap they need); write the result and check that every sample was written. Memory is bounded by
+the block or FFT size, never by the file size. Filters that span many samples (the dispersion kernel has 126 million taps at the default
+DM 25) use FFT convolution with <b>overlap-add</b> (forward dispersion, IQ filter) or <b>overlap-save</b> (dedispersion), with the FFT
+size chosen automatically to minimise the total cost within a <code>MaxMemoryGB</code> limit.</p>
+<p>Streaming also mirrors how real recorded data would be processed. Checking every <code>fwrite</code> count prevents the worst failure:
+a run that "succeeds" on a half-written file because the disk was full.</p>
 
 <h2 id="formats">C3 · File formats</h2>
+<p>Streamed files need a format that any tool can read without a header to parse. Each kind of data has one:</p>
 <div class="table-wrap"><table>
 <tr><th>Data</th><th>Format</th></tr>
 <tr><td>Real samples (RF)</td><td>float32, little-endian (<code>fopen(..., 'ieee-le')</code>), no header</td></tr>
@@ -130,15 +130,13 @@ stage takes its input file and sample rate from that struct (<code>info.file</co
 <code>inFile</code>, <code>precision</code>, <code>byteOrder</code>, <code>isComplex</code>, <code>N</code>, <code>fs</code>,
 <code>actualFsOut</code>, stage-specific parameters and conventions, <code>elapsed</code>.</p>
 <p>Passing parameters by hand from one stage to the next invites mismatches, such as the wrong sample rate after decimation or the wrong LO.
-Chaining through <code>info</code> means each stage describes exactly what it wrote, and it makes stale files detectable (Figure C.2):</p>
-<ul>
-<li><code>main.m</code>'s <code>checkConsistency</code> warns when files on disk were made with different parameters. For the sky files
-(via <code>checkSkyFiles</code>) it compares T, f_in, L, A, dutycycle, envelope mode, seed, DM, band and refFreq. For the receiver files it
-compares SNR, receiver input, RFI sources, noise seed, fLO, fs and filter order.</li>
-<li><code>checkProcessing</code> and <code>checkFold</code>, local functions of <code>processIQ</code>, do the same for reused processing and
-fold files. Each file must be made from the file before it, must not be older than it, and must have the same f_out, DM, refFreq, band,
-chanWidth, nBin, turns per sub-int, ephemeris and data weights.</li>
-</ul>
+Chaining through <code>info</code> means each stage describes exactly what it wrote, and it makes stale files detectable (Figure C.2).</p>
+<p>Two sets of checks use these links. <code>main.m</code>'s <code>checkConsistency</code> warns when files on disk were made with different
+parameters. For the sky files (via <code>checkSkyFiles</code>) it compares T, f_in, L, A, dutycycle, envelope mode, seed, DM, band and
+refFreq. For the receiver files it compares SNR, receiver input, RFI sources, noise seed, fLO, fs and filter order. <code>checkProcessing</code>
+and <code>checkFold</code>, local functions of <code>processIQ</code>, do the same for reused processing and fold files. Each file must
+be made from the file before it, must not be older than it, and must have the same f_out, DM, refFreq, band, chanWidth, nBin, turns per
+sub-int, ephemeris and data weights.</p>
 <details><summary>History</summary>
 <p>13 Oct 2026: <code>checkConsistency</code> gained the sky parameters A to refFreq, the noise seed and the filter order;
 <code>checkProcessing</code> and <code>checkFold</code> were added to <code>main.m</code>. They moved into <code>processIQ</code> on
@@ -211,17 +209,16 @@ the chain is <code>test_rx_IQ.dat</code> → <code>test_IQ_dedispersed.dat</code
 </figure>
 
 <h2 id="time">C5 · Time and precision</h2>
-<ul>
-<li>Times are computed in <b>double precision</b> from <b>absolute sample indices</b>. Sample <var>k</var> (0-based) of a stream at rate
-<var>f</var><sub>s</sub> is at time <var>k</var>/<var>f</var><sub>s</sub> (plus <code>T0</code>, currently 0).</li>
-<li>Oscillator and chirp phases are computed from the absolute index too, never accumulated sample by sample.</li>
-<li>Filters have odd length or a known delay, and their group delay is <b>removed exactly</b>. Decimation keeps samples on the global grid:
-output sample <var>k</var> ↔ input sample <var>k</var>·<var>D</var>.</li>
-<li>A detected time bin's time is the centroid of its samples: <var>t</var><sub>k</sub> = <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.</li>
-</ul>
-<p>Float32 rounds a time to ~60 ns at <var>t</var> = 1 s, and running sums such as <var>t</var> += 1/<var>f</var><sub>s</sub> drift
-(Figure C.3). The project measures TOAs to sub-microsecond precision and wants nanoseconds later, so every timing convention must be exact.
-Times from the absolute index also do not depend on the block size a stage happens to stream with. An unremoved filter delay of 256 ns was a
+<p>Times are where a streamed pipeline most easily goes wrong. Float32 rounds a time to ~60 ns at <var>t</var> = 1 s, and running sums
+such as <var>t</var> += 1/<var>f</var><sub>s</sub> drift (Figure C.3). The project measures TOAs to sub-microsecond precision and wants
+nanoseconds later, so every timing convention must be exact.</p>
+<p>Four conventions make them exact. Times are computed in <b>double precision</b> from <b>absolute sample indices</b>: sample <var>k</var>
+(0-based) of a stream at rate <var>f</var><sub>s</sub> is at time <var>k</var>/<var>f</var><sub>s</sub> (plus <code>T0</code>, currently
+0). Oscillator and chirp phases are computed from the absolute index too, never accumulated sample by sample. Filters have odd length
+or a known delay, and their group delay is <b>removed exactly</b>; decimation keeps samples on the global grid: output sample <var>k</var>
+↔ input sample <var>k</var>·<var>D</var>. Finally, a detected time bin's time is the centroid of its samples: <var>t</var><sub>k</sub>
+= <code>binTime0</code> + (<var>k</var>−1)·<code>binDt</code>.</p>
+<p>Times from the absolute index also do not depend on the block size a stage happens to stream with. An unremoved filter delay of 256 ns was a
 real bug once (<a href="lessons.html">bugs and lessons</a> #5).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Why times are double precision from sample indices: float32 rounds a time to 60 ns at 1 s, and a clock built by adding 1/fs drifts">
@@ -280,7 +277,7 @@ same time whatever block size a stage streams with.</figcaption>
 </figure>
 
 <h2 id="rng">C6 · Reproducibility</h2>
-<p>Each random process has its own private <code>RandStream</code>; the global random number generator is never touched.</p>
+<p>Exact times make a run repeatable only if its random numbers are repeatable too. Each random process has its own private <code>RandStream</code>; the global random number generator is never touched.</p>
 <div class="table-wrap"><table>
 <tr><th>Process</th><th>Generator</th><th>Seed</th></tr>
 <tr><td>Pulsar signal</td><td><code>mt19937ar</code></td><td><code>seed</code> (42)</td></tr>
@@ -300,8 +297,8 @@ stage alone. Block-size independence means a change of memory settings can never
 chunk or burst depend only on its own index.</p>
 
 <h2 id="args">C7 · Arguments and toolboxes</h2>
-<p>Required inputs are positional; everything else is a name-value option in an <code>arguments</code> block (MATLAB R2019b+;
-<code>mustBeTextScalar</code> needs R2020b+). <b>No Signal Processing Toolbox:</b> the filters (Kaiser-windowed sincs, raised-cosine tapers,
+<p>The remaining rules concern the code itself. Required inputs are positional; everything else is a name-value option in an <code>arguments</code> block (MATLAB R2019b+;
+<code>mustBeTextScalar</code> needs R2020b+). The code also avoids the Signal Processing Toolbox: the filters (Kaiser-windowed sincs, raised-cosine tapers,
 the polyphase filterbank) are built by hand. Hand-built filters are fully understood and fully specified in the code: tap count, stopband,
 delay and gain convention are all visible, and there is no toolbox dependency.</p>
 

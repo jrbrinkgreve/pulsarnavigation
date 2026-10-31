@@ -97,3 +97,17 @@ Every one: no number, code name, link or linked id lost; all links resolve; rend
 
 Nothing is committed. The rewrite is in the working tree; the tag `docs-before-textbook` is the restore point.
 
+
+## Later the same day: paragraph flow (draft, not committed)
+
+The rewrite above is committed as `7fccde4`. Jasper then asked for more flow between paragraphs ("the RFI excision page still
+reads like a collection of paragraphs, not a complete reasoning"). Drafted on two pages, uncommitted in the working tree:
+
+- `excision.html` (Jasper's example) and `toa.html`: every paragraph opens from the one before; bold-label openers ("Blank,
+  do not subtract.", "Caveat.", "Test:") and the excision "In short" headings became sentences; the E6 finding list became the
+  argument it is; every section and subsection ends on the question the next one answers, and the next opens by answering it
+  (second pass, after Jasper: "right direction, not quite there yet … also the links between E4.2 and E4.3").
+- Check: every number, code name, link and id kept (token diff against `7fccde4`); both pages render without KaTeX or
+  console errors. Words: excision 7431 → 7993, toa 3538 → 3778.
+- Open, for Jasper: his verdict on the second pass, then the rollout to the other 26 pages ("ask me next time"). Not changed:
+  the "5 Oct 2026" date in toa's error-bar box (running text should have no dates).

@@ -28,7 +28,7 @@ says what the idea means for the design, and ends with where it shows up in the 
 <h2 id="timing">P1 · Pulsar timing and navigation</h2>
 <p>A pulsar is a very stable clock in the sky. If you know where you are, you can predict when each pulse arrives. Measure the arrival time
 instead, and the difference tells you where you are: a pulse that is 1 µs early means you are 300 m closer to that pulsar.</p>
-<p>A pulsar is a rotating neutron star. It turns with spin frequency <var>f</var><sub>0</sub> (here 100 Hz, so a period <var>T</var> of 10 ms)
+<p>The clock is a rotating neutron star. It turns with spin frequency <var>f</var><sub>0</sub> (here 100 Hz, so a period <var>T</var> of 10 ms)
 and slows down very slightly (<var>F</var><sub>1</sub>). An <b>ephemeris</b>, taken from a pulsar catalogue, gives its rotational phase at
 any time:</p>
 <div class="eq"><span class="label">(P.1)</span>\[ \phi(t) = \Phi_0 + f_0\,(t - T_\mathrm{ref}) + \tfrac{1}{2}\,F_1\,(t - T_\mathrm{ref})^2 \]</div>
@@ -40,14 +40,11 @@ any time:</p>
 <dt>\(f_0\)</dt><dd>spin frequency at \(T_\mathrm{ref}\) [Hz] (<code>ephem.f0</code> = 1/<var>T</var> = 100 Hz)</dd>
 <dt>\(F_1\)</dt><dd>spin-down: rate of change of the spin frequency [Hz/s] (<code>ephem.F1</code>, 0 in the simulation)</dd>
 </dl>
-<ol>
-<li>Each whole number of phase is one pulse.</li>
-<li>A <b>time of arrival (TOA)</b> is the measured arrival time of one chosen point of the pulse (here: phase 0 of the template), at one
-chosen frequency (the reference frequency, 1.6 GHz).</li>
-<li>Subtract the predicted arrival time. The difference times the speed of light is a distance along the line of sight to the pulsar:
-1 µs ≈ 300 m.</li>
-<li>One pulsar gives one direction. Pulsars in several well-separated directions give the full position (Figure P.1).</li>
-</ol>
+<p>Each whole number of phase is one pulse, so Eq. (P.1) predicts when every pulse should arrive. What the receiver measures instead
+is a <b>time of arrival (TOA)</b>: the arrival time of one chosen point of the pulse (here: phase 0 of the template), at one chosen frequency
+(the reference frequency, 1.6 GHz). Subtracting the predicted arrival time leaves a difference, and that difference times the speed of
+light is a distance along the line of sight to the pulsar: 1 µs ≈ 300 m. One pulsar therefore gives one direction, and pulsars in several
+well-separated directions give the full position (Figure P.1).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Navigation geometry: a pulse arrives early when the station is closer to the pulsar; three pulsars give three lines of position that cross at the true position">
   <defs><marker id="ar-ng" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0 0 L10 5 L0 10 z"/></marker></defs>
@@ -202,13 +199,14 @@ pulse or not (b). Averaging the power gives the profile (c). The real signal is 
 instead of 500.</figcaption>
 </figure>
 <h3 id="selfnoise">Self-noise</h3>
-<p>Estimating a variance from a limited number of samples gives a scattered answer. A detected power bin averages |<var>z</var>|² over about
+<p>Squaring and averaging estimates a variance, and an estimate from a limited number of samples scatters. A detected power bin averages |<var>z</var>|² over about
 <var>B</var>·Δ<var>t</var> independent samples, so even without receiver noise its relative scatter is 1/√(<var>B</var>·Δ<var>t</var>)
 (Section P5). When the pulsar is bright, that scatter follows the pulse itself: largest at the peak, zero off-pulse. This <b>self-noise</b>
 limits the SNR of a very bright pulse. At the weak signals this project targets (−54 dB) it is negligible, but the noise model includes
 it.</p>
-<p><b>In the code:</b> <a href="sky.html#gen"><code>generatePulsarSignal</code></a>; the self-noise term in
-<a href="validation.html#epm"><code>expectedPowerModel</code></a>. On its way to us, the signal also crosses the interstellar medium.</p>
+<p>The signal of Eq. (P.2) is made by <a href="sky.html#gen"><code>generatePulsarSignal</code></a>, and the self-noise term is part of
+<a href="validation.html#epm"><code>expectedPowerModel</code></a>. Before any receiver sees this signal, it crosses the interstellar
+medium, and the medium changes it.</p>
 
 <h2 id="dispersion">P3 · Interstellar dispersion</h2>
 <p>Free electrons between the pulsar and us delay low frequencies more than high ones. A cold plasma has a frequency-dependent refractive
@@ -244,18 +242,18 @@ instead, where the smear is 6.30 ms, because the sweeps then stay apart and are 
 correcting this would smear each pulse over 6.3 ms. At DM 25 each sweep lasts 31.5 ms, so at any moment the band holds parts of three or four
 pulses.</figcaption>
 </figure>
-<p>The delay is known exactly from one number, the DM, and two properties make an exact correction possible. <b>It only changes
-phases:</b> dispersion is a linear filter with |<var>H</var>(<var>f</var>)| = 1, so it moves no energy between frequencies, and its exact
-inverse is the conjugate filter, applied to the complex voltages (<b>coherent dedispersion</b>). <b>It commutes with the receiver
-bandpass:</b> both are linear time-invariant filters, so the order does not matter, and the simulator can apply dispersion only inside the
-observed band and still be exact there.</p>
-<p>Incoherent dedispersion, which splits the band into channels, detects each and shifts the channels in time, leaves the smearing
-<em>inside</em> each channel (<a href="fullband.html#dedisp-why">full-band page</a>). Coherent dedispersion applies the inverse filter to the
-voltages and removes the delay exactly at every frequency. The channelized front end does both: it splits the band into 3.125 MHz channels
+<p>A smear of three periods must be undone, and it can be undone exactly. The delay is known from one number, the DM, and two properties
+of dispersion do the rest. First, it only changes phases: dispersion is a linear filter with |<var>H</var>(<var>f</var>)| = 1, so it
+moves no energy between frequencies, and its exact inverse is the conjugate filter, applied to the complex voltages. This is <b>coherent
+dedispersion</b>. Second, it commutes with the receiver bandpass: both are linear time-invariant filters, so the order does not matter,
+and the simulator can apply dispersion only inside the observed band and still be exact there.</p>
+<p>Coherent dedispersion works on the phases, so it needs the voltages. The cheaper alternative, incoherent dedispersion, works on detected
+power instead: it splits the band into channels, detects each and shifts the channels in time. That leaves the smearing <em>inside</em>
+each channel (<a href="fullband.html#dedisp-why">full-band page</a>). The channelized front end does both: it splits the band into 3.125 MHz channels
 <em>and</em> dedisperses each one coherently, so no smearing is left.</p>
-<p><b>In the code:</b> forward <a href="sky.html#disp"><code>applyDispersionStream</code></a>; inverse
-<a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a> and <a href="channels.html#dedisp"><code>dedisperseChannels</code></a>.
-The dispersed signal then reaches the receiver.</p>
+<p>In the code, <a href="sky.html#disp"><code>applyDispersionStream</code></a> applies the forward filter, and <a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a>
+and <a href="channels.html#dedisp"><code>dedisperseChannels</code></a> apply the inverse. Between the two, the dispersed signal reaches
+the receiver.</p>
 
 <h2 id="receiver">P4 · The receiver: noise, SNR and baseband</h2>
 <p>The receiver adds its own noise, far stronger than the pulsar. That noise is described by the system-equivalent flux density,
@@ -269,17 +267,18 @@ is then one number, used everywhere as <code>snrDB</code>:</p>
 density, with \(k\) Boltzmann's constant, \(T_\mathrm{sys}\) the system temperature [K] and \(A_\mathrm{eff}\) the effective
 collecting area [m²]</dd>
 </dl>
-<p>In the simulation \(\rho = A^2/\sigma_n^2\), with \(A\) the pulsar amplitude of Section P2 and \(\sigma_n\) the standard deviation of the
-receiver noise [V]. Two values matter. <b>−5 dB</b> is a bright pulsar on a large dish; most validation runs use it, because short runs then
-give precise checks. <b>About −54 dB</b> is J0437−4715 on the target 0.61 m² array: the worst-case design point
-(<a href="scenario.html">scenario</a>). An SNR per sample, per time bin or of the folded profile would depend on choices made later in the
-pipeline (bandwidth, bin width, fold length); ρ depends only on the sky and the antenna, so one number describes a scenario for every
-stage.</p>
+<p>The pages use ρ rather than an SNR because ρ depends only on the sky and the antenna. An SNR per sample, per time bin or of the folded
+profile would depend on choices made later in the pipeline (bandwidth, bin width, fold length), whereas one value of ρ describes a scenario
+for every stage. In the simulation \(\rho = A^2/\sigma_n^2\), with \(A\) the pulsar amplitude of Section P2 and \(\sigma_n\) the standard
+deviation of the receiver noise [V]. Two values matter. <b>−5 dB</b> is a bright pulsar on a large dish; most validation runs use it,
+because short runs then give precise checks. <b>About −54 dB</b> is J0437−4715 on the target 0.61 m² array: the worst-case design point
+(<a href="scenario.html">scenario</a>).</p>
 <div class="callout warn"><span class="ttl">Do not confuse ρ with "the SNR"</span>
 <p>ρ is a per-hertz ratio at the pulse peak. The SNR of one pulse after matched filtering is ρ·√(<var>B</var>·σ<sub>t</sub>·√π) ≈ 388·ρ for this
 pulsar and band. The SNR of a folded sub-integration grows with √(turns) (Section P6). See also the glossary entry
 <a href="glossary.html#snr">SNR</a>.</p></div>
-<p><b>From RF to complex baseband (IQ).</b> The receiver multiplies the RF signal with a local oscillator (LO) at <var>f</var><sub>LO</sub>,
+<p>Besides adding noise, the receiver turns the radio signal into samples, and first it moves the band down to near zero frequency, the
+complex baseband (IQ). It multiplies the RF signal with a local oscillator (LO) at <var>f</var><sub>LO</sub>,
 which shifts every frequency down by <var>f</var><sub>LO</sub>. A low-pass filter keeps the shifted band and removes the rest, and the result is
 sampled as complex numbers <var>z</var> = I + <var>i</var>Q, the <b>complex envelope</b>:</p>
 <div class="eq"><span class="label">(P.5)</span>\[ x(t) = \mathrm{Re}\!\left\{ z(t)\, e^{\,i 2\pi f_\mathrm{LO}\, t} \right\}, \qquad f_\mathrm{baseband} = f_\mathrm{RF} - f_\mathrm{LO} \]</div>
@@ -293,14 +292,13 @@ sampled as complex numbers <var>z</var> = I + <var>i</var>Q, the <b>complex enve
 </dl>
 <p>Complex samples keep the phase, which coherent dedispersion needs, and they keep positive and negative frequencies apart. The complex
 sample rate must be at least the bandwidth of interest, 400 MHz. Here it is 800 MHz, for two reasons: the LO sits off centre on purpose, so
-the band lands at −100…+300 MHz, and the IQ low-pass filter needs a margin, with its cutoff at 360 MHz. (The RF simulation before the
-receiver runs at 4 GHz.) The whole frequency plan is drawn on the <a href="parameters.html#plan">parameters page</a>.</p>
-<p><b>In the code:</b> <a href="receiver.html#noise"><code>addNoiseAndRFI</code></a>,
-<a href="receiver.html#iq"><code>applyIQmodulation</code></a>. The next step turns the complex voltage into power, as Section P2 requires.</p>
+the band lands at −100…+300 MHz, and the IQ low-pass filter needs a margin, with its cutoff at 360 MHz. The RF simulation before the receiver runs at 4 GHz. The whole frequency plan is drawn on the <a href="parameters.html#plan">parameters page</a>.</p>
+<p>In the code, <a href="receiver.html#noise"><code>addNoiseAndRFI</code></a> adds the noise and <a href="receiver.html#iq"><code>applyIQmodulation</code></a>
+makes the complex envelope. What remains is the step Section P2 asked for: turning the complex voltage into power.</p>
 
 <h2 id="detection">P5 · Square-law detection and the radiometer equation</h2>
-<p>Detection forms |<var>z</var>|² = I² + Q² and averages it over time bins of length Δ<var>t</var> (about 1 µs). For Gaussian voltages the
-averaged power estimates the variance, with relative noise</p>
+<p>That step is detection. It forms |<var>z</var>|² = I² + Q² and averages it over time bins of length Δ<var>t</var> (about 1 µs). For
+Gaussian voltages the averaged power estimates the variance, and the estimate has a relative noise given by the radiometer equation:</p>
 <div class="eq"><span class="label">(P.6) radiometer equation</span>\[ \frac{\sigma_P}{P} = \frac{1}{\sqrt{B_n\,\Delta t}} \]</div>
 <dl class="where">
 <dt>\(P\)</dt><dd>the mean detected power of a time bin: the expected value of \(|z|^2\) [V²]</dd>
@@ -390,7 +388,8 @@ shape of the power spectrum</dd>
 <p>The mean power passes ∫<var>W</var>², but the variance depends on ∫<var>W</var>⁴. For a flat band <var>B</var><sub>n</sub> = <var>B</var>. With the
 8 MHz raised-cosine edges used here, <var>B</var><sub>n</sub> ≈ 391.6 MHz for receiver noise.</p></details>
 <h3 id="isserlis">Where the radiometer equation comes from</h3>
-<p>For Gaussian voltages, Isserlis' (Wick's) theorem says: the covariance of two power samples is the square of the correlation between their
+<p>Eq. (P.6) counts independent samples, but in a filtered band neighbouring samples are correlated, and the code needs the exact effect
+of that. It follows from one theorem. For Gaussian voltages, Isserlis' (Wick's) theorem says: the covariance of two power samples is the square of the correlation between their
 voltages, \(\operatorname{cov}\!\left(|z_a|^2, |z_b|^2\right) = P^2\,|R(a-b)|^2\). Adding this up over all pairs in a bin of \(n\) samples gives
 its variance:</p>
 <div class="eq"><span class="label">(P.8)</span>\[ \frac{\operatorname{var}(\hat P)}{P^2} = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a-b)\right|^2 \]</div>
@@ -407,20 +406,18 @@ power spectrum \(W^2\), with \(R(0) = 1\)</dd>
 whole noise model. In narrow channels it predicts that neighbouring time bins are correlated, because a bin is not much longer than the
 channel's correlation time (<a href="channels.html#powcov"><code>powerCovariance</code></a>). With blanking it gives the exact variance of
 each bin (<a href="excision.html#weights"><code>blankingWeights</code></a>).</p>
-<p>The order detect, then fold, then match the template is the best one. For noise whose variance follows a profile, the best possible test
+<p>With detection in place, the remaining order is detect, then fold, then match the template, and that order is the best one. For noise whose variance follows a profile, the best possible test
 statistic (Neyman–Pearson) is a profile-weighted sum of |<var>z</var>|². Detection, folding and template matching compute exactly that, in the
 cheapest order: detection cuts the data rate by ~800× (800 complex samples become one power value per µs), and folding turns hours of data
-into one short profile before the fit. Other orders, such as matched-filtering each pulse and adding the results, or folding before squaring,
-are worse.</p>
+into one short profile before the fit. Other orders, such as matched-filtering each pulse and adding the results, or folding before squaring, are worse. Of the three steps, folding is the
+one that lifts a weak pulsar out of the noise.</p>
 
 <h2 id="folding">P6 · Folding</h2>
-<p>At weak signal one pulse is invisible. Folding adds up all turns at the same rotational phase: the pulse adds up, the noise averages down,
+<p>At weak signal one pulse is invisible, even after detection. Folding adds up all turns at the same rotational phase: the pulse adds up, the noise averages down,
 and the SNR grows as the square root of the number of turns.</p>
-<ol>
-<li>The ephemeris gives the phase φ(<var>t</var>) of every detected time bin (Eq. P.1).</li>
-<li>Each time bin is added into the phase bin for its phase (2048 phase bins per turn).</li>
-<li>A <b>sub-integration (sub-int)</b> is a group of consecutive turns folded together. Each sub-int gives one TOA.</li>
-</ol>
+<p>The ephemeris tells the fold where each turn is. It gives the phase φ(<var>t</var>) of every detected time bin (Eq. P.1), and each
+time bin is added into the phase bin for its phase, out of 2048 phase bins per turn. A group of consecutive turns folded together is
+a <b>sub-integration (sub-int)</b>, and each sub-int gives one TOA. How many turns a sub-int needs follows from the √<var>N</var> growth:</p>
 <div class="eq"><span class="label">(P.9)</span>\[ \mathrm{SNR}_\text{sub-int} = \mathrm{SNR}_\text{turn}\,\sqrt{N} \quad\Longrightarrow\quad N = \left(\frac{\mathrm{SNR}_\text{target}}{\mathrm{SNR}_\text{turn}}\right)^{2} \]</div>
 <dl class="where">
 <dt>\(N\)</dt><dd>number of turns folded into one sub-int (<code>SubintPeriods</code> of <code>foldProfile</code>)</dd>
@@ -495,7 +492,8 @@ as √<var>N</var> and is clear after a few thousand turns. (b) SNR against obse
 both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h (16 h at nominal
 flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>
-<p><b>In the code:</b> <a href="fold.html"><code>foldProfile</code></a>. The folded profile is what the TOA is measured on.</p>
+<p>The fold is done by <a href="fold.html"><code>foldProfile</code></a>. Its output, the folded profile, is what the TOA is measured
+on.</p>
 
 <h2 id="toa">P7 · From a profile to a TOA, and how precise it can be</h2>
 <p>The TOA is found by sliding the template along the folded profile until it fits best. The folded profile is modelled as baseline +
@@ -508,11 +506,10 @@ amplitude × template shifted by τ + noise, and the fitted shift τ (in turns) 
 <dt>\(f_\mathrm{ref}\)</dt><dd>the <em>spin</em> frequency at \(t_\mathrm{ref}\) [Hz] (<code>fold.subint.fRef</code>); it converts turns to
 seconds. Not the 1.6 GHz radio reference frequency</dd>
 </dl>
-<p>The fit uses FFTFIT (Taylor 1992): a cross-correlation in the Fourier domain that handles shifts smaller than a bin exactly. The centroid
-of the pulse would also weight the noisy wings, which have long lever arms; it was measured to be about 2× noisier than FFTFIT
-(<a href="results.html#centroid">validation record</a>). The highest bin is limited to the bin width and jumps with the noise. FFTFIT fits
-continuous shifts, is fast, and is the maximum-likelihood fit for white noise.</p>
-<p><b>The best possible precision</b> (the Cramér–Rao bound) is about the pulse width divided by the SNR. In the weak-signal limit (pulse much
+<p>The fit uses FFTFIT (Taylor 1992): a cross-correlation in the Fourier domain that handles shifts smaller than a bin exactly. Two simpler estimators exist, and both are worse. The centroid of the pulse would also weight the noisy wings, which have long lever arms; it was measured to be about 2× noisier than FFTFIT
+(<a href="results.html#centroid">validation record</a>). The highest bin is limited to the bin width and jumps with the noise. FFTFIT, by contrast, fits continuous shifts, is fast, and is the maximum-likelihood fit for white noise.</p>
+<p>Even the best fit cannot beat a floor set by the noise. That floor, the best possible precision (the Cramér–Rao bound), is about the
+pulse width divided by the SNR. In the weak-signal limit (pulse much
 weaker than the noise, the target regime), for a Gaussian pulse of width σ<sub>t</sub>:</p>
 <div class="eq"><span class="label">(P.11)</span>\[ \mathrm{SNR} \approx \rho\,\sqrt{B\,\sigma_t\sqrt{\pi}} \approx 388\,\rho, \qquad \sigma_\mathrm{TOA} \approx \frac{\sqrt{2}\,\sigma_t}{\mathrm{SNR}} \]</div>
 <dl class="where">
@@ -522,7 +519,8 @@ weaker than the noise, the target regime), for a Gaussian pulse of width σ<sub>
 <dt>\(\sigma_t\)</dt><dd>standard deviation of the Gaussian power profile [s] (212.3 µs)</dd>
 <dt>\(\sigma_\mathrm{TOA}\)</dt><dd>the smallest possible standard deviation of the TOA [s] (Cramér–Rao bound)</dd>
 </dl>
-<p>The timing information sits on the flanks of the pulse, where it changes fastest (Figure P.6).</p>
+<p>The bound scales with the pulse width because the timing information sits on the flanks of the pulse, where it changes fastest (Figure
+P.6).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 344" role="img" aria-label="Timing information sits on the flanks of the pulse; the best TOA error falls as pulse width over SNR">
   <path class="axis" d="M60 284 H400"/>
@@ -603,28 +601,29 @@ threshold SNR 7 the simulated pulsar gives ~43 µs and the narrower J0437 ~12 µ
 <p>For ρ<var>p</var> ≪ 1 the denominators are 1 and the weak-signal results above follow. When the pulse is strong, the
 (1 + ρ<var>p</var>)² term is self-noise and caps the SNR. See <a href="toa.html"><code>estimateTOA</code></a>.</p></details>
 <div class="callout note"><span class="ttl">Honest error bars</span>
-<p>The fit's stated σ follows from error propagation through the fit, using the observer's own noise model (fitted baseline and amplitude,
+<p>The bound says what the best fit could do; the fit must also say what it did. Its stated σ follows from error propagation through the fit, using the observer's own noise model (fitted baseline and amplitude,
 radiometer equation, exact correlations between phase bins). Validation checks that the actual scatter of (TOA − truth) matches the stated
 σ: their ratio should be 1 (<a href="results.html">validation record</a>).</p></div>
 <p>A fit always finds a best position, even in pure noise. Whether the pulse is there at all is a separate question.</p>
 
 <h2 id="np">P8 · Is the pulsar there? Detection theory</h2>
-<p>A separate test asks whether the peak is real: the matched-filter output is compared with a threshold set by the accepted false-alarm rate.
+<p>The fit says where the pulse is, assuming it is there. A separate test asks whether the peak is real: the matched-filter output is compared with a threshold set by the accepted false-alarm rate.
 It compares two hypotheses, <b>H0</b> (baseline + noise) and <b>H1</b> (baseline + template-shaped pulse + noise). The Neyman–Pearson lemma
 says the best test at a fixed false-alarm probability <var>P</var><sub>FA</sub> is a matched filter compared with a threshold η.</p>
-<ul>
-<li><b>Known phase</b> (tracking: you know where the pulse should be): one test, η = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for
-<var>P</var><sub>FA</sub> = 10⁻³.</li>
-<li><b>Unknown phase</b> (acquisition: the pulse could be anywhere): search all phases and take the maximum. Rice's formula for the maximum
-of a smooth Gaussian process gives η = 4.15 at 10⁻³. At that threshold the search costs as much as about 60 independent trials. The "Rice
-factor" of 5.5 in that formula is not a number of trials: it is the number of times per turn that the noise crosses its mean level
-upwards.</li>
-</ul>
-<p>A second check, the reduced χ² of the fit residuals, asks whether what is left after the fit is just noise. It catches a wrong profile
-shape (a radar spike), which detection cannot. A good TOA is therefore fitted, detected at unknown phase, and χ² ok. FFTFIT searches all
-phases, so the fair question is "is the best peak anywhere real?", which is the unknown-phase test; and a TOA can pass detection while the
-profile is wrong, which χ² catches. In the threshold sweep the good TOAs had no outliers at any SNR (<a href="results.html#threshold">results</a>).
-Pictures of both tests: <a href="detection.html">Detection and good TOAs</a>.</p>
+<p>The threshold depends on how much is known about the phase. With a known phase (tracking: you know where the pulse should be) there
+is one test, and η = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for <var>P</var><sub>FA</sub> = 10⁻³. With an unknown phase (acquisition:
+the pulse could be anywhere) the test searches all phases and takes the maximum, so the threshold must be higher. Rice's formula for
+the maximum of a smooth Gaussian process gives η = 4.15 at 10⁻³. At that threshold the search costs as much as about 60 independent trials.
+The "Rice factor" of 5.5 in that formula is not a number of trials: it is the number of times per turn that the noise crosses its mean
+level upwards.</p>
+<p>FFTFIT searches all phases, so for its TOAs the fair question is "is the best peak anywhere real?", which is the unknown-phase test.
+Detection alone is not enough, though, because a TOA can pass detection while the profile is wrong. A second check, the reduced χ² of
+the fit residuals, asks whether what is left after the fit is just noise. It catches a wrong profile shape (a radar spike), which detection
+cannot. A good TOA is therefore fitted, detected at unknown phase, and χ² ok. In the threshold sweep the good TOAs had no outliers at
+any SNR (<a href="results.html#threshold">results</a>). Both tests are pictured on the page <a href="detection.html">Detection and good
+TOAs</a>.</p>
+<p>The radar spike that χ² catches is one kind of radio-frequency interference, and interference needs more than a check: it must be
+removed.</p>
 
 <h2 id="rfi">P9 · Radio-frequency interference</h2>
 <p>Man-made signals in the band are far stronger than the pulsar. Steady ones only cost some SNR. Short, strong pulses (radar) ruin TOAs:
@@ -640,47 +639,42 @@ they must be found and blanked on the channel voltages, before dedispersion. The
 <p>Subtraction does not work: at −54 dB one radar pulse carries the energy of about 80,000 pulsar pulses, and even 99.9 % suppression would
 leave more interference than pulsar. Samples with RFI are therefore <b>blanked</b>: set to zero, with weight 0. And it happens before
 dedispersion, because there a radar pulse is a 2 µs blip in a few channels; after dedispersion it is smeared over milliseconds and mixed with
-good data. See <a href="receiver.html#rfi"><code>rfiSource</code></a> and <a href="excision.html">RFI excision</a>.</p>
+good data. The interference is made by <a href="receiver.html#rfi"><code>rfiSource</code></a>, and its removal is the subject of <a href="excision.html">RFI
+excision</a>.</p>
 
 <h2 id="propagation">P10 · Other propagation effects</h2>
-<p>Scattering, the pulsar's spectrum and the ionosphere are not in the simulator. Scintillation and motion are in the fast simulator only.
-Motion matters most: the drift it causes is the navigation signal itself. How big each effect is:
-<a href="limits.html#sizes">Limitations</a>.</p>
-<ul>
-<li><b>Scintillation.</b> The received flux of a nearby pulsar fades and brightens by order 100 % over minutes to hours (below). The fast
-simulator includes it; the voltage simulation does not.</li>
-<li><b>Scattering.</b> The same multipath blurs the pulse with an exponential tail τ<sub>d</sub>: ~0.4 ns at DM 5 (irrelevant), µs at
-DM ≳ 100.</li>
-<li><b>Pulsar spectrum.</b> Real pulsars are brighter at low frequencies (<var>S</var> ∝ <var>f</var><sup>−1.6</sup> on average); the
-simulator is white.</li>
-<li><b>Ionosphere.</b> The same 1/<var>f</var>² law as interstellar dispersion, but ~3–70 ns and changing with time; also Faraday rotation and
-ionospheric scintillation.</li>
-<li><b>Motion.</b> Earth's orbital speed (<var>v</var>/<var>c</var> ≈ 10⁻⁴) drifts the pulse phase by ~100 µs per second at 100 Hz. That drift
-<em>is</em> the navigation signal. The observer follows it with a barycentric phase model (<a href="fold.html#prediction">stage 7a</a>), and
-the fast simulator puts every pulse where the true trajectory puts it (<code>trueResiduals</code>,
-<a href="simulator.html#truth">fast simulator</a>). The voltage simulation has a fixed period.</li>
-</ul>
+<p>Interference enters at the receiver. The remaining effects act on the way from the pulsar to the receiver, and the one that matters
+most is the receiver's own motion. Earth's orbital speed (<var>v</var>/<var>c</var> ≈ 10⁻⁴) drifts the pulse phase by ~100 µs per second
+at 100 Hz. That drift <em>is</em> the navigation signal. The observer follows it with a barycentric phase model (<a href="fold.html#prediction">stage
+7a</a>), and the fast simulator puts every pulse where the true trajectory puts it (<code>trueResiduals</code>, <a href="simulator.html#truth">fast
+simulator</a>). The voltage simulation has a fixed period.</p>
+<p>Three effects of the medium are small here, and none of them is in the simulator. Scattering, by multipath in the interstellar plasma,
+blurs the pulse with an exponential tail τ<sub>d</sub>: ~0.4 ns at DM 5 (irrelevant), µs at DM ≳ 100. The pulsar's spectrum is not flat:
+real pulsars are brighter at low frequencies (<var>S</var> ∝ <var>f</var><sup>−1.6</sup> on average), while the simulator is white. The
+ionosphere follows the same 1/<var>f</var>² law as interstellar dispersion, but adds only ~3–70 ns and changes with time; it also causes
+Faraday rotation and ionospheric scintillation. How big each effect is, is listed under <a href="limits.html#sizes">Limitations</a>.</p>
+<p>The same multipath that causes scattering has a second, much larger effect: scintillation. The received flux of a nearby pulsar fades
+and brightens by order 100 % over minutes to hours. The fast simulator includes it; the voltage simulation does not. Because it decides
+how long a TOA takes, it needs a closer look.</p>
 
 <h3 id="scint">Interstellar scintillation</h3>
 <p>The interstellar plasma is turbulent, so the pulsar's radio waves reach us along many slightly different paths that interfere. As the
 Earth, the pulsar and the plasma move, we drift through that interference pattern: the received flux fades and brightens, and differently at
 different frequencies. For J0437 at 1.4 GHz the bright patches ("scintles") are ~740 MHz wide and last ~40 minutes, so our whole band fades
 together, fully, a few times per hour. That changes how long a TOA takes, not where it is.</p>
-<p><b>Where it comes from.</b> Free electrons in the interstellar medium have a refractive index that varies with their density. Turbulence
+<p>The interference comes from the turbulence. Free electrons in the interstellar medium have a refractive index that varies with their density. Turbulence
 makes that density lumpy on many scales, so the plasma acts like a randomly corrugated lens, a "phase screen". A point source seen through it
 is split into many images whose waves add with random phases: where they add up we see a bright scintle, where they cancel almost nothing.
 Two scales describe the pattern.</p>
-<ul>
-<li><b>Scintle bandwidth</b> Δν<sub>d</sub>: the waves' path differences are a fixed delay, so their relative phases change with frequency;
-two frequencies further apart than Δν<sub>d</sub> see independent patterns. It grows steeply with frequency (∝ ν<sup>4.4</sup> for
-Kolmogorov turbulence) and shrinks with distance and DM.</li>
-<li><b>Scintle time</b> Δt<sub>d</sub>: the time to cross one scintle as the line of sight moves through the pattern (relative speed of
-pulsar, Earth and plasma). It grows with frequency (∝ ν<sup>1.2</sup>).</li>
-</ul>
-<p><b>Statistics.</b> When many paths with random phases add up, the field is complex Gaussian, so the intensity is exponentially
+<p>The first is the <b>scintle bandwidth</b> Δν<sub>d</sub>. The waves' path differences are a fixed delay, so their relative phases
+change with frequency, and two frequencies further apart than Δν<sub>d</sub> see independent patterns. It grows steeply with frequency
+(∝ ν<sup>4.4</sup> for Kolmogorov turbulence) and shrinks with distance and DM. The second is the <b>scintle time</b> Δt<sub>d</sub>:
+the time to cross one scintle as the line of sight moves through the pattern (relative speed of pulsar, Earth and plasma). It grows with
+frequency (∝ ν<sup>1.2</sup>).</p>
+<p>Inside one scintle the flux is random, and its statistics follow from the same picture. When many paths with random phases add up, the field is complex Gaussian, so the intensity is exponentially
 distributed: mean 1 (the catalogue flux), but 10 % of the time below 0.1 and 5 % of the time above 3. Averaging over many scintles (a band
 much wider than Δν<sub>d</sub>, or a time much longer than Δt<sub>d</sub>) smooths this out; within one scintle there is no averaging.</p>
-<p><b>J0437−4715 at 1.4 GHz</b> (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come from the IAR
+<p>For J0437, the target pulsar, there is little averaging. J0437−4715 at 1.4 GHz (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come from the IAR
 timing campaign, rescaled from Keith et al. 2013. Observations at 327 MHz, rescaled, give two time scales instead: ~500 s and ~5700 s
 (Gwinn et al. 2006). The scales also vary noticeably from epoch to epoch, by factors of 2–3 (refractive scintillation). Δν<sub>d</sub> is
 larger than our 400 MHz band, so the band holds about one scintle: there is little averaging over frequency, and the band-averaged flux is
@@ -3827,19 +3821,17 @@ fully modulated in time (Figure P.7).</p>
 about every 40 minutes. (b) The same with 50 MHz scintles: the band holds several scintles, and at any moment some channels are bright and
 others faint. (c) J0437's flux over the band against time: long stretches well below its catalogue average, and some well above.</figcaption>
 </figure>
-<p><b>What it does to a navigation receiver.</b></p>
-<ul>
-<li><b>SNR budget:</b> the SNR per sub-int follows the flux, so the time to reach SNR ~7 per TOA varies by large factors from one hour to the
+<p>For a navigation receiver this has three consequences. The first is for the SNR budget: the SNR per sub-int follows the flux, so the time to reach SNR ~7 per TOA varies by large factors from one hour to the
 next. During a fade a sub-int may give no TOA at all; during a bright scintle a TOA comes quickly. That is why the sub-int length should adapt
-to the measured SNR (the <a href="simulator.html">fast simulator</a>'s adaptive sub-ints).</li>
-<li><b>Across the band:</b> scintles can be narrower than the band, for more distant pulsars or at lower frequencies (Figure P.7b). The pulse is
+to the measured SNR (the <a href="simulator.html">fast simulator</a>'s adaptive sub-ints).</p>
+<p>The second is across the band. Scintles can be narrower than the band, for more distant pulsars or at lower frequencies (Figure P.7b). The pulse is
 then stronger in some channels than in others. The channel path's fit assumes equal strength in every channel (<code>ChannelGain</code> 1),
 so it weights the channels sub-optimally and its χ² rises. The same happens in the edge channels, where the band taper weakens the pulse. For
-J0437 at 1.4 GHz the effect is a mild slope across the band, not a pattern.</li>
-<li><b>Timing:</b> diffractive scintillation changes the amplitude, not the arrival time (at DM 2.6 the scattering delay is a fraction of a
-nanosecond). It costs observing time, not accuracy.</li>
-</ul>
-<p><b>In the simulator</b> (<code>simulateFold</code>, option <code>'Scintillation'</code>): the pulse is multiplied by a flux factor
+J0437 at 1.4 GHz the effect is a mild slope across the band, not a pattern.</p>
+<p>The third, for timing, is reassuring: diffractive scintillation changes the amplitude, not the arrival time (at DM 2.6 the scattering
+delay is a fraction of a nanosecond). It costs observing time, not accuracy.</p>
+<p>The fast simulator draws scintillation as a random flux factor (<code>simulateFold</code>, option <code>'Scintillation'</code>): the
+pulse is multiplied by a flux factor
 <var>F</var> = |<var>g</var>|² per sub-int and channel. Here <var>g</var>(<var>t</var>, ν) is a complex Gaussian field with the two scales
 above: its intensity correlation drops to 1/e at Δt<sub>d</sub> and to ½ at Δν<sub>d</sub>.
 <a href="tests.html#simfold"><code>testSimulateFold</code></a> 11 checks the exponential statistics and both correlation scales. Refractive

@@ -18,6 +18,7 @@ track every correlation; test every branch, the way Jasper runs it. The statisti
 uncertainty, and do not trust one seed.</p>
 
 <h2 id="bugs">The bugs</h2>
+<p>Each row gives the bug, its fix, and the rule it left behind.</p>
 
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Bug</th><th>Fix</th><th>Lesson</th></tr>
@@ -162,7 +163,8 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 </figure>
 
 <h2 id="findings">Findings that changed the design</h2>
-<p>Not bugs, but results that changed a plan:</p>
+<p>Not every surprise was a bug. Some results changed a plan instead, and they came in five groups, in time order. The first came with
+the channels and with blanking, and each made the noise model more exact:</p>
 <ul>
 <li><b>Narrow-channel noise (6 Oct).</b> The radiometer model assumes independent time bins; in 3.125 MHz channels bins are correlated.
 → exact <var>V</var>, <var>X</var>(<var>L</var>) through the fold (<a href="channels.html#powcov"><code>powerCovariance</code></a>, <code>'NoiseCoeffs'</code>).</li>
@@ -171,16 +173,25 @@ pulse. The fold now tracks this covariance (<code>weightX</code>), so the error 
 <li><b>W = 0 bins still had power</b> (found with <code>blankingWeights</code>). Filter-tail leftovers biased nearly empty phase bins by up to +285 %. → the fold drops their power.</li>
 <li><b>White-input assumption for blanking</b> (<code>blankingWeights</code>). Channel samples are not white; ~1 % error in <var>W</var> for nearly empty bins. → the mean uses the true channel spectrum.</li>
 <li><b>Exclusion rule lost data</b> (found with <code>blankingWeights</code>). Whole channels dropped from sub-ints with any empty phase bin. → optimal weighting.</li>
+</ul>
+<p>Excision was then shaped by what each detector missed or over-flagged:</p>
+<ul>
 <li><b>Gamma threshold tail too thin</b> (<code>detectRFI</code>). 1.1× the intended false flags at 10⁻⁶. → exact phase-type thresholds.</li>
 <li><b>Long detection windows blanked the bright pulse</b> (<code>detectRFI</code>). 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
 <li><b>Radar sidelobes survive per-sample excision</b> (the locked radar). A locked radar left a 150 µs bias at −54 dB. → the frequency guard, ±7 channels.</li>
 <li><b>Rotating-radar sidelobe pulses are missed one by one.</b> → the periodic mask (<code>periodicRFI</code>), which blanks the predicted pulses.</li>
+</ul>
+<p>Two findings concerned how a fit is judged:</p>
+<ul>
 <li><b>A χ² threshold of 2 is blind on 34,000 bins</b> (16 Oct). On the channel path it is ~130σ away, so error bars a few percent
 too small pass silently. → <code>pChi2</code>, reported alongside the drop rule (<a href="toa.html#pchi2">TOA</a>).</li>
 <li><b>The band-edge channels hold almost no pulse</b> (19 Oct). <code>pChi2</code> was not uniform on the channel path at −5 dB: the
 fit assumes equal gain, but the simulated band-edge taper leaves channels 1 and 128 with 2 % of the pulse. The excess grows as SNR², and
 is gone at −15 dB. → kept as a known simulator artifact (roadmap <a href="roadmap.html#item3">item 3</a>), parked with the per-channel
 calibration.</li>
+</ul>
+<p>Real pulse profiles and realistic RFI brought five more:</p>
+<ul>
 <li><b>Coarse bins cost more at low SNR</b> (20 Oct). With B0329+54's five components at NBin 1024, the error bars were 18 % too
 small at SNR 7, although the bins were inside the 1/5 rule. And the half-maximum width missed the narrow components. → NBin 2048, and
 the warning at 1/10 of the spectral template width (<a href="toa.html#template">TOA</a>).</li>
@@ -195,6 +206,9 @@ thresholds from each channel's own correlation (<a href="excision.html#chanthr">
 <li><b>A narrow core on a broad component gives rare outliers</b> (20–21 Oct). About 0.3–0.5 % of B0329+54's TOAs at SNR ~7 land one
 core width off, and χ² cannot flag them; over 100 days 1.9 % lie beyond 3σ. → handled in the navigation fit and filter, not by longer
 groups: their error model is a mixture with 2 % of the TOAs 4× wider (<a href="navigation.html#navfit">navigation</a>).</li>
+</ul>
+<p>Navigation, finally, taught two lessons about priors:</p>
+<ul>
 <li><b>The port clock is never exact</b> (22 Oct). Taken as exact in the ship's calibrated start, it made the clock's error bars 2.6× too
 small; the position barely suffered, because the clock's wander absorbs the offset within a day. → <code>navFilter</code>
 <code>'ClockPrior'</code>.</li>
@@ -203,6 +217,8 @@ prior. Even with ideal data the filter pulls it towards zero. That is a property
 </ul>
 
 <h2 id="statistics">Statistical lessons</h2>
+<p>Several alarms were not in the code but in how a check was read. They share one theme: a check has its own uncertainty, and draws
+that are correlated hide it.</p>
 <ul>
 <li><b>Shared realizations make "independent" checks correlated.</b> The phase D ratios (1.03–1.06) and the phase E T0 std (1.10) looked like a
 5–10 % hole in the noise model; they came from the same 10 noise realizations. A long independent H0 run settled it (T0 std 1.008).</li>

@@ -16,9 +16,9 @@ use it.</p>
 receiver noise, so it runs once and is reused.</p>
 
 <div class="toc"><b>On this page</b><ol>
-<li><a href="#gen">1 · <code>generatePulsarSignal</code></a>: <a href="#gen-short">in short</a> · <a href="#gen-phys">the signal</a> ·
+<li><a href="#gen">1 · <code>generatePulsarSignal</code></a>: <a href="#gen-short">overview</a> · <a href="#gen-phys">the signal</a> ·
 <a href="#gen-how">the profile</a> · <a href="#gen-comp">components</a> · <a href="#gen-why">design choices</a></li>
-<li><a href="#disp">2 · <code>applyDispersionStream</code></a>: <a href="#disp-short">in short</a> · <a href="#disp-phys">dispersion</a> ·
+<li><a href="#disp">2 · <code>applyDispersionStream</code></a>: <a href="#disp-short">overview</a> · <a href="#disp-phys">dispersion</a> ·
 <a href="#disp-how">the filter</a> · <a href="#disp-why">design choices</a> · <a href="#disp-valid">validation</a> ·
 <a href="#disp-limits">limits</a></li>
 </ol></div>
@@ -27,9 +27,9 @@ receiver noise, so it runs once and is reused.</p>
 <div class="sig">info = generatePulsarSignal(outFile, T, f_in, A, L, dutycycle, ...)</div>
 <p class="meta"><a href="api.html#generatepulsarsignal">Full interface and help text of <code>generatePulsarSignal</code> →</a></p>
 
-<h3 id="gen-short">In short</h3>
-<p>It writes a file of random voltage samples, 4 billion per second, that get louder once per pulsar turn. It also records the
-exact time of every pulse centre. Those times are the ground truth that every TOA is checked against.</p>
+<p id="gen-short">Stage 1 writes a file of random voltage samples, 4 billion per second, that get louder once per pulsar turn. It also
+records the exact time of every pulse centre, and those times are the ground truth that every TOA is checked against. Why the samples
+are random, rather than a pulse shape, is the first thing to understand.</p>
 
 <h3 id="gen-phys">1.1 The signal: noise whose power pulses</h3>
 <p>A pulsar's radio emission comes from a huge number of independent emitters. Their sum is Gaussian noise, so there is no pulse
@@ -291,7 +291,7 @@ phase 0, so every true pulse peak sits at a whole number of turns. The fold cuts
 and the true TOA offset is always 0. A hidden, nonzero offset is noted on the roadmap (<a href="roadmap.html">item R3</a>).</p>
 
 <h3 id="gen-comp">1.3 A pulse with several components</h3>
-<p>Real profiles are rarely one Gaussian. B0329+54 has five components, and J0437 has a sharp core with broad wings. A single Gaussian
+<p>So far the pulse has been one Gaussian, but real profiles rarely are. B0329+54 has five components, and J0437 has a sharp core with broad wings. A single Gaussian
 with the same width at half maximum puts too much power in the peak, which overstates the SNR. The option <code>'Components'</code>
 therefore takes a list of Gaussians, one row each: amplitude, centre and FWHM, the last two in turns. Their sum is scaled to a peak of 1,
 so <var>A</var> keeps its meaning. <code>pulseCenters</code> are the times of the components' phase 0, which need not be the peak. The
@@ -304,12 +304,15 @@ The voltage chain with B0329+54's five components agrees with the fast simulator
 (<a href="tests.html#compchain"><code>expComponentsChain</code></a>). Added 21 Oct 2026.</p></details>
 
 <h3>1.4 Exact times, private random numbers</h3>
-<p>Each sample's time is computed in double precision from its index, never by adding up steps. The random numbers come from a private
+<p>Whatever the profile, the stored pulse times are only ground truth if they are exact. Each sample's time is computed in double precision
+from its index, never by adding up steps. The random numbers come from a private
 stream (<code>mt19937ar</code>, seed 42) that nothing else touches. The pulse times in <code>info.pulseCenters</code> are therefore exact,
 and the block size cannot change the data (test 5 of <code>testGeneratePulsarSignal</code> checks this bit for bit). The receiver noise
 has its own seed, so it can change without changing the pulsar. See <a href="conventions.html#time">conventions §5–6</a>.</p>
 
 <h3 id="gen-why">Design choices</h3>
+<p>Three choices shape this stage, and each follows from what the later stages must be able to test: where the simulation starts, how
+fast it samples, and what pulse it makes.</p>
 <div class="callout why"><span class="ttl">A voltage at RF, not detected power</span>
 <p>Every processing stage must later run unchanged on real data (the <a href="conventions.html#truth">ground-truth rule</a>), and real
 data starts as a voltage at the antenna. Simulating detected power, or the receiver's baseband, would skip dispersion, the I/Q receiver,
@@ -386,8 +389,7 @@ what the interstellar medium does to it.</p>
 <div class="sig">info = applyDispersionStream(inFile, outFile, DM, fs, fLow, fHigh, ...)</div>
 <p class="meta"><a href="api.html#applydispersionstream">Full interface and help text of <code>applyDispersionStream</code> →</a></p>
 
-<h3 id="disp-short">In short</h3>
-<p>It delays every frequency in the band by the amount the interstellar medium would: the lowest frequencies arrive 31.5 ms after the
+<p id="disp-short">Stage 2 delays every frequency in the band by the amount the interstellar medium would: the lowest frequencies arrive 31.5 ms after the
 highest (DM 25). It does this exactly, by filtering the voltage with a long chirp filter (126 million taps at DM 25), streamed through the
 file in blocks.</p>
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
@@ -413,8 +415,8 @@ slowed more. The delay at frequency <var>f</var>, relative to an infinitely high
 <dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the column density of free electrons along the line of sight [pc cm⁻³]
 (<code>DM</code> = 5 in the worked numbers, 25 by default)</dd>
 </dl>
-<p>See <a href="physics.html#dispersion">physics</a>. The delay also changes <em>inside</em> each sub-band, so the pulse is smeared there
-too (Figure 2.1). Shifting whole sub-bands back, or a Taylor expansion of the phase, cannot undo that smear; filtering the voltage with
+<p>Eq. (2.1) is derived on the <a href="physics.html#dispersion">physics</a> page. What matters here is that the delay also changes <em>inside</em>
+each sub-band, so the pulse is smeared there too (Figure 2.1). Shifting whole sub-bands back, or a Taylor expansion of the phase, cannot undo that smear; filtering the voltage with
 the inverse chirp can (stages 5 and 5b). Testing that only makes sense if the simulated dispersion is exact too, so stage 2 applies the
 exact phase.</p>
 <figure class="scroll">
@@ -495,7 +497,7 @@ at once. (b) After <code>applyDispersionStream</code>, frequency <var>f</var> is
 6.3 ms at the bottom: more than half a turn and 12 pulse widths. In the lowest 25 MHz the pulse is also smeared by 0.6 ms, which lowers
 its peak.</figcaption>
 </figure>
-<p>Only the delay <em>relative to the top of the band</em> is applied (Figure 2.2). The top, 1.6 GHz, keeps its time, and 1.2 GHz arrives
+<p>Exact does not mean absolute, however: stage 2 applies only the delay <em>relative to the top of the band</em> (Figure 2.2). The top, 1.6 GHz, keeps its time, and 1.2 GHz arrives
 6.302 ms later, as in a real observation. The delay that the whole band shares, τ(1.6 GHz) = 8.103 ms, would only shift everything. It is
 recorded in <code>info.bulkDelayRef</code>, so TOAs can later be converted to infinite frequency.</p>
 <figure class="scroll">
@@ -578,8 +580,7 @@ frequency gets stronger or weaker.</p>
 <p>A filter that disperses all frequencies down to 0 Hz cannot exist: τ(<var>f</var>) grows without limit as <var>f</var> → 0. Limiting it
 to the band changes nothing inside the band. Dispersion only changes phases, so energy never moves between frequencies. And dispersion
 and the receiver's band-pass are both linear and time-invariant, so their order does not matter. <var>W</var>(<var>f</var>) is therefore
-really the <b>receiver's band-pass</b>, applied a little early. (Strong out-of-band RFI in a real, slightly nonlinear receiver could create
-in-band products; that is not modelled.)</p>
+really the <b>receiver's band-pass</b>, applied a little early. Strong out-of-band RFI in a real, slightly nonlinear receiver could create in-band products; that is not modelled.</p>
 
 <h3>2.3 The kernel (<code>makeDispersionKernel</code>)</h3>
 <p>The kernel is Eq. (2.2) in time: 25,229,772 taps at 4 GHz. It is a chirp, with high frequencies first (Figure 2.3a). It is built in
@@ -727,6 +728,8 @@ so that the 11.8 GB reference run fits on the 24 GB machine).</p>
 </details>
 
 <h3 id="disp-why">Design choices</h3>
+<p>Three choices in this stage need a word of explanation: where the filter is tapered, how it is streamed, and which frequency keeps
+its time.</p>
 <div class="callout why"><span class="ttl">Tapered and designed in frequency</span>
 <p>An earlier version put a Hann window on the chirp in time. But in a chirp, time <em>is</em> frequency, so the window weakened the
 low end of the band (<a href="lessons.html">bugs and lessons</a> #3). Tapering in frequency leaves the band flat, and the smooth edges
@@ -751,15 +754,11 @@ overlap-save (<a href="fullband.html">full-band page</a>).</p></div>
 </details>
 
 <h3 id="disp-valid">Validation</h3>
-<ul>
-<li><code>testApplyDispersionStream</code> checks the stage against its formula (<a href="tests.html#disp">unit tests</a>). The
-impulse response matches with a relative error energy of 1.2·10⁻¹². At DM 5, tone bursts arrive within 0.001 sample of the predicted
-delay. Streaming in blocks matches one long convolution to 1.1·10⁻⁶.</li>
-<li>Forward dispersion, IQ and dedispersion together give back the band-limited input to 1.9·10⁻⁶
-(<a href="tests.html#inv"><code>testApplyInverseDispersion</code></a>).</li>
-<li><code>plotDispersionCheck</code>: the raw and dispersed dynamic spectra follow the expected sweep; the band-integrated power is as
-expected.</li>
-</ul>
+<p>The stage is checked in three ways. <code>testApplyDispersionStream</code> checks it against its formula (<a href="tests.html#disp">unit
+tests</a>): the impulse response matches with a relative error energy of 1.2·10⁻¹², at DM 5 tone bursts arrive within 0.001 sample of
+the predicted delay, and streaming in blocks matches one long convolution to 1.1·10⁻⁶. Forward dispersion, IQ and dedispersion together
+give back the band-limited input to 1.9·10⁻⁶ (<a href="tests.html#inv"><code>testApplyInverseDispersion</code></a>). And <code>plotDispersionCheck</code>
+shows that the raw and dispersed dynamic spectra follow the expected sweep, with the band-integrated power as expected.</p>
 <details><summary>History: why the current form</summary>
 <p>The first dispersion kernel had the wrong sign: low frequencies arrived <em>earlier</em>. It also wrapped around inside the kernel.
 Nobody noticed, because the old inverse conjugated the same kernel, so the round trip still worked. The current chirp was written from
@@ -768,6 +767,7 @@ the physics, with the sign checked by its group delay. Two more faults were fixe
 lessons</a> #1–4.</p></details>
 
 <h3 id="disp-limits">Limits</h3>
+<p>The exact filter has one cost that grows with DM: memory.</p>
 <div class="callout warn"><span class="ttl">Memory at high DM</span>
 <p>The kernel grows with the sweep, and so with DM. At DM 30 this stage needs about 24 GB. From DM ~54 up to DM ~106, which includes
 DM 60 and DM 100, it needs about 47 GB: more than the 24 GB machine. The memory rises in steps, because the FFT sizes are powers of two

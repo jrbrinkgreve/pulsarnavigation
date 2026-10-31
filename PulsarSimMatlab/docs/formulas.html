@@ -11,11 +11,13 @@
 <h1>Formulas</h1>
 <p class="lede">The key formulas in one place, each with what it says in words, what every symbol means, and the page where it is derived or used.</p>
 
-<p>A lookup page. Each formula is explained on the linked page; the "In words" column says what it means in one sentence. Two
+<p>This is a lookup page, ordered the way the signal travels: from the pulsar, through the receiver and the processing, to a position.
+Each formula is explained on the linked page; the "In words" column says what it means in one sentence. Two
 formulas carry most of the project: the radiometer equation (how noisy averaged power is) and Isserlis' theorem behind it (how noise
 in power samples is correlated). Almost every error bar follows from them.</p>
 
 <h2>Signal and propagation</h2>
+<p>The chain starts with what the pulsar sends and what the interstellar medium does to it.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Pulsar voltage</td><td>\(x(t) = A\sqrt{G(t)}\;n(t)\), &nbsp; \(\mathrm{E}[x^2] = A^2 G(t)\)</td><td>Noise whose variance follows the power profile <var>G</var>: louder at the pulse.<div class="sym">\(x\) pulsar voltage [V]; \(A\) its standard deviation at the pulse peak [V]; \(G\) power profile, one Gaussian per turn with peak 1; \(n\) white Gaussian noise, variance 1; \(\mathrm{E}\) expected value.</div></td><td><a href="sky.html#gen">sky</a></td></tr>
@@ -29,6 +31,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Receiver</h2>
+<p>The receiver adds its noise, which sets the scale for the pulsar's strength, and converts the signal to complex baseband.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>SNR definition</td><td>\(\rho = \dfrac{S_\mathrm{peak}}{N} = \dfrac{A^2}{\sigma_n^2}\), &nbsp; \(\sigma_n = \dfrac{A}{\sqrt{10^{\texttt{snrDB}/10}}}\)</td><td>Pulsar power density at the pulse peak over noise power density; sets the noise level in the simulation.<div class="sym">\(S_\mathrm{peak}\), \(N\) power spectral densities of the pulsar (at the peak) and the receiver noise; \(A\) pulsar amplitude [V]; \(\sigma_n\) noise standard deviation per RF sample [V].</div></td><td><a href="receiver.html#noise">receiver</a></td></tr>
@@ -42,6 +45,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Detection and noise</h2>
+<p>Squaring the voltage turns the pulse into power, and these formulas say how noisy that power is.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Radiometer equation</td><td>\(\dfrac{\sigma_P}{P} = \dfrac{1}{\sqrt{B_n\,\Delta t}}\)</td><td>Averaged power scatters as one over the square root of the number of independent samples.<div class="sym">\(P\) mean detected power; \(\sigma_P\) its standard deviation from bin to bin; \(B_n\) noise bandwidth [Hz]; \(\Delta t\) time-bin length [s].</div></td><td><a href="physics.html#detection">physics</a></td></tr>
@@ -56,6 +60,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Folding and TOAs</h2>
+<p>Folding averages that power over turns, and the template fit turns the folded profile into a TOA with an error bar.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Weighted-mean variance</td><td>\(\sigma^2\,\dfrac{\sum w^2}{(\sum w)^2}\)</td><td>The noise of a weighted average.<div class="sym">\(w\) weights; \(\sigma^2\) variance of each (independent) value.</div></td><td><a href="fold.html#weights">fold</a></td></tr>
@@ -74,6 +79,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Detection</h2>
+<p>A fit always finds a peak, so a separate test decides whether the pulsar is there.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Known-phase statistic</td><td>\(T_0 = \dfrac{c^\mathsf{T}(p - a)}{\sqrt{c^\mathsf{T}\,\mathrm{Cov}\,c}}\)</td><td>The matched-filter output at the predicted phase, in units of its noise.<div class="sym">\(p\) profile vector; \(a\) baseline; \(c\) template at the predicted phase minus its mean; \(\mathrm{Cov}\) noise covariance under H0.</div></td><td><a href="detection.html#known">detection</a></td></tr>
@@ -84,6 +90,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Motion, time and position</h2>
+<p>For a moving receiver, the TOAs must be referred to the barycentre, and the delays in between are where the position enters.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Barycentric phase</td><td>\(\phi = \Phi_0 + f_0\,u + \tfrac12 F_1 u^2\), \(u = t + \Delta(t) - T_\mathrm{ref}\)</td><td>The pulsar's phase holds at the barycentre, so each arrival time is first moved there.<div class="sym">\(t\) arrival time at the receiver; \(\Delta\) the delay to the barycentre; \(f_0, F_1, T_\mathrm{ref}, \Phi_0\) the timing model, in TDB.</div></td><td><a href="fold.html#makepredictor">phase prediction</a></td></tr>
@@ -102,6 +109,7 @@ in power samples is correlated). Almost every error bar follows from them.</p>
 </table></div>
 
 <h2>Navigation</h2>
+<p>The residuals that remain after those delays are the navigation signal, and the fit turns them into a position and a clock.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Formula</th><th>In words</th><th>Where</th></tr>
 <tr><td>Fixed-site row (<code>navFit</code>)</td><td>\(r_i = \mathbf{a}_i\cdot\delta\mathbf{x} + c_k\), \(\mathbf{a}_i = -R_z(\theta_i)^\mathsf{T}\hat{\mathbf{n}}_k/c\)</td><td>Each residual is the site offset projected onto the pulsar's direction, turned back by the Earth's rotation, plus one constant per pulsar.<div class="sym">\(\delta\mathbf{x}\) the offset, Earth-fixed; \(\theta_i\) the Earth rotation angle at the TOA; \(\hat{\mathbf{n}}_k\) the direction to pulsar \(k\); \(c_k\) its constant (clock offset plus the pulsar's own offset).</div></td><td><a href="navigation.html#navfit">navigation</a></td></tr>

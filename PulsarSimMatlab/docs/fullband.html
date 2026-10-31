@@ -28,8 +28,7 @@ simulator's truth (the <a href="conventions.html#truth">ground-truth rule</a>).<
 <div class="sig">info = applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, 'RefFreq', refFreq)</div>
 <p class="meta"><a href="api.html#applyinversedispersion">Full interface and help text of <code>applyInverseDispersion</code> →</a></p>
 
-<h3 id="dedisp-short">In short</h3>
-<p>It undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied, so
+<p id="dedisp-short">Stage 5 undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied, so
 every frequency comes out at the time it would have at 1.6 GHz. It uses only the catalogue DM and the receiver settings.</p>
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
 <p>The figures, FFT sizes and run times in this section are worked out at DM 5, where the figures are easier to read. The default
@@ -236,18 +235,18 @@ only 6·10⁻⁸, so it reported 0 or a multiple of 6·10⁻⁸ instead of about
 it; the sums are now in double, and the output data did not change (bit for bit).</p></details>
 
 <h3 id="refoutside">5.3 A reference outside the band: <code>AllowRefOutsideBand</code></h3>
-<p>The channelized front end references every 3.125 MHz channel to the top of the <em>whole</em> band, which lies outside the channel.
+<p>One option of this stage exists only for the channel path. The channelized front end references every 3.125 MHz channel to the top of the <em>whole</em> band, which lies outside the channel.
 The option <code>AllowRefOutsideBand</code> allows that. By default it is false, and <var>f</var><sub>ref</sub> must lie in
 [<var>f</var><sub>Low</sub>, <var>f</var><sub>High</sub>]; when true, any <var>f</var><sub>ref</sub> &gt; 0 is accepted.</p>
 <p>Eq. (5.1) is exact for any <var>f</var><sub>ref</sub>. Its phase splits into the 1/<var>f</var> dispersion term, a linear term (a pure
 delay) and a constant. A reference above the band only adds a pure advance, so all the overlap moves to the future side.
-<code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. Regression: the
-full-band path reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</p>
+<code>nFuture</code> and <code>nPast</code> use max(⌈…⌉, 0) + <var>g</var>, which changes nothing inside the band. As a regression check, the full-band path still reproduces <code>test_IQ_dedispersed.dat</code> bit for bit.</p>
 <details><summary>History</summary>
 <p><code>AllowRefOutsideBand</code> was added on 6 Oct 2026, for the channelized front end.</p></details>
 
 <h3 id="dedisp-why">5.4 Why coherent dedispersion</h3>
-<p>Incoherent dedispersion splits the band into channels, detects each, and shifts each channel by its delay. But the delay also changes
+<p>Filtering the voltage may look like more work than needed, but the cheaper alternative fails. Incoherent dedispersion splits the band
+into channels, detects each, and shifts each channel by its delay. But the delay also changes
 inside each channel, so a shift leaves a smear (Figure 5.3). In a 3.125 MHz channel at the bottom of the band the smear is 374 µs at
 DM 25 (75 µs at DM 5), and 1.5 ms at DM 100. At DM 100 that is more than a millisecond pulsar's whole pulse. Filtering the voltage
 removes the sweep at every frequency, with no smear at all. This is why the channel path also dedisperses each channel coherently.</p>
@@ -317,21 +316,18 @@ definition, the receiver's frequency mapping (no spectral inversion assumed) and
 See <a href="limits.html">limitations</a>.</p></div>
 
 <h3 id="dedisp-valid">Validation</h3>
-<ul>
-<li><code>testApplyInverseDispersion</code> checks the stage against its formula (<a href="tests.html#inv">unit tests</a>). The
-response to an impulse matches it with a relative error energy of at most 2.3·10⁻¹³, for six reference frequencies and DMs.
-Forward dispersion, IQ and this stage together give back the band-limited input to 1.9·10⁻⁶.</li>
-<li>Streaming by overlap-save matches one long FFT in double precision to 2.8·10⁻⁷, for four FFT sizes.</li>
-<li>The default output is the same bit for bit as the frozen reference file (<code>testDedisperseChannels</code>, test 1).</li>
-</ul>
+<p><code>testApplyInverseDispersion</code> checks the stage against its formula (<a href="tests.html#inv">unit tests</a>): the response
+to an impulse matches it with a relative error energy of at most 2.3·10⁻¹³, for six reference frequencies and DMs, and forward dispersion,
+IQ and this stage together give back the band-limited input to 1.9·10⁻⁶. Streaming by overlap-save matches one long FFT in double precision
+to 2.8·10⁻⁷, for four FFT sizes. And the default output is the same bit for bit as the frozen reference file (<code>testDedisperseChannels</code>,
+test 1).</p>
 <p>The voltage is now free of dispersion, but the pulse is still noise. Stage 6 turns it into something that can be folded.</p>
 
 <h2 id="detect">6 · <code>detectPower</code> <span class="badge validated">validated</span></h2>
 <div class="sig">info = detectPower(inFile, outFile, fs, fLO, f_out, 'FullySupported', info_dedisp.fullySupported)</div>
 <p class="meta"><a href="api.html#detectpower">Full interface and help text of <code>detectPower</code> →</a></p>
 
-<h3 id="detect-short">In short</h3>
-<p>It squares the dedispersed voltage, |<var>z</var>|² = I² + Q², and averages it over time bins of 1 µs. Here the data rate collapses,
+<p id="detect-short">Stage 6 squares the dedispersed voltage, |<var>z</var>|² = I² + Q², and averages it over time bins of 1 µs. Here the data rate collapses,
 from 800 million complex samples per second to 1 million power values, so everything after this is cheap.</p>
 
 <h3 id="detect-phys">6.1 Why square, then fold</h3>
@@ -343,6 +339,7 @@ Everything linear (dedispersion, RFI blanking, later beamforming) must happen be
 (the radiometer equation).</p>
 
 <h3 id="detect-how">6.2 Bins and time stamps</h3>
+<p>The detector does four things per bin.</p>
 <ol>
 <li><b>Bin length:</b> <code>binLen</code> = round(<var>f</var><sub>s</sub>/<var>f</var><sub>out</sub>) samples, a whole number (800 at 800 MHz).</li>
 <li><b>Square and average:</b> I² + Q² straight from the raw read (no complex arrays, no square root), summed in double, divided by
@@ -498,15 +495,13 @@ dashed line is the coverage limit for <code>NBin</code> = 2048 with one turn per
 </details>
 
 <h3 id="detect-valid">Validation</h3>
-<ul>
-<li>Noise-free, <var>L</var> = 1 s. The normalized residual of 127,512 on-pulse bins has mean −0.0016 (expected 0 ± 0.0028) and
-standard deviation 1.0015 (expected 1 ± 0.0020). The per-pulse centroid offsets have an rms of 0.301 µs, against 0.277 µs expected.</li>
-<li>−5 dB: noise baseline 1.232 against 1.233 predicted; off-pulse normalized residual std 0.9995.</li>
-<li>Run time 1.7 s per second of data at 800 MHz (0.17 s for the 0.1 s reference run), limited by reading the file.</li>
-<li><code>testDetectPower</code> checks the detector against its definition (<a href="tests.html#detpow">unit tests</a>). Every
-bin equals the mean of <var>I</var>² + <var>Q</var>² to 6.3·10⁻⁸, and a burst comes out at its true time to 4·10⁻⁸ bin. The bin
-variance matches the exact prediction from the noise spectrum within 1.1σ.</li>
-</ul>
+<p>Noise-free, with <var>L</var> = 1 s, the normalized residual of 127,512 on-pulse bins has mean −0.0016 (expected 0 ± 0.0028) and standard
+deviation 1.0015 (expected 1 ± 0.0020), and the per-pulse centroid offsets have an rms of 0.301 µs, against 0.277 µs expected. At −5
+dB the noise baseline is 1.232 against 1.233 predicted, and the off-pulse normalized residual has a standard deviation of 0.9995. <code>testDetectPower</code>
+checks the detector against its definition (<a href="tests.html#detpow">unit tests</a>): every bin equals the mean of <var>I</var>² +
+<var>Q</var>² to 6.3·10⁻⁸, a burst comes out at its true time to 4·10⁻⁸ bin, and the bin variance matches the exact prediction from the
+noise spectrum within 1.1σ. The run time is 1.7 s per second of data at 800 MHz (0.17 s for the 0.1 s reference run), limited by reading
+the file.</p>
 <p>Details in the <a href="results.html">validation record</a>.</p>
 
 <div class="callout why"><span class="ttl">Summary</span>

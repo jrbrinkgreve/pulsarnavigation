@@ -212,6 +212,8 @@ million times longer, which is why the <a href="simulator.html">fast simulator</
 </figure>
 
 <h2 id="pulsar">1 · Pulsar (ground truth for generation)</h2>
+<p>The tables follow the script, from the truth to the observer. The pulsar comes first. Only the generator sees these values; the observer
+gets its own copy through the ephemeris (Section 6).</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the millisecond pulsar of the design point. The
@@ -225,6 +227,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 </table></div>
 
 <h2 id="sim">2 · Simulation</h2>
+<p>The simulation settings decide at what rate the signal is made, how long it runs, and which random pulsar it is.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>f_in</code></td><td>4 GHz</td><td>real RF sample rate of the sky and receiver files</td><td>Nyquist 2 GHz covers the 1.6 GHz band edge with room for the IQ filter; 4 GHz / 800 MHz is an integer decimation (5).</td><td>generator, dispersion, noise, IQ</td></tr>
@@ -233,6 +236,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 </table></div>
 
 <h2 id="rx">3 · Receiver (known to the observer)</h2>
+<p>The receiver settings are the first ones the observer knows, because they describe the hardware rather than the sky.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 3×3 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
@@ -242,6 +246,8 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 </table></div>
 
 <h2 id="noise">4 · Receiver noise and interference</h2>
+<p>The noise and the interference are truth again. They set how strong the pulsar is against the receiver noise, and what else is in
+the band.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.2 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
@@ -258,6 +264,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 </table></div>
 
 <h2 id="proc">5 · Processing (observer)</h2>
+<p>The processing settings are the observer's own choices: how to channelize, excise, detect, fold and fit.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
 <tr><td><code>refFreq</code></td><td><code>fHigh</code> = 1.6 GHz</td><td>dedispersion reference frequency; TOAs are referred to it</td><td>The same as the generator, so the round trip is exact; the top of the band keeps its time.</td><td>dispersion, dedispersion</td></tr>
@@ -275,7 +282,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 </table></div>
 
 <h2 id="ephem">6 · Ephemeris (<code>ephem</code>, observer)</h2>
-<p>In real use these come from a pulsar catalogue. Here they are set from the truth so the timing model is exact; a deliberate error can be
+<p>What the observer knows about the pulsar is its ephemeris. In real use these values come from a pulsar catalogue. Here they are set from the truth so the timing model is exact; a deliberate error can be
 put in to test robustness.</p>
 <div class="table-wrap"><table>
 <tr><th>Field</th><th>Value</th><th>Meaning</th></tr>
@@ -287,7 +294,7 @@ put in to test robustness.</p>
 </table></div>
 
 <h2 id="files">7 · Files</h2>
-<p>The unit tests do not use these: <code>tests/testParams.m</code> defines the same names with every path under <code>data/test/</code> (a
+<p>Each stage writes its output to a file whose name is set here. The unit tests do not use these: <code>tests/testParams.m</code> defines the same names with every path under <code>data/test/</code> (a
 frozen copy made once by <code>tests/makeTestData.m</code>; <a href="tests.html#run">tests</a>).</p>
 <div class="table-wrap"><table>
 <tr><th>Variable</th><th>Path</th><th>Written by</th></tr>
@@ -310,6 +317,7 @@ with/without comparisons, and the source <code>tests/makeTestData.m</code> copie
 themselves read their own copy in <code>data/test/</code> since 13 Oct); switching <code>excision</code> never overwrites them.</p>
 
 <h2 id="derived">8 · Derived quantities (current settings)</h2>
+<p>From these settings follow the numbers that the stage pages quote most often.</p>
 <div class="table-wrap"><table>
 <tr><th>Quantity</th><th>Value</th><th>From</th></tr>
 <tr><td>IQ decimation <var>D</var></td><td>5</td><td>round(<code>f_in</code>/<code>fs</code>)</td></tr>
@@ -331,6 +339,7 @@ starts exactly on a turn boundary</td></tr>
 </table></div>
 
 <h2 id="main">9 · Run control in <code>main.m</code></h2>
+<p>Besides the parameters, <code>main.m</code> has its own switches, which decide which stages run and which figures are drawn.</p>
 <div class="table-wrap"><table>
 <tr><th>Switch</th><th>Committed value</th><th>Effect</th></tr>
 <tr><td><code>runStage.sky</code></td><td>false</td><td>generator + dispersion (slow; set true once, or after changing pulsar/simulation/band)</td></tr>

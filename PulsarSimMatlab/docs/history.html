@@ -13,7 +13,6 @@
 <p class="lede">How the pipeline got to its current form, session by session, and every design decision with the
 reason it was taken. The dated logs in <code>logs/</code> have the full detail.</p>
 
-<div class="callout note"><span class="ttl">In short</span>
 <p>The full-band chain was built and validated first (block 1, to 6 Oct). The reference scenario then showed that the target is
 ~54 dB below the noise and full of interference. So a channelized front end (A) and RFI excision (B) came next, before the fast
 simulator.</p>
@@ -22,8 +21,7 @@ cut at the IQ file (19 Oct), and block C, the fast simulator, started (20 Oct). 
 ship near the Netherlands timing B0329+54, and J0437 from further south.</p>
 <p>Block D followed (21–22 Oct): the receiver's motion, the phase prediction, the clock, and the navigation fit and filter. Blocks C and
 D were both closed on 22 Oct. A simulated ship keeps within 73 km rms of its track with two pulsars and a drifting clock. Next is block
-E, the full navigation system in simulation; block F, the real implementation, comes after it. Every design decision is listed below,
-with its reason.</p></div>
+E, the full navigation system in simulation; block F, the real implementation, comes after it. Every design decision is listed below, with its reason.</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#timeline">Session by session</a></li>
@@ -351,8 +349,15 @@ mixers) and derived it himself.</li>
 <li>Stage 5a was rewritten as a textbook section, with numbered subsections that lead into each other, numbered equations and four new
 computed figures (Jasper: "write more like a textbook", then "more compact").</li>
 <li>All other pages followed in the same form (Jasper: "Textbook, linked, yet relatively short format"). Each page was compared with the
-previous version, so that no number, name or link was lost, and the settings were checked against the code again. The restore point is
-the git tag <code>docs-before-textbook</code>.</li>
+previous version, so that no number, name or link was lost, and the settings were checked against the code again. The restore point is the git tag <code>docs-before-textbook</code>.</li>
+</ul>
+<h3>31 October — the docs as one line of reasoning</h3>
+<ul>
+<li>A second pass over every page, so that each reads as one argument rather than a set of paragraphs (Jasper: "audit all the docs
+thoroughly to be in this explainative, textbook, paragraph, fully connected train-of-reasoning style"). Each paragraph now opens from
+the one before, each section ends on what the next one answers, bold labels at the start of a paragraph became topic sentences, and
+lists that carry an argument became paragraphs. Procedures, catalogues and tables stayed. Each page was compared with the previous
+version, so that no number, name, link or id was lost.</li>
 </ul>
 
 <h2 id="decisions">2. Decision log</h2>
@@ -461,6 +466,9 @@ the order of the chain.</td></tr>
 <tr><td>27 Oct</td><td>Filling in the missing unit tests is part of the review week (Jasper)</td><td>Stages 2–6 had been checked only by NumPy ports and end-to-end runs; a test per stage makes every later change checkable.</td></tr>
 <tr><td>27 Oct</td><td><code>applyInverseDispersion</code>'s leakage check summed in double (Jasper)</td><td>In single precision it could not tell 10⁻¹² from 10⁻⁷; the output data stay bit for bit.</td></tr>
 <tr><td>30 Oct</td><td>The docs as a textbook: numbered sections that lead into each other, numbered equations and figures, a Summary box, reference material collapsed (Jasper)</td><td>Jasper found stage 5a in this form much easier to follow ("I like this style much better!").</td></tr>
+<tr><td>31 Oct</td><td>Every page as one connected line of reasoning: paragraphs that lead into each other, no bold-label openers, argument
+lists as paragraphs (Jasper)</td><td>After the textbook rewrite some pages, such as RFI excision, still read "like a collection of paragraphs,
+not a complete reasoning".</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -512,7 +520,10 @@ the order of the chain.</td></tr>
 <tr><td><a href="../logs/2026-10-22_review-C-D.md"><code>2026-10-22_review-C-D.md</code></a></td><td>the review of blocks C and D, day 1, and a read-only docs check</td></tr>
 <tr><td><a href="../logs/2026-10-23_review-C-D.md"><code>2026-10-23_review-C-D.md</code></a></td><td>the review of C and D, day 2: Jasper's validation list, TOA corrections noted, block E revised</td></tr>
 <tr><td><a href="../logs/2026-10-26_review-week.md"><code>2026-10-26_review-week.md</code></a></td><td>the review week E0: stages 4–6b walked through, the missing unit tests filled in, the running list</td></tr>
-<tr><td><a href="../logs/2026-10-30_docs-textbook.md"><code>2026-10-30_docs-textbook.md</code></a></td><td>these docs: the textbook rewrite, page by page, with the checks against the previous version</td></tr>
+<tr><td><a href="../logs/2026-10-30_docs-textbook.md"><code>2026-10-30_docs-textbook.md</code></a></td><td>these docs: the textbook rewrite,
+page by page, with the checks against the previous version</td></tr>
+<tr><td><a href="../logs/2026-10-31_docs-flow.md"><code>2026-10-31_docs-flow.md</code></a></td><td>these docs: the paragraph-flow pass
+over every page, its rules and its checks</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

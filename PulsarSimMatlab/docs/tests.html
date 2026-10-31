@@ -29,19 +29,16 @@ run('tests/runAllTests.m')          % all 31 unit tests, in order, summary at th
 runAllTests("testRFIChain")         % the slow one, only when named (~2.5 h)</code></pre>
 <p>Run them from the <code>PulsarSimMatlab</code> folder. Every test is a function with its own workspace. It prints PASS/FAIL lines and
 its numbers, and tests can be run one after another in one MATLAB session.</p>
-<p><code>runAllTests</code> (13 Oct 2026) does exactly that:</p>
-<ul>
-<li>it runs the tests that write the shared channel files first;</li>
-<li>it runs each test in its own try/catch, so a failure does not stop the rest;</li>
-<li>it ends with a table of PASS/FAIL, run time and the first line of each error, and raises an error if any test failed.</li>
-</ul>
+<p><code>runAllTests</code> does exactly that. It runs the tests that write the shared channel files first. It runs each test in its
+own try/catch, so a failure does not stop the rest. And it ends with a table of PASS/FAIL, run time and the first line of each error,
+and raises an error if any test failed.</p>
 <p>A subset: <code>runAllTests(["testRfiNoise" "testRadarEdges"])</code>, with <code>tests/</code> on the path, run in dependency order.
 The <code>demo*</code>, <code>exp*</code> and <code>make*</code> files are not run. A new <code>test*.m</code> that is not yet in the list
 runs last, with a note. Slow tests (<code>testRFIChain</code>, ~2.5 h for its two cases) are skipped in the default run, printed as
 skipped, and run only when named.</p>
 <div class="callout why"><span class="ttl">Tests are functions, not scripts</span>
-<p><b>Alternative:</b> test scripts, which are quicker to write and leave their variables in the workspace for inspection.</p>
-<p><b>Why not:</b> as scripts they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
+<p>The alternative is test scripts, which are quicker to write and leave their variables in the workspace for inspection. But as scripts
+they shared the base workspace: one test's <code>onCleanup</code> object was destroyed by the next test's assignment, its
 cleanup ran at once and changed the folder back, and the next test failed with "Unrecognized function 'pipelineParams'". It only showed
 when several tests ran in one session, the way Jasper runs them (<a href="lessons.html">bugs and lessons</a> #11).</p></div>
 <figure class="scroll">
@@ -136,6 +133,8 @@ time is fine (it does not touch <code>data/test/</code>).</li>
 </ul></div>
 
 <h2>The tests</h2>
+<p>The table lists every test in the order <code>runAllTests</code> runs it, followed by the experiments, and the sections below take
+them one by one. All of them follow the same rule for passing.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 770" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   <text class="ttl" x="420" y="30" text-anchor="middle">regression</text>
@@ -392,8 +391,7 @@ compare the code with an independent formula or matrix; physics checks compare a
 found radar period) with its prediction, within the predicted scatter.</figcaption>
 </figure>
 <div class="callout why"><span class="ttl">Pass criteria from the predicted σ</span>
-<p><b>Alternative:</b> a tolerance chosen by hand, such as "within 5 %".</p>
-<p><b>Why not:</b> a guessed tolerance proves nothing: it may be loose enough to hide a real error, or so tight that a correct code fails
+<p>The alternative is a tolerance chosen by hand, such as "within 5 %". But a guessed tolerance proves nothing: it may be loose enough to hide a real error, or so tight that a correct code fails
 by chance. Each physics check therefore first predicts the scatter of what it measures (for example the variance of a variance estimate)
 and passes when the measurement lies within a few of those σ. The algebra checks compare with an exact formula, to rounding error.</p></div>
 <div class="table-wrap"><table>
@@ -909,7 +907,7 @@ sub-integration's reference time. A function that returns the wrong number of va
 <h2 id="rfimodel"><code>testRFIModel</code> (20 Oct)</h2>
 <p>The RFI model recovers known statistics from synthetic data, and folds drawn from the measured profile match real folds. The test
 also shows that the comparison detects what a profile misses.</p>
-<p><b>The data.</b> Synthetic data whose statistics are known in closed form; no data files, ~0.9 GB in tempdir. There is one complex
+<p>For that, the test uses synthetic data whose statistics are known in closed form; no data files, ~0.9 GB in tempdir. There is one complex
 sample per 1 µs time bin (<var>B</var><sub>n</sub>·binDt = 1), with power |<var>a</var>|². The receiver noise is filtered so that
 <var>V</var> = 1, <var>X</var>(1) = 0.320 and <var>X</var>(2) = 0.070: the clean model, with two lags. Seven channels:</p>
 <ul>
@@ -1006,12 +1004,12 @@ USNO series to 2.25 µs rms. The five checks are in the
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic
 scenario and the narrow Inmarsat carriers. The narrow case first had two failures at 1 turn. They were diagnosed (below), and the two
 fixes, per-channel <code>detectRFI</code> thresholds and 30 lags, removed them.</p>
-<p><b>How it works.</b> For each case it makes one pulsar-free 1 s chain run, as <code>runRFIProfile</code> does: beam passages outside the
+<p>For each case the test makes one pulsar-free 1 s chain run, as <code>runRFIProfile</code> does: beam passages outside the
 run, its own noise seed, and the DM from <code>pipelineParams</code>. The default cases are the realistic scenario and the narrow Inmarsat
 carriers; noise only is on request. The detected power is split in two halves. Half A gives the RFI profile. Half B is folded by
 <code>foldProfile</code> with the excision weights (NBin 1024, 1 and 10 turns per sub-int). It is compared, channel by channel, with 60
 <code>simulateFold</code> realizations of the half-A profile.</p>
-<p><b>The checks:</b></p>
+<p>The two halves are compared in five checks:</p>
 <ul>
 <li>the level;</li>
 <li>the noise relative to the observer's model: the core check. Correlations beyond the measured lags, or slow variation, would show as
@@ -1060,25 +1058,21 @@ with longer sub-ints passes.</li>
 <h3>Diagnosis of the narrow-Inmarsat failures (21 Oct)</h3>
 <p>The scratch script <code>diagNarrow</code> ran the same chain with and without excision, with lags to 30 in both halves. It split
 the half-B fold into phase bins without and with blanking, and simulated from half A, from half B, and from half B with 30 lags.</p>
-<ol>
-<li><b>The neighbour-correlation FAIL is the lag-7 cut-off.</b> The 200 kHz carriers' power correlation has a sidelobe at lags 7–20,
-holding 5–7 % of the long-run noise. Without excision, the real 0.29–0.305 is matched by the 30-lag simulation, not by 7 lags (0.28).</li>
-<li><b>The noise excess</b> (+2.5–5.6 % in the carrier channels) <b>is data-dependent blanking.</b> <code>detectRFI</code>'s false flags
+<p>It found two causes. The neighbour-correlation FAIL is the lag-7 cut-off: the 200 kHz carriers' power correlation has a sidelobe at lags 7–20,
+holding 5–7 % of the long-run noise. Without excision, the real 0.29–0.305 is matched by the 30-lag simulation, not by 7 lags (0.28).</p>
+<p>The noise excess (+2.5–5.6 % in the carrier channels) is data-dependent blanking. <code>detectRFI</code>'s false flags
 (~1400 windows per carrier channel, against 2.4 expected) cut the carriers' power peaks. The valid bins next to a cut keep the peak's
 correlated shoulders. Phase bins without blanking agree with the simulation within ±1 %. Bins with blanking (~55 %) are +4–9 % high.
-Without excision, real and simulated agree within ±1 %. The halves are stationary (<var>V</var> within 1 %).<br>
-The same happens, smaller, in the partly covered LTE channels 81 and 94 (+3 %, only in blanked bins), and in channel 61's 1.9 % blanked
-bins (2.7× noisier: its heavy tails).</li>
-</ol>
+Without excision, real and simulated agree within ±1 %. The halves are stationary (<var>V</var> within 1 %). The same happens, smaller, in the partly covered LTE channels 81 and 94 (+3 %, only in blanked bins), and in channel 61's 1.9 % blanked
+bins (2.7× noisier: its heavy tails).</p>
 <p>The observer's noise calibration absorbs both (on the chain: χ² 1.24 → 0.99). Since 21 Oct the per-channel <code>detectRFI</code>
 thresholds remove these false flags (<a href="excision.html#chanthr">excision</a>), and the test's half-A profile, like
 <code>runRFIProfile</code>, uses 30 lags.</p>
 
 <h2 id="simvschain"><code>expSimVsChain</code> (experiment, 20 Oct)</h2>
 <p>The simulator reproduces the voltage chain from the detection threshold to high SNR, on the full band and on the channel path.</p>
-<p><b>Full band.</b> Simulated folds (2000 one-turn sub-ints per point) at the settings of the saved full-band sweeps (−25…+20 dB, and the
-−20…−15 dB threshold sweep), with the chain's signal gain (0.9958) and the observer's <var>B</var><sub>n</sub>, processed by
-<code>foldToTOA</code>:</p>
+<p>On the full band, simulated folds (2000 one-turn sub-ints per point) are drawn at the settings of the saved full-band sweeps (−25…+20 dB, and the
+−20…−15 dB threshold sweep), with the chain's signal gain (0.9958) and the observer's <var>B</var><sub>n</sub>, and processed by <code>foldToTOA</code>:</p>
 <div class="table-wrap"><table>
 <tr><th>Check</th><th class="num">Voltage chain</th><th class="num"><code>simulateFold</code></th></tr>
 <tr><td>median σ at −15 dB</td><td class="num">24.53 µs</td><td class="num">24.91 µs</td></tr>
@@ -1092,7 +1086,7 @@ thresholds remove these false flags (<a href="excision.html#chanthr">excision</a
 <p>The median σ agrees within 0–4 % at every point. Detection probabilities and outlier rates are within the chain's binomial errors
 (± 0.052 for the unknown-phase P<sub>D</sub> at −20 dB). Weights copied from <code>main</code>'s fold give the same σ as the asymptotic
 ones: 2.9148 against 2.9146 µs.</p>
-<p><b>Channel path.</b> 128 channels with the chain's noise coefficients, and the true pulse fraction per channel from the forward
+<p>The channel path is simulated with 128 channels, the chain's noise coefficients, and the true pulse fraction per channel from the forward
 band-edge taper (0.023, 0.417 and 0.960 in the outer channels); observer gain 1. At −5 dB:</p>
 <div class="table-wrap"><table>
 <tr><th></th><th class="num">σ</th><th class="num">SNR</th><th class="num">mean χ²<sub>red</sub></th><th class="num"><code>pChi2</code> &lt; 0.05</th></tr>
@@ -1102,14 +1096,14 @@ band-edge taper (0.023, 0.417 and 0.960 in the outer channels); observer gain 1.
 <p>With all gains set to 1, the χ² excess and the <code>pChi2</code> skew vanish: the band-edge taper (roadmap <a href="roadmap.html#item3">item 3</a>) is their whole
 cause. At −15 dB the simulator gives χ² 0.9991 and a mean <code>pChi2</code> of 0.533; the chain 0.9987 and 0.537. The experiment needs
 <code>main</code>'s full-band files, its channel power info, and the two sweep files.</p>
-<p><b>At the new defaults</b> (DM 25, 0.2 s; in the validation run of 21 Oct, Claude's run) the agreement is the same. On the full band at
+<p>At the new defaults (DM 25, 0.2 s; in the validation run of 21 Oct, Claude's run) the agreement is the same. On the full band at
 −5 dB the median σ is 2.907 µs on the chain and 2.916 µs in the simulator. On the channel path rms/pred is 1.039 in the simulator against
 0.956 ± 0.035 on the chain, and χ² is 1.0069 against 1.0063.</p>
 
 <h2 id="simrfi"><code>expSimRFI</code> (experiment, 20 Oct)</h2>
 <p>The simulator with RFI profiles matches the voltage chain within about 1 %. Part 2 gives the production numbers for what RFI
 costs.</p>
-<p><b>Part 1.</b> <code>simulateFold</code> with RFI profiles, against <code>runRFITest</code> at −5 dB with excision. The profiles come
+<p>Part 1 compares <code>simulateFold</code> with RFI profiles against <code>runRFITest</code> at −5 dB with excision. The profiles come
 from <code>rfiProfile</code>, measured by <code>runRFIProfile</code> on a voltage-chain run without a pulsar. They give each channel's
 level, true noise coefficients and valid fraction.</p>
 <div class="table-wrap"><table>
@@ -1119,7 +1113,7 @@ level, true noise coefficients and valid fraction.</p>
 <tr><td>narrow Inmarsat carriers</td><td class="num">80.5</td><td class="num">81.2</td><td class="num">3.382 µs</td><td class="num">3.351 µs</td><td class="num">1.223</td><td class="num">1.245</td></tr>
 </table></div>
 <p>They agree within about 1 %. The chain's SNR is about 0.5 % lower in every case: its excision clips a few pulse peaks at −5 dB.</p>
-<p><b>Part 2</b>, production numbers with the 1 s profiles (the steady part; the 21 Oct profiles since 23 Oct). There are 50 × 8 TOAs
+<p>Part 2 gives the production numbers, with the 1 s profiles (the steady part; the 21 Oct profiles since 23 Oct). There are 50 × 8 TOAs
 per case, with the pulsar redrawn every run, so rms/pred ≈ 1 for honest error bars (± 0.035):</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>SNR (/ noise only)</th><th>median σ (/ noise only)</th><th>rms/pred</th><th>median χ²<sub>red</sub></th><th><code>pChi2</code> &lt; 0.05</th><th>channels: level &gt; 1.05, noise ratio &gt; 1.02</th></tr>

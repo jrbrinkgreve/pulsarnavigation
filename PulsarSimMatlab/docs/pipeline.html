@@ -23,8 +23,7 @@ matters for runs of hours to days. For such runs, the fast simulator draws stage
 </ol></div>
 <p>The pipeline first simulates what an antenna would record (sky, then receiver). It then processes that recording the way it would
 process real data: undo the dispersion, square to power, fold over turns, fit TOAs and test them. There are two processing paths. The
-full-band path is the validated reference; the channelized path is the default, because RFI excision needs it. Both end in the same fold
-and TOA fit, and only the final validation looks at the truth.</p>
+full-band path is the validated reference; the channelized path is the default, because RFI excision needs it. Both end in the same fold and TOA fit, and only the final validation looks at the truth. Figure O.1 draws both paths on one map.</p>
 
 <h2 id="map">O1 · The map</h2>
 <figure>
@@ -148,20 +147,17 @@ and TOA fit, and only the final validation looks at the truth.</p>
 truth. The full-band path is the validated reference; the channel path is the default. Left: the phase prediction (7a) feeds the fold, and
 the fast simulator (blue) feeds the TOA fit in place of stages 1–7. Bottom right: navigation (10).</figcaption>
 </figure>
-<p>Read Figure O.1 from top to bottom:</p>
-<ol>
-<li><b>Sky (stages 1–2):</b> make the pulsar's voltage at RF, then send it through the interstellar plasma (dispersion).</li>
-<li><b>Receiver (3–4):</b> add receiver noise and interference, then convert to complex baseband (IQ) at 800 MHz.</li>
-<li><b>Receiver clock (4a):</b> the oscillator that stamps every sample. Its error matters over hours and days.</li>
-<li><b>Front end (5–6):</b> undo the dispersion and square the voltages to power. Either for the whole band at once (left), or per channel
-after a filterbank (middle), with RFI excision in between (right).</li>
-<li><b>Phase prediction (7a):</b> for a moving receiver, compute the pulse phase it should see.</li>
-<li><b>Fold (7):</b> average the power over turns at the same rotational phase, one profile per sub-integration.</li>
-<li><b>TOA and detection (8):</b> fit the template to each profile, and test whether the pulse is really there.</li>
-<li><b>Validation (9):</b> compare the good TOAs with the truth. This is the only processing-side step that sees it.</li>
-<li><b>Navigation (10):</b> turn the TOAs into the receiver's position, velocity and clock.</li>
-</ol>
-<p>The fast simulator (1–7) replaces the first seven stages for runs of hours to days: it draws the folds directly.</p>
+<p>Read from top to bottom, Figure O.1 follows the signal. The sky stages (1–2) make the pulsar's voltage at RF and send it through the
+interstellar plasma, which disperses it. The receiver (3–4) adds receiver noise and interference and converts the result to complex baseband
+(IQ) at 800 MHz. Every sample is stamped by the receiver clock (4a), the oscillator whose error matters over hours and days. The front
+end (5–6) then undoes the dispersion and squares the voltages to power: either for the whole band at once (left), or per channel after
+a filterbank (middle), with RFI excision in between (right).</p>
+<p>From there both paths share the same stages. For a moving receiver, the phase prediction (7a) computes the pulse phase it should see.
+The fold (7) averages the power over turns at the same rotational phase, one profile per sub-integration. The TOA stage (8) fits the
+template to each profile and tests whether the pulse is really there. Validation (9) compares the good TOAs with the truth; it is the
+only processing-side step that sees it. Navigation (10) finally turns the TOAs into the receiver's position, velocity and clock.</p>
+<p>For runs of hours to days, the fast simulator (1–7) replaces the first seven stages and draws the folds directly. Why that is needed
+is the subject of the next section.</p>
 
 <h2 id="around">O2 · Long runs and a moving receiver</h2>
 <p>The chain of Figure O.1 has two limits. It writes about 72.5 GB per second of signal on the default path (61 GB on the full band), so it
@@ -235,7 +231,7 @@ truth. Purple: measured on the voltage chain. Green: processing (observer-only).
 navigation's estimate becomes the next day's assumed trajectory. Both paths end in the same TOA fit as <code>main.m</code>, and navigation
 follows.</figcaption>
 </figure>
-<p><b>The fast simulator.</b> After the fold, the data are fully described by a few numbers per phase bin: the mean, the variance and the
+<p>The first limit, the data volume, is removed by the fast simulator. After the fold, the data are fully described by a few numbers per phase bin: the mean, the variance and the
 correlation with the neighbouring bins. The voltage chain has validated all three, and <code>simulateFold</code> draws the fold directly from
 them: a 20-hour observation in 60 s sub-integrations takes 0.05 s. The RFI comes from a measurement, not from a formula.
 <code>runRFIProfile</code> runs the chain once with RFI and excision but without a pulsar, and <code>rfiProfile</code> records what the
@@ -244,19 +240,15 @@ its folds. Scintillation changes the pulsar's flux by large factors from hour to
 the pulsar is bright and loses them when it is faint. <code>adaptiveSubints</code> therefore merges short sub-integrations until each one
 reaches an SNR of about 7; it works on the observer side, on simulated and real folds alike. The <a href="simulator.html">simulator
 page</a> shows how well it reproduces the voltage chain.</p>
-<p><b>Phase prediction (stage 7a).</b> The fold in the chain assigns phases with a constant spin rate. That is only right for a receiver at
+<p>The second limit, the receiver at rest, is removed by the phase prediction (stage 7a). The fold in the chain assigns phases with a constant spin rate. That is only right for a receiver at
 rest relative to the barycentre, the centre of mass of the solar system. The Earth's orbit changes the arrival rate of the pulses by up to
-10⁻⁴, which within one 120 s sub-integration moves the pulse by 12 ms; B0329+54's core is only 5 ms wide, so the fold would smear out. Four
-functions predict the motion instead:</p>
-<ol>
-<li><code>makeTrajectory</code> describes where the receiver is: a site on the ground, a ship or a probe.</li>
-<li><code>delayModel</code> computes the delay from the receiver to the barycentre.</li>
-<li><code>makePredictor</code> turns the delays into the predicted pulse phase, stored as short polynomials.</li>
-<li><code>foldProfile</code> follows that phase when it gets the option <code>'Predictor'</code> (<a href="fold.html#predictor">stage 7</a>).</li>
-</ol>
+10⁻⁴, which within one 120 s sub-integration moves the pulse by 12 ms; B0329+54's core is only 5 ms wide, so the fold would smear out. Four functions predict the motion instead, each feeding the next. <code>makeTrajectory</code> describes where the receiver is: a site
+on the ground, a ship or a probe. <code>delayModel</code> computes the delay from the receiver to the barycentre. <code>makePredictor</code>
+turns the delays into the predicted pulse phase, stored as short polynomials. <code>foldProfile</code> follows that phase when it gets
+the option <code>'Predictor'</code> (<a href="fold.html#predictor">stage 7</a>).</p>
 <p>With the predictor, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one at rest. The <a href="fold.html#prediction">phase-prediction
 section</a> explains each step.</p>
-<p><b>The truth, and navigation (stage 10).</b> The simulator places the pulses where a true trajectory and a clock put them
+<p>A moving receiver also needs a truth to be compared against, and an estimator that recovers the motion. The simulator places the pulses where a true trajectory and a clock put them
 (<a href="simulator.html#truth"><code>trueResiduals</code></a>, with the clock from <a href="receiver.html#clock"><code>makeClock</code></a>). The
 observer keeps folding with the assumed trajectory, which is its own knowledge and not the truth, and the difference between the two is the
 navigation signal. Navigation turns the TOAs into the receiver's position and clock offset (<a href="navigation.html">stage 10</a>):
@@ -270,7 +262,7 @@ and the predictor. This section was added to the overview the same day. The simu
 shortcut for stages 1–7.</p></details>
 
 <h2 id="stages">O3 · Stages and data products</h2>
-<p>Every function in the chain, the file it writes, and its status:</p>
+<p>All of these functions, from the sky to navigation, are listed below with the file each one writes and its status:</p>
 <div class="table-wrap"><table>
 <tr><th>#</th><th>Function</th><th>Writes</th><th>Data</th><th>Status</th></tr>
 <tr><td>1</td><td><a href="sky.html#gen"><code>generatePulsarSignal</code></a></td><td><code>test.dat</code></td><td>real, f_in = 4 GHz</td><td><span class="badge validated">validated</span></td></tr>
@@ -308,35 +300,36 @@ shortcut for stages 1–7.</p></details>
 <tr><td>–</td><td><a href="simulator.html#adaptive"><code>adaptiveSubints</code></a>, <code>mergeSubints</code></td><td>(in memory)</td><td>merged sub-ints, SNR ≈ 7 each</td><td><span class="badge validated">validated</span></td></tr>
 <tr><td>–</td><td><a href="simulator.html#truth"><code>trueResiduals</code></a></td><td>(in memory: <code>res</code>)</td><td>each pulse's true lateness against the prediction, and its phase in the fold</td><td><span class="badge validated">validated</span></td></tr>
 </table></div>
-<p>The tests of the phase prediction, the simulator's truth, the clock and navigation pass in Jasper's run of 22 Oct.</p>
+<p>The tests of the phase prediction, the simulator's truth, the clock and navigation pass in Jasper's own run. The order of the rows
+is not arbitrary, and the next section explains why each stage sits where it does.</p>
 
 <h2 id="why">O4 · Why the pipeline has this order</h2>
-<p><b>Sky → receiver → processing, in physical order.</b> Noise and RFI enter at the receiver, so they are never dispersed. Dedispersion then
+<p>The simulation runs in physical order, sky → receiver → processing, because noise and RFI enter at the receiver and are never dispersed. Dedispersion then
 applies the inverse chirp to them, exactly as it does to real data: a broadband impulse gets smeared into an inverse sweep, and a carrier is
 only shifted by its frequency's delay (<a href="receiver.html#noise-why">receiver page</a>). Adding them before dispersion, or simulating the
 received signal directly, would get that wrong.</p>
-<p><b>Complex voltages until detection.</b> Squaring to power early would shrink the data at once, but coherent dedispersion needs the phase,
+<p>Once the processing starts, the voltages stay complex until detection. Squaring to power early would shrink the data at once, but coherent dedispersion needs the phase,
 and RFI blanking and (later) beamforming are linear operations that must also come before squaring. After square-law detection only power is
 left, and the data are much smaller (Section O6).</p>
-<p><b>Two front ends.</b> The full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
+<p>There are two front ends because the first one has two weaknesses. The full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
 but its filter grows with DM (about 15 GB at DM 100) and it has nowhere to remove RFI. The channelized path splits the band into 128 channels
 first. RFI is then a few samples in a few channels, where it can be found and blanked, and each channel needs only a short dedispersion
 filter. The full-band path stays as the validated reference: every channel-path result is compared against it.</p>
-<p><b>Excision between the channelizer and dedispersion.</b> In a channel, before dedispersion, a 2 µs radar pulse occupies about 8 samples in
+<p>Inside the channelized path, excision sits between the channelizer and dedispersion. In a channel, before dedispersion, a 2 µs radar pulse occupies about 8 samples in
 2 channels; after dedispersion it is spread over thousands of samples and mixed with good data. Excision therefore works on the raw channel
 voltages, not after dedispersion or on the detected power. Dedispersion then spreads each blank over its filter length, so every detected
 bin is "partly real"; <code>blankingWeights</code> computes exactly how much, and the fold stays unbiased.</p>
-<p><b>A simulator that draws folds, next to the chain.</b> Even a perfect voltage simulator writes about 72.5 GB per second on the default
+<p>Next to the chain sits a simulator that draws folds, because even a perfect voltage simulator writes about 72.5 GB per second on the default
 path, so hours are out of reach. Everything after the fold depends on the voltages only through the fold's statistics, so drawing the fold
 loses nothing the observer could see. The chain stays as the reference that the simulator is checked against
 (<a href="simulator.html#why">simulator page</a>).</p>
-<p><b>Motion enters the fold as a predicted phase.</b> Computing the delays inside the fold, for every time bin, would put all the motion
+<p>The last choice is how motion enters the fold: as a predicted phase. Computing the delays inside the fold, for every time bin, would put all the motion
 physics into the streaming fold. Instead the phase is computed once per observation, as short polynomials, the way radio observatories do
 it. The fold only evaluates them, which is also what an FPGA or GPU version needs. The receiver enters only through its trajectory, so a
 Kalman filter can later supply it without changes to the fold (<a href="fold.html#makepredictor">phase prediction</a>).</p>
 
 <h2 id="run">O5 · Run control in <code>main.m</code>, and <code>processIQ</code></h2>
-<p>Each stage group has a switch. <code>true</code> runs it; <code>false</code> reuses the files an earlier run wrote (Figure O.3).</p>
+<p>These stages are run from <code>main.m</code>, where each stage group has a switch. <code>true</code> runs it; <code>false</code> reuses the files an earlier run wrote (Figure O.3).</p>
 <div class="table-wrap"><table>
 <tr><th>Switch</th><th>Runs</th><th>When to rerun</th></tr>
 <tr><td><code>runStage.sky</code></td><td>generator + dispersion (the slow part)</td><td>pulsar, T, L, f_in, DM, band or seed changed</td></tr>
@@ -451,7 +444,7 @@ deliberate reuse still runs. Colours as in Figure O.1.</figcaption>
 <h3 id="processiq"><code>processIQ</code>: IQ in, fold out</h3>
 <div class="sig">out = processIQ(info_IQ, rx, ephem, proc, files, 'Reuse', false)</div>
 <p class="meta"><a href="api.html#processiq">Full interface and help text of <code>processIQ</code> →</a></p>
-<p>The code has three roles. It <b>simulates</b> the truth, as a stand-in for the antenna and the ADC/DDC: the generator, dispersion,
+<p>The function follows from how the code is divided. The code has three roles. It <b>simulates</b> the truth, as a stand-in for the antenna and the ADC/DDC: the generator, dispersion,
 <code>addNoiseAndRFI</code> and <code>applyIQmodulation</code>, called in <code>main.m</code>. It <b>processes</b>:
 <code>processIQ(info_IQ, rx, ephem, proc, files)</code> takes the IQ file in and gives the fold out, and <code>foldToTOA</code> takes the fold
 in and gives TOAs and detection out. And it <b>evaluates</b>: check plots, <code>validateTOA</code>, and the exact optimum (truth against
@@ -476,7 +469,7 @@ intermediate infos of every stage, and with excision the RFI mask. Every interme
 </details>
 
 <h2 id="sizes">O6 · Sizes</h2>
-<p>Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
+<p>Keeping every intermediate file on disk has a cost, and it is large. Disk ≈ <var>L</var>·(3·<var>f</var><sub>in</sub>·4 + 2·<var>f</var><sub>s</sub>·8 + <var>f</var><sub>out</sub>·4) bytes for the full-band files.
 The channel path adds the channel IQ and dedispersed files (4/3 oversampled), the power file and, with excision, the blanked copies and the
 weight file (9 float32 per bin and channel). <code>main.m</code> prints its estimate first. At <var>L</var> = 1 s and 800 MHz the full-band
 files alone are about 61 GB, and the default channel path with excision writes about 72.5 GB. The default <var>L</var> = 0.2 s needs a fifth

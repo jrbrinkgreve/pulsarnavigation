@@ -59,7 +59,7 @@ Every processing step is checked against the simulation's ground truth.</p>
   <text x="150" y="254" font-size="12" class="muted">dashed: predicted arrival · solid: measured · offset Δt × c = distance along the line of sight</text>
 </svg>
 </figure>
-<p><b>The idea.</b> A pulsar sweeps a radio beam past us once per turn. Its period is stable to better than a microsecond
+<p>The idea is simple. A pulsar sweeps a radio beam past us once per turn. Its period is stable to better than a microsecond
 over years. So if you know where you are, you can predict when each pulse arrives.</p>
 <p>Turn this around. A pulse that arrives early means you are closer to the pulsar along its direction: by the speed of light
 times the time difference. Arrival times from four or more pulsars in different directions give a 3-D position plus a clock
@@ -102,7 +102,7 @@ clock offset.</p>
   <div class="later"><b>E (next)</b>the full system in simulation: several pulsars, the array</div>
   <div class="later"><b>F</b>real implementation: antenna data, GPU / FPGA</div>
 </div>
-<p><b>Block D, motion, the clock and navigation, is closed.</b> The receiver moves with the Earth and its ship, and it times its data
+<p>The latest closed block is D: motion, the clock and navigation. The receiver moves with the Earth and its ship, and it times its data
 with its own oscillator. Block D predicts the pulse phase the receiver should see, so that a fold stays aligned over hours. It also gives
 the simulator a true trajectory and clock, against which the observer's assumed ones are wrong. The difference is the navigation signal,
 and the navigation fit turns it into a position. A simulated ship times B0329+54 and B0950+08 for 14 days with a drifting SDR clock.
@@ -111,14 +111,13 @@ off. That is at nominal flux. At worst-case flux, the design point, the same shi
 (<a href="navigation.html#ship-worst">navigation</a>). The <a href="fold.html#prediction">phase-prediction</a> and
 <a href="receiver.html#clock">clock</a> sections and the <a href="navigation.html">navigation</a> page have the functions, and the
 <a href="localisation.html">localisation page</a> the frames, time scales and relativistic corrections behind them.</p>
-<p><b>Before that: block C, the fast simulator.</b> A TOA takes hours of data, far more than a simulation of every voltage sample can
+<p>Block D rests on block C, the fast simulator, which came before it. A TOA takes hours of data, far more than a simulation of every voltage sample can
 handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
 of data take seconds. It is validated in Jasper's runs, and its scenario runs give TOA budgets for B0329+54, seen from the Netherlands,
 and for J0437, seen from 30° S.</p>
-<p><b>Now: block E</b> (revised 23 Oct): a fixed position in the Netherlands from several pulsars, in simulation, with all 18 data
+<p>The work now is block E (revised 23 Oct): a fixed position in the Netherlands from several pulsars, in simulation, with all 18 data
 streams beamformed. It starts with a review: of blocks C and D (22–23 Oct), then a review week, E0, that walks through every stage
-again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all, validated in Jasper's runs). <b>Then block F</b>, the real implementation on antenna data at that site.
-Details and reasons: <a href="roadmap.html#blockE">roadmap</a>.</p>
+again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all, validated in Jasper's runs). Block F, the real implementation on antenna data at that site, follows. The details and reasons are on the <a href="roadmap.html#blockE">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
