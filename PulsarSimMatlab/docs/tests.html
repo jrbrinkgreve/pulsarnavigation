@@ -25,7 +25,7 @@ and similar mean "the code before that step".</p>
 <h2 id="run">How to run</h2>
 <pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
 run('tests/testChannelizeIQ.m')     % one test
-run('tests/runAllTests.m')          % all 31 unit tests, in order, summary at the end (~10 min)
+run('tests/runAllTests.m')          % all 32 unit tests, in order, summary at the end (~10 min)
 runAllTests("testRFIChain")         % the slow one, only when named (~2.5 h)</code></pre>
 <p>Run them from the <code>PulsarSimMatlab</code> folder. Every test is a function with its own workspace. It prints PASS/FAIL lines and
 its numbers, and tests can be run one after another in one MATLAB session.</p>
@@ -136,7 +136,7 @@ time is fine (it does not touch <code>data/test/</code>).</li>
 <p>The table lists every test in the order <code>runAllTests</code> runs it, followed by the experiments, and the sections below take
 them one by one. All of them follow the same rule for passing.</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 770" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
+<svg class="wide" viewBox="0 0 860 792" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   <text class="ttl" x="420" y="30" text-anchor="middle">regression</text>
   <text class="ttl" x="510" y="30" text-anchor="middle">algebra</text>
   <text class="ttl" x="600" y="30" text-anchor="middle">physics</text>
@@ -384,8 +384,16 @@ them one by one. All of them follow the same rule for passing.</p>
   <circle cx="600" cy="745" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <rect class="box proc" x="670" y="739" width="2.0" height="12" rx="2"/>
   <text class="sub" x="677.0" y="749">2 s</text>
+  <rect class="fillfg" x="10" y="756" width="800" height="22" opacity="0.25"/>
+  <text class="mono" x="14" y="771">testNavFitFaults</text>
+  <text class="sub" x="210" y="771">navFit under faults</text>
+  <circle cx="420" cy="767" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="767" r="5.5" class="dot"/>
+  <circle cx="600" cy="767" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="761" width="2.8" height="12" rx="2"/>
+  <text class="sub" x="677.8" y="771">3 s</text>
 </svg>
-<figcaption><b>Figure 2.</b> The 31 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption><b>Figure 2.</b> The 32 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>
@@ -428,6 +436,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~10 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#loadeph"><code>testLoadEphemeris</code></a></td><td><code>loadEphemeris</code> D5a (JPL's DE440)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#navfitfaults"><code>testNavFitFaults</code></a></td><td><code>navFit</code> under the risk register's faults (FM-11: the clock's daily temperature term)</td><td>~3 s</td><td><span class="badge written">passes (Claude's run, 2 Nov)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge validated">all pass on the new code, narrow Inmarsat included (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge validated">agrees (Jasper's run, 23 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge validated">agrees within ~1 % (Jasper's runs, 23 Oct; part 2 with the 21 Oct profiles, 27 Oct)</span></td></tr>
@@ -999,6 +1008,31 @@ The seven checks are on the <a href="navigation.html#navfilter">navigation page<
 position. The Earth and the Moon balance about their barycentre with DE440's mass ratio. TDB − TT integrated from the file follows the
 USNO series to 2.25 µs rms. The five checks are in the
 <a href="fold.html#ephemeris">phase-prediction section</a>.</p>
+
+<h2 id="navfitfaults"><code>testNavFitFaults</code> (2 Nov)</h2>
+<p>The other navigation tests ask whether the fit is right when the data follow its model. This one asks what the fit does when they
+do not, for the faults of the risk register (<code>logs/2026-11-02_risk-register.md</code>) that would move the position without a
+warning. Each case puts one fault into the truth through <code>trueResiduals</code> and compares the fit's answer with a prediction.
+The schedule is <code>testNavFit</code>'s, B0329+54 from 52° N 5° E with 734 µs per TOA, but with the TOAs evenly spaced, one every
+2.4 h, so that the prediction holds to a fraction of a percent. The first case is the oscillator's daily temperature term (FM-11).</p>
+<p>A crystal follows its temperature, and the temperature follows the solar day. A daily rate term of amplitude <var>a</var> gives a clock
+error <var>A</var> sin(2π<var>t</var>/86400 s), with <var>A</var> = <var>a</var> · 86400 s / 2π, which is 137.5 µs at <var>a</var> = 10⁻⁸.
+The position signal is a sine at the sidereal day, 4 min shorter. A least-squares sidereal sine over a span <var>T</var> keeps
+sinc(Δω<var>T</var>/2) of the clock term, where Δω is the difference of the two daily frequencies: 0.989 over 30 days and 0.881 over
+100 days. An equatorial offset <var>d</var> gives a sine of amplitude <var>d</var> cos δ / <var>c</var>, so the fit moves the site by
+<var>c</var><var>A</var> sinc(Δω<var>T</var>/2) / cos δ. For <var>a</var> = 10⁻⁸ that is 70.3 km after 30 days and 62.7 km after 100.</p>
+<p>Without noise, the fit's equatorial shift matches this prediction to 0.1 % at three phases and both spans, against a tolerance of 2 %.
+In units of the fit's own error the bias grows with the span, because the error shrinks and the bias hardly does:</p>
+<div class="table-wrap"><table>
+<tr><th>Rate amplitude <var>a</var></th><th>30 days (±31.1 km)</th><th>100 days (±17.0 km)</th></tr>
+<tr><td>10⁻⁹</td><td>0.23 σ</td><td>0.37 σ</td></tr>
+<tr><td>10⁻⁸</td><td>2.3 σ</td><td>3.7 σ</td></tr>
+<tr><td>10⁻⁷</td><td>22.6 σ</td><td>36.8 σ</td></tr>
+</table></div>
+<p>The fit's own diagnostics barely see it. In one noisy run at <var>a</var> = 10⁻⁷ over 30 days, a bias of 659 km came with a core χ² of
+1.120, against 1.131 for the same noise without the clock term, and no TOA flagged. Over 100 days the part of the clock term that the
+sidereal sine cannot take does show: χ² 1.381 against 1.002. The fit's crystal clock model (<code>'Clock'</code>) does not help either:
+it expects a random walk, not a daily line, and leaves the bias unchanged (100 % at both spans). These three results are shown, not checked.</p>
 
 <h2 id="rfichain"><code>testRFIChain</code> (slow, 20 Oct)</h2>
 <p>It repeats <code>testRFIModel</code>'s comparison on the voltage chain's real RFI and excision. Both cases now pass: the realistic

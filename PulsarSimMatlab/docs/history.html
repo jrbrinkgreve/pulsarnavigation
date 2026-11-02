@@ -359,6 +359,16 @@ the one before, each section ends on what the next one answers, bold labels at t
 lists that carry an argument became paragraphs. Procedures, catalogues and tables stayed. Each page was compared with the previous
 version, so that no number, name, link or id was lost.</li>
 </ul>
+<h3>2 November — a risk register, and the first fault test</h3>
+<ul>
+<li>Jasper asked for every scenario in which the pipeline goes wrong, rated by probability × impact. The register lists 39, from the
+missing predictor in <code>processIQ</code> to the daily temperature term of the receiver's oscillator; sixteen new tests and
+developments went onto the to-do list (<a href="roadmap.html">roadmap</a>). Checking its estimates raised the oscillator's daily term to
+the top: with a ±2 ppm TCXO it moves the fitted position by 2 to 25 times its own error, at nearly the period of the position signal.</li>
+<li>The first fault test, <code>testNavFitFaults</code>, confirms that number to 0.1 % (<a href="tests.html#navfitfaults">unit tests</a>).
+The other navigation tests wait: the navigation part is to be redesigned in the week of 9 November, with a change to the project's
+final deliverable.</li>
+</ul>
 
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
@@ -469,6 +479,10 @@ the order of the chain.</td></tr>
 <tr><td>31 Oct</td><td>Every page as one connected line of reasoning: paragraphs that lead into each other, no bold-label openers, argument
 lists as paragraphs (Jasper)</td><td>After the textbook rewrite some pages, such as RFI excision, still read "like a collection of paragraphs,
 not a complete reasoning".</td></tr>
+<tr><td>2 Nov</td><td>A risk register with probability × impact per scenario; its new actions on the to-do list (Jasper)</td><td>To see
+in one place what could make the pipeline fail, and which failures it would not notice by itself.</td></tr>
+<tr><td>2 Nov</td><td>The navigation tests on hold; the navigation part redesigned in the week of 9 November (Jasper)</td><td>The project's
+final deliverable changes, so tests written for the present navigation stage could be wasted.</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -524,6 +538,8 @@ not a complete reasoning".</td></tr>
 page by page, with the checks against the previous version</td></tr>
 <tr><td><a href="../logs/2026-10-31_docs-flow.md"><code>2026-10-31_docs-flow.md</code></a></td><td>these docs: the paragraph-flow pass
 over every page, its rules and its checks</td></tr>
+<tr><td><a href="../logs/2026-11-02_risk-register.md"><code>2026-11-02_risk-register.md</code></a></td><td>the risk register (39
+scenarios, probability × impact), its checked estimates, the first fault test, and the hold on the navigation tests</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

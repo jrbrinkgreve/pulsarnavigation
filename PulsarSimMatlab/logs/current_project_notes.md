@@ -3920,6 +3920,36 @@ barycentric corrections, navigation solution).
    D's files in runs with another clock, RFI or scintillation; navFit / navFilter leave out the clock's flicker. Most
    of these are parked with the ship since 23 Oct.
 
+16. **[todo, draft] Actions from the risk register (2 Nov 2026; Jasper: "can you think of all scenarios in which
+   something goes wrong in this pipeline, rate their probability x impact, and put tests + developments on the to-do
+   list if they require action").** Register: `logs/2026-11-02_risk-register.md`, 39 scenarios FM-1…FM-39 rated
+   P × I (1–5 each), highest first. The ratings are a draft for Jasper's review. The actions below are new; the
+   register's other scenarios are already on this list (items 11, 13, 15, the review list D1-x / D2-x) or need none.
+   In order of priority, none built:
+
+   | # | Risk | Kind | What | Fits in |
+   |---|---|---|---|---|
+   | 1 | FM-11 | test | Daily (solar-day) rate term in `makeClock`, 10⁻⁹–10⁻⁷; `expNavFit` 30/100 days: position bias per amplitude (D1-17 raised; a TCXO's ±1 K daily swing ≈ 70–700 km on B0329+54, estimate). Then OCXO or temperature as a regressor; for F, log the SDR's board temperature. **Test written** (`testNavFitFaults` 1, Claude's run 2 Nov): the bias matches c A sinc(Δω T/2)/cos δ to 0.1 %; 2.3 σ (30 d) and 3.7 σ (100 d) at 10⁻⁸; χ² blind at 30 d; the crystal clock model absorbs none | before E5 |
+   | 2 | FM-8 | dev + test | Inverted-band switch in `processIQ` + test; for F, check mapping, band edges and sample rate with a known line (GPS L1) | before F |
+   | 3 | FM-9 | dev + test | F ingest: SDR time stamps and overflow flags, gaps zero-filled and blanked, absolute time; test now with clock steps in `trueResiduals` → `expNavFit` | F (test in E) |
+   | 4 | FM-10 | test, then dev | `runScenario` with an uncalibrated ±2 ppm clock; if no TOAs, a rate search at acquisition (~40 trials), trials in the false-alarm budget | E3, E5 |
+   | 5 | FM-33 | test | `expSimVsChain` and `expSimRFI` as PASS/FAIL tests in `runAllTests` (T2-1) | day 5, or E3 |
+   | 6 | FM-3 | test | B0329+54's abnormal mode (15 %, spells of hours) in `simulateFold`: TOA offset and position bias with one template | E1, then E3 |
+   | 7 | FM-4 | test | A spin-rate error and a glitch in one pulsar of a multi-pulsar `navFit`: bias, or a visible trend | E2, E3 |
+   | 8 | FM-18 | dev | RFI survey at the site with the real hardware (a day of spectra and time series); extends `rfiRealistic`, settles D2-22 | F, early |
+   | 9 | FM-2 | dev | Tsys(t) in the simulator: the Sun (main beam, sidelobes) and the sky toward each pulsar | E3 |
+   | 10 | FM-24 | dev, small | `processIQ` warns or refuses when real data come without `'Ephemeris'` | before F |
+   | 11 | FM-17 | dev, small | `processIQ` warns when the blanked fraction is above a limit (e.g. 5 %) | any time |
+   | 12 | FM-26 | test, then dev | Random-phase TOAs injected into `testNavFit` / `expNavFit`; a long `simulateFold` H0 run to 10⁻⁴–10⁻⁶; if needed a uniform outlier component or a residual gate in `navFit` (low after the check: adaptive groups leave ~0.1 noise false TOAs per 30 days) | E3 |
+   | 13 | FM-12 | test | ADC bits, clipping and LNA compression with a strong radar through the excision (D1-11) | E4, F |
+   | 14 | FM-15 | test | Polarized profile, parallactic rotation, X/Y gain imbalance: position bias | E4 |
+   | 15 | FM-34 | test | Pulsar-free real recordings through `processIQ`: χ² and false alarms on real noise (T2-3) | F, first test |
+   | 16 | FM-27 | dev, low | Per-pulsar error scale (EFAC) and outlier fraction estimated in `navFit` | E3 |
+
+   **Hold (2 Nov):** Jasper: "let's hold off on the navigation tests, because we'll redesign that part next week, I have
+   some changes in the project final deliverable". The navigation-side items (the FM-9 test, FM-4, FM-26, FM-27; FM-29 and
+   FM-31 in the register) wait for that redesign; the FM-9 case design is kept in the register log.
+
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
   (§7), not for the weak-signal target. (Not block F, the real implementation.)

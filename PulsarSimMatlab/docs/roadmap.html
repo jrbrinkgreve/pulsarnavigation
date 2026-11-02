@@ -495,6 +495,28 @@ looks at processing below the TOA threshold.</p>
 (§10 item 11) give them without the prefix.</p>
 <div class="table-wrap"><table>
 <tr><th>Item</th><th>Note</th></tr>
+<tr><td><span class="badge todo">todo</span> Risk register (2 Nov, draft)</td><td>Jasper asked for every scenario in which the pipeline goes wrong, rated by probability × impact.
+The register (<code>logs/2026-11-02_risk-register.md</code>) has 39 scenarios, FM-1 to FM-39. Most are already on this list; these
+sixteen actions are new, in order of priority, and none is built:
+<ol>
+<li>FM-11, test: a daily (solar-day) rate term in <code>makeClock</code>, and the position bias it gives in <code>expNavFit</code>. With the planned TCXO it may be 2–25 times the fit's own error (estimate). Before E5. The test is written (<a href="tests.html#navfitfaults"><code>testNavFitFaults</code></a> case 1, Claude's run).</li>
+<li>FM-8, development and test: a switch in <code>processIQ</code> for an inverted band. For F, a check of the frequency mapping with a known line (GPS L1) before the first observation.</li>
+<li>FM-9, development and test: an F ingest that reads the SDR's time stamps and overflow flags, and blanks the gaps. The test runs now, with clock steps in <code>trueResiduals</code>.</li>
+<li>FM-10, test, then development: <code>runScenario</code> with an uncalibrated ±2 ppm clock; if no TOAs come, a rate search at acquisition.</li>
+<li>FM-33, test: <code>expSimVsChain</code> and <code>expSimRFI</code> as PASS/FAIL tests in <code>runAllTests</code>.</li>
+<li>FM-3, test: B0329+54's abnormal mode in <code>simulateFold</code>, and the position bias with one template.</li>
+<li>FM-4, test: a spin-rate error and a glitch in one pulsar of a multi-pulsar <code>navFit</code>.</li>
+<li>FM-18, development: an RFI survey at the site with the real hardware.</li>
+<li>FM-2, development: Tsys over time in the simulator, with the Sun and the sky toward each pulsar.</li>
+<li>FM-24, development: a warning when real data come without <code>'Ephemeris'</code>.</li>
+<li>FM-17, development: a warning when the blanked fraction is high.</li>
+<li>FM-26, test, then development: TOAs at random phases injected into <code>navFit</code>, and a long noise-only run for the detection tail.</li>
+<li>FM-12, test: ADC bits, clipping and LNA compression with a strong radar.</li>
+<li>FM-15, test: a polarized profile with parallactic rotation and unequal X and Y gains.</li>
+<li>FM-34, test: pulsar-free real recordings through <code>processIQ</code>.</li>
+<li>FM-27, development: a per-pulsar error scale and the outlier fraction estimated in <code>navFit</code>.</li>
+</ol>
+The navigation part will be redesigned in the week of 9 November, with a change to the project's final deliverable. Until then the navigation-side items wait: the FM-9 test, FM-4, FM-26 and FM-27.</td></tr>
 <tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html#propagation">limitations</a>). In step E2 (below 1 µs: 3–70 ns), and for real data (F).</td></tr>
 <tr><td><span class="badge todo">todo</span> Doppler-shifted dispersion delay</td><td>The dispersion delay holds at the barycentric frequency, which Earth's orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term. For B0329+54 the missing term is an annual ±7.1 µs. It cancels in the simulator, so it matters for real data only. Needs a DM term in <code>delayModel</code>: step E2 (notes §10 items 4 and 13; <a href="limits.html#propagation">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
