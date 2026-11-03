@@ -286,8 +286,11 @@ probability then passes to wait \(k+1\). After the last wait, the waiting is ove
 <p>This is Eq. (E.2). For \(n = 1\) it is \(e^{-x}\), which equals \(10^{-6}\) at \(x = \ln 10^6 = 13.82\): the first threshold in the
 table below. When all \(\lambda_k\) differ, the same probability also has a closed form:</p>
 <div class="eq">\[ P\Big(\sum_{k} \lambda_k E_k > x\Big) = \sum_{k=1}^{n} \Big( \prod_{j \ne k} \frac{\lambda_k}{\lambda_k - \lambda_j} \Big)\, e^{-x/\lambda_k} \]</div>
-<p>The closed form fails in practice. The eigenvalues here all lie close to 1, so its terms are large, alternate in sign and cancel
-almost completely. The matrix exponential gives the same number without that cancellation.</p>
+<p>The closed form fails in practice. Each of its terms divides by differences \(\lambda_k - \lambda_j\), and many eigenvalues here are
+nearly equal. The eigenvalues of a correlation matrix roughly follow the power spectrum of the samples, and the channel's spectrum is
+flat at 1.05 across the whole channel. For a 16-sample window, ten of the sixteen eigenvalues therefore lie within 10⁻⁴ of each other.
+The terms then grow to 10³⁹, while their sum is about 10⁻⁶. Double precision keeps only 16 digits, so the closed form returns nonsense,
+such as −3·10²⁵. The matrix exponential never forms those differences, so it does not suffer from this.</p>
 </details>
 <p><code>detectRFI</code> evaluates Eq. (E.2) exactly, in a form that avoids numerical cancellation, and solves it for \(\eta_n\):</p>
 <div class="table-wrap"><table>
