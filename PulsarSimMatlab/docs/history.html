@@ -369,6 +369,16 @@ the top: with a ±2 ppm TCXO it moves the fitted position by 2 to 25 times its o
 The other navigation tests wait: the navigation part is to be redesigned in the week of 9 November, with a change to the project's
 final deliverable.</li>
 </ul>
+<h3>3 November — what a real receiver does to the stages</h3>
+<ul>
+<li>The existing stages were read with one question: what does a real receiver do that the simulated one does not? Three new risks
+came out. The 'optimal' TOA fit expects the same absolute pulse in every channel, so a bandpass that is not flat costs SNR (FM-41).
+Common gain fluctuations raise false detections long before they show in χ² (FM-42). An 8-bit transport costs SNR (FM-40). Two fault
+tests put these and four earlier risks into the data and check the stages' response against predictions
+(<a href="tests.html#frontendfaults">front end</a>, <a href="tests.html#foldfaults">fold</a>). A mirrored band leaves a bright pulsar
+"found" half a turn off, and a lost buffer is an exact clock step. The F ingest's plan for gaps already works with today's excision
+code.</li>
+</ul>
 
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
@@ -540,6 +550,8 @@ page by page, with the checks against the previous version</td></tr>
 over every page, its rules and its checks</td></tr>
 <tr><td><a href="../logs/2026-11-02_risk-register.md"><code>2026-11-02_risk-register.md</code></a></td><td>the risk register (39
 scenarios, probability × impact), its checked estimates, the first fault test, and the hold on the navigation tests</td></tr>
+<tr><td><a href="../logs/2026-11-03_real-hardware-faults.md"><code>2026-11-03_real-hardware-faults.md</code></a></td><td>the
+existing stages against a real receiver: three new risks (FM-40 to FM-42), two fault tests and their numbers, four new actions</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

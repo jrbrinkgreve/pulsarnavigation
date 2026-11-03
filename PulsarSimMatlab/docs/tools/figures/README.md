@@ -21,7 +21,7 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA: the catalogue estimate and the simulated 82–95 h) | parameters.html (Figure 2) |
 | `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html (Figure R.2) |
 | `gen_experiments.py` | what each run script varies and keeps fixed (the voltage-chain scripts, runRFIProfile, and the fast-simulator scripts runScenario and runShip) | scripts.html (Figure 1) |
-| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 32 tests of `runAllTests` and experiment 3a) | tests.html (Figure 2) |
+| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 34 tests of `runAllTests` and experiment 3a) | tests.html (Figure 2) |
 | `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record, blocks 1 to D (logged numbers) | results.html (Figure 1) |
 | `gen_effects.py` | size of each effect if left out, as a timing error, with what block D models and what is parked | limits.html (Figure 1) |
 | `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html (Figure 1) |

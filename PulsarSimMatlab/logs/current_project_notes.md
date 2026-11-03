@@ -3950,6 +3950,24 @@ barycentric corrections, navigation solution).
    some changes in the project final deliverable". The navigation-side items (the FM-9 test, FM-4, FM-26, FM-27; FM-29 and
    FM-31 in the register) wait for that redesign; the FM-9 case design is kept in the register log.
 
+17. **[todo, draft] Actions from the real-hardware review of the existing stages (3 Nov 2026; Jasper: "can you look for
+   possible problems after real implementation in the design of the existing stages (except the nav filter) and write
+   tests for them? Take your time, go autonomously for now, I am studying").** Log: `logs/2026-11-03_real-hardware-faults.md`.
+   Three new scenarios (FM-40 quantization, FM-41 the bandpass against the fit's equal channel amplitudes, FM-42
+   common-mode gain noise) are in the register. Two new test files cover them and FM-8, FM-9 (its processing half), FM-13
+   (DC) and FM-39: `testFrontEndFaults` (voltage chain, ~7 min) and `testFoldFaults` (fast simulator, ~3 min). Both
+   pass in Claude's runs and wait for Jasper's run. No code changed. None of the actions below is built:
+
+   | # | Risk | Kind | What | Fits in |
+   |---|---|---|---|---|
+   | 1 | FM-42 | measure, then dev | The receiver's total-power stability (Allan variance on a load or cold sky, 0.1–100 Hz) gives the 1/f knee. With a knee above ~1 Hz: a noise check per harmonic band in `detectPulsar`, and the lowest harmonics left out or whitened. With a 10 Hz knee, B0329+54's unknown-phase false alarms go from 10⁻³ to 0.36 per sub-int. In E4, independent element LNAs average down; common parts do not | before F; E4 |
+   | 2 | FM-41 | dev, small | `foldToTOA` passes `ChannelGain` = each channel's mean power (normalized), × the pulsar's spectrum when known. Today it stays 1: SNR ×0.93 for a 6 dB bandpass tilt, ×0.84 for 10 dB. The test shows the measured gains restore the flat SNR | any time |
+   | 3 | FM-40 | decision | Transport format: sc16, or sc8 with the noise at ≥ 2–4 LSB (×0.93 at 1 LSB, the level with room for a +40 dB radar), plus a clip flag | before F |
+   | 4 | FM-12 | dev | The SDR's overflow and clip flags into the F ingest (with FM-9's gaps). A saturated ADC suppresses the noise in every channel during a radar pulse, unflagged outside the frequency guard | F |
+
+   FM-9's planned ingest (zero-fill the gap and blank it) already works with today's `blankChannels`/`blankingWeights`
+   (test 3b). FM-8's switch and known-line check stay item 16's action 2; its test now exists.
+
 **Deferred / low priority**
 - **Phase F**: weighted radiometer-model fit in `estimateTOA` — only gains at high SNR
   (§7), not for the weak-signal target. (Not block F, the real implementation.)
@@ -3998,6 +4016,25 @@ barycentric corrections, navigation solution).
 ---
 
 ## 11. Roadmap
+
+**New objective, 2 Nov 2026 (Jasper), for the navigation redesign in the week of 9 Nov:** "the new objective is to
+estimate the location of a static array somewhere on earth, locking onto multiple pulsars using digital beamforming, and
+estimating the location of the antenna in this static setting (but the Earth moves, of course)". It keeps the 23 Oct
+endpoint's static array, several pulsars and beamforming, and the full Earth motion. What is new is "somewhere on earth":
+the site is not known beforehand. The test will probably still be done in the Netherlands (Jasper: "the test will
+probably be done in the netherlands, yes"). The dead-reckoning navigation filter (`navFilter`, `runShip`), parked
+since 23 Oct, stays parked (Jasper: "but this means we can later park the DR nav filter"). The ship stays the next
+goal after the field test: "let's not develop for that now, as we first want static positioning as a field test. Do
+keep all of the documents for it though, it is the next goal in the succession of this project." The ship's code,
+docs, notes and tests are kept as they are. Points for the redesign (not decisions):
+- The pulsar set depends on the latitude (J0437 only from the south); the worst-case design may need a range of sites.
+- An unknown site means a large position prior (FM-23 rises). An equatorial offset of up to 12,700 km gives B0329+54 a
+  daily sine of up to ~25 ms, changing by up to 1.8 µs/s, so an hour's fold smears by ~6.5 ms, B0329+54's pulse width.
+  Acquisition then needs short folds or a search over trial sites. A millisecond pulsar is ambiguous beyond ±863 km
+  (J0437), so slow pulsars would narrow the site first.
+- A full 3-D position needs the polar component, which `navFit` "self" cannot see: it merges with the per-pulsar
+  constants c_k. With the pulsars' absolute phases known (the profile's reference point tied to the timing model), only
+  the common clock offset stays unknown, and pulsars at different declinations give the polar component (FM-29).
 
 **Revised 23 Oct 2026 (Jasper): block E leads to one endpoint, a fixed position on Earth from several pulsars.**
 Jasper: "I have a clear endpoint of the development pipeline for now: estimating a fixed position on earth using multiple

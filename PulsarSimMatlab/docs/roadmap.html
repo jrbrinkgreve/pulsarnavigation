@@ -516,7 +516,23 @@ sixteen actions are new, in order of priority, and none is built:
 <li>FM-34, test: pulsar-free real recordings through <code>processIQ</code>.</li>
 <li>FM-27, development: a per-pulsar error scale and the outlier fraction estimated in <code>navFit</code>.</li>
 </ol>
-The navigation part will be redesigned in the week of 9 November, with a change to the project's final deliverable. Until then the navigation-side items wait: the FM-9 test, FM-4, FM-26 and FM-27.</td></tr>
+The navigation part will be redesigned in the week of 9 November, with a change to the project's final deliverable. Until then the navigation-side items wait: the FM-9 test, FM-4, FM-26 and FM-27.
+<br>On 3 November the existing stages were reviewed against a real receiver (<code>logs/2026-11-03_real-hardware-faults.md</code>). The review
+added three scenarios: quantization (FM-40), the bandpass against the fit's equal channel amplitudes (FM-41), and common-mode gain noise
+(FM-42). Two fault tests cover them, together with FM-8, the processing half of FM-9, the DC part of FM-13, and FM-39
+(<a href="tests.html#frontendfaults"><code>testFrontEndFaults</code></a>, <a href="tests.html#foldfaults"><code>testFoldFaults</code></a>;
+Claude's runs). FM-9's planned ingest, zero-filling a gap and then blanking it, already works with today's excision code. Four more actions,
+none built:
+<ol>
+<li>FM-42, measurement, then development: the receiver's gain stability (an Allan variance of its total power). With a 1/f knee near
+10 Hz, B0329+54's unknown-phase false alarms rise from 10⁻³ to 0.36 per sub-int. Then a noise check per harmonic band in
+<code>detectPulsar</code>. Before F.</li>
+<li>FM-41, development (small): <code>foldToTOA</code> passes each channel's mean power as <code>ChannelGain</code>. Today a 6 dB
+bandpass tilt costs 7 % of the SNR, and 10 dB costs 16 %.</li>
+<li>FM-40, decision: the transport format, sc16 or sc8 with the noise at 2–4 LSB or more. At 1 LSB the SNR is ×0.93. Before F.</li>
+<li>FM-12, development: the SDR's clip flag in the F ingest. A saturated ADC also silences the channels that the excision does not
+flag.</li>
+</ol></td></tr>
 <tr><td><span class="badge todo">todo</span> Ionosphere</td><td>Size delay, Faraday rotation, scintillation, refraction for the target hardware and site; decide what to model (<a href="limits.html#propagation">limitations</a>). In step E2 (below 1 µs: 3–70 ns), and for real data (F).</td></tr>
 <tr><td><span class="badge todo">todo</span> Doppler-shifted dispersion delay</td><td>The dispersion delay holds at the barycentric frequency, which Earth's orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term. For B0329+54 the missing term is an annual ±7.1 µs. It cancels in the simulator, so it matters for real data only. Needs a DM term in <code>delayModel</code>: step E2 (notes §10 items 4 and 13; <a href="limits.html#propagation">limitations</a>).</td></tr>
 <tr id="dm"><td><span class="badge todo">todo</span> DMs up to ~100: FFT memory</td><td>See the table below. Processing side solved (channelized front end); generator side open.</td></tr>
