@@ -1,0 +1,38 @@
+# 3 Nov 2026: questions on detectRFI's exact thresholds (E2.1); derivation added to the docs
+
+Jasper asked about the excision page, section E2.1 (Eqs. E.1 and E.2), during a read of the docs. No code change.
+
+## Questions and answers
+- **Where does E2.1 come from?** Three standard results put together, not one paper:
+  1. Each channel sample is a linear combination of Gaussian receiver noise, so a window is jointly Gaussian, zero mean and
+     circular, with covariance m·toeplitz(rho). For white input, rho(d) = sum h(r) h(r+dD) / sum h^2.
+  2. Whitening with the eigenvectors of R turns the power sum into sum lambda_k E_k with E_k unit exponentials (Eq. E.1).
+  3. The tail of a sum of exponentials is a phase-type (hypoexponential) survival function, [1 0 .. 0] expm(Q x) 1 (Eq. E.2).
+     Check: n = 1 gives e^-x = 1e-6 at x = 13.82 = eta_1.
+- **Why the mixing phase drops out:** with mix-then-filter and the LO phase tied to the absolute input sample (channelizeIQ),
+  both outputs see each shared input sample at the same LO phase, so the phase cancels inside the sum. In the chat, Claude
+  first gave a different reason (a unitary diagonal similarity, which would apply to a filter-then-mix channelizer) and corrected it.
+- **Window vs block:** a block (16 ms, about 66 700 channel samples, fixed tiles) sets the baseline m from the median; a window
+  (1-16 samples, sliding by half) is the test statistic. Each window is compared with eta_n times the baseline of the block it
+  starts in. The block is long for a precise, RFI-robust m; the window is short to match a burst.
+- **Cost of the exact form vs the matched Gamma:** only the threshold numbers change; the per-window test is identical.
+  `windowThresholds` runs once for the white thresholds and once per channel in pass 2 (129 calls for 128 channels).
+  Python stand-in (not MATLAB): about 0.8 ms per call exact vs 0.06 ms Gamma, so about 0.1 s per run, independent of data length,
+  against tens of seconds per second of data for the rest of detectRFI. Jasper: no MATLAB timing now (machine busy).
+- **The "chain of exponential stages":** Jasper read it as the chance of passing the excision stage. It is a calculation device
+  only: each lambda_k E_k is read as a random waiting time, with the power level x in the role of time, and "still waiting at x"
+  is "the sum exceeds x". The thresholds describe noise alone, without RFI.
+
+## Docs change (Jasper: "update the wording and add a short but clear derivation part")
+- excision.html E2.1: one sentence saying the thresholds describe noise alone; Q's "(a chain of exponential stages)" became
+  "(the rates of a chain of random waiting times, see the derivation below)", because "stages" means pipeline stages elsewhere.
+- New collapsed box "Derivation of Eqs. (E.1) and (E.2)" after the symbol list: covariance of a window, whitening to E.1,
+  the waiting-time chain to E.2, the n = 1 check, and why the partial-fraction closed form cancels. Equations unnumbered, so
+  E.3 and E.4 keep their numbers.
+- Checked in the browser: no KaTeX or console errors; the four new equations fit the column (the chain equation split over two lines).
+  details tags balanced (14/14).
+- maintenance.html changelog row; history.html session entry and log row.
+
+## Left open
+- detectRFI.m comments still say "chain of exponential stages" (lines ~31 and ~440); not changed (not asked).
+- Eq. (E.1) already overflowed the column at a narrow window before this change (it scrolls sideways); not changed.

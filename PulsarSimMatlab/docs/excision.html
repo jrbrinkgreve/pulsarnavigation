@@ -239,7 +239,8 @@ narrow carrier gets thresholds of its own (E2.2).</li>
 </ol>
 
 <h3>E2.1 Exact thresholds</h3>
-<p>The test of step 4 needs a threshold for each window length. For white Gaussian noise, the power of one sample is exponential, and a
+<p>The test of step 4 needs a threshold for each window length. Each threshold describes noise alone, without any RFI: it fixes how
+often a window of pure noise is flagged by mistake. For white Gaussian noise, the power of one sample is exponential, and a
 sum of <var>n</var> independent ones is Gamma-distributed. But
 the channelizer oversamples, so neighbouring channel samples are slightly correlated: ρ(1) = 0.05. The window sum is then exactly a
 weighted sum of exponentials:</p>
@@ -253,11 +254,41 @@ weighted sum of exponentials:</p>
 <dt>\(\lambda_k\)</dt><dd>eigenvalues of the \(n \times n\) correlation matrix of the window's voltages (they sum to \(n\))</dd>
 <dt>\(\rho(d)\)</dt><dd>correlation of channel voltages \(d\) samples apart, from the channelizer (\(\rho(1)\) = 0.05)</dd>
 <dt>\(h(r)\), \(D\)</dt><dd>the channelizer prototype filter and its decimation (192)</dd>
-<dt>\(Q\)</dt><dd>bidiagonal matrix: \(-1/\lambda_k\) on the diagonal, \(+1/\lambda_k\) just above it (a chain of exponential stages)</dd>
+<dt>\(Q\)</dt><dd>bidiagonal matrix: \(-1/\lambda_k\) on the diagonal, \(+1/\lambda_k\) just above it (the rates of a chain of random waiting times, see the derivation below)</dd>
 <dt>\(\exp(Qx)\), \(\mathbf{1}\)</dt><dd>matrix exponential (<code>expm</code>); a column of ones</dd>
 <dt>\(\eta_n\)</dt><dd>the threshold on the window mean, in units of \(m\)</dd>
 <dt>\(\texttt{PFA}\)</dt><dd>false-alarm probability per window (default 10⁻⁶)</dd>
 </dl>
+<details><summary>Derivation of Eqs. (E.1) and (E.2)</summary>
+<p>The derivation starts from how a channel sample is made. The channelizer mixes the receiver's noise down, filters it with the
+prototype \(h\) and keeps every \(D\)-th output, so each channel sample is a weighted sum of noise samples. A weighted sum of Gaussian
+samples is again Gaussian, so the \(n\) samples of a window form a jointly Gaussian vector \(\mathbf{x}\) with zero mean. The vector is
+also circular: the noise has no preferred phase relative to the mixer, so I and Q carry equal power and are uncorrelated. For white
+input noise, two outputs \(d\) samples apart are correlated through the input samples that both filter positions cover. The mixer's
+phase cancels in their product, because both outputs see each shared input sample at the same mixer phase:</p>
+<div class="eq">\[ \langle x_i\, x_{i+d}^* \rangle = m\, \rho(d), \qquad \rho(d) = \frac{\sum_r h(r)\,h(r + dD)}{\sum_r h^2(r)} \]</div>
+<p>The covariance depends only on the distance \(d\), not on \(i\). The covariance matrix of the window is therefore \(mR\), with \(R\)
+the Toeplitz matrix of Eq. (E.1).</p>
+<p>A change of variables removes the correlation. Write \(R = U \Lambda U^{\mathsf H}\), with the eigenvalues \(\lambda_k\) on the
+diagonal of \(\Lambda\) and the eigenvectors in \(U\), and set \(\mathbf{w} = \Lambda^{-1/2} U^{\mathsf H} \mathbf{x} / \sqrt{m}\). The
+components \(w_k\) are independent circular Gaussians of unit power. In these variables the window's power is a weighted sum:</p>
+<div class="eq">\[ \frac{1}{m}\sum_{i=1}^{n} |x_i|^2 = \frac{1}{m}\,\mathbf{x}^{\mathsf H}\mathbf{x} = \mathbf{w}^{\mathsf H} \Lambda\, \mathbf{w} = \sum_{k=1}^{n} \lambda_k\, |w_k|^2 \]</div>
+<p>Each \(|w_k|^2\) is the sum of two squared independent normals of variance ½, its I and Q parts, and that sum is a unit exponential
+\(E_k\). This is Eq. (E.1). The eigenvalues add up to the trace of \(R\), which is \(n\), so the window mean still averages to \(m\). For
+white noise every \(\lambda_k = 1\), and the sum is the Gamma distribution of the opening paragraph.</p>
+<p>What remains is the probability that this sum exceeds \(x\). Each term \(\lambda_k E_k\) is an exponential with mean \(\lambda_k\),
+and an exponential is the textbook random waiting time. The sum can therefore be read as \(n\) waits taken one after another, with the
+power level \(x\) in the role of time. These waits are only a device for the calculation: the samples of a window are not processed in
+sequence, and the order of the terms does not change the sum. The sum exceeds \(x\) exactly when the waiting is not yet over at
+"time" \(x\). Let \(\pi_k(x)\) be the probability of being in wait \(k\) at \(x\). Wait \(k\) ends at rate \(1/\lambda_k\), and its
+probability then passes to wait \(k+1\). After the last wait, the waiting is over. These rates are the matrix \(Q\) of Eq. (E.2):</p>
+<div class="eq">\[ \begin{gathered} \frac{d\boldsymbol{\pi}}{dx} = \boldsymbol{\pi}\, Q, \qquad \boldsymbol{\pi}(0) = [1\;0\;\cdots\;0] \\[4pt] P\Big(\sum_{k} \lambda_k E_k > x\Big) = \boldsymbol{\pi}(x)\,\mathbf{1} = [1\;0\;\cdots\;0]\, \exp(Qx)\, \mathbf{1} \end{gathered} \]</div>
+<p>This is Eq. (E.2). For \(n = 1\) it is \(e^{-x}\), which equals \(10^{-6}\) at \(x = \ln 10^6 = 13.82\): the first threshold in the
+table below. When all \(\lambda_k\) differ, the same probability also has a closed form:</p>
+<div class="eq">\[ P\Big(\sum_{k} \lambda_k E_k > x\Big) = \sum_{k=1}^{n} \Big( \prod_{j \ne k} \frac{\lambda_k}{\lambda_k - \lambda_j} \Big)\, e^{-x/\lambda_k} \]</div>
+<p>The closed form fails in practice. The eigenvalues here all lie close to 1, so its terms are large, alternate in sign and cancel
+almost completely. The matrix exponential gives the same number without that cancellation.</p>
+</details>
 <p><code>detectRFI</code> evaluates Eq. (E.2) exactly, in a form that avoids numerical cancellation, and solves it for \(\eta_n\):</p>
 <div class="table-wrap"><table>
 <tr><th>Window length \(n\) [samples]</th><td>1</td><td>2</td><td>4</td><td>8</td><td>16</td></tr>
