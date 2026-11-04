@@ -65,7 +65,7 @@ The first version of the derivation said the closed form cancels because "the ei
   value). The window test runs over every sample again, and the final mask is pass 2's alone (detectRFI.m:239-282).
 
 ## To read on 4 Nov (Jasper: "remind me to read this last part tomorrow"): E4, why blanked parts need correcting after dedispersion
-Before dedispersion a blank is easy: a radar pulse blanked with its guard is ~28 channel samples of exact zeros, and a fold could
+Before dedispersion a blank is easy: a radar pulse blanked with its guard is ~50 channel samples of exact zeros (52 in Figure E.3: 32 flagged, because the windows reach past the pulse, plus a guard of 10 on each side; this line first said ~28, corrected in the 4 Nov audit), and a fold could
 give exactly those samples weight 0.
 
 Dedispersion spreads every blank. It is a convolution with a chirp filter h whose sweep is ~660-1560 channel samples (159-374 us)
@@ -105,7 +105,7 @@ dip_bias.py, relative_peak.py, w_energy.py and w_energy_ends.py in the session s
   off-pulse: 0 us; the same dip with no pulsar: 84 % of shifts within 0.1 % of the best). Then a dip only pushes the pulse away.
 - **Is W energy-weighted or a count of keep(i)?** Energy-weighted: w(a) = sum |h(l)|^2 keep(a-l) / sum |h|^2, W its bin mean; the default
   'channelizer' form adds the R_x cross terms (blankingWeights.m:202-221). For a 28-sample blank at DM 25, 1.402 GHz: deepest 1 - W is
-  0.0330, against 0.0294 for a count over the sweep and 0.0005 for a count over all 54 348 taps the filter carries (bulk delay).
+  0.0330, against 0.0294 for a count over the sweep and 0.0005 for a count over all 54 348 taps the filter carries (bulk delay). The 52 samples of Figure E.3 give a deepest 1 - W of 0.058 at DM 25, 1.4 GHz (4 Nov audit).
   |h|^2 is flat to ~0.3 % mid-sweep, up to +12.7 % near the ends. The area sum(1 - W) is exactly the blank's length.
 - **DM correction:** the "130-310 samples" quoted earlier in this log is the sweep at DM 5, which E1 gave without naming its DM. E1 now
   gives both: 660-1560 at DM 25 (same definition, 2 K DM dF / f^3; 99 % of the energy lies in 644-1504), 130-310 at DM 5. Figure E.3

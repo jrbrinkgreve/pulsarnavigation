@@ -81,6 +81,20 @@ follows from one fact: interference can be far stronger than the pulsar.</p>
 correctly.</figcaption>
 </figure>
 
+<div class="callout note"><span class="ttl">Worked numbers and measured results at DM 5</span>
+<p>Figure E.3 and the results of Sections E5 to E8 are at DM 5, on 0.1 s of data. The default is DM 25, on 0.2 s. The radar tables of
+Sections E6 and E8 have not been rerun at DM 25. That matters for a radar locked to the pulsar, because the delay between channels sets where
+its leftover lands in pulse phase.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>DM 5, 0.1 s (these sections)</th><th>DM 25, 0.2 s (default)</th></tr>
+<tr><td>Filter's reach in one channel</td><td>130–310 samples</td><td>660–1560 samples</td></tr>
+<tr><td>Delay from one channel to the next, at 1.3 GHz</td><td>59 µs (0.006 turns)</td><td>295 µs (0.03 turns)</td></tr>
+<tr><td>Without RFI: good TOAs</td><td>8 of 8</td><td>15 of 15</td></tr>
+<tr><td>Without RFI: median stated TOA error, with excision</td><td>2.956 µs</td><td>2.951 µs</td></tr>
+<tr><td>Without RFI: samples blanked</td><td>0.0125 %</td><td>0.0114 %</td></tr>
+</table></div>
+<p>(DM 5 was the default until 20 Oct 2026.)</p></div>
+
 <h2 id="why">E1 · Why blank, and why here</h2>
 <p>A radar is the clearest example. At −5 dB, one radar pulse carries about as much energy as one pulsar pulse; at −54 dB, the design
 target, as much as about 80,000. That rules out subtracting it. Subtraction always leaves a residual in proportion to the RFI's strength,
@@ -142,7 +156,7 @@ weaker. The lines below show what a subtraction of 99.9 % or 99.99 % would leave
 the pulsar.</figcaption>
 </figure>
 <p>The next question is where to blank. In the raw channel voltages, before dedispersion, a 2 µs radar pulse in a 3.125 MHz channel is
-about 8 samples in about 2 channels. After dedispersion it is spread over thousands of samples and mixed with good data. Blanking on the
+about 8 samples in about 2 channels. At the default DM 25, dedispersion spreads it over about 400 samples and mixes it with good data. Blanking on the
 raw channel voltages therefore costs very little data.</p>
 <p>Blanking that early has a price further down the chain. Dedispersion spreads every blanked stretch over the filter's reach, and each
 output sample in that reach then holds only a <em>fraction</em> of valid data (Figure E.3d). The reach is about 660–1560 output samples per
@@ -178,7 +192,7 @@ gives the fold the valid fraction and the exact noise of every detected bin.</p>
   <path class="axis" d="M80 230.0 h-5"/>
   <text class="sub" x="72" y="234.0" text-anchor="end">40</text>
   <path class="thin" d="M80.0 288.0 L81.2 289.7 L82.5 289.9 L83.7 289.3 L84.9 287.7 L86.2 289.2 L87.4 289.7 L88.6 288.1 L89.9 286.0 L91.1 289.6 L92.4 289.2 L93.6 289.8 L94.8 289.7 L96.1 289.4 L97.3 289.6 L98.5 283.9 L99.8 288.6 L101.0 289.6 L102.2 286.9 L103.5 286.6 L104.7 286.5 L105.9 289.9 L107.2 288.7 L108.4 289.5 L109.6 289.8 L110.9 290.0 L112.1 284.6 L113.4 286.9 L114.6 290.0 L115.8 290.0 L117.1 288.2 L118.3 288.5 L119.5 289.3 L120.8 287.9 L122.0 288.5 L123.2 289.5 L124.5 290.0 L125.7 288.9 L126.9 288.9 L128.2 288.3 L129.4 289.4 L130.7 289.9 L131.9 288.5 L133.1 288.3 L134.4 287.8 L135.6 288.0 L136.8 289.3 L138.1 289.8 L139.3 288.9 L140.5 287.0 L141.8 288.7 L143.0 288.3 L144.2 289.4 L145.5 289.7 L146.7 289.6 L147.9 289.3 L149.2 289.9 L150.4 289.0 L151.7 288.4 L152.9 289.6 L154.1 289.3 L155.4 289.5 L156.6 289.8 L157.8 287.8 L159.1 286.0 L160.3 287.0 L161.5 289.4 L162.8 289.0 L164.0 286.9 L165.2 289.5 L166.5 289.0 L167.7 287.0 L168.9 289.7 L170.2 289.5 L171.4 286.8 L172.7 288.1 L173.9 289.6 L175.1 289.5 L176.4 289.9 L177.6 288.2 L178.8 289.6 L180.1 289.8 L181.3 289.7 L182.5 289.4 L183.8 289.9 L185.0 288.3 L186.2 289.0 L187.5 289.9 L188.7 288.6 L189.9 289.6 L191.2 290.0 L192.4 289.3 L193.7 288.0 L194.9 288.4 L196.1 289.9 L197.4 284.9 L198.6 288.1 L199.8 289.9 L201.1 287.5 L202.3 283.7 L203.5 289.9 L204.8 289.3 L206.0 288.9 L207.2 286.0 L208.5 289.1 L209.7 289.5 L211.0 287.2 L212.2 287.6 L213.4 289.7 L214.7 289.6 L215.9 286.5 L217.1 289.5 L218.4 289.2 L219.6 289.9 L220.8 289.6 L222.1 289.1 L223.3 287.8 L224.5 289.3 L225.8 288.9 L227.0 289.9 L228.2 289.7 L229.5 289.7 L230.7 286.0 L232.0 285.9 L233.2 289.0 L234.4 289.0 L235.7 283.7 L236.9 289.5 L238.1 285.3 L239.4 289.0 L240.6 288.4 L241.8 289.4 L243.1 290.0 L244.3 285.2 L245.5 288.7 L246.8 286.7 L248.0 289.9 L249.2 289.9 L250.5 289.9 L251.7 289.3 L253.0 288.9 L254.2 289.5 L255.4 287.9 L256.7 289.5 L257.9 287.2 L259.1 285.8 L260.4 287.5 L261.6 289.6 L262.8 289.0 L264.1 288.4 L265.3 289.6 L266.5 289.9 L267.8 289.7 L269.0 290.0 L270.3 289.8 L271.5 289.9 L272.7 287.7 L274.0 289.4 L275.2 284.0 L276.4 289.7 L277.7 289.1 L278.9 289.7 L280.1 288.1 L281.4 287.5 L282.6 289.9 L283.8 289.1 L285.1 287.6 L286.3 289.6 L287.5 288.2 L288.8 289.7 L290.0 289.6 L291.3 289.6 L292.5 288.1 L293.7 287.1 L295.0 288.7 L296.2 288.7 L297.4 288.3 L298.7 289.5 L299.9 288.5 L301.1 288.1 L302.4 289.4 L303.6 289.7 L304.8 289.4 L306.1 289.7 L307.3 289.3 L308.5 286.8 L309.8 288.9 L311.0 288.0 L312.3 289.6 L313.5 289.7 L314.7 288.5 L316.0 287.4 L317.2 289.3 L318.4 288.2 L319.7 289.4 L320.9 288.9 L322.1 288.4 L323.4 289.2 L324.6 289.5 L325.8 285.3 L327.1 288.5 L328.3 289.4 L329.5 289.7 L330.8 289.4 L332.0 287.1 L333.3 288.3 L334.5 287.9 L335.7 287.7 L337.0 289.4 L338.2 289.1 L339.4 288.4 L340.7 289.5 L341.9 287.9 L343.1 286.6 L344.4 288.6 L345.6 288.0 L346.8 289.9 L348.1 288.9 L349.3 287.3 L350.6 288.2 L351.8 290.0 L353.0 288.9 L354.3 288.0 L355.5 289.5 L356.7 289.8 L358.0 289.5 L359.2 289.3 L360.4 289.0 L361.7 284.3 L362.9 288.6 L364.1 289.8 L365.4 289.0 L366.6 289.4 L367.8 288.9 L369.1 286.7 L370.3 288.5 L371.6 288.7 L372.8 289.3 L374.0 289.8 L375.3 285.1 L376.5 288.3 L377.7 289.5 L379.0 290.0 L380.2 290.0 L381.4 287.6 L382.7 288.8 L383.9 289.5 L385.1 286.1 L386.4 289.6 L387.6 286.5 L388.8 281.8 L390.1 289.5 L391.3 287.6 L392.6 289.5 L393.8 287.4 L395.0 289.3 L396.3 288.0 L397.5 289.8 L398.7 289.3 L400.0 289.7 L401.2 290.0 L402.4 284.9 L403.7 289.3 L404.9 289.8 L406.1 289.2 L407.4 289.7 L408.6 288.5 L409.8 288.9 L411.1 286.5 L412.3 289.9 L413.6 290.0 L414.8 288.7 L416.0 286.5 L417.3 288.3 L418.5 289.3 L419.7 288.6 L421.0 289.3 L422.2 281.6 L423.4 290.0 L424.7 290.0 L425.9 290.0 L427.1 290.0 L428.4 290.0 L429.6 290.0 L430.9 290.0 L432.1 290.0 L433.3 290.0 L434.6 290.0 L435.8 290.0 L437.0 290.0 L438.3 290.0 L439.5 290.0 L440.7 290.0 L442.0 290.0 L443.2 290.0 L444.4 290.0 L445.7 290.0 L446.9 290.0 L448.1 290.0 L449.4 290.0 L450.6 290.0 L451.9 290.0 L453.1 290.0 L454.3 290.0 L455.6 290.0 L456.8 290.0 L458.0 290.0 L459.3 290.0 L460.5 290.0 L461.7 290.0 L463.0 290.0 L464.2 290.0 L465.4 290.0 L466.7 290.0 L467.9 290.0 L469.1 290.0 L470.4 290.0 L471.6 290.0 L472.9 290.0 L474.1 290.0 L475.3 290.0 L476.6 290.0 L477.8 290.0 L479.0 290.0 L480.3 290.0 L481.5 290.0 L482.7 290.0 L484.0 290.0 L485.2 290.0 L486.4 290.0 L487.7 288.9 L488.9 289.7 L490.2 288.3 L491.4 288.7 L492.6 288.8 L493.9 287.8 L495.1 288.7 L496.3 288.7 L497.6 288.1 L498.8 288.1 L500.0 289.8 L501.3 289.4 L502.5 286.8 L503.7 289.9 L505.0 289.7 L506.2 288.4 L507.4 289.8 L508.7 288.4 L509.9 289.3 L511.2 289.1 L512.4 289.3 L513.6 288.9 L514.9 289.9 L516.1 289.4 L517.3 288.9 L518.6 289.7 L519.8 286.1 L521.0 289.5 L522.3 289.5 L523.5 289.9 L524.7 287.2 L526.0 285.2 L527.2 286.9 L528.4 289.3 L529.7 287.5 L530.9 289.4 L532.2 286.8 L533.4 288.5 L534.6 289.3 L535.9 289.3 L537.1 290.0 L538.3 287.0 L539.6 286.1 L540.8 289.4 L542.0 288.9 L543.3 285.5 L544.5 289.9 L545.7 289.0 L547.0 288.9 L548.2 289.4 L549.4 289.4 L550.7 287.2 L551.9 290.0 L553.2 288.8 L554.4 288.3 L555.6 289.1 L556.9 288.3 L558.1 289.8 L559.3 289.8 L560.6 289.7 L561.8 289.0 L563.0 289.8 L564.3 288.7 L565.5 288.4 L566.7 289.5 L568.0 289.4 L569.2 289.2 L570.5 289.1 L571.7 287.6 L572.9 289.0 L574.2 289.9 L575.4 289.8 L576.6 289.8 L577.9 286.1 L579.1 289.9 L580.3 286.5 L581.6 288.7 L582.8 289.2 L584.0 289.7 L585.3 287.2 L586.5 288.6 L587.7 289.7 L589.0 288.6 L590.2 287.4 L591.5 289.9 L592.7 285.4 L593.9 285.1 L595.2 289.6 L596.4 287.7 L597.6 289.6 L598.9 289.9 L600.1 286.4 L601.3 287.6 L602.6 288.4 L603.8 285.7 L605.0 288.4 L606.3 288.0 L607.5 288.3 L608.7 289.5 L610.0 288.4 L611.2 289.9 L612.5 289.7 L613.7 289.5 L614.9 289.7 L616.2 286.9 L617.4 288.7 L618.6 290.0 L619.9 288.7 L621.1 288.0 L622.3 290.0 L623.6 289.2 L624.8 289.3 L626.0 287.2 L627.3 286.8 L628.5 288.3 L629.7 289.0 L631.0 289.8 L632.2 289.5 L633.5 289.5 L634.7 288.3 L635.9 290.0 L637.2 285.3 L638.4 289.0 L639.6 288.2 L640.9 289.4 L642.1 289.9 L643.3 288.6 L644.6 288.9 L645.8 289.6 L647.0 287.2 L648.3 289.1 L649.5 289.0 L650.8 286.6 L652.0 288.2 L653.2 288.7 L654.5 284.5 L655.7 288.7 L656.9 289.3 L658.2 288.9 L659.4 287.3 L660.6 288.5 L661.9 288.6 L663.1 289.2 L664.3 288.6 L665.6 289.4 L666.8 288.6 L668.0 288.9 L669.3 285.5 L670.5 285.8 L671.8 285.6 L673.0 289.0 L674.2 289.9 L675.5 289.9 L676.7 290.0 L677.9 287.2 L679.2 289.2 L680.4 287.2 L681.6 285.8 L682.9 288.7 L684.1 289.2 L685.3 289.5 L686.6 289.3 L687.8 287.9 L689.0 289.6 L690.3 288.1 L691.5 283.9 L692.8 289.4 L694.0 286.0 L695.2 285.2 L696.5 287.5 L697.7 289.9 L698.9 283.6 L700.2 288.8 L701.4 288.5 L702.6 289.5 L703.9 289.7 L705.1 289.4 L706.3 287.1 L707.6 289.5 L708.8 289.9 L710.1 289.8 L711.3 288.9 L712.5 289.1 L713.8 289.4 L715.0 290.0 L716.2 287.9 L717.5 287.3 L718.7 289.8 L719.9 289.5 L721.2 290.0 L722.4 289.7 L723.6 289.5 L724.9 289.6 L726.1 288.3 L727.3 288.4 L728.6 290.0 L729.8 289.5 L731.1 289.8 L732.3 289.3 L733.5 289.3 L734.8 289.6 L736.0 288.8 L737.2 289.5 L738.5 286.1 L739.7 288.2 L740.9 287.0 L742.2 288.6 L743.4 288.9 L744.6 289.6 L745.9 285.4 L747.1 289.6 L748.3 287.6 L749.6 289.9 L750.8 289.9 L752.1 289.1 L753.3 284.8 L754.5 288.7 L755.8 289.8 L757.0 289.9 L758.2 288.6 L759.5 289.7 L760.7 289.1 L761.9 290.0 L763.2 289.2 L764.4 289.8 L765.6 287.9 L766.9 285.7 L768.1 289.4 L769.3 289.9 L770.6 289.9 L771.8 289.5 L773.1 289.1 L774.3 289.5 L775.5 289.4 L776.8 287.9 L778.0 287.6 L779.2 289.6 L780.5 289.0 L781.7 288.5 L782.9 289.9 L784.2 288.2 L785.4 289.1 L786.6 289.7 L787.9 285.1 L789.1 287.4 L790.4 287.3 L791.6 286.8 L792.8 286.1 L794.1 288.7 L795.3 289.9 L796.5 289.8 L797.8 287.2 L799.0 288.1 L800.2 290.0 L801.5 290.0 L802.7 286.2 L803.9 289.6 L805.2 289.3 L806.4 289.7 L807.6 290.0 L808.9 288.9 L810.1 288.9 L811.4 289.8 L812.6 289.0 L813.8 288.7 L815.1 288.2 L816.3 288.4 L817.5 289.9 L818.8 289.9 L820.0 288.7"/>
-  <text class="ttl" x="80" y="326">d · after dedispersion: each output mixes ~180 input samples, so the blank becomes a wide dip</text>
+  <text class="ttl" x="80" y="326">d · after dedispersion (DM 5): each output mixes ~180 input samples, so the blank becomes a wide dip</text>
   <path class="axis" d="M80 416 H820"/>
   <path class="axis" d="M80 336 V416"/>
   <path class="axis" d="M80.0 416 v5"/>
@@ -209,9 +223,10 @@ gives the fold the valid fraction and the exact noise of every detected bin.</p>
 </svg>
 <figcaption><b>Figure E.3.</b> One channel through the excision chain, with the code's own numbers: white noise with a 2 µs pulse at about 30× the
 baseline; the exact thresholds η₁…η₁₆ = 13.82 … 2.69 for windows of 1–16 samples; a guard of 10 samples; the dedispersion filter of a
-3.125 MHz channel at 1.4 GHz. Panel d shows <var>W</var>, the valid fraction of each output sample's filter window, which
+3.125 MHz channel at 1.4 GHz, at DM 5. Panel d shows <var>W</var>, the valid fraction of each output sample's filter window, which
 <code>blankingWeights</code> computes exactly for every detected bin, with two numbers for its noise (<var>V</var> and
-<var>X</var>(<var>L</var>), Section E4).</figcaption>
+<var>X</var>(<var>L</var>), Section E4). At the default DM 25 each output mixes about 940 input samples. The same blank then leaves
+<var>W</var> = 0.94, in a dip about five times wider.</figcaption>
 </figure>
 <details><summary>History</summary>
 <p>Blanking instead of subtraction: Jasper's decision, 8 Oct 2026 (block B).</p></details>
@@ -497,7 +512,7 @@ fold uses these instead of assuming that every bin is complete. All three follow
 input.</p>
 
 <h3>E4.1 Blanking before a filter</h3>
-<p>Dedispersion is a filter <var>h</var> that spans hundreds of channel samples, so each output sample \(y(a) = \sum_l h(l)\,x(a-l)\) mixes
+<p>Dedispersion is a filter <var>h</var> that spans about 660–1560 channel samples at the default DM 25, so each output sample \(y(a) = \sum_l h(l)\,x(a-l)\) mixes
 blanked and valid inputs. For Gaussian input, the covariance of two output samples is</p>
 <div class="eq"><span class="label">(E.3)</span>\[ C(a, a+\tau) = \sum_l h(l)\, h^*(l+\tau)\; \mathrm{keep}(a-l) \]</div>
 <dl class="where">
@@ -638,7 +653,7 @@ and FFT size. A check confirms it uses the same nPast/nFuture as <code>dedispers
 <li>Bins with <var>W</var> below <code>MinWeight</code> (10⁻⁶) get <var>W</var> = <var>V</var> = <var>X</var> = 0.</li>
 <li>The weight file: float32 [nChan × (2+Lmax) × N], on the same time grid as the power file. Per bin it holds <var>W</var> of all
 channels, then <var>V</var>, then <var>X</var>(1)…<var>X</var>(<var>L</var><sub>max</sub>).</li>
-<li>Run time: about 0.3 s per blanked channel, plus 2 s for the 128 filters; it grows with the number of lags.</li>
+<li>Run time for 0.1 s of data at DM 5: about 0.3 s per blanked channel, plus 2 s for the 128 filters; it grows with the number of lags.</li>
 <li>Memory: each lag is added into <var>V</var> and <var>X</var> as soon as it is computed, so only one lag is in memory at a time, but
 each channel is processed whole. At <var>L</var> = 1 s the weight array is 4.8 GB, above the 4 GB default <code>MaxMemoryGB</code>
 (<a href="limits.html">limits</a>; block processing is designed but not built).</li>
@@ -686,10 +701,10 @@ with no RFI at all.</p>
 
 <h2 id="results">E5 · Results: each RFI type with and without excision</h2>
 <p>Without RFI, excision should do almost nothing, and it does. It blanks 0.0125 % of the samples: noise at the expected
-rate (about 5.4·10⁻⁵), plus the brightest on-pulse samples of the −5 dB pulsar. The stated TOA error of the 8 TOAs is 2.956 µs with
+rate (about 5.4·10⁻⁵), plus the brightest on-pulse samples of the −5 dB pulsar. The stated TOA error of the 8 TOAs of this run (DM 5, 0.1 s) is 2.956 µs with
 excision and 2.943 µs without, and per sub-int the TOAs differ by 0.07σ rms. The pulse amplitude comes out 0.4 % lower, because the
 brightest on-pulse samples go. That cut is symmetric, so the TOA does not shift, and it disappears at weak signals.</p>
-<p>With RFI, the question is whether excision restores honest TOAs. <code>runRFITest.m</code> tests each RFI type in turn, with noise
+<p>With RFI, the question is whether excision restores honest TOAs. <code>runRFITest.m</code> tests each RFI type in turn, at DM 5 on 0.1 s of data, with noise
 seed 43 and optimal weighting. The "ratio" is the rms TOA error divided by the predicted one; 1 means the error bars are honest. With only 8 TOAs the ratio scatters by ±25 %, and this noise realization alone gives
 0.84.</p>
 <div class="table-wrap"><table>
@@ -723,7 +738,7 @@ worst case instead: a radar whose pulses always land at the same pulse phase.</p
 <p>The no-RFI run is step B3, the table step B4, both 8 Oct 2026.</p></details>
 
 <h2 id="locked">E6 · A radar locked to the pulsar, and the frequency guard</h2>
-<p>In that case the radar's leftovers add up in the fold instead of averaging out. <code>runLockedRadar.m</code> sets this up: a radar at 1300 MHz, 2 µs pulses at +20 dB, PRF 400 Hz = 4·<var>f</var><sub>0</sub>. One radar
+<p>In that case the radar's leftovers add up in the fold instead of averaging out. <code>runLockedRadar.m</code> sets this up: a radar at 1300 MHz, 2 µs pulses at +20 dB, PRF 400 Hz = 4·<var>f</var><sub>0</sub>. The run is at DM 5, on 0.1 s of data. One radar
 pulse per turn then lands on the flank of the pulsar's pulse, one Gaussian width (+1σ<sub>t</sub>) after its peak, the worst place for
 timing. The leftover <var>L</var> is the folded radar power over the noise baseline, from a radar run minus a reference run with the same
 noise. The TOA bias at weaker pulsar strengths follows from noise-free folds, ρ·template + <var>L</var>, fitted with the optimal
@@ -818,7 +833,7 @@ estimator.</p>
   <text class="sub" x="568" y="44">(locks on the radar)</text>
 </svg>
 <figcaption><b>Figure E.6.</b> The TOA bias left after excision by a radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst
-pulse phase), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
+pulse phase, DM 5), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
 Every two extra guard channels cut the bias 3–4×. Guard 7, the default, keeps it below 1 µs down to −51 dB, and the periodic mask
 (Section E8) down to −58 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
 </figure>
@@ -826,7 +841,7 @@ Every two extra guard channels cut the bias 3–4×. Guard 7, the default, keeps
 weak signals. It cuts the bias about 2000× at −5 dB, but a fixed leftover scales as 1/ρ: 4.9·10⁻⁴ of the baseline is about 120× the
 pulsar's peak at −54 dB.</p>
 <p>To remove that leftover, one has to know where it comes from. Each channel is dedispersed with its own delay, so radar energy
-<var>k</var> channels from the radar lands <var>k</var> × 59 µs (0.006 turns) from the radar's phase: for RFI that is not dispersed, the
+<var>k</var> channels from the radar lands <var>k</var> × 59 µs (0.006 turns) from the radar's phase at DM 5, and <var>k</var> × 295 µs (0.03 turns) at DM 25: for RFI that is not dispersed, the
 fold's phase axis is in effect a channel axis. With realistic edges, the leftover comes from channels about 3 away, whose sidelobes are
 just below the threshold.</p>
 <p>Those channels are what the frequency guard of Section E2.5 blanks. It widens the clean notch around the radar, and every 2 extra
@@ -842,7 +857,7 @@ locked in the fold over long folds; how much that removes has not been quantifie
 
 <h2 id="rotating">E7 · A rotating radar: the sidelobe problem</h2>
 <p>A real radar antenna rotates. Its main beam sweeps past the receiver briefly, once per scan; the rest of the time only its much weaker
-sidelobes reach the receiver. <code>runRFITest.m</code> cases 8–11 simulate this: the scenario radar on a rotating antenna (10 s scan,
+sidelobes reach the receiver. <code>runRFITest.m</code> cases 8–11 simulate this at DM 5, on 0.1 s of data: the scenario radar on a rotating antenna (10 s scan,
 39 ms beam; <a href="receiver.html#rotation"><code>rfiSource</code> rotation</a>) and a −5 dB pulsar, with the truth of every radar pulse
 kept, so that each pulse can be scored.</p>
 <div class="table-wrap"><table>
@@ -1021,9 +1036,9 @@ is not truncated; it costs about 0.05–0.13 % of the data for one radar. The si
 emitter as soon as 6 pulses fitted a period. Random impulses then produced 3 fake emitters, because with short trial periods 6 random
 pulses fit somewhere. The binomial chance, corrected for the number of candidates tried, fixed this.</p>
 <div class="callout note"><span class="ttl">The pulsar is not masked</span>
-<p>One periodic source must not be masked: the pulsar. It is periodic too, but dispersed: in the raw channels its pulse is delayed by 59 µs from one channel to the next (at 1.3 GHz),
+<p>One periodic source must not be masked: the pulsar. It is periodic too, but dispersed: in the raw channels its pulse is delayed by 59 µs from one channel to the next (at 1.3 GHz and DM 5; 295 µs at DM 25),
 so neighbouring channels do not combine into one simultaneous pulse. Its detections also jitter across the 0.5 ms pulse, far outside the
-±1 µs tolerance. The check: <code>main.m</code> at −5 dB without RFI found 245 pulses, but 0 emitters, and gave identical TOAs.</p></div>
+±1 µs tolerance. The check: <code>main.m</code> at −5 dB without RFI (DM 5, 0.1 s) found 245 pulses, but 0 emitters, and gave identical TOAs.</p></div>
 
 <h3>E8.2 Results</h3>
 <p>Leaving the pulsar alone is one requirement. The other is to find real emitters and no false ones, which two tests check.
@@ -1036,7 +1051,7 @@ emitters in noise or impulses, and finds the radar in both forms:</p>
 <tr><td>scenario radar, 373 Hz</td><td>PRF 372.9992 ± 0.0018 Hz; predicted pulse times within 0.4 samples of the truth; 0.11 % blanked by prediction</td></tr>
 <tr><td>rotating radar, only −35 dB sidelobes</td><td>found from <code>detectRFI</code>'s 42 % of the pulses; with prediction 100 % blanked; radar energy left 0.48 → 8.8·10⁻⁶</td></tr>
 </table></div>
-<p>The second closes the loop with Section E6. In <code>runLockedRadar</code>, with the radar locked at 400 Hz at the worst phase, the
+<p>The second closes the loop with Section E6. In <code>runLockedRadar</code>, at DM 5, with the radar locked at 400 Hz at the worst phase, the
 periodic mask removes the −35 dB sidelobe radar almost completely:</p>
 <div class="table-wrap"><table>
 <tr><th>Radar</th><th>Excision</th><th>Periodic mask</th><th>Blanked</th><th><var>L</var> max</th><th>Bias at −54 dB</th><th>1 µs bias at</th></tr>
@@ -1084,7 +1099,7 @@ accepts false emitters (around 14.1 kHz) and blanks about 30 % of the data, whic
 implemented (<a href="limits.html">limitations</a>,
 <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p>
 <p>Locked RFI remains a residual risk. With the frequency guard and the periodic mask, an exactly locked radar at the worst phase leaves
-0.41 µs at −54 dB; with the guard alone, 2 µs. The guard width does not grow with the event's strength, and the periodic mask handles
+0.41 µs at −54 dB; with the guard alone, 2 µs. Both were measured at DM 5, and not yet at the default DM 25. The guard width does not grow with the event's strength, and the periodic mask handles
 fixed PRFs only. The guard's success also rests on the radar's 0.1 µs rise time, which is an assumption, still to be checked against
 ITU masks.</p></div>
 <details><summary>History</summary>
@@ -1099,7 +1114,7 @@ frequency guard of ±7 channels around strong events.</li>
 <li><code>blankingWeights</code> gives the fold the exact valid fraction and noise of every detected bin (Eq. E.3), so blanking cannot
 bias the TOA.</li>
 <li>A radar locked to the pulsar is the hard case. The frequency guard keeps its bias below 1 µs down to −51 dB, and the periodic mask,
-for fixed PRFs, down to −58 dB.</li>
+for fixed PRFs, down to −58 dB. These were measured at DM 5.</li>
 </ul></div>
 <p>The next page, <a href="fold.html">phase prediction and folding</a>, adds up the turns, with these weights.</p>
 

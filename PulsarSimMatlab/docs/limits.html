@@ -63,7 +63,7 @@ Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-
   <text class="sub" x="514.3" y="224">2.1 µs at 1.4 GHz</text>
   <text class="sub" x="10" y="256">locked radar left after excision (main beam)</text>
   <circle cx="470.8" cy="254" r="5" class="dot2"/>
-  <text class="sub" x="480.8" y="258">0.41 µs at −54 dB</text>
+  <text class="sub" x="480.8" y="258">0.41 µs at −54 dB (DM 5)</text>
   <text class="sub" x="10" y="290">ionosphere</text>
   <text class="sub" x="10" y="303" opacity="0.7">open for real data</text>
   <path class="curve2" style="stroke-width:5" stroke-linecap="round" d="M369.8 288 H434.5"/>
@@ -232,7 +232,7 @@ Only the first 7 lags of <var>X</var> are stored; near a blank 0.4–0.7 % of a 
 <h2 id="rfi">RFI excision</h2>
 <p>The full list is on <a href="excision.html#limits">RFI excision: limits</a>. In brief: blanking truncates the data slightly (−0.4
 % pulse amplitude at −5 dB); bright pulsars (above −5 dB, or noise-free) blank themselves, and <code>main.m</code> warns; an exactly
-locked radar leaves a bias of 0.41 µs at −54 dB, with the frequency guard and the periodic mask; the periodic mask handles fixed PRFs
+locked radar leaves a bias of 0.41 µs at −54 dB (measured at DM 5), with the frequency guard and the periodic mask; the periodic mask handles fixed PRFs
 only, not staggered ones yet; carrier and GNSS channels have high baselines; windows are at most 16 samples; noise-like RFI cannot be
 detected; and the 0.1 µs radar rise time is an assumption. Two of these limits need more space here.</p>
 <div class="callout warn"><span class="ttl">Flat spectrum within a channel</span>
@@ -271,7 +271,7 @@ machine has 24 GB. The channelized front end solves the processing side; the gen
 path, and ~72.5 GB with excision (blanked copies and the weight file), so hours of data use the <a href="simulator.html">fast simulator</a>.</p>
 <p>Excision does not yet stream on long files. The front end streams, but three excision functions do not: <code>detectRFI</code> reads
 each channel whole, <code>periodicRFI</code> takes all events at once, and <code>blankingWeights</code> processes each blanked channel whole
-(its weight array is 4.8 GB at <var>L</var> = 1 s, above its 4 GB default). That is fine for 0.1 s simulations and for the fast
+(its weight array is 4.8 GB at <var>L</var> = 1 s, above its 4 GB default). That is fine for simulations of 0.1–0.2 s and for the fast
 simulator, but real data will need it. A design exists (time blocks, with the filter reach as overlap); it is not built.</p>
 <details><summary>History</summary><p>The ionosphere was noted on 8 Oct (Jasper). The flat-spectrum problem was found on 8 Oct and measured
 in the realistic scenario on 9 Oct, where the periodic-mask problem was also found; the mask has been off by default since 9 Oct. Excision

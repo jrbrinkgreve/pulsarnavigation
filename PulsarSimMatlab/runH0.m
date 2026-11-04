@@ -17,9 +17,10 @@ Per pass: zero sky (generator with A = 0, made once) + receiver noise
 ('NoiseStd' 1, own seed seed + 10000 + i, no overlap with the sweeps), the
 same processing as main.m (processIQ, IQ -> fold), then detectPulsar. Front
 end from pipelineParams (default: channels with RFI excision, 'optimal'
-weighting; 'fullband' the reference path). With L = 0.1 s and 1 turn per
-sub-int: 9 complete sub-ints per pass on the full band (about 8 s per pass),
-8 on the channel path (about 40 s per pass).
+weighting; 'fullband' the reference path). With 1 turn per sub-int: 16
+complete sub-ints per pass on the full band and 15 on the channel path at
+L = 0.2 s, DM 25; 9 (about 8 s per pass) and 8 (about 40 s per pass) at
+L = 0.1 s, DM 5.
 
 Model correlation of normProfile (the noise-only profile in units of its
 model sigma) from the fold weights: full band WX/sqrt(W2*W2') at lag 1; with

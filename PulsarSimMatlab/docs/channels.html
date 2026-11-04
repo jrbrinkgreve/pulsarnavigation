@@ -30,7 +30,7 @@ The channelized path splits the band before anything else, for four reasons.</p>
 voltages, before dedispersion spreads it out. In a 3.125 MHz channel, a 2 µs radar pulse is about 8 samples in about 2 channels: easy to
 find and cheap to remove. The full band has no place where it is that compact.</p>
 <p>The second is memory at high DM. A full-band dedispersion filter grows with the sweep, to about 15 GB at DM 100. A channel's filter spans
-the sweep only at the channel rate of 4.17 MHz: about 10⁵ samples instead of 10⁸, one channel at a time (Section 5b.4). The third is a later use: arrival times per group of channels give a check of the DM from the data
+the sweep only at the channel rate of 4.17 MHz: up to about 5·10⁵ samples instead of 10⁸, one channel at a time (Section 5b.4). The third is a later use: arrival times per group of channels give a check of the DM from the data
 itself (planned; <a href="roadmap.html">roadmap</a>, longer term).</p>
 <p>The fourth is that none of this costs precision. Each channel is still dedispersed <em>coherently</em>, on its voltage, so no smear is left inside a channel.
 The <a href="fullband.html#dedisp-why">full-band page</a> shows what shifting channels would leave. The full-band path stays as the
@@ -848,6 +848,16 @@ other channels. Stage 5b removes both.</p>
 <p>Stage 5b dedisperses every channel coherently, and brings all channels to one common reference frequency (1.6 GHz, the top of the band).
 Afterwards a pulse arrives at the same time in every channel.</p>
 
+<div class="callout note"><span class="ttl">Measured results at DM 5</span>
+<p>The end-to-end comparison in the tests of this section and the table at the end of the page are at DM 5, on 0.1 s of data. The default is
+DM 25, on 0.2 s. Per turn nothing changes, as the <a href="results.html#dm25">results</a> show.</p>
+<div class="table-wrap"><table>
+<tr><th></th><th>DM 5, 0.1 s</th><th>DM 25, 0.2 s (default)</th></tr>
+<tr><td>Sweep inside one channel</td><td>130–310 samples</td><td>660–1560 samples</td></tr>
+<tr><td>Complete turns on the full band</td><td>9</td><td>16</td></tr>
+<tr><td>Complete turns on the channel path</td><td>8</td><td>15</td></tr>
+</table></div></div>
+
 <h3>5b.1 One validated filter, run per channel</h3>
 <p>Because each channel is an ordinary IQ file, the validated <a href="fullband.html#dedisp"><code>applyInverseDispersion</code></a> of
 stage 5 runs on it unchanged, one channel at a time. Its band is set to the channel centre ± <code>ChanWidth</code>/2. The inverse chirp
@@ -951,7 +961,7 @@ forward filter (stage 2, real samples at 4 GHz) is the remaining problem (<a hre
 <li><b>Commutation</b>, the precise test. It compares channelize(full-band dedispersed) with dedisperseChannels(channelize(IQ)). Both
 are linear filters, so the order must not matter. In channels 4–125 the correlation is ≥ 0.999993, the phase difference ≤ 1.2·10⁻⁵ rad,
 and the power ratio 1 ± 3·10⁻⁵. This proves that the per-channel chirps, the delays between channels and the phases are exact.</li>
-<li><b>End to end.</b> The TOAs of the channel path and of the full-band path on the same data (seed 43, −5 dB) agree: over 8 TOAs the
+<li><b>End to end.</b> The TOAs of the channel path and of the full-band path on the same data (seed 43, −5 dB, DM 5, 0.1 s) agree: over 8 TOAs the
 mean difference is +0.19 µs and the rms 0.51 µs (0.18σ). The two paths keep slightly different parts of the same noise
 (correlation 0.979), so their differences should scatter by σ·√(2(1−ρ)) = 0.205σ. χ² is 5.98 for 8 TOAs: consistent.</li>
 <li><b>Time-bin noise</b> of the summed channel power. The variance is 0.884 of the radiometer value (predicted 0.888 ± 0.005), and the
@@ -1152,7 +1162,7 @@ exactly.</li>
 <h2 id="result">Result: channel path against the full band</h2>
 <p>Both paths were run on the same data. The table compares their TOAs.</p>
 <div class="table-wrap"><table>
-<tr><th>Seed 43, −5 dB</th><th class="num">TOAs</th><th class="num">median error bar</th><th class="num">SNR</th><th>total offset</th></tr>
+<tr><th>Seed 43, −5 dB, DM 5, 0.1 s</th><th class="num">TOAs</th><th class="num">median error bar</th><th class="num">SNR</th><th>total offset</th></tr>
 <tr><td>full band</td><td class="num">9</td><td class="num">2.880 µs</td><td class="num">93.4</td><td>−0.21 ± 0.96 µs</td></tr>
 <tr><td>channels, optimal weighting</td><td class="num">8</td><td class="num">2.943 µs</td><td class="num">92.3</td><td>+0.12 ± 0.98 µs</td></tr>
 </table></div>

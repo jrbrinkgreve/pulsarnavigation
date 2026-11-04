@@ -1,6 +1,6 @@
 import numpy as np
 from plotsvg import Ax
-# Which parts of the 0.1 s main.m file are fully supported after dedispersion, and which turns are complete,
+# Which parts of a 0.1 s file at DM 5 are fully supported after dedispersion, and which turns are complete,
 # for both front ends (notes section 4). Turn k = [10k, 10k + 10) ms, pulse centres at 5, 15, ..., 95 ms.
 # Full band: the last 6.302 ms (+ the 2.5 us guard) lack part of their sweep. Channel path: also the first
 # 0.32 ms (the per-channel guard, 20 / 62.5 kHz).
@@ -35,7 +35,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 268" role="img" aria-label="Fully supported parts of the 0.1 s file after dedispersion, for the full band and the channel path, and the complete turns they contain">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption><b>Figure 5.2.</b> The 0.1 s file of <code>main.m</code> after dedispersion. Green: output samples that saw their complete sweep
+<figcaption><b>Figure 5.2.</b> A 0.1 s file at DM 5 after dedispersion. Green: output samples that saw their complete sweep
 (<code>fullySupported</code>); orange: samples that did not. At the end, the low frequencies of the last 6.3 ms were delayed past the end
 of the file in stage 2. At the start, the filter's guard reaches before the first sample (2.5 µs on the full band, too narrow to see;
 0.32 ms per channel). The fold uses only green data and the TOA fit only complete turns (lines): 9 TOAs on the full band, 8 on the

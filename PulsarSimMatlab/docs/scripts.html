@@ -178,13 +178,14 @@ structs from <code>pipelineParams</code>. It runs either the full band (dedisper
 <li>evaluation against the truth: optional IQ, detection and fold checks (full band), <code>validateTOA</code> (all and good), the exact optimum
 (full band).</li>
 </ol>
-<p>The printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s:</p>
+<p>The printed reference for seed 43, −5 dB, <var>L</var> = 0.1 s and DM 5:</p>
 <div class="table-wrap"><table>
 <tr><th>Path</th><th class="num">TOAs</th><th class="num">median σ</th><th class="num">SNR</th></tr>
 <tr><td>full band</td><td class="num">9</td><td class="num">2.880 µs</td><td class="num">93.4</td></tr>
 <tr><td>channel path</td><td class="num">8</td><td class="num">2.943 µs</td><td class="num">92.3</td></tr>
 <tr><td>channel path with excision</td><td class="num">8</td><td class="num">2.956 µs</td><td class="num">91.9</td></tr>
 </table></div>
+<p>At the defaults (<var>L</var> = 0.2 s, DM 25) the channel path with excision gives 15 TOAs. Its median σ is 2.951 µs and its SNR 92.0.</p>
 <details><summary>History</summary>
 <p>The <code>main:brightExcision</code> warning exists since 14 Oct 2026. The processing has been one <code>processIQ</code> call since
 19 Oct.</p></details>
@@ -262,7 +263,7 @@ fluctuation: the same 10 noise seeds serve every SNR, and the H0 T0 standard dev
 TOA error bars).</p>
 <p>It runs <code>nPass</code> (100) passes. The zero sky is made once; the receiver noise gets seed <code>seed + 10000 + i</code>, which does not
 overlap with the sweeps. The processing is the same as main's: <code>processIQ</code>, then <code>detectPulsar</code>, on the front end
-that <code>pipelineParams</code> chooses (since 19 Oct; before, full band only). A pass gives 9 complete turns on the full band (~8 s), and 8 on the channel path (~40–55 s). It collects T0, Tmax, noiseRatio, the circular autocorrelation of each <code>normProfile</code>, and the model correlation from <code>weightX</code>: full
+that <code>pipelineParams</code> chooses (since 19 Oct; before, full band only). At the defaults (<var>L</var> = 0.2 s, DM 25) a pass gives 16 complete turns on the full band and 15 on the channel path. At <var>L</var> = 0.1 s and DM 5 it gives 9 (~8 s per pass) and 8 (~40–55 s per pass). It collects T0, Tmax, noiseRatio, the circular autocorrelation of each <code>normProfile</code>, and the model correlation from <code>weightX</code>: full
 band lag 1; channel path lags 1–3 of the combination <code>detectPulsar</code> uses (optimal: weights 1/variance per channel; equal noise levels
 assumed). With excision also the blanked fraction per pass: on pure noise, the false-flag rate of <code>detectRFI</code>. It counts the exceedances at <var>P</var><sub>FA</sub> 10⁻¹, 10⁻², 10⁻³, saves <code>data/mc/h0Run.mat</code>
 and draws a figure.</p>

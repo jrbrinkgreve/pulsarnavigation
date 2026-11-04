@@ -13,7 +13,7 @@ rows = [('Earth\'s orbital motion (uncorrected)', 100e-6, 7.2, 'after 1 s … af
         ('station position error 4–100 km', 4e3/c, 100e3/c, '13–330 µs', 'the navigation signal (block D)'),
         ('Doppler-shifted dispersion delay, annual', 0.3e-6, 7.1e-6, '0.3 µs (J0437) … 7.1 µs (B0329+54)', 'real data only: cancels in the simulator'),
         ('DM change of 0.001 pc cm⁻³', 2.1e-6, None, '2.1 µs at 1.4 GHz', ''),
-        ('locked radar left after excision (main beam)', 0.41e-6, None, '0.41 µs at −54 dB', ''),
+        ('locked radar left after excision (main beam)', 0.41e-6, None, '0.41 µs at −54 dB (DM 5)', ''),
         ('ionosphere', 3e-9, 70e-9, '3–70 ns', 'open for real data'),
         ('scattering', 0.4e-9, 1e-6, '0.4 ns (DM 5) … µs (DM ~100)', '')]
 x0, x1, lo, hi = 300, 820, -10, 1

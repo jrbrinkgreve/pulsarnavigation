@@ -638,7 +638,7 @@ they must be found and blanked on the channel voltages, before dedispersion. The
 </table></div>
 <p>Subtraction does not work: at −54 dB one radar pulse carries the energy of about 80,000 pulsar pulses, and even 99.9 % suppression would
 leave more interference than pulsar. Samples with RFI are therefore <b>blanked</b>: set to zero, with weight 0. And it happens before
-dedispersion, because there a radar pulse is a 2 µs blip in a few channels; after dedispersion it is smeared over milliseconds and mixed with
+dedispersion, because there a radar pulse is a 2 µs blip in a few channels; after dedispersion it is smeared over about 90 µs at DM 25 and mixed with
 good data. The interference is made by <a href="receiver.html#rfi"><code>rfiSource</code></a>, and its removal is the subject of <a href="excision.html">RFI
 excision</a>.</p>
 

@@ -67,7 +67,7 @@ o.append(f'<text class="sub" x="{xa:.1f}" y="{B.y0+20}">{len(mk)} samples blanke
 C = panel(230, 60, (0, 40), 'c · blankChannels: masked voltages set to exactly 0 (no RFI, no noise, no pulsar left)', '')
 o.append(C.frame(yticks=[0, 40]))
 o.append(f'<path class="thin" d="{C.path(t, pb)}"/>')
-D = panel(336, 80, (0.6, 1.03), 'd · after dedispersion: each output mixes ~180 input samples, so the blank becomes a wide dip', '')
+D = panel(336, 80, (0.6, 1.03), 'd · after dedispersion (DM 5): each output mixes ~180 input samples, so the blank becomes a wide dip', '')
 o.append(D.frame(yticks=[0.6, 0.8, 1.0], xticks=[0, 20, 40, 60, 80, 100, 120, 140], xlab='time [µs] (channel samples at 4.17 MHz; the channel\'s delay to 1.6 GHz is left out)', yfmt='{:.1f}'))
 o.append(f'<path class="curve3" d="{D.path(t, Wt)}"/>')
 o.append(f'<text class="sub" x="{float(D.X(t[300])):.1f}" y="{D.Y(Wt.min())+18:.1f}" text-anchor="middle">W = {Wt.min():.2f}: valid fraction (blankingWeights)</text>')
@@ -77,8 +77,9 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure E.3.</b> One channel through the excision chain, with the code's own numbers: white noise with a 2 µs pulse at about 30× the
 baseline; the exact thresholds η₁…η₁₆ = 13.82 … 2.69 for windows of 1–16 samples; a guard of 10 samples; the dedispersion filter of a
-3.125 MHz channel at 1.4 GHz. Panel d shows <var>W</var>, the valid fraction of each output sample's filter window, which
+3.125 MHz channel at 1.4 GHz, at DM 5. Panel d shows <var>W</var>, the valid fraction of each output sample's filter window, which
 <code>blankingWeights</code> computes exactly for every detected bin, with two numbers for its noise (<var>V</var> and
-<var>X</var>(<var>L</var>), Section E4).</figcaption>
+<var>X</var>(<var>L</var>), Section E4). At the default DM 25 each output mixes about 940 input samples. The same blank then leaves
+<var>W</var> = 0.94, in a dip about five times wider.</figcaption>
 </figure>'''
 open('excision.svg', 'w').write(svg)

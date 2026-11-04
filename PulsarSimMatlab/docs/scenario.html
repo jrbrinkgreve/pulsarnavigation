@@ -25,7 +25,7 @@ per TOA come from, and why the project targets weak signals.</p>
 <li><a href="#hundred">R9 · 100 days: the final budgets</a></li>
 </ol></div>
 <p>The pipeline is designed for a small array (0.61 m², 1.2–1.6 GHz) and the best pulsar it can time, J0437−4715. At the worst-case design
-point the pulse peak is about 54 dB below the receiver noise. The catalogue estimate on this page (R2) gives about 20 hours of data per TOA;
+point the pulse peak is about 54 dB below the receiver noise. The catalogue estimate on this page (R2) gives about 21 hours of data per TOA;
 the fast simulator with J0437's measured profile gives 82–95 hours, and 16 hours at nominal flux (R9). That is why the project targets weak
 signals, why TOAs must be folded across several passes, and why the fast simulator was built. The array will go on a ship, and J0437 never
 rises at 52° N, so the scenario runs time B0329+54 from the Netherlands, and J0437 from 30° S (R6).</p>
@@ -73,7 +73,7 @@ TOA, and the TOA error at SNR 7 follows from the pulse width (<a href="physics.h
 <var>W</var><sub>50</sub>: <var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/(1.0645·<var>W</var><sub>50</sub>), 2.7 dB higher
 for the same pulsar. In <code>snrDB</code> terms J0437's worst case is about −51 dB (−47 dB nominal), so the design target of −54 dB carries a
 margin of about 3 dB. Do not combine the two: the simulator's own pulsar (10 ms, 5 %, one polarization) at <code>snrDB</code> −54 needs about
-62 h per TOA at SNR 7, not the 20 h of the J0437 row.</p></div>
+62 h per TOA at SNR 7, not the 21 h of the J0437 row.</p></div>
 <div class="table-wrap"><table>
 <tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nominal [h]</th><th>t worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
 <tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9</td><td><b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
@@ -201,7 +201,7 @@ to years.</p>
 <p>By that measure Vela is as good as J0437. It is bright, with a TOA in about 20 min, but it has a wider pulse, DM 67.8, glitches and
 timing noise. J0437 is the only realistic millisecond pulsar, because the time per TOA scales as <var>S</var>⁻², so a pulsar 15× fainter
 takes 225× longer. J0437 resembles the voltage chain's simulated pulsar (P 5.8 ms against 10 ms; DM 2.6 against the default 25), at ρ ≈ −54 dB in the
-worst case. This estimate gives it about 20 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight. With its measured profile
+worst case. This estimate gives it about 21 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight. With its measured profile
 the fast simulator gives 82–95 h and 13 µs (R9).</p>
 <p>Both good sources are southern, however. For northern sites <b>B0329+54</b> is the only source with TOAs within a pass, and from Europe
 and most of North America there is no feasible MSP. Normal pulsars are needed anyway, for geometry (≥ 4 well-separated directions for

@@ -31,7 +31,7 @@ for c in (5.0, 15.0):
     tt = c + (K*DM/ff**2 - K*DM/fH**2)*1e3
     ok = tt <= 20
     o.append(f'<path class="dash" d="{A.path(tt[ok], ff[ok])}"/>')
-o.append(f'<text class="sub" x="{A.X(6.6):.1f}" y="{A.Y(1590):.1f}">pulsar sweep, far below the noise</text>')
+o.append(f'<text class="sub" x="{A.X(6.6):.1f}" y="{A.Y(1590):.1f}">pulsar sweep at DM 5, far below the noise</text>')
 # labels on the right
 lx = A.x0 + A.w + 12
 labels = [(1575.42, 1582, 'GNSS L1 band (noise)'), (1561.1, 1566, 'BeiDou B1I (bpsk)'),
@@ -55,7 +55,7 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure 3.4.</b> The realistic RFI list (<code>rfiRealistic</code> in <code>pipelineParams.m</code>) sketched in time and frequency over two
 pulsar turns. Widths are each source's occupied band (for BPSK the main lobe, ± the chip rate). Radar pulses (2 µs) and the impulse
-(200 ns) are drawn much wider than they are. Orange sources are on all the time and look like extra noise in their channels; red ones
+(200 ns) are drawn much wider than they are. The dashed pulsar sweep is drawn at DM 5. At the default DM 25 it lasts 31.5 ms, longer than the time shown. Orange sources are on all the time and look like extra noise in their channels; red ones
 are short and strong, which is what <a href="excision.html">RFI excision</a> looks for.</figcaption>
 </figure>'''
 open('rfiscene.svg', 'w').write(svg)

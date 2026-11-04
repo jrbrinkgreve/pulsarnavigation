@@ -36,7 +36,7 @@ for v in (5, 10, 20, 50, 100, 200, 500):
 o.append(f'<text class="sub" x="{B.x0 + B.w/2:.1f}" y="{B.y0 + B.h + 34}" text-anchor="middle">number of TOAs</text>')
 pts = ' L'.join(f'{lxb(a):.1f} {float(B.Y(1/np.sqrt(2*a))):.1f}' for a in nn)
 o.append(f'<path class="curve" d="M{pts}"/>')
-for a, lab in ((8, '8 TOAs (main.m): ±25 %'), (90, '90 TOAs (Monte Carlo): ±7.5 %')):
+for a, lab in ((15, '15 TOAs (main.m): ±18 %'), (90, '90 TOAs (Monte Carlo): ±7.5 %')):
     x, y = lxb(a), float(B.Y(1/np.sqrt(2*a)))
     o.append(f'<path class="dot2" d="M{x - 4:.1f} {y:.1f} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>')
     anc = 'end' if a > 50 else 'start'
@@ -48,7 +48,7 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure 9.2.</b> How to read <code>validateTOA</code> (illustrative, not pipeline output). (a) Q-Q plots of normalized errors: honest error
 bars lie on the line, too small ones make it steeper, outliers bend the tails away. (b) The rms ratio is itself uncertain by about
-1/√(2<var>n</var>), so 8 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. The validation record
+1/√(2<var>n</var>), so 15 TOAs can only show a ratio far from 1, while a Monte Carlo of 90 TOAs tests it to ±7.5 %. The validation record
 therefore relies on Monte Carlo runs and sweeps, not on one <code>main.m</code> run.</figcaption>
 </figure>'''
 open('qq.svg', 'w').write(svg)

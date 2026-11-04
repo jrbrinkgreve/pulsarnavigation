@@ -44,7 +44,7 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure E.6.</b> The TOA bias left after excision by a radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst
-pulse phase), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
+pulse phase, DM 5), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
 Every two extra guard channels cut the bias 3–4×. Guard 7, the default, keeps it below 1 µs down to −51 dB, and the periodic mask
 (Section E8) down to −58 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
 </figure>'''
