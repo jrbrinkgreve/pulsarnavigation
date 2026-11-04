@@ -53,3 +53,60 @@ The first version of the derivation said the closed form cancels because "the ei
 ## Left open
 - detectRFI.m comments still say "chain of exponential stages" (lines ~31 and ~440); not changed (not asked).
 - Eq. (E.1) already overflowed the column at a narrow window before this change (it scrolls sideways); not changed.
+
+## More questions on E2 (answered in chat, no change)
+- **Why is the channel correlation (E2.2) measured only from pass 2?** It must leave out pulsed RFI (a +20 dB radar pulse is
+  coherent over ~8 samples and would make the channel look correlated, raising its own thresholds) but keep a carrier's own peaks
+  (pass 1 flags ~1400/s of them with the white thresholds). Pass 1's flagged intervals, sorted by peak (>= 30 x baseline = pulsed
+  RFI), make that split. The second pass itself exists for the baseline (E2.3: 5.4 % high under dense bursts, 0.5 % after pass 2);
+  the channel thresholds reuse it (20 Oct, logs/2026-10-20_blockC.md).
+- **Does pass 2 use pass 1's mask?** Only to leave samples out of its estimates: the correlation (strong intervals only), the
+  baseline (all pass-1 flags; strong intervals only for own-threshold channels; blocks with < 1000 unflagged samples keep pass 1's
+  value). The window test runs over every sample again, and the final mask is pass 2's alone (detectRFI.m:239-282).
+
+## To read on 4 Nov (Jasper: "remind me to read this last part tomorrow"): E4, why blanked parts need correcting after dedispersion
+Before dedispersion a blank is easy: a radar pulse blanked with its guard is ~28 channel samples of exact zeros, and a fold could
+give exactly those samples weight 0.
+
+Dedispersion spreads every blank. It is a convolution with a chirp filter h whose sweep is ~660-1560 channel samples (159-374 us)
+at the default DM 25, and ~130-310 (32-75 us) at the DM 5 of the docs' figure, y(a) = sum h(l) x(a-l), so every output sample within reach of the blank misses part of its inputs. In a chirp each lag belongs to
+one frequency, so a blank removes a thin slice of the channel's band from each output it touches, a different slice per output.
+No output is empty or complete: each holds a fraction W of valid data (Figure E.3d). Its detected power averages
+W x (noise + pulsar), so every blank becomes a dip in the dedispersed power, as wide as that sweep.
+
+A naive fold counts every sample as complete, so the dips go into the profile:
+- blanks at random phases (RFI unrelated to the pulsar): the dips spread over all phases and lower the baseline almost uniformly;
+  harmless (the baseline is fitted out), apart from a little extra noise the error model does not know;
+- blanks that follow pulse phase (a radar locked to the period, E6; periodicRFI blanking predicted pulses, E8; blanks triggered by
+  the pulse): the dips stack at the same phase, distort the profile and bias the TOA. At -54 dB the pulse peak is ~4e-6 of the
+  baseline, so a 1e-5 dip at a fixed phase already beats the pulse. Fake blanking at phase 0.30-0.36: naive fold -0.574
+  (= 1 - 0.425, the mean W there), weighted fold -0.0019 +- 0.0009 (fold.html 7.5).
+
+What blankingWeights corrects:
+- the mean: the fold divides by sum a W instead of sum a, so a W = 0.5 bin counts as half a sample with the right mean. A blank
+  removes the same frequency slice from noise and pulsar (both fill the band), so dividing by W restores both;
+- the noise: V and X(L) per bin (variance, shared noise with bin k+L) set the error bars, chi2 and optimal weights; no simple rule
+  (W and W^2 both off by -50 % to +40 %, expBlankingVariance), so they are exact from Eq. (E.3);
+- empty bins (E4.3): W = 0 bins add nothing; filter-tail power there biased nearly empty phase bins by up to +285 %.
+
+Not recorded as the reason, Claude's reasoning: throwing away every output sample a blank touches would cost the whole sweep per
+blank, most samples nearly complete; fractional weights keep all valid data and still remove the bias.
+
+## 4 Nov: more questions on E4 (answered in chat); DM correction
+Checked in Python (not MATLAB), noise-free, one profile, equal weights; FWHM 5 % of a 10 ms period (sigma 212 us), NBin 2048; scripts
+dip_bias.py, relative_peak.py, w_energy.py and w_energy_ends.py in the session scratchpad.
+- **How does missing data bias the TOA?** It does not by itself: left out of the fit, a gap on the flank gives 0.000 us (error bar
+  x 1.16). Counting it as zero power gives -467 us at -20 dB. The dip is almost all missing noise: d = (1 - e)(1 + rho t), and to first
+  order tau = (1/rho) sum e t' / sum t'^2, confirmed by the fit. A dip of depth 1e-4, width 0.005 turns, at -30 dB: 0 at the peak,
+  -+3.33 us on the flanks, 0 far off-pulse or uniform. On the trailing flank: -0.335, -3.33, -32.7, -300 us at -20, -30, -40, -54 dB
+  (first order fails at -54 dB, where the dip is 25 x the peak); only the pulsar lost: -0.002 us at every strength.
+- **Does the data left act as a relative peak?** Only when it is about pulse-sized: all blanked but a window of 0.2 turns or less, or
+  dips every 2.5 FWHM or less, and the fit centres on the gap. Wider stretches are a plateau with no position (a dip 25 x the peak far
+  off-pulse: 0 us; the same dip with no pulsar: 84 % of shifts within 0.1 % of the best). Then a dip only pushes the pulse away.
+- **Is W energy-weighted or a count of keep(i)?** Energy-weighted: w(a) = sum |h(l)|^2 keep(a-l) / sum |h|^2, W its bin mean; the default
+  'channelizer' form adds the R_x cross terms (blankingWeights.m:202-221). For a 28-sample blank at DM 25, 1.402 GHz: deepest 1 - W is
+  0.0330, against 0.0294 for a count over the sweep and 0.0005 for a count over all 54 348 taps the filter carries (bulk delay).
+  |h|^2 is flat to ~0.3 % mid-sweep, up to +12.7 % near the ends. The area sum(1 - W) is exactly the blank's length.
+- **DM correction:** the "130-310 samples" quoted earlier in this log is the sweep at DM 5, which E1 gave without naming its DM. E1 now
+  gives both: 660-1560 at DM 25 (same definition, 2 K DM dF / f^3; 99 % of the energy lies in 644-1504), 130-310 at DM 5. Figure E.3
+  stays at DM 5 (Jasper's rule of 21 Oct); its caption does not name the DM, not changed.

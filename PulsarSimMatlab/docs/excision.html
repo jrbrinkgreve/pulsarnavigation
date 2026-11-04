@@ -144,8 +144,9 @@ the pulsar.</figcaption>
 <p>The next question is where to blank. In the raw channel voltages, before dedispersion, a 2 µs radar pulse in a 3.125 MHz channel is
 about 8 samples in about 2 channels. After dedispersion it is spread over thousands of samples and mixed with good data. Blanking on the
 raw channel voltages therefore costs very little data.</p>
-<p>Blanking that early has a price further down the chain. Dedispersion spreads every blanked stretch over the filter's reach, about
-130–310 output samples per channel, each of which then holds only a <em>fraction</em> of valid data (Figure E.3d). A fold that ignored this
+<p>Blanking that early has a price further down the chain. Dedispersion spreads every blanked stretch over the filter's reach, and each
+output sample in that reach then holds only a <em>fraction</em> of valid data (Figure E.3d). The reach is about 660–1560 output samples per
+channel at the default DM 25, and about 130–310 at the DM 5 of that figure. A fold that ignored this
 would see a dip wherever blanking happened. When blanking follows the pulse phase, as with a radar locked to the pulsar or blanks triggered
 by the pulse itself, the dips line up and bias the TOA. The chain must therefore account for what it removed: <code>blankingWeights</code>
 gives the fold the valid fraction and the exact noise of every detected bin.</p>
