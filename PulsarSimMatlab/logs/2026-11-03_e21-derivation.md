@@ -110,3 +110,21 @@ dip_bias.py, relative_peak.py, w_energy.py and w_energy_ends.py in the session s
 - **DM correction:** the "130-310 samples" quoted earlier in this log is the sweep at DM 5, which E1 gave without naming its DM. E1 now
   gives both: 660-1560 at DM 25 (same definition, 2 K DM dF / f^3; 99 % of the energy lies in 644-1504), 130-310 at DM 5. Figure E.3
   stays at DM 5 (Jasper's rule of 21 Oct); its caption does not name the DM, not changed.
+
+## 4 Nov: why a blank changes the variance, while its covariance dies early (from a side chat on blankingWeights)
+Handed over from a side chat; no code or docs changed. Rechecked in Python with direct sums (white input, gen_excision's filter, one
+blank at 1.4 GHz; cov_check.py in the session scratchpad). Not run through the fold; the side chat's estimate of the effect on the error
+bar (about 1e-4 normally, about 0.2 % for a blank at a locked phase at DM 25) was not rechecked.
+- A removed input enters C(a, a+tau) through h(l) h*(l+tau). At tau = 0 that is |h|^2, so the removed samples add in line. At tau != 0 it is a tone
+  in l, so they add with a rotating phase: |dC| = (B/S) |sinc(tau df)|, with df the slice the blank removes. First zero at tau = 1/df.
+- Where the blank sits in the sweep hardly matters, at any tau. 52 samples, DM 25 (start, middle, end of the sweep): tau 0: 0.053, 0.054, 0.054;
+  tau 5: 0.051 at all three; tau 25: below 0.001 at all three (1/df = 25.2). Only the separation tau kills the covariance.
+- Frequency picture: a notch df wide lowers the power by its area, and its Fourier transform (the covariance) has width 1/df.
+- Change in the variance of the summed power, 52 samples, in units of n^2 (tau = 0 / tau >= 1 / total): DM 5 -5.70 +1.22 -4.48; DM 25 -6.33 +1.80 -4.53;
+  DM 100 -6.46 +1.81 -4.64. The total barely depends on DM and is close to the noise of the removed samples, -B sum|rho|^2 = -4.43.
+  The blank creates covariance that was not there before, and that gives part of the variance drop back.
+- Lmax = 7 misses, of that total: 1.0 % at DM 5, 7.0 % at DM 25, 39 % at DM 100 (reach out to L = 60; the side chat's 37 % stopped at L = 40).
+  Its other numbers reproduce. Recommendation there: keep 7, recheck at DM 100.
+  Jasper: "Yes, add it": the recheck is now a row in the roadmap's Open items.
+- Normalization (read, not run): blankingWeights.m:216 divides |C|^2 by m0^2, so each C is relative to the unblanked voltage variance; line 222 divides by
+  n^2 and the radiometer value; line 261 records "relative to m^2 * radiometer".
