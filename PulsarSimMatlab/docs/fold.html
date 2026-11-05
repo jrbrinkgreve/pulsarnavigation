@@ -961,7 +961,7 @@ combined, so one fold serves both noise models, and the fold never needs the tru
 bins are correlated. Relative to σ² = <var>m</var>²/(<var>B</var>·Δ<var>t</var>), a bin
 has variance <var>V</var>, and covariance <var>X</var>(<var>L</var>) with the bin <var>L</var> places further
 (<a href="channels.html#powcov"><code>powerCovariance</code></a>). The covariance of two phase-bin sums is then</p>
-<div class="eq"><span class="label">(7.2)</span>\[ \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k), \qquad c(0) = V, \quad c(\pm L) = X(L) \]</div>
+<div class="eq"><span class="label">(7.2)</span>\[ \begin{gathered} \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c(k' - k) \\ c(0) = V, \qquad c(\pm L) = X(L) \end{gathered} \]</div>
 <dl class="where">
 <dt>\(S_j\)</dt><dd>the sum in phase bin \(j\) of one sub-int: \(\sum_k a_{kj}\,\times\) power of time bin \(k\) (<code>fold.sum</code>)</dd>
 <dt>\(j\), \(d\)</dt><dd>phase-bin index; phase-bin lag (1 … \(D\))</dd>
@@ -969,7 +969,7 @@ has variance <var>V</var>, and covariance <var>X</var>(<var>L</var>) with the bi
 <dt>\(a_{kj}\)</dt><dd>assignment weight of time bin \(k\) to phase bin \(j\) (linear assignment: split between the two nearest phase bins)</dd>
 <dt>\(\sigma^2\)</dt><dd>variance of one independent time bin, \(m^2/(B\,\Delta t)\) (radiometer value; not stored in the fold)</dd>
 <dt>\(c(L)\)</dt><dd>correlation coefficient of time bins \(L\) apart, relative to \(\sigma^2\)</dd>
-<dt>\(V\), \(X(L)\)</dt><dd>from <a href="channels.html#powcov"><code>powerCovariance</code></a> (<code>'NoiseCoeffs'</code>); 0 beyond <code>Lmax</code></dd>
+<dt>\(V\), \(X(L)\)</dt><dd>from <a href="channels.html#powcov"><code>powerCovariance</code></a> (<code>'NoiseCoeffs'</code>); 0 beyond <code>Lmax</code>. With blanking they differ from bin to bin: <a href="#dataweights">Eq. (7.3)</a></dd>
 </dl>
 <p>The option <code>'NoiseCoeffs'</code> = [<var>V</var> <var>X</var>(1..<var>L</var><sub>max</sub>)] passes these coefficients to the
 fold; its default 1 means independent bins (full band), bit-identical to before. <code>weight2</code> is then var(<var>S</var><sub>j</sub>)/σ²,
@@ -994,9 +994,23 @@ its own numbers, all exact from
 <var>W</var> the valid fraction), a variance <var>V</var><sub>kc</sub>·σ<sub>c</sub>², and a covariance
 <var>X</var><sub>kc</sub>(<var>L</var>)·σ<sub>c</sub>² with bin <var>k</var>+<var>L</var>. The fold uses them in three ways. First, <code>weight</code> = Σ <var>a</var>·<var>W</var>, so <code>prof</code> = Σ<var>a</var>·<var>P</var>
 / Σ<var>a</var>·<var>W</var> is <b>unbiased even when blanking depends on pulse phase</b>. Second, <code>weight2</code> and <code>weightX</code>
-are as in Section 7.4, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>). Third, <b>a time bin with
+are as in Section 7.4, with the per-bin <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>) of Eq. (7.3) below. Third, <b>a time bin with
 <var>W</var> = 0 adds no power</b> to the sum either; leftovers from filter tails in such bins biased nearly empty phase bins (found
 while building <code>blankingWeights</code>).</p>
+<p>In Eq. (7.2) the coefficient depends only on how far apart two time bins are. That no longer holds near a blank, because each time bin
+has its own numbers. For one channel (index <var>c</var> dropped), the covariance of two phase-bin sums becomes</p>
+<div class="eq"><span class="label">(7.3)</span>\[ \begin{gathered} \operatorname{cov}(S_j, S_{j+d}) = \sigma^2 \sum_k \sum_{k'} a_{kj}\, a_{k',\,j+d}\; c_{kk'} \\ c_{kk} = V_k, \qquad c_{k,\,k+L} = c_{k+L,\,k} = X_k(L) \end{gathered} \]</div>
+<dl class="where">
+<dt>\(S_j\), \(a_{kj}\), \(d\)</dt><dd>as in Eq. (7.2)</dd>
+<dt>\(\sigma^2\)</dt><dd>variance of one independent time bin of this channel without blanking, \(m^2/(B\,\Delta t)\)</dd>
+<dt>\(c_{kk'}\)</dt><dd>covariance of time bins \(k\) and \(k'\), relative to \(\sigma^2\); 0 when they are more than <code>Lmax</code> apart</dd>
+<dt>\(V_k\)</dt><dd>variance of time bin \(k\), relative to \(\sigma^2\)</dd>
+<dt>\(X_k(L)\)</dt><dd>covariance of time bin \(k\) with the later bin \(k+L\), relative to \(\sigma^2\)</dd>
+</dl>
+<p>Far from a blank, <var>V</var><sub>k</sub> and <var>X</var><sub>k</sub>(<var>L</var>) equal the constants <var>V</var> and
+<var>X</var>(<var>L</var>), and Eq. (7.3) becomes Eq. (7.2). The valid fraction <var>W</var> does not appear in either equation. It enters
+through the denominator: var(prof<sub>j</sub>) = σ²·<code>weight2</code>/<code>weight</code>², with <code>weight</code> =
+Σ <var>a</var>·<var>W</var>.</p>
 <p>With data weights the output arrays get a channel dimension: <code>weight</code>, <code>weight2</code> [NBin × nSub × nChan], <code>weightX</code>
 [NBin × nSub × nChan × D]; <code>prof</code>, <code>profTotal</code> per channel with its own weights. The option value is an info struct
 with <code>file</code>, <code>nChan</code>, <code>N</code>, <code>Lmax</code>, <code>byteOrder</code>; it replaces <code>NoiseCoeffs</code>
@@ -1147,7 +1161,7 @@ boundary (phase 0.5, off-pulse) are affected, by ~1–4 % of their variance. Neg
 <li>Stage 7a builds it from the site, the delays to the barycentre (Roemer, Einstein, Shapiro) and the timing model, stored as
 Chebyshev segments that are checked to 1 ns.</li>
 <li>Stage 7 folds every fully supported time bin by linear assignment, and keeps <code>weight</code>, <code>weight2</code> and
-<code>weightX</code>, so that the noise of every phase bin is known exactly (Eq. 7.2), with or without blanking.</li>
+<code>weightX</code>, so that the noise of every phase bin is known exactly, without blanking (Eq. 7.2) and with it (Eq. 7.3).</li>
 <li>Sub-ints are long enough for an SNR of 6–7, and NBin = 2048 is fine enough to lose nothing.</li>
 </ul></div>
 <p>Each sub-int's profile now goes to the TOA fit of stage 8 (<a href="toa.html">TOA estimation</a>). The next page in reading order, the

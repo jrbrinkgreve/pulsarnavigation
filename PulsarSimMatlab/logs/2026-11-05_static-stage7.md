@@ -50,3 +50,20 @@ A fixed site's delay comes from the Earth's orbit and rotation, which are smooth
 
 - Jasper's own `runAllTests`, after the push: "all passed" (his report; I did not see the output). The stage 7 badges hold, and the five
   stage 7 rows of tests.html now name this run.
+
+## Later on 5 Nov: the per-bin noise equation
+Jasper asked how W, V and X couple to Section 7.4, then: "and yes, add the per-bin equation if it helps with clarity".
+
+- `fold.html` 7.5: new Eq. (7.3), the form of Eq. (7.2) with per-bin V_k and X_k(L), and a sentence that W enters only through the
+  denominator. The symbol list of 7.4 and the summary point to it. Eq. (7.2) and (7.3) are set on two lines: on one line (7.3) was cut off,
+  and (7.2) already ran 55 px past the 643 px column, under its label. `maintenance.html` row. No code change.
+- Found while answering, not added to the docs (he asked for the equation only): V_k + sum_{L != 0} X_k(L) = W_k, the per-bin form of
+  V + 2 sum X = 1. Derivation: C = H diag(keep) H' with H a flat all-pass filter, so C^2 is proportional to C, and sum_b |C_ab|^2 is
+  proportional to C_aa. Physically, a blank leaves mean W m and bandwidth W B, so (W m)^2 / (W B T) = W m^2 / (B T).
+- Checked with Python, read only, on `data/rfi/rfi_dedisp_chan_weights.dat` (DM 25, 26.7 million bins). (V + sum X) / W is 0.998 at W = 1,
+  0.994 at W 0.40-0.65, 0.986 at 0.20-0.40, 0.957 at 0.05-0.20 and 0.69 at 0.005-0.05. Not separated: how much of the low end is lags
+  beyond Lmax and how much is the channel taper.
+- Worked numbers from the same file, five time bins in one phase bin with a = 1. Clean (channel 1, bins 104166-170): weight 5.000,
+  weight2 4.846, var(prof)/sigma^2 0.194, or 0.178 without X. Half-blanked (channel 2, bins 176090-94): weight 2.494, weight2 2.323,
+  var(prof)/sigma^2 0.374, or 0.302 without X. So leaving X out costs 19 % instead of 8 %. With 363 time bins per phase bin, weight2/weight
+  is 0.998 clean and 0.992 at mean W = 0.40.
