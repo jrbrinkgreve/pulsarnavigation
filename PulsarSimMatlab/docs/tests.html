@@ -16,9 +16,9 @@
 <p>Each test checks one function. Where the function gained an option, its default must still give the old output bit for bit. Its
 code must agree with an independently computed formula. And the noise it produces or models must match the prediction, within the
 scatter the prediction itself gives.</p>
-<p><code>tests/runAllTests.m</code> runs all 31 listed tests in one session (about 10 min), on their own frozen data, and then the three
+<p><code>tests/runAllTests.m</code> runs all 30 listed tests in one session (about 10 min), on their own frozen data, and then the three
 fault tests of the risk register that are not in its list yet (<code>testNavFitFaults</code>, <code>testFrontEndFaults</code>,
-<code>testFoldFaults</code>; about 10 min more). So a <code>main.m</code> run can never change what they check. A thirty-fifth, the slow
+<code>testFoldFaults</code>; about 10 min more). So a <code>main.m</code> run can never change what they check. A thirty-fourth, the slow
 <code>testRFIChain</code>, runs only when named.</p>
 <p class="meta">Labels in the table below: blocks A (channelized front end), B (RFI excision), C (fast simulator) and D (motion, clock
 and navigation) were built in numbered steps (A1–A4, B1–B6, C1–C4, D1–D5); the <a href="roadmap.html">roadmap</a> lists them. "pre-A2"
@@ -27,7 +27,7 @@ and similar mean "the code before that step".</p>
 <h2 id="run">How to run</h2>
 <pre><code>run('tests/makeTestData.m')         % once: freeze the test data in data/test/ (~2.2 GB)
 run('tests/testChannelizeIQ.m')     % one test
-run('tests/runAllTests.m')          % all 34 unit tests, in order, summary at the end (~20 min)
+run('tests/runAllTests.m')          % all 33 unit tests, in order, summary at the end (~20 min)
 runAllTests("testRFIChain")         % the slow one, only when named (~2.5 h)</code></pre>
 <p>Run them from the <code>PulsarSimMatlab</code> folder. Every test is a function with its own workspace. It prints PASS/FAIL lines and
 its numbers, and tests can be run one after another in one MATLAB session.</p>
@@ -138,7 +138,7 @@ time is fine (it does not touch <code>data/test/</code>).</li>
 <p>The table lists every test in the order <code>runAllTests</code> runs it, followed by the experiments, and the sections below take
 them one by one. All of them follow the same rule for passing.</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 836" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
+<svg class="wide" viewBox="0 0 860 814" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   <text class="ttl" x="420" y="30" text-anchor="middle">regression</text>
   <text class="ttl" x="510" y="30" text-anchor="middle">algebra</text>
   <text class="ttl" x="600" y="30" text-anchor="middle">physics</text>
@@ -372,45 +372,37 @@ them one by one. All of them follow the same rule for passing.</p>
   <rect class="box proc" x="670" y="695" width="40.0" height="12" rx="2"/>
   <text class="sub" x="715.0" y="705">120 s</text>
   <rect class="fillfg" x="10" y="712" width="800" height="22" opacity="0.25"/>
-  <text class="mono" x="14" y="727">testNavFilter</text>
-  <text class="sub" x="210" y="727">navFilter</text>
+  <text class="mono" x="14" y="727">testLoadEphemeris</text>
+  <text class="sub" x="210" y="727">loadEphemeris (DE440)</text>
   <circle cx="420" cy="723" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="723" r="5.5" class="dot"/>
-  <circle cx="600" cy="723" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="717" width="3.3" height="12" rx="2"/>
-  <text class="sub" x="678.3" y="727">10 s</text>
-  <text class="mono" x="14" y="749">testLoadEphemeris</text>
-  <text class="sub" x="210" y="749">loadEphemeris (DE440)</text>
+  <circle cx="600" cy="723" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <rect class="box proc" x="670" y="717" width="2.0" height="12" rx="2"/>
+  <text class="sub" x="677.0" y="727">2 s</text>
+  <text class="mono" x="14" y="749">testNavFitFaults</text>
+  <text class="sub" x="210" y="749">navFit under faults</text>
   <circle cx="420" cy="745" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <circle cx="510" cy="745" r="5.5" class="dot"/>
   <circle cx="600" cy="745" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
   <rect class="box proc" x="670" y="739" width="2.0" height="12" rx="2"/>
-  <text class="sub" x="677.0" y="749">2 s</text>
+  <text class="sub" x="677.0" y="749">3 s</text>
   <rect class="fillfg" x="10" y="756" width="800" height="22" opacity="0.25"/>
-  <text class="mono" x="14" y="771">testNavFitFaults</text>
-  <text class="sub" x="210" y="771">navFit under faults</text>
-  <circle cx="420" cy="767" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <circle cx="510" cy="767" r="5.5" class="dot"/>
-  <circle cx="600" cy="767" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <rect class="box proc" x="670" y="761" width="2.0" height="12" rx="2"/>
-  <text class="sub" x="677.0" y="771">3 s</text>
-  <text class="mono" x="14" y="793">testFrontEndFaults</text>
-  <text class="sub" x="210" y="793">chain under receiver faults</text>
-  <circle cx="420" cy="789" r="5.5" class="dot"/>
-  <circle cx="510" cy="789" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <text class="mono" x="14" y="771">testFrontEndFaults</text>
+  <text class="sub" x="210" y="771">chain under receiver faults</text>
+  <circle cx="420" cy="767" r="5.5" class="dot"/>
+  <circle cx="510" cy="767" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="600" cy="767" r="5.5" class="dot"/>
+  <rect class="box proc" x="670" y="761" width="140.0" height="12" rx="2"/>
+  <text class="sub" x="815.0" y="771">420 s</text>
+  <text class="mono" x="14" y="793">testFoldFaults</text>
+  <text class="sub" x="210" y="793">TOA fit under receiver faults</text>
+  <circle cx="420" cy="789" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="510" cy="789" r="5.5" class="dot"/>
   <circle cx="600" cy="789" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="783" width="140.0" height="12" rx="2"/>
-  <text class="sub" x="815.0" y="793">420 s</text>
-  <rect class="fillfg" x="10" y="800" width="800" height="22" opacity="0.25"/>
-  <text class="mono" x="14" y="815">testFoldFaults</text>
-  <text class="sub" x="210" y="815">TOA fit under receiver faults</text>
-  <circle cx="420" cy="811" r="5" fill="none" stroke="var(--fg-muted)" stroke-width="1.2" opacity="0.6"/>
-  <circle cx="510" cy="811" r="5.5" class="dot"/>
-  <circle cx="600" cy="811" r="5.5" class="dot"/>
-  <rect class="box proc" x="670" y="805" width="60.0" height="12" rx="2"/>
-  <text class="sub" x="735.0" y="815">180 s</text>
+  <rect class="box proc" x="670" y="783" width="60.0" height="12" rx="2"/>
+  <text class="sub" x="735.0" y="793">180 s</text>
 </svg>
-<figcaption><b>Figure 2.</b> The 34 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption><b>Figure 2.</b> The 33 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>
@@ -450,7 +442,6 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b; <code>mergeSubints</code> on it</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 23 Oct)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~2 min</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
-<tr><td><a href="#navfilter"><code>testNavFilter</code></a></td><td><code>navFilter</code> D4d (a moving receiver)</td><td>~10 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#loadeph"><code>testLoadEphemeris</code></a></td><td><code>loadEphemeris</code> D5a (JPL's DE440)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfitfaults"><code>testNavFitFaults</code></a></td><td><code>navFit</code> under the risk register's faults (FM-11: the clock's daily temperature term)</td><td>~3 s</td><td><span class="badge written">passes (Claude's run, 2 Nov)</span></td></tr>
@@ -984,8 +975,8 @@ of 20 Oct. Test 6 passed in Claude's run of 21 Oct and in Jasper's run of 22 Oct
 voltage chain is <a href="#rfichain"><code>testRFIChain</code></a>.</p>
 
 <h2 id="maketraj"><code>testMakeTrajectory</code> (21 Oct)</h2>
-<p>The receiver's positions and velocities agree with closed forms, for a fixed site, a ship, a probe and a custom trajectory. The
-seven checks and their numbers are in the <a href="fold.html#trajectory">phase-prediction section</a>.</p>
+<p>The receiver's positions and velocities agree with closed forms, for a fixed site and a custom trajectory. The
+three checks and their numbers are in the <a href="fold.html#trajectory">phase-prediction section</a>.</p>
 
 <h2 id="delaymodel"><code>testDelayModel</code> (21 Oct)</h2>
 <p>Every term of the delay to the barycentre agrees with a closed form computed in the test. For example, a site moved 100 km east
@@ -993,7 +984,7 @@ gives a daily sine of 193.33 µs for B0329+54, exact to 10⁻¹³ s. With JPL's 
 <a href="fold.html#delay">phase-prediction section</a>.</p>
 
 <h2 id="makepred"><code>testMakePredictor</code> (21 Oct)</h2>
-<p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns, also across a ship's sharp turn, and with the observer's own clock estimate. The eight
+<p>The predicted phase agrees with the timing model evaluated directly, to well within 1 ns, also with the observer's own clock estimate, and a kink in the delay is refused. The eight
 checks are in the <a href="fold.html#makepredictor">phase-prediction section</a>.</p>
 
 <h2 id="foldpred"><code>testFoldPredictor</code> (21 Oct)</h2>
@@ -1017,8 +1008,8 @@ honest with 2 % outliers, where plain least squares is 51 % overconfident. With 
 fitted clock is honest too. A TOA spread over many hours is fitted without bias once its row is averaged over its sub-integrations.
 The eleven checks are on the <a href="navigation.html#navfit">navigation page</a>.</p>
 
-<h2 id="navfilter"><code>testNavFilter</code> (22 Oct)</h2>
-<p>For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with
+<h2 id="navfilter"><code>testNavFilter</code> (22 Oct; archived)</h2>
+<p>Archived in <code>old/moving_platform/</code> on 5 Nov 2026, with <code>navFilter</code>. For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with
 honest error bars, also with outliers. With a calibrated start the port clock's uncertainty keeps the clock honest. TOAs spread over many hours need their rows averaged.
 The seven checks are on the <a href="navigation.html#navfilter">navigation page</a>.</p>
 

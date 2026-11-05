@@ -404,7 +404,7 @@ for fn = string(fieldnames(S)).', S.(fn) = S.(fn)(m); end
 end
 
 function tg = sideTag(t, tSid)
-%SIDETAG  A TOA's time tag (as runShip's): the time nearest the mean of its sub-ints' times t whose
+%SIDETAG  A TOA's time tag: the time nearest the mean of its sub-ints' times t whose
 % sidereal phase is the circular mean of theirs - the hour angle its data represent. A TOA from sub-ints
 % around the daily gap or from two passes is a time-average; the middle turn (mergeSubints' tRef) can lie
 % at the opposite hour angle (found 22 Oct 2026, block D4d).

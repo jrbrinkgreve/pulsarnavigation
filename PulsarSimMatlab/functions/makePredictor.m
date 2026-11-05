@@ -7,12 +7,10 @@ The pulsar's rotation is a clock at the solar-system barycentre (SSB):
 and a pulse received at time t on the trajectory arrives at the SSB at t_SSB = t + delta(t)
 (delayModel: Roemer, Einstein, Shapiro). So the phase the receiver should see is
 phi(t + delta(t)): Earth's orbit makes its rate change by up to 1e-4 (Doppler), the Earth's
-rotation by 1e-6, a ship by 3e-8. Evaluating delayModel for every time bin of a fold would put all
-that physics into the stream; instead, as at every radio observatory (TEMPO's polycos), the phase
-is precomputed once per observation as short polynomials, and the fold only evaluates them. The
-trajectory (a fixed site, a ship track, a probe, or a Kalman filter's state: makeTrajectory) is
-the only input about the receiver: the entry point for a motion predictor (decision 2 of block
-D, 21 Oct 2026).
+rotation by 1e-6. Evaluating delayModel for every time bin of a fold would put all that physics
+into the stream; instead, as at every radio observatory (TEMPO's polycos), the phase is
+precomputed once per observation as short polynomials, and the fold only evaluates them. The
+trajectory (makeTrajectory) is the only input about the receiver.
 
   pred = makePredictor(psr, traj, [t1 t2])
   [phi, f] = deal(pred.phase(tau), pred.freq(tau))   % tau: local time, s after pred.tOrigin
@@ -25,12 +23,12 @@ Inputs:
          'Clock' these are clock readings (the data's own time stamps).
 
 Name-value options:
-  'SegLength'  [s] segment length before refinement (default 3600).
+  'SegLength'  [s] segment length (default 3600).
   'Degree'     Chebyshev degree per segment (default 12).
   'Tol'        [s] largest timing error allowed (default 1e-9): each segment is checked against
-               the direct computation halfway between its nodes and split in two until the
-               phase error is below Tol x f0 (a ship's turn on a linear track is a kink in the
-               delay; the split isolates it). Shortest segment 'MinSeg' (default 1 s).
+               the direct computation halfway between its nodes. The delay at a fixed site is
+               smooth, so every segment passes; one that misses (a kink in the delay) is refused
+               with 'makePredictor:tol'.
   'DelayArgs'  name-value pairs for delayModel (default {}), e.g. {'Terms', "roemer"}.
   'Clock'      [] (default: the time stamps are true time) or the observer's ESTIMATE of its clock
                error, as a function of the clock reading c: @(c) epsHat [s], or a struct with such
@@ -63,7 +61,6 @@ arguments
     opts.SegLength (1,1) double {mustBePositive} = 3600
     opts.Degree    (1,1) double {mustBeInteger, mustBePositive} = 12
     opts.Tol       (1,1) double {mustBePositive} = 1e-9
-    opts.MinSeg    (1,1) double {mustBePositive} = 1
     opts.DelayArgs cell = {}
     opts.Clock = []
 end
@@ -85,29 +82,23 @@ phAbs0 = Phi0 + f0 * u0 + 0.5 * F1 * u0^2;
 N0 = round(phAbs0); frac0 = phAbs0 - N0;
 phiRel = @(tau) phiRelative(tau, t0, tt0, e0, epsHat, traj, psr, opts.DelayArgs, d0.total, u0, f0, F1, frac0);
 
-% segments: Chebyshev fits, split until the checks pass
+% segments: Chebyshev fits, each checked against the direct computation
 edges = unique([0:opts.SegLength:L, L]);
-todo = [edges(1:end-1).', edges(2:end).'];
-seg = zeros(0, 2); coef = zeros(0, K + 1); maxErr = 0;
+seg = [edges(1:end-1).', edges(2:end).'];
+coef = zeros(size(seg, 1), K + 1); dcoef = coef; maxErr = 0;
 xn = cos(pi * ((0:K) + 0.5) / (K + 1));               % Chebyshev nodes on [-1, 1]
 xc = cos(pi * (0:K) / K);                             % checks: the extrema, between the nodes
 Tn = cos((0:K).' * acos(xn));                         % T_k(x_j), [K+1 x K+1]
-while ~isempty(todo)
-    a = todo(1, 1); b = todo(1, 2); todo(1, :) = [];
-    m = (a + b) / 2; h = (b - a) / 2;
+for i = 1:size(seg, 1)
+    m = (seg(i, 1) + seg(i, 2)) / 2; h = (seg(i, 2) - seg(i, 1)) / 2;
     c = (2 / (K + 1)) * (Tn * phiRel(m + h * xn).').';
     c(1) = c(1) / 2;
     err = max(abs(chebEval(c, xc) - phiRel(m + h * xc))) / f0;
-    if err > opts.Tol && (b - a) / 2 >= opts.MinSeg
-        todo = [todo; a, m; m, b]; %#ok<AGROW>
-        continue
+    if err > opts.Tol
+        error('makePredictor:tol', 'Segment [%g, %g] s: timing error %.3g s above Tol (a kink in the delay?).', ...
+            seg(i, 1), seg(i, 2), err);
     end
-    seg = [seg; a, b]; coef = [coef; c]; maxErr = max(maxErr, err); %#ok<AGROW>
-end
-[seg, ord] = sortrows(seg); coef = coef(ord, :);
-dcoef = zeros(size(coef));
-for i = 1:size(coef, 1)
-    dcoef(i, :) = chebDeriv(coef(i, :)) / ((seg(i, 2) - seg(i, 1)) / 2);
+    coef(i, :) = c; dcoef(i, :) = chebDeriv(c) / h; maxErr = max(maxErr, err);
 end
 
 pred = struct();

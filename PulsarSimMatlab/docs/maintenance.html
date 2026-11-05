@@ -345,6 +345,11 @@ and the excision box says that the locked-radar tables were not rerun at DM 25. 
 Log: <code>logs/2026-11-04_docs-number-audit.md</code>.</td></tr>
 <tr><td>4 Nov 2026</td><td>after <code>919c9d1</code></td><td>Roadmap, Open items: <code>Lmax</code> of <code>blankingWeights</code> to be rechecked at DM 100, where lags up to 7 miss about 39 % of a blank's
 change in the noise. No code change. Log: <code>logs/2026-11-03_e21-derivation.md</code>.</td></tr>
+<tr><td>5 Nov 2026</td><td>after <code>4433443</code></td><td>Stage 7 simplified for a static site (Jasper: "to prevent bloat, I want to work towards a static earth position, with code later
+developed if we want to move to a moving platform"). <code>makeTrajectory</code> keeps <code>'fixed'</code> and <code>'custom'</code>; <code>makePredictor</code> no longer splits segments and
+refuses one that misses its check. Figure 7a.3 and <code>gen_predseg.py</code> removed; Figure 7a.1 redrawn by hand; Figure 2 of the tests page regenerated. <code>navFilter</code>,
+<code>runShip</code> and <code>testNavFilter</code> moved to <code>old/moving_platform/</code>, with the old versions and the old stage page. The navigation, scripts, tests, pipeline and
+localisation pages say so; the rest of them waits for the navigation redesign. Log: <code>logs/2026-11-05_static-stage7.md</code>.</td></tr>
 </table></div>
 
 </main>

@@ -23,8 +23,8 @@ standard formulas). Times in 2026 (s since J2000 TT).
      assumed one = (R(theta) dr . n) / c (roemer, 1e-12 s): a daily sine of amplitude
      100 km cos(dec) / c (193 us for B0329+54; 1e-5, the 1-minute grid) with zero mean (the east vector has no polar
      part); the full model adds only the Einstein site term v_E . dr / c^2 (< 40 ns).
-  5. Ships: a ship standing still (two equal waypoints) = the fixed site (1e-12 s, all terms); a
-     ship sailing east at 10 m/s: d(roemer)/dt (numerical) = vObs . n / c (1e-6 relative).
+  5. A 'custom' receiver at the site = the fixed site (1e-12 s, all terms); the site's
+     d(roemer)/dt (numerical) = vObs . n / c (1e-6 relative).
   6. A probe ('SSB', no planets: the Sun at the SSB) at 1 AU on the x axis: roemer = AU n_x / c
      (1e-12 s), einstein 0, shapiro = 2 T_sun ln(1 + n_x) (1e-15 s) - 0 at n_x = 0, -45 us at
      n_x = -0.99 (the Sun nearly in front of the pulsar).
@@ -140,21 +140,19 @@ fprintf(['4. site 100 km east: Roemer change vs (R dr . n)/c %.1e s; amplitude %
 if ~ok4, fails{end+1} = 'site offset'; end
 
 % ---------------------------------------------------------------------------------
-% 5. Ships
+% 5. A custom receiver at the site, and the velocity
 % ---------------------------------------------------------------------------------
-still = makeTrajectory('track', 'Time', [td(1) td(end)], 'Lat', [52 52], 'Lon', [5 5]);
-eS = max(abs(delayModel(td, still, b0329).total - delayModel(td, site, b0329).total));
-dlon = 10 * (td(end) - td(1)) / (111.32e3 * cosd(52));
-ship = makeTrajectory('track', 'Time', [td(1) td(end)], 'Lat', [52 52], 'Lon', [5 5 + dlon]);
+atSite = makeTrajectory('custom', 'PosFcn', @(t) repmat(site.ecef, 1, numel(t)), 'VelFcn', @(t) zeros(3, numel(t)));
+eS = max(abs(delayModel(td, atSite, b0329).total - delayModel(td, site, b0329).total));
 tm = td(2:end-1);
-dsh = delayModel(tm, ship, b0329, 'Terms', "roemer");
-rate = (delayModel(tm + 0.5, ship, b0329, 'Terms', "roemer").roemer - ...
-        delayModel(tm - 0.5, ship, b0329, 'Terms', "roemer").roemer);
+dsh = delayModel(tm, site, b0329, 'Terms', "roemer");
+rate = (delayModel(tm + 0.5, site, b0329, 'Terms', "roemer").roemer - ...
+        delayModel(tm - 0.5, site, b0329, 'Terms', "roemer").roemer);
 eV = max(abs(rate - dsh.nHat.' * dsh.vObs / c)) / max(abs(dsh.nHat.' * dsh.vObs / c));
 ok5 = eS < 1e-12 && eV < 1e-6;
-fprintf('5. ships: standing still = fixed site %.1e s; sailing east, d(roemer)/dt vs vObs.n/c %.1e relative: %s\n', ...
+fprintf('5. custom at the site = fixed site %.1e s; d(roemer)/dt vs vObs.n/c %.1e relative: %s\n', ...
     eS, eV, passStr(ok5));
-if ~ok5, fails{end+1} = 'ships'; end
+if ~ok5, fails{end+1} = 'custom, velocity'; end
 
 % ---------------------------------------------------------------------------------
 % 6. A probe in the barycentric frame (Sun at the SSB)

@@ -12,7 +12,7 @@ receiver's arrival time to get the arrival time at the SSB:
 
 Inputs:
   t     [1 x N] s since J2000.0 (2000-01-01 12:00 TT), as makeTrajectory.
-  traj  makeTrajectory struct: 'ECEF' (on the Earth: fixed site, ship) or 'SSB' (a probe).
+  traj  makeTrajectory struct: 'ECEF' (on the Earth: a fixed site) or 'SSB' (a test probe).
   psr   struct: raDeg, decDeg (J2000 / ICRS direction), optional distance [m] (wave-front
         curvature term; default: none).
 

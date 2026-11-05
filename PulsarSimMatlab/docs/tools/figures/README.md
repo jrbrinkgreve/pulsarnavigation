@@ -21,7 +21,7 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA: the catalogue estimate and the simulated 82–95 h) | parameters.html (Figure 2) |
 | `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html (Figure R.2) |
 | `gen_experiments.py` | what each run script varies and keeps fixed (the voltage-chain scripts, runRFIProfile, and the fast-simulator scripts runScenario and runShip) | scripts.html (Figure 1) |
-| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 34 tests of `runAllTests` and experiment 3a) | tests.html (Figure 2) |
+| `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 33 tests of `runAllTests` and experiment 3a) | tests.html (Figure 2) |
 | `gen_honesty.py` | measured ÷ stated error bar for every check of the validation record, blocks 1 to D (logged numbers) | results.html (Figure 1) |
 | `gen_effects.py` | size of each effect if left out, as a timing error, with what block D models and what is parked | limits.html (Figure 1) |
 | `gen_neighbour.py` | lesson #8: linear assignment shares noise; variance of sums up to 1.5× | lessons.html (Figure 1) |
@@ -78,14 +78,13 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_delays.py` | the delay terms for B0329+54 from 52° N: orbital Roemer over 2026, rotational Roemer over two days, Einstein, Shapiro; every term's size on one log scale against the TOA noise (uses `delaymodel.py`) | localisation.html (Figure L.3) |
 | `gen_timesys.py` | TAI, UTC, TDB and TCB as offsets from TT, 1972–2030 (leap-second table of IERS Bulletin C; IAU L_B) | localisation.html (Figure L.2) |
 | `gen_dopsmear.py` | why the phase must be predicted: B0329+54's pulse stack in a 120 s sub-int with a Doppler factor of 10⁻⁴, and the smeared fold | fold.html (Figure 7a.2) |
-| `gen_predseg.py` | `makePredictor`'s segments around a ship's turn: testMakePredictor test 5 replayed with a port of its loop (15 segments, the shortest 7 s; uses `delaymodel.py`) | fold.html (Figure 7a.3) |
 | `gen_simdraw.py` | how `simulateFold` draws a sub-int: the mean with its noise band, three drawn sub-ints, the neighbour correlation ¼ (illustrative: 128 bins) | simulator.html (Figure F.1) |
 | `gen_adaptive.py` | `adaptiveSubints`' rule under scintillation: the flux factor and the T0 of each group closing at 7 (illustrative, SNR 1.2 per sub-int) | simulator.html (Figure F.2) |
 | `gen_pulls.py` | why long runs are judged by fixed-time pulls over many runs: eight correlated runs, and the rms each method measures over 2000 repetitions (illustrative) | validation.html (Figure 9.1) |
 
-`delaymodel.py` is not a figure: it ports `delayModel`'s analytic branch and `makeTrajectory`'s `'fixed'` and linear `'track'` types
-to Python, for `gen_delays.py` and `gen_predseg.py`. It reproduces the tests' numbers: 7.607 ms daily at 52° N, Shapiro −17.1 to
-+5.8 µs, and test 5 of `testMakePredictor` (15 segments, the shortest 7 s).
+`delaymodel.py` is not a figure: it ports `delayModel`'s analytic branch and `makeTrajectory`'s `'fixed'` type
+to Python, for `gen_delays.py`. It reproduces the tests' numbers: 7.607 ms daily at 52° N, Shapiro −17.1 to
++5.8 µs.
 
 The flowcharts (pipeline run control, ground-truth rule, info chain, receiver blocks,
 overlap-save, overlap-add (sky.html), excision chain (excision.html), bin stamps, filterbank, good TOAs, test data, the chain of stage 7a

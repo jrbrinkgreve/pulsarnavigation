@@ -27,7 +27,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 <tr><td><a href="#rfiprofile"><code>runRFIProfile.m</code></a></td><td>What does RFI leave per channel after excision? (profiles for the fast simulator)</td><td><code>data/rfi/profile/</code></td><td>1 s: 25–50 min per case</td></tr>
 <tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S); with motion, the TOAs of a receiver that is not where it thinks</td><td><code>data/scenario/</code></td><td>~10 min per B0329+54 case for 30 simulated days</td></tr>
-<tr><td><a href="#ship"><code>runShip.m</code></a></td><td>Can a ship keep its position with two pulsars and a drifting clock? (the closed loop with <code>navFilter</code>)</td><td><code>data/scenario/ship_*</code></td><td>~6 min per 14-day run</td></tr>
+<tr><td><a href="#ship"><code>runShip.m</code></a> (archived)</td><td>Can a ship keep its position with two pulsars and a drifting clock? (the closed loop with <code>navFilter</code>)</td><td><code>data/scenario/ship_*</code></td><td>~6 min per 14-day run</td></tr>
 </table></div>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 378" role="img" aria-label="What each run script keeps fixed and what it varies: pulsar signal, receiver noise, signal strength, interference and front end">
@@ -142,7 +142,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
 <figcaption><b>Figure 1.</b> Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
-interference alone. <code>runScenario</code> and <code>runShip</code> draw folds with the fast simulator instead of voltages, for real
+interference alone. <code>runScenario</code> draws folds with the fast simulator instead of voltages, for real
 pulsars over days.</figcaption>
 </figure>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
@@ -399,7 +399,8 @@ For J0437 the observer must know its clock offset much better; keeping it known 
 <p>The variants are clean, RFI, RFI + calibration, + scintillation, and fixed groups for comparison. Results:
 <a href="scenario.html">scenario</a>.</p>
 
-<h2 id="ship"><code>runShip.m</code></h2>
+<h2 id="ship"><code>runShip.m</code> (archived)</h2>
+<p>Archived in <code>old/moving_platform/</code> on 5 Nov 2026, because the work now aims at a static position. This section describes it as it stood.</p>
 <p>A ship that navigates by pulsars: the fast simulator and the navigation filter in a closed loop (block D4d). The ship knows its track
 only from dead reckoning, and an unknown current pushes it off that track.</p>
 <div class="table-wrap"><table>
@@ -438,7 +439,7 @@ rows followed the same day.</p></details>
 <h2 id="processing">The processing in the scripts</h2>
 <p>The processing is factored out into <code>processIQ</code> (IQ in, fold out) and <code>foldToTOA</code> (TOAs, detection, good
 TOAs). <code>main</code> and the voltage-chain scripts use both, except <code>runLockedRadar</code>, which processes difference channels
-by superposition (<a href="roadmap.html#processiq">roadmap</a>). <code>runScenario</code> and <code>runShip</code> do not call
+by superposition (<a href="roadmap.html#processiq">roadmap</a>). <code>runScenario</code> does not call
 <code>processIQ</code>: the fast simulator draws their folds, and they form TOAs with <code>adaptiveSubints</code> and
 <code>foldToTOA</code>.</p>
 <details><summary>History</summary><p><code>processIQ</code> and <code>foldToTOA</code> since 19 Oct 2026.</p></details>

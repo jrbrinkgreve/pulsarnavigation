@@ -17,9 +17,8 @@ direction (fast spin stresses the precision), 2026.
   4. Spin-down: F1 = -1e-10 Hz/s (exaggerated): the F1 (u^2 - u0^2) / 2 = F1 du (du + 2 u0) / 2 term
      reproduced (Tol); the truth from differences (du = tau + delta - delta0), since absolute times
      (~8e8 s) carry 1e-7 s of rounding in double.
-  5. A ship's 90 deg turn on a linear track, off-centre in a segment (3.3 h; a kink in the delay:
-     the turn at a midpoint would be resolved by one split): the predictor splits segments around
-     it repeatedly (more than the unrefined count) and stays within Tol next to the turn.
+  5. A receiver at 10 m/s turning 90 deg (3.3 h; a kink in the delay) is refused
+     ('makePredictor:tol'), not fitted badly.
   6. A probe ('SSB' frame) moving at 30 km/s: phase within Tol.
   7. Evaluation outside the span and a reversed span are refused with their ids.
   8. The observer's clock estimate ('Clock', block D3c): epsHat(c) = 2.5 ms + 1.7e-6 (c - t1) +
@@ -91,18 +90,13 @@ fprintf('4. F1 = %.0e Hz/s: phase vs direct %.2e s (F1 term up to %.1f turns): %
 if ~ok4, fails{end+1} = 'spin-down'; end
 
 % ---------------------------------------------------------------------------------
-% 5. A ship's 90 deg turn on a linear track
+% 5. A kink in the delay is refused
 % ---------------------------------------------------------------------------------
-dlon = 10 * 3 * 3600 / (111.32e3 * cosd(52)); dlat = 10 * 3 * 3600 / 111.2e3;
-ship = makeTrajectory('track', 'Time', t1 + [0 3.3 6] * 3600, 'Lat', [52 52 52 + dlat], 'Lon', [5 5 + dlon 5 + dlon]);
-ps5 = makePredictor(psr, ship, [t1, t1 + 6 * 3600]);
-tt = 3.3 * 3600 + [-200:10:-10, -1, 1, 10:10:200];    % next to the turn
-d5 = delayModel(t1 + [0, tt], ship, psr).total;
-e5 = max(abs((ps5.phase(tt) - ps5.phase(0)) - psr.f0 * (tt + d5(2:end) - d5(1)))) / psr.f0;
-ok5 = size(ps5.seg, 1) > 6 && e5 < tol;
-fprintf('5. ship turning 90 deg: %d segments (6 unrefined, shortest %.0f s); phase next to the turn vs direct %.2e s: %s\n', ...
-    size(ps5.seg, 1), min(diff(ps5.seg, 1, 2)), e5, passStr(ok5));
-if ~ok5, fails{end+1} = 'ship turn'; end
+tk = t1 + 3.3 * 3600;
+turn = makeTrajectory('custom', 'PosFcn', @(t) site.ecef + 10 * (site.enu(:, 1) * min(t - t1, tk - t1) + site.enu(:, 2) * max(t - tk, 0)));
+ok5 = strcmp(errId(@() makePredictor(psr, turn, [t1, t1 + 6 * 3600])), 'makePredictor:tol');
+fprintf('5. a receiver turning 90 deg (a kink in the delay) is refused: %s\n', passStr(ok5));
+if ~ok5, fails{end+1} = 'kink refused'; end
 
 % ---------------------------------------------------------------------------------
 % 6. A probe in the barycentric frame

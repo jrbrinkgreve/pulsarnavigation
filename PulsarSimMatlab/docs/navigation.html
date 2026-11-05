@@ -10,10 +10,9 @@
 <main>
 <h1>Stage 10 · Navigation: position and clock from the TOAs</h1>
 <p class="lede">Each TOA arrives a little early or late against the phase that stage 7a predicted. The receiver is not quite where it
-thinks it is, and its clock is not quite right. This stage turns those residuals into the receiver's position and clock. On a ship it
-also estimates the velocity.</p>
+thinks it is, and its clock is not quite right. This stage turns those residuals into the receiver's position and clock.</p>
 <p class="meta">Functions: <code>navFit</code> (a fixed site, all TOAs at once) and <code>navFilter</code> (a moving receiver: a Kalman
-filter and smoother) · input: the TOA residuals, observed minus predicted for the trajectory the observer assumes · block D</p>
+filter and smoother; archived, Section 10.4) · input: the TOA residuals, observed minus predicted for the trajectory the observer assumes · block D</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#signal">10.1 The navigation signal</a></li>
@@ -570,7 +569,9 @@ With a perfect clock B0329+54 alone already reaches 9 km. Numbers: the planning 
 
 <h2 id="navfilter">10.4 <code>navFilter</code>: a moving receiver <span class="badge validated">validated</span></h2>
 <div class="sig">fit = navFilter(toa, psrs, trajDR, ...)</div>
-<p class="meta"><a href="api.html#navfilter">Full interface and help text of <code>navFilter</code> →</a></p>
+<div class="callout warn"><span class="ttl">Archived</span>
+<p>The work now aims at a static position, so on 5 Nov 2026 <code>navFilter</code>, <code>runShip</code> and <code>testNavFilter</code> moved to
+<code>old/moving_platform/</code>. This section describes them as they stood. They return if a moving platform is developed later.</p></div>
 <p>A fixed site is the simple case, because the position does not change. On a ship it does, and the observer knows its track only from
 dead reckoning: speed log and compass. The dead-reckoning error grows; an unknown
 current of 0.3 m/s is 26 km a day. <code>navFilter</code> estimates that error over time from the TOA residuals, together with the clock. It
@@ -855,8 +856,8 @@ prediction</a>).</td><td><span class="badge validated">validated 22 Oct</span></
 <tr><th>Item</th><th>Why it waits</th><th>What it needs</th></tr>
 <tr><td>J0437's binary orbit</td><td>J0437 never rises at 52° N. It matters for a southern route or a probe.</td><td>A binary timing model
 (ELL1) in the predictor and the truth: about 3 s of delay over 5.74 days.</td></tr>
-<tr><td>Real ship and probe trajectories</td><td>No data yet.</td><td>Logged positions into <code>makeTrajectory</code>
-<code>'track'</code>, which exists; a reader for a probe's trajectory file.</td></tr>
+<tr><td>Real ship and probe trajectories</td><td>No data yet.</td><td>Logged positions into a moving-platform trajectory
+(the old <code>'track'</code> type is in <code>old/moving_platform/</code>); a reader for a probe's trajectory file.</td></tr>
 <tr><td>The Earth's real axis in the fit's rows</td><td>The rows use the Earth rotation angle only. Against real data the axis has
 turned 0.37°: about 0.4 % of the offsets fitted.</td><td>The same precession and nutation as <code>delayModel</code>'s
 <code>'Ephemeris'</code> mode.</td></tr>

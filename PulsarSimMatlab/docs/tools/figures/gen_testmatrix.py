@@ -33,7 +33,6 @@ tests = [('testGeneratePulsarSignal', 'generatePulsarSignal', '', 'A', 'P', 5), 
          ('testTrueResiduals', 'trueResiduals', '', 'A', '', 2),
          ('testMakeClock', 'makeClock', '', 'A', 'P', 2),
          ('testNavFit', 'navFit', '', 'A', 'P', 120),
-         ('testNavFilter', 'navFilter', '', 'A', 'P', 10),
          ('testLoadEphemeris', 'loadEphemeris (DE440)', '', 'A', '', 2),
          ('testNavFitFaults', 'navFit under faults', '', 'A', '', 3),   # 2 Nov 2026 (risk register FM-11)
          ('testFrontEndFaults', 'chain under receiver faults', 'R', '', 'P', 420),   # 3 Nov 2026 (FM-8, 9, 13, 39, 40)
@@ -67,7 +66,7 @@ svg = f'''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 {H}" role="img" aria-label="Which kinds of check each unit test contains: regression, algebra and physics, with the run time of each test">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption><b>Figure 2.</b> The 34 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
+<figcaption><b>Figure 2.</b> The 33 unit tests that <code>runAllTests</code> runs, in its order, and experiment 3a (tenth row; not run by <code>runAllTests</code>), with the kinds of check each one
 contains (filled dot) and its approximate run time (the table below). The slow <code>testRFIChain</code>, ~2.5 h, is not shown. Regression checks exist where a function gained an option after it was validated; algebra checks
 compare the code with an independent formula or matrix; physics checks compare a measured quantity (noise, false-flag rates, a
 found radar period) with its prediction, within the predicted scatter.</figcaption>

@@ -254,7 +254,7 @@ observer keeps folding with the assumed trajectory, which is its own knowledge a
 navigation signal. Navigation turns the TOAs into the receiver's position and clock offset (<a href="navigation.html">stage 10</a>):
 <code>navFit</code> for a fixed site, and <code>navFilter</code>, a Kalman filter, for a moving ship. In the ship scenario the filter feeds its
 estimated track back into <code>makeTrajectory</code> every evening (<a href="scripts.html#ship"><code>runShip</code></a>): the dashed loop
-in Figure O.2.</p>
+in Figure O.2. Both ship functions were archived in <code>old/moving_platform/</code> on 5 Nov 2026.</p>
 <details><summary>History</summary>
 <p>The fast simulator was built in block C, on 20 and 21 Oct 2026. Block D started on 21 Oct 2026 with the trajectory, the delay model
 and the predictor. This section was added to the overview the same day. The simulator's truth followed on 21 Oct and navigation on
@@ -326,7 +326,7 @@ loses nothing the observer could see. The chain stays as the reference that the 
 <p>The last choice is how motion enters the fold: as a predicted phase. Computing the delays inside the fold, for every time bin, would put all the motion
 physics into the streaming fold. Instead the phase is computed once per observation, as short polynomials, the way radio observatories do
 it. The fold only evaluates them, which is also what an FPGA or GPU version needs. The receiver enters only through its trajectory, so a
-Kalman filter can later supply it without changes to the fold (<a href="fold.html#makepredictor">phase prediction</a>).</p>
+moving platform can be added later without changes to the fold (<a href="fold.html#makepredictor">phase prediction</a>).</p>
 
 <h2 id="run">O5 · Run control in <code>main.m</code>, and <code>processIQ</code></h2>
 <p>These stages are run from <code>main.m</code>, where each stage group has a switch. <code>true</code> runs it; <code>false</code> reuses the files an earlier run wrote (Figure O.3).</p>

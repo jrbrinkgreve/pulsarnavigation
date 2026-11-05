@@ -1,6 +1,6 @@
 import numpy as np
 # A line-by-line port of functions/delayModel.m's analytic branch (no 'Ephemeris') and of makeTrajectory's
-# 'fixed' and linear 'track' types, for the figures of localisation.html and fold.html#prediction. Same constants,
+# 'fixed' type, for the figures of localisation.html and fold.html#prediction. Same constants,
 # same formulas; times in s since J2000.0 (TT), positions in m, equatorial J2000.
 C = 299792458.0; AU = 149597870700.0; TSUN = 1.32712440018e20 / C**3
 B0329 = dict(raDeg=53.2474, decDeg=54.5787)
@@ -15,16 +15,6 @@ def geodetic_to_ecef(lat, lon, h=0.0):
 def fixed(lat, lon, h=0.0):
     r = geodetic_to_ecef(lat, lon, h)
     return dict(frame='ECEF', pos=lambda t: np.repeat(r[:, None], np.size(t), 1), vel=lambda t: np.zeros((3, np.size(t))))
-
-def track(tk, lat, lon):
-    """makeTrajectory('track', ...) with the default 'linear' interpolation (in ECEF)."""
-    tk = np.asarray(tk, float); P = np.stack([geodetic_to_ecef(a, b) for a, b in zip(lat, lon)], 1)
-    def pos(t):
-        t = np.atleast_1d(t); return np.stack([np.interp(t, tk, P[i]) for i in range(3)])
-    def vel(t):
-        t = np.atleast_1d(t); k = np.clip(np.searchsorted(tk, t, side='right') - 1, 0, len(tk) - 2)
-        return (P[:, k + 1] - P[:, k]) / (tk[k + 1] - tk[k])
-    return dict(frame='ECEF', pos=pos, vel=vel)
 
 def tdb_minus_tt(t):
     g = np.radians(357.53 + 0.98560028 * (t / 86400))
