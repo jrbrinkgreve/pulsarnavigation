@@ -48,5 +48,5 @@ A fixed site's delay comes from the Earth's orbit and rotation, which are smooth
 - Docs: no broken internal link or anchor on any page; fold.html and tests.html render without console errors. Other changed pages were
   checked for links only, not opened.
 
-## For the next session
-- Jasper's own `runAllTests` before the "validated" badges hold for the changed tests.
+- Jasper's own `runAllTests`, after the push: "all passed" (his report; I did not see the output). The stage 7 badges hold, and the five
+  stage 7 rows of tests.html now name this run.
