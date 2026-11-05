@@ -54,22 +54,42 @@ spin frequency), not an absolute TOA. Both need the shift τ, which the next sec
 <h2 id="fftfit">8.2 FFTFIT: finding the shift (Taylor 1992)</h2>
 <p>The shift is found with FFTFIT, the standard pulsar-timing method: continuous shifts, fast, and the maximum-likelihood estimator for
 white noise, which is the weak-signal regime. The SNR sweep showed it within 1 % of the theoretical optimum up to −5 dB. It loses only at very high SNR, where
-self-noise dominates (1.5× at +10 dB, 2.4× at +20 dB), which is irrelevant for the small-antenna target. It works in four steps (Figure 8.1).</p>
-<ol>
-<li>Form the cross-spectrum \(X_k = P_k\, S_k^*\) for harmonics \(k = 1 \ldots \lfloor N/2 \rfloor - 1\) (DC carries only the baseline;
-Nyquist is ambiguous). The cross-correlation at any shift is then
-<div class="eq"><span class="label">(8.3)</span>\[ C(\tau) = \mathrm{Re} \sum_{k} X_k\, e^{\,i 2\pi k \tau} \]</div>
+self-noise dominates (1.5× at +10 dB, 2.4× at +20 dB), which is irrelevant for the small-antenna target.</p>
+<p>Behind the method lies one optimisation problem. It asks for the baseline, amplitude and shift that leave the smallest squared residual
+against the model of Eq. (8.1):</p>
+<div class="eq"><span class="label">(8.3)</span>\[ \min_{a,\,b,\,\tau}\; \chi^2, \qquad \chi^2 = \sum_j \big[\, p_j - a - b\, s(\phi_j - \tau) \,\big]^2 \]</div>
+<dl class="where">
+<dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
+<dt>\(\phi_j\)</dt><dd>phase of bin \(j\) [turns]</dd>
+<dt>\(\chi^2\)</dt><dd>the sum of squared residuals, with every bin counted equally; unlike \(\chi^2_\mathrm{red}\) of Section 8.4, it is not divided by the noise</dd>
+</dl>
+<p>For white Gaussian noise the likelihood falls exponentially with this sum, so the smallest χ² is also the most likely fit. Three parameters
+seem to need a search in three dimensions, but two of them have closed forms. The way there runs through the Fourier domain, where a shift
+is a phase ramp and Parseval's theorem turns the sum over bins into a sum over harmonics. The baseline touches only the DC harmonic, where it
+can always cancel the residual, so it drops out:</p>
+<div class="eq"><span class="label">(8.4)</span>\[ \begin{gathered} \chi^2 \;\propto\; \sum_k \big|\, P_k - b\, S_k\, e^{-i 2\pi k \tau} \,\big|^2 \\ = \sum_k |P_k|^2 \;-\; 2b\, C(\tau) \;+\; b^2 \sum_k |S_k|^2 \end{gathered} \]</div>
+<p>Only the middle term holds the shift. It is the cross-correlation of profile and template:</p>
+<div class="eq"><span class="label">(8.5)</span>\[ C(\tau) = \mathrm{Re} \sum_{k} X_k\, e^{\,i 2\pi k \tau}, \qquad X_k = P_k\, S_k^* \]</div>
 <dl class="where">
 <dt>\(P_k\), \(S_k\)</dt><dd>\(k\)-th Fourier coefficient (DFT) of the profile and of the template; \(^*\) is the complex conjugate</dd>
-<dt>\(k\)</dt><dd>harmonic number (cycles per turn)</dd>
+<dt>\(k\)</dt><dd>harmonic number (cycles per turn), \(1 \ldots \lfloor N/2 \rfloor - 1\); DC carries only the baseline, and Nyquist is ambiguous</dd>
 <dt>\(N\)</dt><dd>number of phase bins (<code>NBin</code> = 2048)</dd>
+<dt>\(\propto\)</dt><dd>up to the factor \(2/N\), and a Nyquist term that holds no parameter</dd>
+<dt>\(X_k\)</dt><dd>the cross-spectrum</dd>
 <dt>\(C(\tau)\)</dt><dd>the continuous cross-correlation of profile and template at shift \(\tau\) [turns]</dd>
 </dl>
-A shift is a phase ramp in the Fourier domain, so any sub-bin τ is exact.</li>
-<li>Coarse search: a zero-padded inverse FFT on 8×<var>N</var> points (1/8192 turn = 1.22 µs).</li>
+<p>Eq. (8.4) is a parabola in \(b\), so the best amplitude for any shift follows at once. Putting it back leaves a function of τ alone:</p>
+<div class="eq"><span class="label">(8.6)</span>\[ \hat b(\tau) = \frac{C(\tau)}{\sum_k |S_k|^2}, \qquad \chi^2_\mathrm{min}(\tau) \;\propto\; \sum_k |P_k|^2 - \frac{C(\tau)^2}{\sum_k |S_k|^2} \]</div>
+<p>Only \(C(\tau)\) still depends on τ, so minimising χ² means maximising \(C(\tau)^2\). A pulse has a positive amplitude, so the fit takes the
+highest peak of \(C(\tau)\), where \(C'(\tau) = 0\) and \(C''(\tau) &lt; 0\). The three-parameter problem has become a search along one axis.
+\(C(\tau)\) has several peaks, so a local method alone could end on the wrong one, which is why FFTFIT searches coarsely first and then
+refines. It works in four steps (Figure 8.1).</p>
+<ol>
+<li>Form the cross-spectrum \(X_k\) of Eq. (8.5). A shift is a phase ramp, so any sub-bin τ is exact.</li>
+<li>Coarse search: a zero-padded inverse FFT on 8×<var>N</var> points finds the highest peak (1/16384 turn = 0.61 µs).</li>
 <li>Refine: Newton on <var>C</var>′(τ) = 0 with analytic <var>C</var>′, <var>C</var>″; steps clamped to one coarse step; <var>C</var>″ &lt; 0
 required; stop at 10⁻¹⁴ turns.</li>
-<li><var>b</var> = <var>C</var>(τ̂)/Σ|<var>S</var><sub>k</sub>|²; <var>a</var> = (<var>P</var><sub>0</sub> − <var>b</var>·<var>S</var><sub>0</sub>)/<var>N</var>; τ wrapped to [−½, ½).</li>
+<li><var>b</var> from Eq. (8.6) at τ̂; <var>a</var> = (<var>P</var><sub>0</sub> − <var>b</var>·<var>S</var><sub>0</sub>)/<var>N</var>, which cancels the DC residual; τ wrapped to [−½, ½).</li>
 </ol>
 <p>Step 4 gives the TOA through Eq. (8.2). How far the noise can move that TOA is the next question.</p>
 <figure class="scroll">
@@ -121,7 +141,7 @@ required; stop at 10⁻¹⁴ turns.</li>
 </svg>
 <figcaption><b>Figure 8.1.</b> FFTFIT on a simulated profile (2048 bins, 5 % Gaussian, true shift 40 µs, white noise). (a) The data and the fitted
 <var>a</var> + <var>b</var>·<var>s</var>(φ − τ̂). (b) The cross-correlation with the template, exact between bins from the Fourier phases;
-τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.4): the template slope, so only the pulse flanks set the error.</figcaption>
+τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.7): the template slope, so only the pulse flanks set the error.</figcaption>
 </figure>
 
 <h2 id="err">8.3 The uncertainty</h2>
@@ -129,7 +149,7 @@ required; stop at 10⁻¹⁴ turns.</li>
 combination of the data: \(C' = \sum_j d_j\, p_j\), with \(d\) from the
 template slope, largest on the pulse flanks. Noise moves \(C'\) by \(\delta C'\), and the peak moves until \(C' = 0\) again:
 \(\delta\tau = -\delta C'/C''\). Therefore</p>
-<div class="eq"><span class="label">(8.4)</span>\[ \operatorname{var}(\hat\tau) = \frac{d^{\mathsf T}\, \mathrm{Cov}\; d}{C''^{\,2}} \qquad \text{(and similarly } \sigma_b \text{ from } C(\tau)\text{)} \]</div>
+<div class="eq"><span class="label">(8.7)</span>\[ \operatorname{var}(\hat\tau) = \frac{d^{\mathsf T}\, \mathrm{Cov}\; d}{C''^{\,2}} \qquad \text{(and similarly } \sigma_b \text{ from } C(\tau)\text{)} \]</div>
 <dl class="where">
 <dt>\(\hat\tau\)</dt><dd>the fitted shift [turns]</dd>
 <dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
@@ -140,7 +160,7 @@ template slope, largest on the pulse flanks. Noise moves \(C'\) by \(\delta C'\)
 </dl>
 <p>This is first-order error propagation (the delta method). For white noise it equals the least-squares/Fisher error, and for a Gaussian
 pulse it gives σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR.</p>
-<p>Eq. (8.4) still needs <b>the noise covariance Cov</b>, which comes from one of two noise models. In <b><code>'radiometer'</code></b> (default), each time bin has
+<p>Eq. (8.7) still needs <b>the noise covariance Cov</b>, which comes from one of two noise models. In <b><code>'radiometer'</code></b> (default), each time bin has
 variance <var>m</var>²/(<var>B</var><sub>noise</sub>·Δ<var>t</var>), where <var>m</var> = <var>a</var> + <var>b</var>·<var>s</var> is the
 <b>fitted</b> model, so the pulsar's own contribution, self-noise, is included. Each phase bin then has variance
 σ<sub>tb</sub>²·<code>weight2</code>/<code>weight</code>², and its covariance with the neighbours comes from <code>weightX</code>
@@ -158,8 +178,8 @@ and the χ² flag. In an early radar test (full band, no excision) the fit locke
 1 µs, the actual errors about 2000 µs rms.</p></div>
 
 <h2 id="chi2">8.4 The χ² quality flag</h2>
-<p>The error bar of Eq. (8.4) is only honest if the profile is the template plus noise. The fit therefore tests that, on the pulse:</p>
-<div class="eq"><span class="label">(8.5)</span>\[ \chi^2_\mathrm{red} = \frac{1}{n - 3} \sum_{j\,\in\,\text{on-pulse}} \frac{(p_j - m_j)^2}{v_j} \]</div>
+<p>The error bar of Eq. (8.7) is only honest if the profile is the template plus noise. The fit therefore tests that, on the pulse:</p>
+<div class="eq"><span class="label">(8.8)</span>\[ \chi^2_\mathrm{red} = \frac{1}{n - 3} \sum_{j\,\in\,\text{on-pulse}} \frac{(p_j - m_j)^2}{v_j} \]</div>
 <dl class="where">
 <dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
 <dt>\(m_j\)</dt><dd>the fitted model \(a + b\,s(\phi_j - \hat\tau)\) in that bin</dd>
@@ -246,7 +266,7 @@ That is why optimal weighting exists.</p>
 <h2 id="optimal">8.6 Optimal weighting, the default in <code>main.m</code></h2>
 <p>Optimal weighting keeps the channels apart. <code>'Weighting','optimal'</code> fits all of them at once with one shift and one
 amplitude:</p>
-<div class="eq"><span class="label">(8.6)</span>\[ \mathrm{prof}_{cj} = a_c + b\, s_c\, T(\phi_j - \tau) + \text{noise} \]</div>
+<div class="eq"><span class="label">(8.9)</span>\[ \mathrm{prof}_{cj} = a_c + b\, s_c\, T(\phi_j - \tau) + \text{noise} \]</div>
 <dl class="where">
 <dt>\(\mathrm{prof}_{cj}\)</dt><dd>folded profile of channel \(c\) in phase bin \(j\)</dd>
 <dt>\(a_c\)</dt><dd>a baseline per channel</dd>
@@ -257,14 +277,27 @@ amplitude:</p>
 <dt>\(\tau\)</dt><dd>one common shift [turns]</dd>
 </dl>
 <p>The amplitude is shared on purpose: at −54 dB each channel's pulse has SNR ≪ 1 per sub-int, and 128 free amplitudes would fit
-noise. One amplitude with a known spectral shape uses all channels' information for the one thing that matters, the shift. The fit then
-works as follows.</p>
-<p>Each bin and channel is weighted by 1/variance, from the radiometer model with the current fit, or from per-channel off-pulse
-residuals. The fit is iterated until it converges (|Δτ| &lt; 10⁻¹²), at most <code>MaxIterations</code> = 10 times. Whether it converged is
-kept in <code>toa.converged</code>; a sub-int that did not converge keeps its TOA, and the summary counts it.</p>
-<p>For fixed τ, <var>a</var><sub>c</sub> and <var>b</var> follow by weighted least squares; τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ),
-the weighted matched filter: FFT correlations on the upsampled grid, a bounded search (<code>fminbnd</code>), then Newton on the analytic
-slope (a value-only search stops at ~10⁻¹⁰ turns).</p>
+noise. One amplitude with a known spectral shape uses all channels' information for the one thing that matters, the shift. The optimisation
+problem is that of Eq. (8.3) with two changes: every channel has its own baseline, and every bin counts by how noisy it is:</p>
+<div class="eq"><span class="label">(8.10)</span>\[ \begin{gathered} \min_{a_c,\,b,\,\tau}\; \sum_c \sum_j w_{cj} \big[\, \mathrm{prof}_{cj} - a_c - b\, s_c\, T(\phi_j - \tau) \,\big]^2 \\ w_{cj} = \frac{1}{\operatorname{var}(\mathrm{prof}_{cj})} \end{gathered} \]</div>
+<p>The variance comes from the radiometer model with the current fit, or from per-channel off-pulse residuals, so the weights depend on the
+answer. The fit therefore holds the weights fixed, solves Eq. (8.10), recomputes the weights and repeats until it converges
+(|Δτ| &lt; 10⁻¹²), at most <code>MaxIterations</code> = 10 times. Whether it converged is kept in <code>toa.converged</code>; a sub-int
+that did not converge keeps its TOA, and the summary counts it.</p>
+<p>With the weights fixed, the problem reduces along the same route as FFTFIT. For a fixed τ, <var>a</var><sub>c</sub> and <var>b</var>
+follow by weighted least squares. Putting them back again leaves a function of τ alone:</p>
+<div class="eq"><span class="label">(8.11)</span>\[ \hat b(\tau) = \frac{N(\tau)}{D_n(\tau)}, \qquad \chi^2_\mathrm{min}(\tau) = \text{const} - \frac{N(\tau)^2}{D_n(\tau)} \]</div>
+<dl class="where">
+<dt>\(N(\tau)\)</dt><dd>\(\sum_c s_c \sum_j w_{cj}\,(\mathrm{prof}_{cj} - \bar p_c)\, T(\phi_j - \tau)\), the weighted cross-correlation; here \(N\) is not the number of phase bins</dd>
+<dt>\(D_n(\tau)\)</dt><dd>\(\sum_c s_c^2 \sum_j w_{cj}\, \big[T(\phi_j - \tau) - \bar T_c(\tau)\big]^2\), how much of the pulse shape the weighted bins can see</dd>
+<dt>\(\bar p_c\), \(\bar T_c(\tau)\)</dt><dd>means over the phase bins of channel \(c\), weighted by \(w_{cj}\), of the profile and of the shifted template</dd>
+<dt>const</dt><dd>\(\sum_c \sum_j w_{cj}\,(\mathrm{prof}_{cj} - \bar p_c)^2\), which holds no fit parameter</dd>
+</dl>
+<p>So τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ), the weighted matched filter: FFT correlations on the upsampled grid, a
+bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a value-only search stops at ~10⁻¹⁰ turns). The link back to
+FFTFIT is exact. With one channel and equal weights, <var>N</var>(τ) is proportional to <var>C</var>(τ) and <var>D</var><sub>n</sub> no
+longer depends on τ, so Eq. (8.11) becomes Eq. (8.6). With unequal weights the denominator has to stay, because a blank changes how much of
+the pulse the fit can see at each shift.</p>
 <p>The error bars come from a sandwich estimator, \(\mathrm{Cov} = A^{-1}BA^{-1}\), \(A = J^\mathsf{T}WJ\), \(B = J^\mathsf{T}W\Sigma WJ\): \(J\) the derivatives of the
 model with respect to the fit parameters, \(W\) the fit weights (diagonal), \(\Sigma\) the full noise covariance of every channel (all lags).
 These \(A\), \(B\), \(W\) are matrices, not amplitude, bandwidth or taper. The weights ignore neighbour covariances (correlation ~0.26, a small
@@ -462,7 +495,7 @@ bars come out too small. <code>estimateTOA</code> therefore warns (<code>estimat
 <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/10 of the template width <var>w</var>, and returns both, in
 <code>info.binResolution</code> and <code>info.templateWidth</code>. The width comes from the template's harmonics, over the harmonics that
 the fit uses:</p>
-<div class="eq"><span class="label">(8.7)</span>\[ w = \frac{\sqrt{3\ln 2}}{\pi\,k_t} \approx \frac{0.459}{k_t}, \qquad k_t^2 = \frac{\sum_k k^4 |S_k|^2}{\sum_k k^2 |S_k|^2} \]</div>
+<div class="eq"><span class="label">(8.12)</span>\[ w = \frac{\sqrt{3\ln 2}}{\pi\,k_t} \approx \frac{0.459}{k_t}, \qquad k_t^2 = \frac{\sum_k k^4 |S_k|^2}{\sum_k k^2 |S_k|^2} \]</div>
 <p>This width is the right measure because of what averaging does to each harmonic. Averaging over <var>r</var> turns multiplies harmonic <var>k</var> by sin(π<var>kr</var>)/(π<var>kr</var>) ≈ 1 − (π<var>kr</var>)²/6, and the
 fit weights harmonic <var>k</var> by <var>k</var>²|<var>S<sub>k</sub></var>|², so the model error grows as (π<var>r k<sub>t</sub></var>)²/6. For a
 Gaussian, <var>w</var> is exactly its FWHM, so the measurements below, made with the Gaussian pulse before this definition, hold unchanged.
@@ -515,14 +548,14 @@ of equal weighting's.</p>
 
 <div class="callout why"><span class="ttl">Summary</span>
 <ul>
-<li>A TOA is the sub-int's reference time plus the fitted shift over the spin frequency (Eq. 8.2); FFTFIT finds the shift exactly between
-bins.</li>
-<li>Its error bar propagates the full noise covariance of the fold through the peak condition (Eq. 8.4), with the noise level taken from
+<li>A TOA is the sub-int's reference time plus the fitted shift over the spin frequency (Eq. 8.2); FFTFIT finds the shift by least squares
+(Eq. 8.3), which reduces to the highest peak of the cross-correlation (Eq. 8.6), exact between bins.</li>
+<li>Its error bar propagates the full noise covariance of the fold through the peak condition (Eq. 8.7), with the noise level taken from
 the fitted model, never from the truth.</li>
 <li>χ² above 2 flags profiles that are not template-shaped; <code>pChi2</code> reports smaller noise-model errors without dropping
 TOAs.</li>
-<li>On the channel path one shift and one amplitude are fitted to all channels with inverse-variance weights and sandwich error bars,
-which also notches out narrowband RFI.</li>
+<li>On the channel path one shift and one amplitude are fitted to all channels by weighted least squares (Eq. 8.10), with sandwich error
+bars; the inverse-variance weights also notch out narrowband RFI.</li>
 </ul></div>
 <p>A TOA is only useful if the pulse is really there. The next page, <a href="detection.html">detection and good TOAs</a>, decides
 that.</p>

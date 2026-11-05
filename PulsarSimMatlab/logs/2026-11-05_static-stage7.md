@@ -67,3 +67,21 @@ Jasper asked how W, V and X couple to Section 7.4, then: "and yes, add the per-b
   weight2 4.846, var(prof)/sigma^2 0.194, or 0.178 without X. Half-blanked (channel 2, bins 176090-94): weight 2.494, weight2 2.323,
   var(prof)/sigma^2 0.374, or 0.302 without X. So leaving X out costs 19 % instead of 8 %. With 363 time bins per phase bin, weight2/weight
   is 0.998 clean and 0.992 at mean W = 0.40.
+
+## Later on 5 Nov: the optimisation problems behind the TOA fit
+Jasper asked what optimisation problem FFTFIT solves, then: "can we couple the related optimisation problem as a written out link, and put it
+in the docs?" No code change.
+
+- `toa.html` 8.2: FFTFIT is least squares, Eq. (8.3). Parseval and the phase ramp give Eq. (8.4), the cross-correlation is Eq. (8.5), and the
+  parabola in b gives Eq. (8.6). Only C(tau) depends on the shift, so the three-parameter problem becomes the highest peak of C(tau).
+- `toa.html` 8.6: optimal weighting is weighted least squares, Eq. (8.10), with the weights held fixed each round. Eq. (8.11) gives
+  chi2_min(tau) = const - N^2/Dn, which defines the N and Dn the page already named. With one channel and equal weights, N = (2/NBin) C(tau)
+  and Dn does not depend on tau, so it becomes Eq. (8.6).
+- Renumbered: old (8.3) to (8.5), (8.4) to (8.7), (8.5) to (8.8), (8.6) to (8.9), (8.7) to (8.12). Older logs quote the old numbers. `gen_toa.py`'s
+  caption follows, and its output still equals the page's Figure 8.1 block. `formulas.html` got two rows; the summary box points to the equations.
+- Stale number fixed: step 2 said 1/8192 turn = 1.22 us, left over from NBin 1024. At NBin 2048, Upsample 8 and a 10 ms period the coarse grid is
+  1/16384 turn = 0.61 us.
+- Checked in Python against direct least squares (2048 bins, a two-component template, 5 channels with blanks and unequal weights), not in MATLAB.
+  FFTFIT vs direct: tau agrees to 3.3e-10 turns (the limit of the direct search), a and b to 1e-14. The Parseval form and chi2_min(tau) hold to
+  4e-16 relative, the weighted chi2_min(tau) to 4e-16, and b_hat and a_c to 3e-14. One channel, w = 1: N / ((2/NBin) C) - 1 is 5e-15 and Dn is
+  constant to 4e-16. With blanks and unequal weights Dn varied by a factor 1.22 with tau. C(tau) had 8 local maxima in that example.

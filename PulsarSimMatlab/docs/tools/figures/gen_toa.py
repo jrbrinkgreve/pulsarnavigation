@@ -63,6 +63,6 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure 8.1.</b> FFTFIT on a simulated profile (2048 bins, 5 % Gaussian, true shift 40 µs, white noise). (a) The data and the fitted
 <var>a</var> + <var>b</var>·<var>s</var>(φ − τ̂). (b) The cross-correlation with the template, exact between bins from the Fourier phases;
-τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.4): the template slope, so only the pulse flanks set the error.</figcaption>
+τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.7): the template slope, so only the pulse flanks set the error.</figcaption>
 </figure>'''
 open('toa.svg', 'w').write(svg)
