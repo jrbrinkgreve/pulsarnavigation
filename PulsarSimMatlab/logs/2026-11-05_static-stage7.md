@@ -67,6 +67,10 @@ Jasper asked how W, V and X couple to Section 7.4, then: "and yes, add the per-b
   weight2 4.846, var(prof)/sigma^2 0.194, or 0.178 without X. Half-blanked (channel 2, bins 176090-94): weight 2.494, weight2 2.323,
   var(prof)/sigma^2 0.374, or 0.302 without X. So leaving X out costs 19 % instead of 8 %. With 363 time bins per phase bin, weight2/weight
   is 0.998 clean and 0.992 at mean W = 0.40.
+- Correction, later the same day: every bin with W below 0.9 in that file lies outside `fullySupportedBins` (338 to 175172), at the file end, where
+  the zero padding acts as one very long blank. The fold never uses those bins. Inside the supported range the lowest W is 0.901, so "half-blanked"
+  above describes the padding, not the RFI mask. The numbers stand as arithmetic on W, V and X. The check of V + sum X against W below W = 0.9 has
+  only this padding behind it, not short blanks.
 
 ## Later on 5 Nov: the optimisation problems behind the TOA fit
 Jasper asked what optimisation problem FFTFIT solves, then: "can we couple the related optimisation problem as a written out link, and put it
@@ -85,3 +89,45 @@ in the docs?" No code change.
   FFTFIT vs direct: tau agrees to 3.3e-10 turns (the limit of the direct search), a and b to 1e-14. The Parseval form and chi2_min(tau) hold to
   4e-16 relative, the weighted chi2_min(tau) to 4e-16, and b_hat and a_c to 3e-14. One channel, w = 1: N / ((2/NBin) C) - 1 is 5e-15 and Dn is
   constant to 4e-16. With blanks and unequal weights Dn varied by a factor 1.22 with tau. C(tau) had 8 local maxima in that example.
+
+## Later on 5 Nov: is the pipeline real-time feasible?
+Jasper: "is this computing pipeline real-time feasible on an FPGA/GPU? because it will need to process 1 second of data in .... 1 second", then
+"later we might be able to do some computational improvements to the algoithm, but everything needs testing, and i want a "working pipeline" before a
+"fast working pipeline"". So this is an estimate only. No code or docs change, and no speed-up started.
+
+The work figures are counted, not measured on any FPGA or GPU. Counting rules: FFT 5 N log2 N flops, complex multiply 6. One beam is two polarisation
+streams of 128 channels at 4.1667 MHz. The code runs one stream today, and the beamformer and second polarisation belong to block E.
+
+| Stage | Work | How it was counted |
+|---|---|---|
+| `channelizeIQ`, all 18 streams | 1.9 TFLOP/s | 3853 taps, K 256, D 192: 107 GFLOP/s per stream; about 120 DSP slices per stream at 400 MHz |
+| beamformer, per beam | 77 GFLOP/s | 18 complex multiplies per channel sample; about 100 DSP slices |
+| `detectRFI`, per beam | 32 GFLOP/s | about 30 flops per sample: scales 1 to 16, two passes, a median per 16 ms block; thresholds in software |
+| dedispersion, per beam | 217 GFLOP/s | overlap-save, 4096 points, 1560-sample filter at DM 25; the delay across the band as a delay line, 60 MB per stream |
+| detection, per beam | 4 GFLOP/s | 4 flops per sample |
+| fold with weights, per beam | 21 GFLOP/s | about 80 flops per channel-bin, 133 million channel-bins/s per stream |
+| `blankingWeights` as written, per beam | 11 TFLOP/s | 86 FFTs of 2^20 points per blanked channel per 0.2 s, 125 channels |
+
+- Without `blankingWeights` a beam is about 350 GFLOP/s.
+- Data rates: 57.6 GB/s into the channelizer (18 x 800 MS/s x 4 B), which is 5 PB per day, so storage forces real time. After the beamformer, 4.3 GB/s per
+  beam at 16 bits. After detection, 0.53 GB/s per beam if the polarisations are summed. A 500 MS/s SDR cuts the first figure to 36 GB/s; later stages keep the
+  same channel rate.
+- Only the stages up to the fold face the 1 s per 1 s limit. The TOA fit runs once per sub-int. Latency is about 50 ms of buffers plus the sub-int.
+- Saved MATLAB times, one stream, 0.2 s, `data/rfi`: channelize 10.6 s, blank 0.9, dedisperse 2.6, detect 0.7, weights 62.6, fold 3.9. That is 81 s, about 400
+  times real time, 77 % of it in weights. `data/rfi/profile`, 1 s of data, spent 285 s in `blankingWeights`; the older copy of that run took 1052 s.
+  `detectRFI` and `estimateTOA` have no saved time. The implied rates, 18-29 GFLOP/s in weights, about 11 in dedispersion, 2-3 in the channelizer, say the
+  counts are the right size. The machine's load during those runs is not known.
+- Sparsity: the ten saved weight runs blank 0.005-0.07 % of samples on average, and 70-128 channels hold a blank. `blankingWeights` computes a whole
+  channel if it holds one blank. In `data/rfi` and `data/chan`, read directly, 0.54 % of the channel-bins in the fully supported range have |W - 1| > 1e-6. The
+  others equal the clean constants. If the work scales with those bins, a beam needs about 60 GFLOP/s. Not built, not tested, and none of the ten runs is a
+  dense-RFI site. On a busier site the fraction grows, at worst back to the cost as written.
+- Idea, untested, not for now: V + sum X is about W (above), so the fold's phase-bin variance might need W alone where a varies slowly across the lags.
+- GPU: about 2 TFLOP/s sustained on FFT work is my estimate from memory bandwidth (1 TB/s for an RTX 4090; 4096 points, 2 read-write passes), not a
+  benchmark. PCIe 4.0 x16 carries about 32 GB/s, so the 57.6 GB/s does not enter one GPU.
+- Precedent: MeerKAT PTUSE (Bailes et al. 2020, arXiv 2005.14366, read through ar5iv): two GPUs per node, each half the band, one node per beam, doing coherent
+  dedispersion and detection, with the beamformer on SKARAB boards. With the 856 MHz L band that is 428 MHz of two polarisations per GPU. Its real-time
+  sentence (Section 2.5) I saw only through a summary of the page. Parkes Medusa (Hobbs et al. 2020) only through a search summary: its PDF could not be read here.
+- The split this suggests: FPGA for the channelizer and beamformer; GPU from `detectRFI` to the fold; CPU for thresholds, predictor, TOA and `navFit`. No
+  hardware chosen. An X410-class SDR has an RFSoC on board and 4 channels at 400 MHz, so 18 channels would take five units.
+- Not speed questions: the port must give the same numbers (FM-37), and block processing (FM-20) is needed for any long recording, since `blankingWeights`
+  refuses above 4 GB, under 1 s of data. FM-20 and FM-38 in the risk register are unchanged.

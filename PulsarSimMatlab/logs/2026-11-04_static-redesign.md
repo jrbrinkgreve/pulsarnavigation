@@ -20,6 +20,21 @@ H the pulsar's hour angle at Greenwich. The Roemer part is linear in x however l
 4. A random clock wander hardly touches the position. A daily clock line does (FM-11). There the pulsars' different right ascensions
    matter: the position sine has a different phase per pulsar, the clock the same phase for all.
 5. An absolute time error acts as a longitude error: 286 m per second at 52 N. Assumption: time known to a few seconds at the start.
+   Correction, 9 Nov: true for an error in TT - UT1 in every pass, but for a receiver clock offset only in the first fit against the
+   geocentre.
+   - A clock offset shifts the arrival readings, the Earth's rotation and its orbit together. Folded against a site near the truth, every
+     residual is then the offset itself, the same constant for all pulsars, and the c_k absorb it. This needs phase turned into time with
+     the observed frequency, as foldProfile does (fRef = pred.freq(tRef)).
+   - What remains are the TOA times. They are readings, off by the offset, so the fit reads the daily sine at the wrong hour angle. That
+     turns the fitted dx about the polar axis by omega times the offset. Against the geocentre dx is the whole site, hence 286 m per
+     second. Near the truth it is 7 m per second on 100 km, so a second pass, folded against the first fix, removes it.
+   - An error in TT - UT1 (delayModel's 'DeltaT') turns the Earth itself, and no second pass removes it.
+   - Python toy model, scripts not kept: 52 N, one pulsar in B0329+54's direction, three days, Z held at the truth, navFit's linear model,
+     readings as the TOA times. Clock 1 s off: 286.3 m west in pass 1 against the geocentre, 0.03 m in pass 2 against that fix. Clock 3 s
+     off: 859 m, then 0.08 m. UT1 1 s off: 286.3 m in passes 1, 2 and 3. A perfect clock gives 178 m in pass 1 (the fit's linearisation,
+     mostly not east) and 0.01 m in pass 2. Folded against the true site, a 1 s clock offset leaves a residual of 1 s within 0.08 ns.
+   - So the assumption becomes: UT1 known to a fraction of a second in every pass. The clock's absolute offset only moves the first pass,
+     by about 0.9 km for 3 s.
 
 ## Numbers (1 sigma, 52 N 5 E, 20 deg mask; east / north km; height known; crystal clock; covariance only)
 Check: B0329+54 alone, 30 d nominal, equatorial form: east 29.9, radial 37.6 km, against navFit's 29.6 / 37.2 on the simulated run.
