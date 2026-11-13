@@ -108,16 +108,20 @@ the simulator a true trajectory and clock, against which the observer's assumed 
 and the navigation fit turns it into a position. A simulated ship times B0329+54 and B0950+08 for 14 days with a drifting SDR clock.
 With a calibrated start it stays within 73 km rms of its true track (the median of eight ships). Dead reckoning alone is 379 km rms
 off. That is at nominal flux. At worst-case flux, the design point, the same ship is at 298 km rms and barely beats dead reckoning
-(<a href="navigation.html#ship-worst">navigation</a>). The <a href="fold.html#prediction">phase-prediction</a> and
+(<a href="navigation.html#ship-worst">navigation</a>). Since 5 Nov the ship's code is archived
+(<a href="navigation.html#navfilter">Section 10.4</a>), because the work now aims at a static site. The <a href="fold.html#prediction">phase-prediction</a> and
 <a href="receiver.html#clock">clock</a> sections and the <a href="navigation.html">navigation</a> page have the functions, and the
 <a href="localisation.html">localisation page</a> the frames, time scales and relativistic corrections behind them.</p>
 <p>Block D rests on block C, the fast simulator, which came before it. A TOA takes hours of data, far more than a simulation of every voltage sample can
 handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
 of data take seconds. It is validated in Jasper's runs, and its scenario runs give TOA budgets for B0329+54, seen from the Netherlands,
 and for J0437, seen from 30° S.</p>
-<p>The work now is block E (revised 23 Oct): a fixed position in the Netherlands from several pulsars, in simulation, with all 18 data
-streams beamformed. It starts with a review: of blocks C and D (22–23 Oct), then a review week, E0, that walks through every stage
-again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all, validated in Jasper's runs). Block F, the real implementation on antenna data at that site, follows. The details and reasons are on the <a href="roadmap.html#blockE">roadmap</a>.</p>
+<p>The work now is block E: the position of a static array from several pulsars, in simulation, with all 18 data
+streams beamformed. Since 2 Nov the site is not known beforehand, so the method must work anywhere on Earth; the field test will
+probably be in the Netherlands. It starts with a review: of blocks C and D (22–23 Oct), then a review week, E0, that walks through every stage
+again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all then, 33 since 5 Nov, all passed in Jasper's
+run of that day). The navigation part is being redesigned for the unknown site. That proposal waits for Jasper's OK and nothing of it is
+built (status 13 Nov). Block F, the real implementation on antenna data, follows. The details and reasons are on the <a href="roadmap.html#blockE">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -140,7 +144,7 @@ refinements are parked (simulator page)</td><td><span class="badge validated">cl
 <code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate; the
 navigation fit <code>navFit</code> and the ship's Kalman filter <code>navFilter</code>; the ship scenario <code>runShip</code>; JPL's DE440 with TDB − TT, precession and nutation for real data. Closing: the ship keeps
 within 73 km rms of its track with a calibrated start (dead reckoning: 379 km); a few items parked (<a href="navigation.html#next">navigation</a>)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
-<tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision); these docs rewritten as a textbook (30 Oct)</td><td><span class="badge todo">under way</span></td></tr>
+<tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests then; 33 since 5 Nov); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision); these docs rewritten as a textbook (30 Oct)</td><td><span class="badge todo">under way</span></td></tr>
 <tr><td>E</td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second
 polarization</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>F</td><td>Real implementation: IQ data from the antenna, mixer and SDR through <code>processIQ</code>; the processing on a GPU or FPGA,

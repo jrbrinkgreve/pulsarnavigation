@@ -10,8 +10,9 @@
 <main>
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 27 October 2026: blocks A–D closed. Block E, revised on 23 Oct, leads to a fixed position in the Netherlands
-from several pulsars; its first step, E0, is a review week (five review sessions, agreed 26 Oct), now at day 2. F later. Session-by-session history: <code>logs/</code>.</p>
+<p class="meta">Status as of 13 November 2026: blocks A–D closed. Block E leads to the position of a static array from several pulsars;
+since 2 Nov the site is not known beforehand. Its first step, E0, is a review week: days 1 and 2 are done (26–27 Oct). The navigation
+redesign for a static site is a proposal that waits for Jasper's OK, and nothing of it is built. F later. Session-by-session history: <code>logs/</code>.</p>
 
 <p>Most of the pipeline is done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
 review week (12–16 Oct), and the processing as one function, <code>processIQ</code> (19 Oct).</p>
@@ -28,8 +29,12 @@ track with a calibrated start, against 379 km by dead reckoning, at nominal flux
 and <a href="navigation.html">navigation</a>. The parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
 <p>The work now is block E (revised 23 Oct, <a href="#blockE">below</a>). Its endpoint is a fixed position at a site in the Netherlands,
 estimated from several pulsars, with all 18 data streams beamformed and the full Earth–pulsar motion in the timing model, at
-worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development. The ship's
-navigation filter is parked.</p>
+worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development.</p>
+<p>On 2 Nov the objective changed: the array is static, but its site is not known beforehand, so the method must work anywhere on Earth.
+The field test will probably still be in the Netherlands. The navigation part is therefore being redesigned without dead reckoning and
+without a position prior. The proposal (steps D6a–e, <code>logs/2026-11-04_static-redesign.md</code>) waits for Jasper's OK, and
+nothing of it is built. On 5 Nov the ship's code (<code>navFilter</code>, <code>runShip</code>) moved to
+<code>old/moving_platform/</code>; the ship comes after the static field test.</p>
 <p>Block F follows: the real implementation, with IQ recordings at the Netherlands site from the antenna, mixer and SDR through
 <code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p>
 
@@ -74,6 +79,10 @@ become the default, with the RFI scenarios rerun. <b>Block E revised</b> toward 
 several pulsars (<a href="#blockE">below</a>).</td></tr>
 <tr><td>26 Oct</td><td><b>E0, the review week</b>, day 1: the processing boundary (<code>processIQ</code>, <code>foldToTOA</code>), the IQ stage, the receiver clock and the full-band front end walked through; two docs pages merged back into their stages; a running list of smaller details (log <code>2026-10-26_review-week.md</code>).</td></tr>
 <tr><td>27 Oct</td><td>E0 day 2: the filterbank, RFI excision and per-channel dedispersion walked through. <b>The missing unit tests filled in</b>: stages 2–6 and <code>noiseBandwidth</code> get their own tests, the channelizer and <code>detectRFI</code> tests are extended; 31 unit tests, all validated in Jasper's runs. One bug found and fixed: <code>applyInverseDispersion</code>'s leakage check summed in single precision (output unchanged).</td></tr>
+<tr><td>30–31 Oct</td><td>These docs rewritten as a textbook, then each page checked for paragraph flow.</td></tr>
+<tr><td>2–3 Nov</td><td><b>The objective changed (2 Nov): a static array at a site not known beforehand.</b> A risk register with three fault tests (<code>testNavFitFaults</code>, <code>testFrontEndFaults</code>, <code>testFoldFaults</code>) and three new real-hardware scenarios, FM-40 to FM-42.</td></tr>
+<tr><td>4–5 Nov</td><td>The docs' numbers audited against the current defaults. The navigation redesign for a static site proposed (D6a–e; not approved, not built). Stage 7 simplified for a static site and the ship code archived in <code>old/moving_platform/</code>; 33 unit tests, all passed in Jasper's run of 5 Nov.</td></tr>
+<tr><td>9–13 Nov</td><td>Questions on the LO and the receiver clock answered (no code change); a handover note for the redesign (<code>logs/2026-11-13_handover-static-nav.md</code>).</td></tr>
 </table></div>
 
 <figure class="scroll">
@@ -418,6 +427,8 @@ pulsars. We can develop towards that point, and refine as much as possible."</p>
 <p>The endpoint: a fixed site in the Netherlands, its position estimated from several pulsars, each in its own digital beam formed from
 all 18 data streams. The Earth–pulsar motion is modelled in full. The design point is the worst-case flux. The headline is the
 precision against integration time, with the shortest time as the aim.</p>
+<p>Changed on 2 Nov (Jasper): the site is not known beforehand. The method must locate a static array anywhere on Earth, and the
+Netherlands stays the probable test site. The decisions below are those of 23 Oct.</p>
 <h3>Decisions (Jasper, 23 Oct)</h3>
 <div class="table-wrap"><table>
 <tr><th>Topic</th><th>Decision</th></tr>
@@ -516,7 +527,7 @@ sixteen actions are new, in order of priority, and none is built:
 <li>FM-34, test: pulsar-free real recordings through <code>processIQ</code>.</li>
 <li>FM-27, development: a per-pulsar error scale and the outlier fraction estimated in <code>navFit</code>.</li>
 </ol>
-The navigation part will be redesigned in the week of 9 November, with a change to the project's final deliverable. Until then the navigation-side items wait: the FM-9 test, FM-4, FM-26 and FM-27.
+The navigation part is being redesigned for a static site that is not known beforehand. The proposal of 4 November (<code>logs/2026-11-04_static-redesign.md</code>) waits for Jasper's OK (status 13 November). Until the new fit exists the navigation-side items wait: the FM-9 test, FM-4, FM-26 and FM-27.
 <br>On 3 November the existing stages were reviewed against a real receiver (<code>logs/2026-11-03_real-hardware-faults.md</code>). The review
 added three scenarios: quantization (FM-40), the bandpass against the fit's equal channel amplitudes (FM-41), and common-mode gain noise
 (FM-42). Two fault tests cover them, together with FM-8, the processing half of FM-9, the DC part of FM-13, and FM-39
