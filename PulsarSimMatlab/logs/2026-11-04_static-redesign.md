@@ -104,3 +104,7 @@ The Earth's orbit stays in the predictor (Doppler up to 1e-4, 0.36 s per hour). 
 - Limit: J0437 (0.14 ms) would smear (about 110 us from the site at 30 S, plus 240 us from the clock) and needs shorter sub-ints or a second fold. No
   millisecond pulsar is feasible from 52 N.
 - Nothing is deleted: 'track', 'barycentric', 'custom', 'Clock' and 'Tol' stay for the ship and for testFoldPredictor and testTrueResiduals (probe trajectories).
+
+Update 13 Nov: the bullet "Nothing is deleted" above no longer holds; the 5 Nov session archived the moving-platform code
+(`logs/2026-11-05_static-stage7.md`). The four discussion points of 4 Nov on the geocentre predictor, and the state on 13 Nov, are in
+`logs/2026-11-13_handover-static-nav.md`.
