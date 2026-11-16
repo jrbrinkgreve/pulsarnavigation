@@ -666,6 +666,11 @@ on synthetic power series only.</li>
 <li>Infinite-frequency conversion (<code>bulkDelayRef</code>).</li>
 <li>Scattering.</li>
 <li>The generator at high DM (<a href="#dm">above</a>).</li>
+<li>A direct-sampling receiver (an ADC on the RF, no analog mixer), as an alternative to the mixer and SDR. A design note of 16 November, not a
+decision (<code>logs/2026-11-16_direct-sampling.md</code>). The processing would not change: <code>applyIQmodulation</code> is already an ideal
+digital downconverter. The simulated receiver would get an ADC stage at RF with bits and clipping (FM-12's stage). Undersampling
+(1.067–1.2 GS/s, third Nyquist zone) adds out-of-band RFI and noise that fold onto the band, and an inversion switch for even zones (FM-8).
+FM-13 would no longer apply.</li>
 </ul>
 
 </main>
