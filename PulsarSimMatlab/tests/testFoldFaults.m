@@ -37,6 +37,12 @@ logs/2026-11-02_risk-register.md; these cases: logs/2026-11-03_real-hardware-fau
      the diagonal variances and the SNR the full covariance). Checked: the excess between 0.8
      and 1.8 times that with pChi2 < 1e-6; with ChannelGain = the taper pChi2 > 1e-3 (the
      fit's own alarm level). Shown: the SNR ratio and the TOA shift between the two fits.
+     1c. adaptiveSubints' 'ChannelGain' (19 Nov 2026), on 1b's tapered fold with groups closed
+     at T0 >= 50. Checked: ChannelGain = ones gives the groups and T0 of the call without the
+     option exactly; with the taper every group's closing T0 is detectPulsar's T0 of the merged
+     group with that ChannelGain (within 1e-9 relative), and "measured" gives the gains of
+     foldToTOA's "measured" exactly. Shown: the mean T0 per sub-int with and without the taper
+     (predicted ratio sqrt(n sum g^2) / sum g).
   2. FM-42, common-mode gain noise. The LNA's and the receiver's gain fluctuate (1/f noise,
      temperature, supply ripple), and the fluctuation multiplies every channel's power at once.
      The noise model holds the radiometer noise only, independent between channels. A common
@@ -54,7 +60,7 @@ logs/2026-11-02_risk-register.md; these cases: logs/2026-11-03_real-hardware-fau
      equals the full band's radiometer noise: R_k = f_k / (k f0) at harmonic k, analytic): the
      detection statistic's variance and false alarms, the TOA error, the noise ratio and the
      per-channel chi^2, for knees of 0.1, 1 and 10 Hz.
-Errors at the end if any check fails. (3 Nov 2026, risk register FM-41, FM-42; case 1b 17 Nov 2026.)
+Errors at the end if any check fails. (3 Nov 2026, risk register FM-41, FM-42; case 1b 17 Nov 2026, 1c 19 Nov 2026.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -138,7 +144,27 @@ fprintf(['1b. foldToTOA ''ChannelGain'': default = ChannelGain 1 exactly: %d; = 
     tTg.total.snr / tT1.total.snr, (tTg.total.timeOffset - tT1.total.timeOffset) / tT1.total.timeOffsetErr, ...
     passStr(ok));
 if ~ok, fails{end+1} = 'foldToTOA ChannelGain'; end
-clear foldB foldT
+
+% 1c. adaptiveSubints' 'ChannelGain': the option reaches the statistic that closes the groups
+aq = {'TargetSNR', 50, 'Weighting', 'optimal', 'Verbose', false};
+[~, ~, sA0] = adaptiveSubints(foldT, iT, tmpl, Bc, aq{:});
+[~, ~, sA1] = adaptiveSubints(foldT, iT, tmpl, Bc, aq{:}, 'ChannelGain', ones(1, nChan));
+[fAg, iAg, sAg] = adaptiveSubints(foldT, iT, tmpl, Bc, aq{:}, 'ChannelGain', gT);
+[~, ~, sAm] = adaptiveSubints(foldT, iT, tmpl, Bc, aq{:}, 'ChannelGain', "measured");
+[~, ~, ifTm] = foldToTOA(foldT, iT, fw, Bc, qf{:}, 'ChannelGain', "measured");
+dAg = detectPulsar(fAg, iAg, tmpl, q{:}, 'Weighting', 'optimal', 'ChannelGain', gT);
+sameA = isequal(sA0.group, sA1.group) && isequal(sA0.T0, sA1.T0) && isempty(sA0.channelGain);
+dT0 = max(abs(dAg.T0 - sAg.T0) ./ sAg.T0);
+perSub0 = sum(sA0.T0.^2) / sum(sA0.nMerged); perSubG = sum(sAg.T0.^2) / sum(sAg.nMerged);
+ok = sameA && dT0 < 1e-9 && isequal(sAg.channelGain, gT) && isequal(sAm.channelGain, ifTm.channelGain);
+fprintf(['1c. adaptiveSubints ''ChannelGain'' (groups closed at T0 >= 50): ones = no option exactly: %d ' ...
+         '(%d groups); with the taper %d groups, closing T0 = detectPulsar''s of the merged group within ' ...
+         '%.1e; "measured" gains = foldToTOA''s: %d; T0^2 per sub-int x %.4f with the taper (sqrt: x %.4f, ' ...
+         'predicted x %.4f): %s\n'], sameA, numel(sA0.T0), numel(sAg.T0), dT0, ...
+    isequal(sAm.channelGain, ifTm.channelGain), perSubG / perSub0, sqrt(perSubG / perSub0), ...
+    sqrt(nChan * sum(gT.^2)) / sum(gT), passStr(ok));
+if ~ok, fails{end+1} = 'adaptiveSubints ChannelGain'; end
+clear foldB foldT fAg
 tilts = [3 6 10];
 spec = (fC / 1.4e9).^-1.6;                                % pulse fraction ~ the pulsar's spectrum
 fprintf(['   shown: tilt only, %s dB: optimal x %s, equal x %s; the pulsar''s spectrum (index -1.6, flat ' ...

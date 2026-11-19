@@ -366,6 +366,9 @@ direct sampling SDR?", then "Yes, note it"). A design note, not a decision. No c
 <tr><td>17 Nov 2026</td><td>after <code>3f15120</code></td><td><code>foldToTOA</code> gets <code>'ChannelGain'</code> (Jasper: "fix the chi-squared bug", then "Yes, step 1"): a vector or <code>"measured"</code>, default unchanged.
 Detection page D5: a paragraph on the option. TOA page: the <var>s</var><sub><var>c</var></sub> entry points to it. Tests page: <code>testFoldFaults</code> case 1b. Roadmap: the FM-41 line and item 3.
 <code>api.html</code> is not regenerated yet (it reads the committed code). Log: <code>logs/2026-11-17_budget-recheck-big30.md</code>.</td></tr>
+<tr><td>19 Nov 2026</td><td>after <code>f1397ce</code></td><td><code>adaptiveSubints</code> gets <code>'ChannelGain'</code> too, and the option's handling moves into its own function, <code>channelGainOf</code> (Jasper: "commit this and continue").
+Simulator page: the option in <code>adaptiveSubints</code>' list. Detection page D5: two sentences. Tests page: <code>testFoldFaults</code> case 1c. Roadmap: the FM-41 line.
+<code>api.html</code> regenerated after the commit (43 functions). Log: <code>logs/2026-11-19_channel-gain-step2.md</code>.</td></tr>
 </table></div>
 
 </main>

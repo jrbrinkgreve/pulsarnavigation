@@ -502,7 +502,8 @@ closes (bars under the axis). While the pulsar is bright a group needs 6 sub-int
 <a href="api.html#mergesubints"><code>mergeSubints</code> →</a></p>
 <details><summary>Options and outputs</summary>
 <dl class="facts">
-<dt>Options</dt><dd><code>TargetSNR</code> (7), <code>Weighting</code> (<code>'equal'</code>), <code>MaxSubints</code> (Inf),
+<dt>Options</dt><dd><code>TargetSNR</code> (7), <code>Weighting</code> (<code>'equal'</code>), <code>ChannelGain</code> ([]: gain 1 in
+every channel; since 19 Nov, as <a href="detection.html#good"><code>foldToTOA</code>'s option</a>), <code>MaxSubints</code> (Inf),
 <code>AcrossGaps</code> (false), <code>Verbose</code> (true); <code>mergeSubints</code> has none</dd>
 <dt>Outputs</dt><dd>the merged fold, with one sub-int per group: its sums and weights added, <code>turnRef</code> at the middle of its
 first and last turn, <code>tRef</code> and <code>fRef</code> from the phase model there, and <code>tMean</code> weighted by the time bins;

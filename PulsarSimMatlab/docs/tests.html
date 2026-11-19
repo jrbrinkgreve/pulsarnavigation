@@ -1104,6 +1104,10 @@ of case 1. It also tests a gain on the pulse alone, which no mean power shows: t
 each band edge hold 2.3 %, 42 % and 96 % of the pulse (<a href="roadmap.html#item3">item 3</a>). At an SNR of 276 on the total fold, gain 1
 gives a reduced χ² of 1.293 (predicted at least 1.190; <code>pChi2</code> 10⁻⁶¹). With the taper as <code>ChannelGain</code> it is 1.032
 (<code>pChi2</code> 0.027), the SNR is ×1.010 and the TOA moves by 0.01σ (Claude's run).</p>
+<p>Case 1c (19 Nov) checks the same option in <code>adaptiveSubints</code>, on the tapered fold with groups closed at T0 ≥ 50. A gain of 1
+in every channel gives the 30 groups and T0 values of the call without the option exactly. With the taper, every group's closing T0 is
+<code>detectPulsar</code>'s T0 of the merged group with that gain, and <code>"measured"</code> gives the same gains as in
+<code>foldToTOA</code>. T0 per sub-int rises by ×1.0103, as predicted (Claude's run).</p>
 <p>The second case is common-mode gain noise (FM-42). The receiver's gain fluctuates in every channel at once. The noise model holds
 independent radiometer noise only, so a common fluctuation adds its full variance <var>R</var> to the combined profile, but only
 <var>R</var>/128 to each channel. With white gain noise at <var>R</var> = 1, the per-channel red. χ² rises by 0.0075 (predicted 0.0078).

@@ -243,7 +243,9 @@ use (<a href="toa.html">TOA</a>, <var>s</var><sub><var>c</var></sub>). Without t
 so all earlier results are unchanged. A vector gives gains the observer knows, such as the pulsar's spectrum or a band-edge response that
 shapes the pulse but not the noise. <code>"measured"</code> takes each channel's mean power, normalized to mean 1, which is right for a
 receiver bandpass (FM-41). The mean power cannot show a gain on the pulse alone, and leftover RFI raises it, so <code>"measured"</code> is
-not the default.</p>
+not the default. Since 19 Nov <code>adaptiveSubints</code> takes the same option for the statistic that closes its groups, so give both
+the same value. A small shared function, <code>channelGainOf</code>, turns the option into the vector that the fit and the detection
+take.</p>
 <details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>Weighting</code> (<code>'equal'</code>; main passes <code>'optimal'</code> on the channel path),

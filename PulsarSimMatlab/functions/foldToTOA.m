@@ -58,7 +58,7 @@ Outputs:
              passed on), toa (estimateTOA's info), detect (detectPulsar's info)
 
 (19 Oct 2026: moved out of main.m, next to processIQ; same calls. 17 Nov 2026:
-'ChannelGain'.)
+'ChannelGain', through channelGainOf.)
 %}
 
 arguments
@@ -96,31 +96,4 @@ end
 
 info = struct('template', template, 'Bnoise', Bnoise, 'weighting', char(opts.Weighting), ...
     'channelGain', gain, 'toa', info_toa, 'detect', info_detect);
-end
-
-% =====================================================================================
-function g = channelGainOf(opt, fold)
-%CHANNELGAINOF  The 'ChannelGain' option as a row vector for estimateTOA and detectPulsar;
-% [] when it was not given. "measured": each channel's mean power, normalized to mean 1.
-g = [];
-if isempty(opt), return, end
-nChan = size(fold.prof, 3);
-if ischar(opt) || isstring(opt)
-    if ~(isscalar(string(opt)) && strcmpi(opt, 'measured'))
-        error('foldToTOA:gain', 'ChannelGain must be one value >= 0 per channel, or "measured".');
-    end
-    g = mean(fold.profTotal, 1, 'omitnan');         % [1 x nChan] mean power over the phase bins
-    g(~isfinite(g) | g < 0) = 0;                    % a channel without data: left out of the fit
-    if ~any(g > 0)
-        error('foldToTOA:gain', 'ChannelGain "measured": no channel has data.');
-    end
-    g = g / mean(g(g > 0));
-elseif isnumeric(opt)
-    g = reshape(double(opt), 1, []);
-    if numel(g) ~= nChan
-        error('foldToTOA:gain', 'ChannelGain must have one value per channel (%d).', nChan);
-    end
-else
-    error('foldToTOA:gain', 'ChannelGain must be one value >= 0 per channel, or "measured".');
-end
 end
