@@ -1092,12 +1092,18 @@ step is the limit the risk register names.</p>
 300 sub-ints of 20 turns) and changes them on the truth side. It takes about 3 min and ~2 GB of memory.</p>
 <p>The first case is the bandpass (FM-41). A real band is not flat, and its gain <var>G</var><sub><var>c</var></sub> scales channel
 <var>c</var>'s pulse and noise alike. The 'optimal' fit models the pulse as <var>b</var> <var>s</var><sub><var>c</var></sub> <var>T</var>
-with <var>s</var><sub><var>c</var></sub> = <code>ChannelGain</code>. <code>foldToTOA</code> leaves that at 1, so the fit expects the same
+with <var>s</var><sub><var>c</var></sub> = <code>ChannelGain</code>. <code>foldToTOA</code> leaves that at 1 by default, so the fit expects the same
 absolute pulse everywhere, and it weights each channel by 1/<var>G</var><sub><var>c</var></sub>², most where the pulse is smallest. The SNR
 keeps Σ(1/<var>G</var>)/√(<var>n</var>Σ1/<var>G</var>²), and the 'equal' sum keeps Σ<var>G</var>/√(<var>n</var>Σ<var>G</var>²). For a 6 dB
 tilt with a ±1 dB ripple, the measured factors are 0.919 and 0.915 (predicted 0.917 both). With <code>ChannelGain</code> = <var>G</var>,
 the fit is exactly the flat one. With each channel's measured mean power, which the observer has, it keeps 1.0000. The error bars stay
 honest throughout (pull rms 0.990). A 3, 6 or 10 dB tilt costs ×0.98, ×0.93 or ×0.84.</p>
+<p>Case 1b (17 Nov) checks <code>foldToTOA</code>'s <code>'ChannelGain'</code> option. Without it, <code>foldToTOA</code> gives exactly the
+TOAs, error bars and detection statistic of gain 1. With <var>G</var> and with <code>"measured"</code> it gives the TOAs of the direct calls
+of case 1. It also tests a gain on the pulse alone, which no mean power shows: the simulator's band-edge taper, where the three channels at
+each band edge hold 2.3 %, 42 % and 96 % of the pulse (<a href="roadmap.html#item3">item 3</a>). At an SNR of 276 on the total fold, gain 1
+gives a reduced χ² of 1.293 (predicted at least 1.190; <code>pChi2</code> 10⁻⁶¹). With the taper as <code>ChannelGain</code> it is 1.032
+(<code>pChi2</code> 0.027), the SNR is ×1.010 and the TOA moves by 0.01σ (Claude's run).</p>
 <p>The second case is common-mode gain noise (FM-42). The receiver's gain fluctuates in every channel at once. The noise model holds
 independent radiometer noise only, so a common fluctuation adds its full variance <var>R</var> to the combined profile, but only
 <var>R</var>/128 to each channel. With white gain noise at <var>R</var> = 1, the per-channel red. χ² rises by 0.0075 (predicted 0.0078).

@@ -24,6 +24,19 @@ logs/2026-11-02_risk-register.md; these cases: logs/2026-11-03_real-hardware-fau
      SNR within 0.005 of the flat fold's; with ChannelGain 1 the error bars stay honest: pulls
      against the truth with rms within 4/sqrt(2n) of 1. Shown: eta_opt and eta_eq for tilts of
      3, 6 and 10 dB, and for the pulsar's own spectrum (index -1.6, flat bandpass).
+     1b. foldToTOA's 'ChannelGain' (17 Nov 2026). Checked on case 1's folds: without the option
+     foldToTOA gives estimateTOA's and detectPulsar's results with ChannelGain 1 exactly (TOAs,
+     error bars, T0: as before the option existed); with G and with "measured" it gives the
+     TOAs of the direct calls above (G exactly, "measured" within 1e-9 sigma). And a gain on
+     the pulse alone, which no mean power shows: the simulator's forward band-edge taper (the
+     pulse fraction of the three channels at each band edge 0.0229, 0.4171, 0.96; the noise is
+     not tapered; roadmap item 3). With ChannelGain 1 each edge channel keeps a residual
+     b (g_c - mean g) T, so the total fold's red. chi^2 exceeds 1 by at least
+       sum (g_c - mean g)^2 SNR^2 / (nChan mean(g)^2 dof)
+     (SNR: the total fold's; dof: on-pulse bins x nChan - 3; "at least" because the chi^2 uses
+     the diagonal variances and the SNR the full covariance). Checked: the excess between 0.8
+     and 1.8 times that with pChi2 < 1e-6; with ChannelGain = the taper pChi2 > 1e-3 (the
+     fit's own alarm level). Shown: the SNR ratio and the TOA shift between the two fits.
   2. FM-42, common-mode gain noise. The LNA's and the receiver's gain fluctuate (1/f noise,
      temperature, supply ripple), and the fluctuation multiplies every channel's power at once.
      The noise model holds the radiometer noise only, independent between channels. A common
@@ -41,7 +54,7 @@ logs/2026-11-02_risk-register.md; these cases: logs/2026-11-03_real-hardware-fau
      equals the full band's radiometer noise: R_k = f_k / (k f0) at harmonic k, analytic): the
      detection statistic's variance and false alarms, the TOA error, the noise ratio and the
      per-channel chi^2, for knees of 0.1, 1 and 10 Hz.
-Errors at the end if any check fails. (3 Nov 2026, risk register FM-41, FM-42.)
+Errors at the end if any check fails. (3 Nov 2026, risk register FM-41, FM-42; case 1b 17 Nov 2026.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -94,7 +107,38 @@ fprintf(['1. FM-41 bandpass (6 dB tilt, +-1 dB ripple; gains %.2f-%.2f): SNR x %
     rOpt, etaOpt(G), rEq, etaEq(G), dG, sG, rM, rms(pull), rms(pull0), nP, 4 / sqrt(2 * nP), ...
     median(tB.toaErr(v) ./ t0.toaErr(v)), passStr(ok));
 if ~ok, fails{end+1} = 'FM-41 bandpass'; end
-clear foldB
+
+% 1b. foldToTOA's 'ChannelGain': the option reaches the fit and the detection
+qf = {'Weighting', 'optimal', 'Verbose', false};
+[tfD, dfD] = foldToTOA(foldB, info, fw, Bc, qf{:});                         % default: as before
+[tfG, dfG] = foldToTOA(foldB, info, fw, Bc, qf{:}, 'ChannelGain', G);
+[tfM, ~, ifM] = foldToTOA(foldB, info, fw, Bc, qf{:}, 'ChannelGain', "measured");
+dRef  = detectPulsar(foldB, info, tmpl, q{:}, 'Weighting', 'optimal');
+dRefG = detectPulsar(foldB, info, tmpl, q{:}, 'Weighting', 'optimal', 'ChannelGain', G);
+sameD = isequaln(tfD.toa, tB.toa) && isequaln(tfD.toaErr, tB.toaErr) && isequaln(dfD.T0, dRef.T0);
+sameG = isequaln(tfG.toa, tBG.toa) && isequaln(dfG.T0, dRefG.T0);
+vM = tfM.valid & tBM.valid;
+dM = max(abs(tfM.toa(vM) - tBM.toa(vM)) ./ tBM.toaErr(vM));
+gErr = max(abs(ifM.channelGain - gM / mean(gM)));
+% a gain on the pulse alone: the forward band-edge taper of the simulated sky
+gT = ones(1, nChan); gT([1 2 3]) = [0.0229 0.4171 0.96]; gT(nChan - [0 1 2]) = [0.0229 0.4171 0.96];
+[iT, foldT] = simulateFold(f0, -20, nSub * spt, 'SubintPeriods', spt, 'Seed', 12, 'ChannelGain', gT, sim{:});
+tT1 = foldToTOA(foldT, iT, fw, Bc, qf{:});
+tTg = foldToTOA(foldT, iT, fw, Bc, qf{:}, 'ChannelGain', gT);
+nOn = nnz(tmpl - min(tmpl) > 0.01 * (max(tmpl) - min(tmpl)));
+excPred = sum((gT - mean(gT)).^2) * tT1.total.snr^2 / (nChan * mean(gT)^2 * (nOn * nChan - 3));
+exc1 = tT1.total.redChi2 - 1;
+ok = sameD && sameG && dM < 1e-9 && gErr < 1e-12 && exc1 > 0.8 * excPred && exc1 < 1.8 * excPred && ...
+     tT1.total.pChi2 < 1e-6 && tTg.total.pChi2 > 1e-3;
+fprintf(['1b. foldToTOA ''ChannelGain'': default = ChannelGain 1 exactly: %d; = G exactly: %d; "measured" ' ...
+         'within %.1e sigma (gains within %.1e). Band-edge taper on the pulse alone (total fold, SNR %.0f): ' ...
+         'red. chi2 %.4f with ChannelGain 1 (excess %.4f, predicted >= %.4f; pChi2 %.1e), %.4f with the ' ...
+         'taper as ChannelGain (pChi2 %.3f); SNR x %.4f, TOA shift %.2f sigma: %s\n'], sameD, sameG, dM, gErr, ...
+    tT1.total.snr, tT1.total.redChi2, exc1, excPred, tT1.total.pChi2, tTg.total.redChi2, tTg.total.pChi2, ...
+    tTg.total.snr / tT1.total.snr, (tTg.total.timeOffset - tT1.total.timeOffset) / tT1.total.timeOffsetErr, ...
+    passStr(ok));
+if ~ok, fails{end+1} = 'foldToTOA ChannelGain'; end
+clear foldB foldT
 tilts = [3 6 10];
 spec = (fC / 1.4e9).^-1.6;                                % pulse fraction ~ the pulsar's spectrum
 fprintf(['   shown: tilt only, %s dB: optimal x %s, equal x %s; the pulsar''s spectrum (index -1.6, flat ' ...

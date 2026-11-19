@@ -238,6 +238,12 @@ pulse phase. Detection and the χ² flag of the TOA fit catch different failures
 <p>Both checks come together in <code>foldToTOA</code>, the back end of the processing. It builds the template from <code>profileFWHM</code> (a width, or a list of
 components), runs <code>estimateTOA</code> and <code>detectPulsar</code>, and applies the good-TOA rule. A fold from the fast simulator goes
 through the same code.</p>
+<p>Since 17 Nov it also takes <code>'ChannelGain'</code>, the relative pulse amplitude per channel that the 'optimal' fit and detection
+use (<a href="toa.html">TOA</a>, <var>s</var><sub><var>c</var></sub>). Without the option nothing is passed on and every channel has gain 1,
+so all earlier results are unchanged. A vector gives gains the observer knows, such as the pulsar's spectrum or a band-edge response that
+shapes the pulse but not the noise. <code>"measured"</code> takes each channel's mean power, normalized to mean 1, which is right for a
+receiver bandpass (FM-41). The mean power cannot show a gain on the pulse alone, and leftover RFI raises it, so <code>"measured"</code> is
+not the default.</p>
 <details><summary>Options and outputs</summary>
 <dl class="facts">
 <dt>Options</dt><dd><code>Weighting</code> (<code>'equal'</code>; main passes <code>'optimal'</code> on the channel path),
