@@ -5,3 +5,9 @@
 *.bin
 **/Images/
 *.asv
+
+# Project deliverables and their session logs: kept out of the public repository
+PulsarSimMatlab/deliverables/
+PulsarSimMatlab/logs/*task2.4*
+PulsarSimMatlab/logs/*deliverable*
+PulsarSimMatlab/logs/*progress-report*
