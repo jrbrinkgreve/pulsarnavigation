@@ -48,3 +48,28 @@ Step 3 was "the run scripts give the taper to the observer". Three ways, with wh
    taper is a receiver bandpass, "measured" sees it, and no truth leaks to the observer. It is
    the physically right picture of a real receiver, but it changes the truth side of both
    simulators and every frozen reference number.
+
+## Decision and rerun (later the same day)
+
+Jasper, after asking whether the flag would come back: "leave them as is. test again if the one
+test case that revealed it get a problem again". **Step 3 is closed: the run scripts stay as they
+are** (option 1). At SNR 7 per TOA the excess is about 7·10⁻⁵ against the chi²'s own noise of about
+0.01 per TOA; it shows from an SNR of roughly 50 per TOA. It never removes a TOA: the good-TOA rule
+drops at red. chi² > 2, and pChi2 is report only.
+
+The revealing case rerun with the committed code (982d045), B0329+54, the throwaway 30 m² design
+point, 10 days, fixed one-hour groups, clean (Claude's run; `retest_19nov.m`, `runScenario30d.m`,
+`retest_19nov.log`, `out4/` in `.claude/runs/2026-11-17_big30/`):
+
+| Run | TOAs (good) | red. chi² mean (min–max) | pChi2 < 0.05 | median SNR | median sigma | std z |
+|---|---|---|---|---|---|---|
+| as the scripts stand (no gains passed) | 195 (195) | 1.0853 (1.045–1.109) | 100 % | 247.1 | 21.318 µs | 1.032 |
+| the taper passed to `adaptiveSubints` and `foldToTOA` | 195 (195) | 0.9992 (0.966–1.024) | 3.6 % | 249.6 | 21.104 µs | 1.042 |
+
+- As the scripts stand, the alarm is there again, as expected: nothing passes the gains. The TOA
+  errors, error bars and chi² are identical, value for value, to the run of 17 Nov, so the two code
+  changes left the default path of a full scenario untouched.
+- With the gains passed it is gone, and the error bar is 1.0 % smaller.
+- So a strong-signal scenario needs the gains passed by hand (two calls in `runScenario.m`);
+  the normal scenarios do not.
+
