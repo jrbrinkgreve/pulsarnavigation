@@ -540,8 +540,8 @@ none built:
 <code>detectPulsar</code>. Before F.</li>
 <li>FM-41, development (small): <code>foldToTOA</code> passes each channel's mean power as <code>ChannelGain</code>. Today a 6 dB
 bandpass tilt costs 7 % of the SNR, and 10 dB costs 16 %. Since 17 Nov <code>foldToTOA</code> has the option
-(<code>'ChannelGain'</code>, a vector or <code>"measured"</code>; <a href="tests.html#foldfaults"><code>testFoldFaults</code></a> case 1b,
-Claude's run), and since 19 Nov <code>adaptiveSubints</code> has it too (case 1c). The default is still gain 1. Open: no run script
+(<code>'ChannelGain'</code>, a vector or <code>"measured"</code>; <a href="tests.html#foldfaults"><code>testFoldFaults</code></a> case 1b),
+and since 19 Nov <code>adaptiveSubints</code> has it too (case 1c). Both are validated in Jasper's run of 19 Nov. The default is still gain 1. Open: no run script
 passes it (Jasper's decision of 19 Nov, <a href="#item3">item 3</a>), and <code>"measured"</code> as the default waits for a look at leftover RFI.</li>
 <li>FM-40, decision: the transport format, sc16 or sc8 with the noise at 2–4 LSB or more. At 1 LSB the SNR is ×0.93. Before F.</li>
 <li>FM-12, development: the SDR's clip flag in the F ingest. A saturated ADC also silences the channels that the excision does not

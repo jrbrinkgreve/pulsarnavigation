@@ -434,7 +434,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#gating"><code>testRfiGating</code></a></td><td><code>rfiSource</code> rotation B5c-1</td><td>~10 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#periodic"><code>testPeriodicRFI</code></a></td><td><code>periodicRFI</code> B6</td><td>~35 s</td><td><span class="badge validated">passes, 8 Oct</span></td></tr>
 <tr><td><a href="#noise"><code>testRfiNoise</code></a></td><td><code>rfiSource</code> <code>'noise'</code> B5d</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 9 Oct)</span></td></tr>
-<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span> <span class="badge validated">test 16 (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#simfold"><code>testSimulateFold</code></a></td><td><code>simulateFold</code> C1 (fast simulator)</td><td>~1 min</td><td><span class="badge validated">tests 1–15 pass (Jasper's run, 20 Oct)</span> <span class="badge validated">test 16 (Jasper's run, 22 Oct)</span> <span class="badge validated">1–16 again after the <code>ChannelGain</code> change (Jasper's run, 19 Nov)</span></td></tr>
 <tr><td><a href="#rfimodel"><code>testRFIModel</code></a></td><td>RFI model C4b: <code>rfiProfile</code> and <code>simulateFold('RFI')</code> vs <code>foldProfile</code> on synthetic RFI</td><td>~30 s</td><td><span class="badge validated">tests 1–5 pass (Jasper's run, 20 Oct)</span> <span class="badge validated">test 6 (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#maketraj"><code>testMakeTrajectory</code></a></td><td><code>makeTrajectory</code> D1a (where the receiver is)</td><td>~1 s</td><td><span class="badge validated">passes (Jasper's run, 5 Nov)</span></td></tr>
 <tr><td><a href="#delaymodel"><code>testDelayModel</code></a></td><td><code>delayModel</code> D1b (receiver → barycentre)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 5 Nov)</span></td></tr>
@@ -446,7 +446,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfitfaults"><code>testNavFitFaults</code></a></td><td><code>navFit</code> under the risk register's faults (FM-11: the clock's daily temperature term)</td><td>~3 s</td><td><span class="badge written">passes (Claude's run, 2 Nov)</span></td></tr>
 <tr><td><a href="#frontendfaults"><code>testFrontEndFaults</code></a></td><td>the channel path under a real receiver's faults: mirrored band and LO error (FM-8), quantization and DC (FM-40, FM-13), lost samples (FM-9), absolute time (FM-39)</td><td>~7 min</td><td><span class="badge written">passes (Claude's run, 3 Nov)</span></td></tr>
-<tr><td><a href="#foldfaults"><code>testFoldFaults</code></a></td><td>TOA fit and detection under a real receiver's faults: the bandpass (FM-41), common-mode gain noise (FM-42)</td><td>~3 min</td><td><span class="badge written">passes (Claude's run, 3 Nov)</span></td></tr>
+<tr><td><a href="#foldfaults"><code>testFoldFaults</code></a></td><td>TOA fit and detection under a real receiver's faults: the bandpass (FM-41), common-mode gain noise (FM-42)</td><td>~3 min</td><td><span class="badge validated">passes, with cases 1b and 1c (Jasper's run, 19 Nov)</span></td></tr>
 <tr><td><a href="#rfichain"><code>testRFIChain</code></a></td><td>RFI model C4b on the voltage chain: split-half fold check (slow, only when named)</td><td>~2.5 h</td><td><span class="badge validated">all pass on the new code, narrow Inmarsat included (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge validated">agrees (Jasper's run, 23 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge validated">agrees within ~1 % (Jasper's runs, 23 Oct; part 2 with the 21 Oct profiles, 27 Oct)</span></td></tr>
@@ -1103,11 +1103,11 @@ TOAs, error bars and detection statistic of gain 1. With <var>G</var> and with <
 of case 1. It also tests a gain on the pulse alone, which no mean power shows: the simulator's band-edge taper, where the three channels at
 each band edge hold 2.3 %, 42 % and 96 % of the pulse (<a href="roadmap.html#item3">item 3</a>). At an SNR of 276 on the total fold, gain 1
 gives a reduced χ² of 1.293 (predicted at least 1.190; <code>pChi2</code> 10⁻⁶¹). With the taper as <code>ChannelGain</code> it is 1.032
-(<code>pChi2</code> 0.027), the SNR is ×1.010 and the TOA moves by 0.01σ (Claude's run).</p>
+(<code>pChi2</code> 0.027), the SNR is ×1.010 and the TOA moves by 0.01σ (validated in Jasper's run of 19 Nov).</p>
 <p>Case 1c (19 Nov) checks the same option in <code>adaptiveSubints</code>, on the tapered fold with groups closed at T0 ≥ 50. A gain of 1
 in every channel gives the 30 groups and T0 values of the call without the option exactly. With the taper, every group's closing T0 is
 <code>detectPulsar</code>'s T0 of the merged group with that gain, and <code>"measured"</code> gives the same gains as in
-<code>foldToTOA</code>. T0 per sub-int rises by ×1.0103, as predicted (Claude's run).</p>
+<code>foldToTOA</code>. T0 per sub-int rises by ×1.0103, as predicted (validated in Jasper's run of 19 Nov).</p>
 <p>The second case is common-mode gain noise (FM-42). The receiver's gain fluctuates in every channel at once. The noise model holds
 independent radiometer noise only, so a common fluctuation adds its full variance <var>R</var> to the combined profile, but only
 <var>R</var>/128 to each channel. With white gain noise at <var>R</var> = 1, the per-channel red. χ² rises by 0.0075 (predicted 0.0078).

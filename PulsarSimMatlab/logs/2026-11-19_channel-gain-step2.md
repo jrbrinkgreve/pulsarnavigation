@@ -73,3 +73,19 @@ point, 10 days, fixed one-hour groups, clean (Claude's run; `retest_19nov.m`, `r
 - So a strong-signal scenario needs the gains passed by hand (two calls in `runScenario.m`);
   the normal scenarios do not.
 
+## Validated: Jasper's run (19 Nov, after the push)
+
+Jasper ran `run("tests/testFoldFaults"); run("tests/testSimulateFold")` himself and pasted the
+output: **testFoldFaults ALL PASSED, testSimulateFold ALL PASSED** (16 cases). Every number
+agrees with Claude's runs of 17 and 19 Nov, among them:
+
+- case 1b: default = ChannelGain 1 exactly; red. chi² 1.2934 with gain 1 (predicted ≥ 0.1897 of
+  excess, pChi2 2.5·10⁻⁶¹), 1.0317 with the taper (pChi2 0.027); SNR ×1.0102; TOA shift 0.01 sigma;
+- case 1c: ones = no option exactly (30 groups); closing T0 = `detectPulsar`'s within 0;
+  "measured" gains = `foldToTOA`'s; T0 per sub-int ×1.0103 (predicted 1.0103);
+- cases 1 and 2 and `testSimulateFold` 1–16 as before.
+
+So the 'ChannelGain' option in `foldToTOA` and `adaptiveSubints`, and `channelGainOf`, count as
+validated. Docs: tests.html (both badges, the two "Claude's run" remarks), roadmap.html (FM-41
+line), maintenance.html.
+
