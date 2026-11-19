@@ -59,6 +59,17 @@ Since 22 Oct a navigation solution exists in simulation (`navFit`, `navFilter`, 
 development for now (Jasper, 23 Oct; §11): a fixed position in the Netherlands from several pulsars, at the
 worst-case flux, with the shortest integration time.
 
+**Scope: millisecond pulsars (Jasper, 19 Nov 2026).** Millisecond pulsars are in scope in general. The solution must work for them,
+so the pipeline must be capable of them; the integration times may just be long. Nothing was built for this on 19 Nov. What it touches,
+from these notes and the logs (Claude's reading, to be checked when the work starts):
+- the reference oscillator: an oven-controlled crystal or a rubidium reference, since a ±2 ppm crystal smears the pulse by 240 µs in a
+  120 s sub-int, against J0437's 0.14 ms pulse (§7; `2026-11-09_lo-and-clock.md`);
+- the binary orbit, which the simulator and the predictor do not have (§9; ELL1 suffices for J0437 at µs);
+- the position ambiguity of a fast pulsar, ±863 km for J0437 (§5), which matters for a site that is not known beforehand;
+- the pulsar set: J0437 never rises at 52° N (§9), so a northern millisecond pulsar is needed for a test in the Netherlands;
+- the fold against the geocentre proposed on 4 Nov loses about 36 % S/N for J0437 in 120 s sub-ints
+  (`2026-11-13_handover-static-nav.md`), so shorter sub-ints or a second fold.
+
 ---
 
 ## 2. Conventions (apply to every stage)
