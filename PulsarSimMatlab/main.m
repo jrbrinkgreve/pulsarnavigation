@@ -13,7 +13,7 @@ Pipeline (status):
     3. addNoiseAndRFI          receiver noise + RFI at RF       [done]
     4. applyIQmodulation       downconversion to baseband       [done]
     -  clock jitter, pulsar-Earth motion, polarisation?,
-       3x3 array element signals, multiple pulsars               [todo]
+       4x4 array element signals, multiple pulsars               [todo]
   Processing: processIQ (IQ file in, fold out; frontEnd in pipelineParams:
   'fullband' or 'channels'), then foldToTOA (step 8)
     (  array beamforming                                         [todo] )

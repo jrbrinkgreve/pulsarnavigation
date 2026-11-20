@@ -522,7 +522,8 @@ coherently into the profile and bias TOAs — a real hazard to test once excisio
 **Realistic scenario (B5e, 9 Oct 2026):** `rfiList` = `'illustrative'` (default, the list
 above, Jasper) or `'realistic'` (`rfiRealistic`, 16 sources); `rfiSelect` indexes the chosen
 list; both lists stay defined (`rfiScenario`, `rfiRealistic`) for `runRFITest`. Basis: the
-reference hardware (3×3 array, T_sys 70 K → receiver noise kT·B = −124 dBW in 400 MHz);
+reference hardware (the 0.61 m² array, 3×3 then and 4×4 since 20 Nov 2026: the same area, so the same gain and beam;
+T_sys 70 K → receiver noise kT·B = −124 dBW in 400 MHz);
 array gain ~22 dBi in the main beam (~15°), ~0–3 dBi to the rest of the sky, −10 dBi
 assumed to the horizon. GNSS: ICD minimum received power + ~3 dB, summed over the visible
 satellites (L1 ~30 add up to Gaussian noise → `'noise'`; the weaker bands one `'bpsk'` each).
@@ -4054,7 +4055,8 @@ pulsars. We can develop towards that point, and refine as much as possible." Dec
 - flux: "design for worst-case, get more ToA's if better";
 - the Earth–pulsar motion stays in full; the navigation filter (navFilter, runShip) and the vehicle-motion uncertainty
   in the fold are parked;
-- all 18 data streams (9 elements × 2 polarizations) are processed, with digital beamforming;
+- all 18 data streams (9 elements × 2 polarizations) are processed, with digital beamforming (20 Nov 2026: the array is 4×4,
+  so 16 elements and 32 streams if every element stays dual-polarised; "Array layout" below);
 - integration time: as short as possible; the fast simulator may run as long as needed;
 - later: the target precision and the array hardware.
 
@@ -4067,7 +4069,7 @@ Steps (docs/roadmap.html#blockE; log 2026-10-23_review-C-D.md):
 | E2 | the complete Earth–pulsar timing model (§10 item 13), each term switchable in the observer; PINT/TEMPO2 check |
 | E3 | the multi-pulsar fixed-site solution in the fast simulator (beams, shared clock, RFI, scintillation; joint navFit; Monte Carlo); precision against integration time at worst-case flux |
 | E3b | extra beams and sub-threshold pulsars: long coherent folds, a direct position fit to all folded profiles |
-| E4 | the array: 18 streams at voltage level, the beamformer (per-channel steering weights after channelizeIQ, simultaneous beams), polarizations (two beams with the same weights, detected and added), element calibration; then E3 rerun with the measured beam properties |
+| E4 | the array: all data streams at voltage level (32 for the 4×4 array of 20 Nov 2026 if it stays dual-polarised; 18 for the 3×3 array before), the beamformer (per-channel steering weights after channelizeIQ, simultaneous beams), polarizations (two beams with the same weights, detected and added), element calibration; then E3 rerun with the measured beam properties |
 | E5 | the oscillator (TCXO, OCXO, Rb) and the clock's flicker term in the fit |
 | E6 | the shortest integration time for a target precision; the levers |
 | F | real recordings at the Netherlands site through the same code |
@@ -4084,7 +4086,7 @@ The plan of 6 Oct below is kept for its history; most of it is done or part of E
 block 2 — excision done (blocks A, B), DM check from sub-band TOAs open, the station clock done in D (makeClock), ADC
 clock jitter left out; block 3 — relative motion in the fold phase model, the barycentric timing corrections (Roemer,
 Shapiro, Einstein) and the navigation solution done in D, several pulsars in runShip / navFit, the infinite-frequency
-conversion and the voltage generator's Doppler open; block 4 — the 3×3 array and the polarizations are step E4, real IQ
+conversion and the voltage generator's Doppler open; block 4 — the array (4×4 since 20 Nov 2026) and the polarizations are step E4, real IQ
 recordings block F.)
 
 **Block 1 – noise and detection (closed 6 Oct 2026; phase F and adaptive sub-int length deferred)**
@@ -4119,7 +4121,7 @@ recordings block F.)
 - Residuals vs timing model; navigation solution (least squares → Kalman)
 
 **Block 4 – later**
-- 3×3 array: element signals with geometric delays; beamforming at IQ level before
+- the array (3×3 when written, 4×4 since 20 Nov 2026): element signals with geometric delays; beamforming at IQ level before
   dedispersion
 - Scattering, DM variations; polarisation
 - High DM (target up to ~100): processing side solved by the channelized front end
@@ -4139,10 +4141,28 @@ answers of 6 Oct below, the Netherlands site of 20 Oct, and the endpoint of 23 O
 
 **Reference scenario – draft (6 Oct 2026, from Jasper's hardware; questions answered below).**
 
-*Receiver.* 3×3 array, **0.61 m²** (effective or physical: open), **T_sys 60–80 K**, band
+*Receiver.* 3×3 array (4×4 since 20 Nov 2026, the same area; "Array layout" below), **0.61 m²** (effective or physical: open), **T_sys 60–80 K**, band
 **1.2–1.6 GHz** (B = 400 MHz), **ground station**, observation time "as good as possible
 for navigation". SEFD = 2kT_sys/A_eff = 2·1.38e-23·70/0.61 ≈ **3.2e5 Jy** (2.7–3.6e5 for
 60–80 K; Parkes ~30 Jy, 25 m dish ~1000 Jy).
+
+*Array layout, update 20 Nov 2026 (Jasper: "the array will be still the same area, but now 4x4!").* 16 elements on the same
+0.61 m², instead of 9. The collecting area is unchanged, so A_eff, the SEFD, the array gain (~22 dBi), the beam (~15°) and every TOA
+and position budget in these notes stay as they are. The fast simulator knows only A_eff, T_sys and n_pol, and no live code depends on
+the number of elements (the array is step E4). What changes, all of it Claude's estimate for a square grid that fills the area, not
+measured and not simulated:
+- streams: 32 instead of 18, if every element stays dual-polarised. **Not yet confirmed by Jasper for the 4×4 array** (item 2 below
+  was confirmed for the 3×3 array). The Task 2.4 front-end candidates of 19 Nov were sized for 18.
+- element pitch: side √0.61 = 0.78 m, so 0.195 m instead of 0.26 m. In wavelengths over 1.2–1.6 GHz: 0.78–1.04 instead of 1.04–1.39.
+- grating lobes: the 3×3 pitch is above one wavelength over the whole band, so it always has them. With 4×4 one appears beyond a
+  steering angle of asin(λ/d − 1): about 16° at 1.2 GHz and 6° at 1.4 GHz; at 1.6 GHz one is still present at broadside, 74° off
+  axis. A pitch of λ/2 (9.4 cm at 1.6 GHz) would be free of them at every steering angle.
+- element gain 4πA/λ² at 1.4 GHz: 10.2 dBi instead of 12.7 dBi (element area 0.038 m² instead of 0.068 m²). The element beam is
+  about 4/3 wider, so the array steers further off its axis before the gain drops.
+- per-element signal-to-noise: 9/16 of before (−2.5 dB). This matters for calibrating the elements on a sky source, not for the
+  beamformed sum.
+Jasper also announced, the same day, an update on "the ways digital beams are coming in"; not received yet. It may change where the
+beamforming happens and so step E4. Log: `2026-11-20_array-4x4.md`.
 
 *Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W_eq)/W_eq),
 n_pol 2, B 400 MHz, target SNR 7 from the threshold sweep). P, DM, W50, S₁₄₀₀ from the
@@ -4225,7 +4245,7 @@ per day).
    measured profiles: J0437 82–95 h per TOA at the worst case (ρ −54.8 dB), B0329+54 10.0 h; §7.3.] σ_TOA per TOA unchanged (fixed SNR 7);
    per unit time √5.3 = 2.3× worse. The pipeline must work at the worst case; nominal is
    the bonus.
-2. **Dual polarization on all 9 elements** (confirmed): n_pol = 2 in the radiometer
+2. **Dual polarization on all 9 elements** (confirmed for the 3×3 array; for the 4×4 array of 20 Nov 2026 assumed, to be confirmed): n_pol = 2 in the radiometer
    equation (already in the table). Simulator: two independent noise streams per element,
    beamformed per polarization, total intensity |X|² + |Y|² after detection. Fast
    detected-power simulator: n_pol = 2 in the noise variance.
@@ -4250,7 +4270,7 @@ per day).
 - Scintillation (J0437, B0950+08: low DM) dominates the per-pass SNR → weight passes by
   measured SNR.
 
-*Deployment and scenario sites (Jasper, 20 Oct 2026).* The 3×3 array will eventually go on a
+*Deployment and scenario sites (Jasper, 20 Oct 2026).* The array (3×3 then, 4×4 since 20 Nov 2026) will eventually go on a
 **ship**: not a static installation (steered/stabilized → constant gain over a pass assumed), and
 the station position is a moving input (the thing being navigated). Scenario location **the
 Netherlands (52° N)**: J0437 (max. elevation −9°) and Vela (−7°) never rise; **B0329+54** is

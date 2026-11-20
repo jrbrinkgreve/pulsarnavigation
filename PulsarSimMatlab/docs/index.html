@@ -145,7 +145,7 @@ refinements are parked (simulator page)</td><td><span class="badge validated">cl
 navigation fit <code>navFit</code> and the ship's Kalman filter <code>navFilter</code>; the ship scenario <code>runShip</code>; JPL's DE440 with TDB − TT, precession and nutation for real data. Closing: the ship keeps
 within 73 km rms of its track with a calibrated start (dead reckoning: 379 km); a few items parked (<a href="navigation.html#next">navigation</a>)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
 <tr><td>E0</td><td>Review week (from 26 Oct): every stage walked through; unit tests for stages 2–6 and <code>noiseBandwidth</code>, the channelizer and <code>detectRFI</code> tests extended (31 tests then; 33 since 5 Nov); one bug fixed, <code>applyInverseDispersion</code>'s leakage check (single precision); these docs rewritten as a textbook (30 Oct)</td><td><span class="badge todo">under way</span></td></tr>
-<tr><td>E</td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 3×3 array, second
+<tr><td>E</td><td>The full navigation system in simulation: several pulsars at full scale, the navigation solution, 4×4 array, second
 polarization</td><td><span class="badge todo">next</span></td></tr>
 <tr><td>F</td><td>Real implementation: IQ data from the antenna, mixer and SDR through <code>processIQ</code>; the processing on a GPU or FPGA,
 checked stage by stage against <code>processIQ</code>; in the end in real time</td><td><span class="badge todo">later</span></td></tr>

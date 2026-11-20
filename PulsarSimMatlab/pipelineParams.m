@@ -61,7 +61,8 @@ rfi = [ ...
     rfiSource('impulse', 'Rate', 50, 'Duration', 200e-9, 'INRdB', 20, 'Label', 'broadband impulses')];
 rfiScenario = rfi;      % the full illustrative list (runRFITest picks from it)
 
-% Realistic L-band scenario (B5e, 9 Oct 2026) for the reference hardware: 3x3 array, main
+% Realistic L-band scenario (B5e, 9 Oct 2026) for the reference hardware: the 0.61 m2 array
+% (3x3 then, 4x4 since 20 Nov 2026: the same area, so the same gain and beam), main
 % beam ~22 dBi (~15 deg), ~0-3 dBi to the rest of the sky, assumed -10 dBi to the horizon;
 % T_sys 70 K -> receiver noise -124 dBW in 400 MHz. GNSS: ICD minimum received power
 % + ~3 dB, summed over the visible satellites (L1 ~30: many satellites add up to Gaussian

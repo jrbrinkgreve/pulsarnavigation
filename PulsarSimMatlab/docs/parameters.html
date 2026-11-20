@@ -239,7 +239,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <p>The receiver settings are the first ones the observer knows, because they describe the hardware rather than the sky.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 3×3 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
+<tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 4×4 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
 <tr><td><code>fLO</code></td><td>1.3 GHz</td><td>local oscillator</td><td><b>Off-centre on purpose</b>: puts the band at −100…+300 MHz so a mirrored frequency mapping would fail visibly (<a href="receiver.html#lo">receiver</a>). The original reference was 1.4 GHz.</td><td>IQ; dedispersion and channelizer via <code>info_IQ</code></td></tr>
 <tr><td><code>fs</code></td><td>800 MHz</td><td>complex IQ sample rate</td><td>Needed for the off-centre band: +300 MHz must fit in the flat passband (cutoff 0.9·400 = 360 MHz). The original reference was 500 MHz.</td><td>IQ; everything after via <code>info_IQ</code></td></tr>
 <tr><td><code>filterOrder</code></td><td>2048</td><td>IQ low-pass order (2049 taps)</td><td>Transition ≈ 9.8 MHz at 80 dB, so the band sits well inside the flat passband; odd length → integer delay, removed exactly.</td><td>IQ</td></tr>

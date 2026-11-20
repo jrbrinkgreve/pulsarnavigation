@@ -2,7 +2,7 @@
 RUNSCENARIO - TOA budget of the reference scenario with the fast simulator (block C)
 
 How many hours of data does one TOA take, how many good TOAs come per day, how precise are they
-and are their error bars honest - for the 3x3 array (dual polarization, 1.2-1.6 GHz, 128
+and are their error bars honest - for the 4x4 array (dual polarization, 1.2-1.6 GHz, 128
 channels) observing B0329+54 from the Netherlands (52 N) and J0437-4715 from 30 S (a ship that
 sailed south), each at the nominal and the worst-case flux. Folds are drawn by simulateFold;
 the observer forms TOAs with adaptiveSubints (merge short sub-ints until SNR ~7) and foldToTOA.
