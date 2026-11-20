@@ -4038,7 +4038,8 @@ probably be done in the netherlands, yes"). The dead-reckoning navigation filter
 since 23 Oct, stays parked (Jasper: "but this means we can later park the DR nav filter"). The ship stays the next
 goal after the field test: "let's not develop for that now, as we first want static positioning as a field test. Do
 keep all of the documents for it though, it is the next goal in the succession of this project." The ship's code,
-docs, notes and tests are kept as they are. Points for the redesign (not decisions):
+docs, notes and tests are kept as they are. [Update 20 Nov 2026, Jasper: "the end goal right now is just a static site". The ship is
+not a stated goal at present; its code is archived in `old/moving_platform/` since 5 Nov.] Points for the redesign (not decisions):
 - The pulsar set depends on the latitude (J0437 only from the south); the worst-case design may need a range of sites.
 - An unknown site means a large position prior (FM-23 rises). An equatorial offset of up to 12,700 km gives B0329+54 a
   daily sine of up to ~25 ms, changing by up to 1.8 µs/s, so an hour's fold smears by ~6.5 ms, B0329+54's pulse width.
@@ -4270,7 +4271,8 @@ per day).
 - Scintillation (J0437, B0950+08: low DM) dominates the per-pass SNR → weight passes by
   measured SNR.
 
-*Deployment and scenario sites (Jasper, 20 Oct 2026).* The array (3×3 then, 4×4 since 20 Nov 2026) will eventually go on a
+*Deployment and scenario sites (Jasper, 20 Oct 2026; superseded: since 2 Nov 2026 the array is static at a site not known
+beforehand, and on 20 Nov Jasper: "the end goal right now is just a static site").* As stated on 20 Oct: the array (3×3 then, 4×4 since 20 Nov 2026) will eventually go on a
 **ship**: not a static installation (steered/stabilized → constant gain over a pass assumed), and
 the station position is a moving input (the thing being navigated). Scenario location **the
 Netherlands (52° N)**: J0437 (max. elevation −9°) and Vela (−7°) never rise; **B0329+54** is

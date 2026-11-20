@@ -260,8 +260,8 @@ line of sight</td></tr>
 <tr><td>Dispersion at the Doppler-shifted frequency (not modelled)</td><td>The dispersion delay holds at the barycentric frequency, which
 the Earth's orbit shifts by up to 10⁻⁴</td><td>±7.1 µs per year for B0329+54</td></tr>
 </table></div>
-<p>The last two terms are not in <code>delayModel</code>. J0437's binary orbit was parked at the close of block D, because J0437 never
-rises at 52° N (<a href="navigation.html#next">navigation</a>). The Doppler-shifted dispersion delay cancels in the simulator, so it
+<p>The last two terms are not in <code>delayModel</code>. J0437's binary orbit is not modelled yet. It was set aside while the scenario was 52° N,
+where J0437 never rises. A site anywhere needs it, and so do the many millisecond pulsars that are binaries (<a href="navigation.html#next">navigation</a>). The Doppler-shifted dispersion delay cancels in the simulator, so it
 matters only for real data (<a href="limits.html#propagation">limitations</a>). Sections 7a.2–7a.5 build the prediction in three steps:
 where the receiver is, the delay to the barycentre, and the predicted phase. The fold then follows it (Section 7.6), the fast simulator
 places the true pulses against it (<a href="simulator.html#truth"><code>trueResiduals</code></a>), and the difference between the two is

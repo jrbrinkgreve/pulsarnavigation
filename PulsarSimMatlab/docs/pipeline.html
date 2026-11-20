@@ -243,7 +243,7 @@ page</a> shows how well it reproduces the voltage chain.</p>
 <p>The second limit, the receiver at rest, is removed by the phase prediction (stage 7a). The fold in the chain assigns phases with a constant spin rate. That is only right for a receiver at
 rest relative to the barycentre, the centre of mass of the solar system. The Earth's orbit changes the arrival rate of the pulses by up to
 10⁻⁴, which within one 120 s sub-integration moves the pulse by 12 ms; B0329+54's core is only 5 ms wide, so the fold would smear out. Four functions predict the motion instead, each feeding the next. <code>makeTrajectory</code> describes where the receiver is: a site
-on the ground, a ship or a probe. <code>delayModel</code> computes the delay from the receiver to the barycentre. <code>makePredictor</code>
+on the ground, or any receiver given as a function of time. <code>delayModel</code> computes the delay from the receiver to the barycentre. <code>makePredictor</code>
 turns the delays into the predicted pulse phase, stored as short polynomials. <code>foldProfile</code> follows that phase when it gets
 the option <code>'Predictor'</code> (<a href="fold.html#predictor">stage 7</a>).</p>
 <p>With the predictor, a pulsar with a Doppler factor of 10⁻³ folds as cleanly as one at rest. The <a href="fold.html#prediction">phase-prediction
@@ -345,8 +345,8 @@ figures; the IQ, detected and fold checks are for the full-band path only.</p>
 <p>One switch covers the processing up to the fold (<code>processIQ</code>'s <code>'Reuse'</code> option). A separate fold switch is not worth
 it: refolding alone saved about 2 s of 45 s. The TOAs keep their own switch and function. All intermediate files stay on disk, for checks
 before folding. <code>main.m</code> runs the voltage chain only. The fast simulator runs from its own scripts, such as
-<code>runScenario</code>, which draws a whole observing campaign, and <code>runShip</code>, which closes the navigation loop on a ship. With
-motion they also run the phase prediction, the truth of a moving receiver and navigation (<a href="scripts.html#scenario">run
+<code>runScenario</code>, which draws a whole observing campaign. With
+motion it also runs the phase prediction, the truth of a moving receiver and navigation (<a href="scripts.html#scenario">run
 scripts</a>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 500" role="img" aria-label="Run control in main.m: each stage switch either runs the stage or reloads its files and checks them">

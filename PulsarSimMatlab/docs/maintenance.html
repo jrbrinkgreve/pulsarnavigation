@@ -377,6 +377,13 @@ dispersion fits the 2<sup>28</sup> FFT only up to DM 26.6, not "about DM 30", so
 (was 18), the status heading and the "last audited" line. Roadmap: 16 element positions (was 9). Detection: <code>ChannelGain</code> in <code>foldToTOA</code>'s options list.
 Channels: the caption of Figure 5b.1 gives about 120 MB for a channel's filter at DM 100, as the text does, and <code>gen_dmmem.py</code> follows. The findings still open
 (the ship and site wording, the history page) are in the log. No code change. Log: <code>logs/2026-11-20_docs-audit.md</code>.</td></tr>
+<tr><td>20 Nov 2026</td><td>after <code>8778e69</code></td><td>The static site in the wording (Jasper: "the end goal right now is just a static site"), from the audit's open findings.
+Scenario: the lede, the receiver sentence and R6, now "The site": a static array at a site not known beforehand, 52° N and 30° S as the two latitudes of the runs; the ship moved into
+the History box. Its two sentences on millisecond pulsars no longer read as if they were out. Localisation: the receiver stands on the Earth, "Roemer, the site", the marker "site, 100 km"
+in Figure L.3 (and <code>gen_delays.py</code>), and a millisecond pulsar's first position as an open point of the redesign instead of dead reckoning. Navigation: "Next". Pipeline:
+<code>makeTrajectory</code>'s receivers and the scripts sentence without <code>runShip</code>. Roadmap: no ship after the field test. The binary orbit's reason in six places (fold,
+localisation, limits twice, navigation, roadmap): set aside while the scenario was 52° N, needed for a site anywhere. Not changed: Figure L.1's drawing and caption, and the pages
+that describe how <code>navFilter</code> works, which wait for the redesign. No code change. Log: <code>logs/2026-11-20_docs-audit.md</code>.</td></tr>
 </table></div>
 
 </main>

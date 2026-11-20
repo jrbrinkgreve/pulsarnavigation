@@ -34,7 +34,7 @@ worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (ag
 The field test will probably still be in the Netherlands. The navigation part is therefore being redesigned without dead reckoning and
 without a position prior. The proposal (steps D6a–e, <code>logs/2026-11-04_static-redesign.md</code>) waits for Jasper's OK, and
 nothing of it is built. On 5 Nov the ship's code (<code>navFilter</code>, <code>runShip</code>) moved to
-<code>old/moving_platform/</code>; the ship comes after the static field test.</p>
+<code>old/moving_platform/</code>.</p>
 <p>Block F follows: the real implementation, with IQ recordings at the Netherlands site from the antenna, mixer and SDR through
 <code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p>
 
@@ -410,8 +410,8 @@ D4a, D4b-1, D4c-1 (<code>'ClockPrior'</code>), D4d-1, and TOAs as time-averages 
 <span class="badge written">Claude's runs</span> D4b-2 (the clock loop in <code>runScenario</code>), D4c-0 (the planning study) and
 D4d-2 (<code>runShip</code>)</td></tr>
 <tr><td>D5</td><td>The exact Earth for real data: D5a <code>loadEphemeris</code> (JPL's DE440), D5b <code>delayModel</code>
-<code>'Ephemeris'</code>, D5c TDB − TT from DE440, D5d precession and nutation. Parked: J0437's binary orbit (J0437 never rises at
-52° N; needed for a southern route or a probe) and real ship and probe trajectories (no data yet)</td><td><span class="badge validated">D5a–D5d
+<code>'Ephemeris'</code>, D5c TDB − TT from DE440, D5d precession and nutation. Parked: J0437's binary orbit (set aside while the scenario was 52° N, where J0437 never rises;
+a site anywhere needs it, and so do the many millisecond pulsars that are binaries) and real ship and probe trajectories (no data yet)</td><td><span class="badge validated">D5a–D5d
 validated 22 Oct</span> <span class="badge todo">J0437's orbit and real trajectories parked</span></td></tr>
 </table></div>
 <p>The results (<a href="results.html#blockD">validation record</a>): B0329+54 alone finds a fixed site 100 km east to ±30 km per equatorial
@@ -485,7 +485,7 @@ oscillator).</td><td><span class="badge todo">open</span></td></tr>
 </table></div>
 <p>Two things are parked meanwhile: the navigation filter (<code>navFilter</code>, <code>runShip</code>) and the vehicle's motion uncertainty
 in the fold.
-The trajectory interface stays, so they can return for the ship.</p>
+The trajectory interface stays, so they can return if a moving platform is developed later.</p>
 <h3>Physics notes from the revision</h3>
 <p>The revision rests on three physics notes. The first is about the polarizations in the beamformer (E4). X and Y of one element share its position, so the 16 element positions are the only spatial
 information. Each pulsar gets two beams with the same steering weights, one from the X streams and one from the Y streams. Each beam is

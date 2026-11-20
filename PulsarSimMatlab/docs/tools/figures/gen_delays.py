@@ -61,7 +61,7 @@ o.append(f'<path class="axis" d="M{E.x0} {yA} H{E.x0 + E.w}"/>')
 o.append(f'<text class="ttl" x="80" y="452">e · every term on one scale: its largest size</text>')
 curv = np.max(np.abs(dy['curvature']))
 terms = [(-geo.min(), 'Roemer, orbit', f'{-geo.min():.0f} s', 's1f'), ((rot.max() - rot.min()) / 2, 'Roemer, rotation', '7.6 ms', 's1f'),
-         (1.66e-3, 'Einstein', '1.66 ms', 's1f'), (333e-6, 'ship, 100 km', '333 µs', 's2f'),
+         (1.66e-3, 'Einstein', '1.66 ms', 's1f'), (333e-6, 'site, 100 km', '333 µs', 's2f'),
          (-dy['shapiro'].min(), 'Shapiro', '17 µs', 's1f'), (curv, 'curvature, 1 kpc', f'{curv * 1e6:.1f} µs', 's1f')]
 for i, (v, lab, val, cls) in enumerate(terms):
     y = E.y0 + 8 + i * 20; x = float(E.X(np.log10(v)))

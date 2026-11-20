@@ -279,6 +279,33 @@ page and in the script alike).
 Still open: everything else above. The ship and site wording, the pages' wording on millisecond pulsars, and the history
 page need new text, so they get a draft first.
 
+## Fixed later the same day: the static site in the wording
+
+Jasper, on the draft: "the end goal right now is just a static site". So the draft's sentence "A ship is the goal after the
+static field test" went, and so did the same clause on the roadmap. Applied to seven pages and one figure script; 1080
+links, none broken; tags balanced; not opened in a browser by me.
+
+- `scenario.html`: lede; "at a static site" in R1; R6 is now "The site" (anchor `#ship` kept), with 52° N and 30° S as
+  the two latitudes of the runs and the ship in the History box. The reason for "constant gain over a pass" (the ship)
+  is gone; the sentence now only says what the simulations assume. R4: "J0437 is by far the fastest millisecond pulsar
+  to time", and for the north "B1937+21, the fastest there, needs 670 h of data at nominal flux" (the page's own table).
+- `localisation.html`: lines 28, 121 and 232 ("Roemer, the site"); line 116, a millisecond pulsar's first position is an
+  open point of the redesign, no dead reckoning; "site, 100 km" in Figure L.3 and in `gen_delays.py`; the binary-orbit row.
+- `navigation.html`: "Next", and the binary-orbit row of the parked table.
+- `pipeline.html`: `makeTrajectory`'s receivers; the scripts sentence without `runShip`.
+- `fold.html`, `limits.html` (twice), `roadmap.html`: the binary orbit's reason. `roadmap.html` also: "the ship comes
+  after the static field test" removed, and "return for the ship" is now "return if a moving platform is developed later".
+- `logs/current_project_notes.md` §11: two dated updates next to the old statements, which stay.
+
+Left as they are, on purpose:
+- Figure L.1 on `localisation.html` (box "ship or probe", caption "A ship and a ground site"). It draws the general
+  trajectory interface and has a "site" box of its own, so a relabel would change what it shows. It needs a decision.
+- `localisation.html:101-103` ("A moving ship adds its velocity … a Kalman filter") and `navigation.html:191`: how
+  navigation works, which waits for the redesign.
+- Not asked, not done: whether the binary orbit moves from "parked" to an open roadmap item.
+
+Still open from the list above: `history.html` (stops at 4 Nov), the two test rows, the minor items, and the known list.
+
 ## Correction, the same day: millisecond pulsars
 
 Jasper: "MSP's were in the objective from the first moment; thats not a recent decision. Remove notions like 'on ... it

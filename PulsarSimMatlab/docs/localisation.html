@@ -25,7 +25,7 @@ omission would cost against real data.</p>
 <li><a href="#relativity">L5 · Relativistic corrections</a></li>
 <li><a href="#missing">L6 · What the model leaves out</a></li>
 </ol></div>
-<p>A pulsar's phase is defined at the barycentre of the solar system, in its own time scale. The receiver sits on a ship on a rotating
+<p>A pulsar's phase is defined at the barycentre of the solar system, in its own time scale. The receiver stands on a rotating
 Earth that orbits the Sun, and it time-stamps the data with its own oscillator. The code therefore carries every arrival time through two
 chains (Figure L.1): from the clock reading to true time, from the Earth's clock to the barycentre's clock, and from the receiver's position
 to the barycentre. What is left after them is the position error, seen along the pulsar's direction. One microsecond of residual is 300 m
@@ -113,12 +113,13 @@ unambiguous only while the position error stays below half a period times <var>c
 <tr><td>B0329+54</td><td>714 ms</td><td>±107,000 km</td></tr>
 <tr><td>J0437−4715</td><td>5.76 ms</td><td>±863 km</td></tr>
 </table></div>
-<p>A millisecond pulsar therefore needs a prior position, for example from dead reckoning, that is good to a few hundred km. To compute
+<p>A millisecond pulsar's TOA therefore fixes the position only once it is already known to a few hundred km. For a site that is not known
+beforehand, that first position has to come from somewhere else. How is open: it is part of the navigation redesign. To compute
 δ<var>r</var>·<var>n̂</var>, both vectors must first be in the same frame.</p>
 
 <h2 id="frames">L2 · Coordinate frames</h2>
 <p>Positions are needed in several frames: the pulsar's direction is fixed on the sky, the Earth's orbit is given in the ecliptic, and a
-ship's position is given in latitude and longitude on a rotating Earth. The code converts all of them into one frame before any delay is
+site's position is given in latitude and longitude on a rotating Earth. The code converts all of them into one frame before any delay is
 computed.</p>
 <div class="table-wrap"><table>
 <tr><th>Frame</th><th>Origin and axes</th><th>What uses it</th></tr>
@@ -229,7 +230,7 @@ barycentre. <code>delayModel</code> computes it as a sum of terms (Figure L.3). 
 <tr><td>Roemer, Earth's orbit</td><td>The light-travel time across the Earth's offset from the barycentre.</td><td>±412 s over a year.
 At most ±499 s, for a pulsar in the ecliptic.</td></tr>
 <tr><td>Roemer, Earth's rotation</td><td>The site turns with the Earth.</td><td>±7.6 ms per day. At most ±21 ms, the Earth's radius.</td></tr>
-<tr><td>Roemer, the ship</td><td>The ship's position on the Earth: what navigation wants to find.</td><td>333 µs per 100 km along
+<tr><td>Roemer, the site</td><td>The receiver's position on the Earth: what navigation wants to find.</td><td>333 µs per 100 km along
 the line of sight.</td></tr>
 <tr><td>Curvature</td><td>The pulse front is a sphere around the pulsar, not a plane.</td><td>About 1.2 µs over a year at 1 kpc.</td></tr>
 <tr><td>Einstein</td><td>The Earth's clock runs at a varying rate (next section).</td><td>±1.66 ms over a year; up to about 2 µs daily
@@ -412,9 +413,9 @@ sight that grazes the Sun.</td></tr>
   <path class="thin" d="M240 518 H489.0"/>
   <circle class="s1f" cx="489.0" cy="518" r="5"><title>Einstein: 1.66 ms</title></circle>
   <text class="sub" x="498.0" y="522" text-anchor="start">1.66 ms</text>
-  <text class="sub" x="80" y="542" style="fill:var(--series-2)">ship, 100 km</text>
+  <text class="sub" x="80" y="542" style="fill:var(--series-2)">site, 100 km</text>
   <path class="thin" d="M240 538 H447.8"/>
-  <circle class="s2f" cx="447.8" cy="538" r="5"><title>ship, 100 km: 333 µs</title></circle>
+  <circle class="s2f" cx="447.8" cy="538" r="5"><title>site, 100 km: 333 µs</title></circle>
   <text class="sub" x="438.8" y="542" text-anchor="end" style="fill:var(--series-2)">333 µs</text>
   <text class="sub" x="80" y="562">Shapiro</text>
   <path class="thin" d="M240 558 H371.8"/>
@@ -503,8 +504,8 @@ with the time of day and the season.</td></tr>
 10° elevation.</td></tr>
 <tr><td>The pulsar's own position</td><td>Its right ascension, declination, proper motion and parallax.</td><td>A 1 mas error gives up to
 2.4 µs over a year.</td></tr>
-<tr><td>Binary orbits</td><td>J0437 orbits a companion.</td><td>±3.4 s per 5.74 days. Parked at the close of block D: J0437 never rises
-at 52° N, so it matters only for a southern route or a probe (<a href="navigation.html#next">navigation</a>).</td></tr>
+<tr><td>Binary orbits</td><td>J0437 orbits a companion.</td><td>±3.4 s per 5.74 days. Not modelled yet: it was set aside while the scenario was
+52° N, where J0437 never rises. A site anywhere needs it, and so do the many millisecond pulsars that are binaries (<a href="navigation.html#next">navigation</a>).</td></tr>
 <tr><td>Dispersion at the Doppler-shifted frequency</td><td>The dispersion delay holds at the barycentric frequency, which the Earth's
 orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term.</td><td>An annual ±7.1 µs for B0329+54, ±0.3 µs for J0437
 (<a href="limits.html#propagation">limitations</a>).</td></tr>

@@ -14,7 +14,7 @@ is. Each item says whether it matters for the weak-signal target (−54 dB, J043
 
 <p>The voltage chain simulates 0.1–1 s, and it is exact for what it models. The fast simulator covers days. Four effects are larger than
 a J0437 TOA and must be handled before folding for hours. Three of them are modelled since block D: Earth's motion, the receiver's clock
-and the station position. The fourth, the pulsar's binary orbit, is left out and parked: J0437 never rises at 52° N. Other effects only
+and the station position. The fourth, the pulsar's binary orbit, is left out so far, and a site anywhere needs it. Other effects only
 matter for nanosecond navigation: the ionosphere, DM changes, scattering at high DM. A few matter only for real data, such as the
 Doppler-shifted dispersion delay. The receiver model is ideal, and the periodic-mask fix is parked with a design.</p>
 
@@ -160,8 +160,8 @@ prediction</a>), which matches JPL Horizons to 28–30 m for a site.</p>
 orbit, with a projected size of 3.37 light-seconds. Its orbit moves the arrival time by about 3 s within one 20 h fold (0.15 s per hour).
 That is about 2·10⁵× the fold's phase budget (W<sub>50</sub>/10 ≈ 14 µs). J2145−0750 and J1713+0747 are binaries too. So the phase
 predictor needs a binary timing model before J0437 is used; the circular-orbit model ELL1 suffices for J0437 at the µs level. The
-simulator's truth then needs the same orbit. Both were parked at the close of block D: J0437 never rises at 52° N, so it matters only for
-a southern route or a probe (<a href="navigation.html#next">navigation</a>).</p>
+simulator's truth then needs the same orbit. Both were set aside while the scenario was 52° N, where J0437 never rises. A site anywhere needs
+them, and so do the many millisecond pulsars that are binaries (<a href="navigation.html#next">navigation</a>).</p>
 <p>A long fold also needs a prior position. A station position error δr gives a daily-varying delay error up to δr/c, which smears a long fold:
 J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km. A fix from scratch starts from the normal pulsars and refines with J0437.</p>
 <p>How far navigation gets with all this is known so far only from simulations without timing noise (<a href="results.html#blockD">validation
