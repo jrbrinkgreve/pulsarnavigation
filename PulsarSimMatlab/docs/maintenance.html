@@ -372,6 +372,11 @@ Simulator page: the option in <code>adaptiveSubints</code>' list. Detection page
 <tr><td>20 Nov 2026</td><td>after <code>eb772a0</code></td><td>The array is 4×4 on the same 0.61 m² (Jasper: "the array will be still the same area, but now 4x4!", then "record the update"). The sensitivity and every budget are unchanged.
 Index: the block E row. Parameters: the <code>fLow</code>, <code>fHigh</code> row. Scenario: the receiver sentence. Receiver: the realistic RFI scenario. Roadmap: 32 data streams instead of 18 (lead, figure, block table, endpoint, E4 row, open items).
 History is left as written. Header comments of <code>main.m</code>, <code>pipelineParams.m</code> and <code>runScenario.m</code>; <code>api.html</code> follows after the commit. Dual polarization on all 16 elements is assumed, not yet confirmed. Log: <code>logs/2026-11-20_array-4x4.md</code>.</td></tr>
+<tr><td>20 Nov 2026</td><td>after <code>cb05d21</code></td><td>Quick fixes from a read-only audit of all pages against the code (Jasper: "Yes, quick fixes"). Parameters: the forward
+dispersion fits the 2<sup>28</sup> FFT only up to DM 26.6, not "about DM 30", so B0329+54's own DM of 26.8 needs 23.6 GB; the commit line names <code>44f5679</code>. Home page: 32 data streams
+(was 18), the status heading and the "last audited" line. Roadmap: 16 element positions (was 9). Detection: <code>ChannelGain</code> in <code>foldToTOA</code>'s options list.
+Channels: the caption of Figure 5b.1 gives about 120 MB for a channel's filter at DM 100, as the text does, and <code>gen_dmmem.py</code> follows. The findings still open
+(the ship and site wording, the history page) are in the log. No code change. Log: <code>logs/2026-11-20_docs-audit.md</code>.</td></tr>
 </table></div>
 
 </main>

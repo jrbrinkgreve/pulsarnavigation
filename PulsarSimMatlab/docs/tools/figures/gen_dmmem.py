@@ -52,7 +52,7 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure 5b.1.</b> Memory of one dispersion filter against DM, with each function's own sizing rule (the smallest FFT it may use: twice the reach of
 the filter, rounded up to a power of two; 44 or 56 bytes per FFT sample). The steps are the powers of two. One full-band filter at
-800 MHz passes the 4 GB default near DM 33 and needs ~15 GB at DM 100; a channel's filter stays near 100 MB. The simulator's
+800 MHz passes the 4 GB default near DM 33 and needs ~15 GB at DM 100; a channel's filter needs about 120 MB there. The simulator's
 forward filter (stage 2, real samples at 4 GHz) is the remaining problem (<a href="roadmap.html#dm">roadmap</a>).</figcaption>
 </figure>'''
 open('dmmem.svg', 'w').write(svg)

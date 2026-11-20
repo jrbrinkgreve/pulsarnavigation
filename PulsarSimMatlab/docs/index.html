@@ -91,7 +91,7 @@ clock offset.</p>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 30 October 2026</h2>
+<h2>Status · 20 November 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
@@ -116,12 +116,12 @@ off. That is at nominal flux. At worst-case flux, the design point, the same shi
 handle. The <a href="simulator.html">fast simulator</a> therefore draws the folded profiles straight from their known statistics: hours
 of data take seconds. It is validated in Jasper's runs, and its scenario runs give TOA budgets for B0329+54, seen from the Netherlands,
 and for J0437, seen from 30° S.</p>
-<p>The work now is block E: the position of a static array from several pulsars, in simulation, with all 18 data
+<p>The work now is block E: the position of a static array from several pulsars, in simulation, with all 32 data
 streams beamformed. Since 2 Nov the site is not known beforehand, so the method must work anywhere on Earth; the field test will
 probably be in the Netherlands. It starts with a review: of blocks C and D (22–23 Oct), then a review week, E0, that walks through every stage
 again. On its second day every stage from 2 to 6 got a unit test of its own (31 in all then, 33 since 5 Nov, all passed in Jasper's
 run of that day). The navigation part is being redesigned for the unknown site. That proposal waits for Jasper's OK and nothing of it is
-built (status 13 Nov). Block F, the real implementation on antenna data, follows. The details and reasons are on the <a href="roadmap.html#blockE">roadmap</a>.</p>
+built (status 20 Nov). Block F, the real implementation on antenna data, follows. The details and reasons are on the <a href="roadmap.html#blockE">roadmap</a>.</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -215,7 +215,7 @@ the full-band path writes about 61 GB. The default <var>L</var> = 0.2 s therefor
 <tr><td><code>old/</code></td><td>legacy code, unused</td></tr>
 <tr><td><code>docs/</code></td><td>this site (open <code>index.html</code> in a browser)</td></tr>
 </table></div>
-<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs checked against commit <code>77bf36d</code> (30 Oct 2026; the code is unchanged since <code>7274ced</code>) ·
+<p class="meta">Folder: <code>PulsarSimMatlab/</code> · Docs last audited against commit <code>cb05d21</code> (20 Nov 2026; open findings in <code>logs/2026-11-20_docs-audit.md</code>) ·
 Detailed reference: <a href="../logs/current_project_notes.md"><code>logs/current_project_notes.md</code></a> · <a href="maintenance.html">docs maintenance</a></p>
 
 </main>
