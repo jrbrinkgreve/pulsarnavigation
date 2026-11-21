@@ -11,3 +11,7 @@ PulsarSimMatlab/deliverables/
 PulsarSimMatlab/logs/*task2.4*
 PulsarSimMatlab/logs/*deliverable*
 PulsarSimMatlab/logs/*progress-report*
+
+# Literature research notes and reports (they quote the deliverables): kept out of the public repository
+PulsarSimMatlab/research_notes/
+PulsarSimMatlab/reports/
