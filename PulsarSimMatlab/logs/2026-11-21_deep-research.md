@@ -109,7 +109,12 @@ quoted values are paraphrase-level unless a researcher cross-checked them.
 4. `navFit`: a phase and rate per pulsar (row 7); the solar-day line and its harmonics as optional columns (row 6).
 5. E1/E2 inputs: proper motion and position epoch, TCB → TDB, UT1 from Bulletin A (rows 8–10); the PINT check needs
    a Linux container or Rosetta on this Mac (native ARM Python lacks the extended precision).
-6. Risk-register updates: FM-2, FM-3, FM-4, FM-5, FM-10, FM-11, FM-15, FM-18, FM-31/32, and the stream counts.
+6. ~~Risk-register updates.~~ Done the same day at Jasper's "update the risk register with the findings"
+   (`2026-11-02_risk-register.md`, section "21 Nov 2026: the register against the literature"): 31 rows annotated with
+   a paragraph marked 21 Nov, six ratings changed (FM-4 12 → 15, FM-18 12 → 15, FM-7 6 → 10, FM-12 6 → 8, FM-3 10 → 5,
+   FM-32 8 → 4), four scenarios added (FM-43 the array's area against direction, 20; FM-44 mixed TCB/TDB units, 16;
+   FM-45 the reference not locked, 12; FM-46 ADC calibration and the 5G alias, 9), the table re-sorted, and eleven
+   actions R1–R11. The ratings stay a draft. The actions are not yet in notes §10 or `roadmap.html`.
 7. The notes §11 pulsar table (row 14) and the refractive term in the scintillation runs (row 13).
 8. The RFI scenario (row 15) and a site survey early (FM-18); long radar pulses against `detectRFI`'s windows.
 9. Block F before hardware: public baseband that downloads today without a login (B1133+16 from Green Bank at
