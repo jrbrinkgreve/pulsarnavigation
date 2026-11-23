@@ -4165,6 +4165,38 @@ measured and not simulated:
 Jasper also announced, the same day, an update on "the ways digital beams are coming in"; not received yet. It may change where the
 beamforming happens and so step E4. Log: `2026-11-20_array-4x4.md`.
 
+*Array, update 23 Nov 2026 (Jasper, after talking with the antenna engineering team: "we have about a 3m^2 effective area array!").*
+This supersedes the 0.61 m², the 16 or 32 streams and the digital beamformer of the paragraphs around it; their numbers stay as the
+record of what every budget in these notes and in the docs was computed with. Nothing has been rerun.
+- The hardware, as Jasper described it: a 4×4 grid of tiles ("patches"), each with 4×4 dual-polarized bowtie elements (256
+  elements). Analogue delay-and-sum in two stages, inside each tile and again across the 16 tiles, hardwired to two directions:
+  (θ, φ) = (0°, 0°) and (20°, 45°), the second tilted 20° along the grid's diagonal. Two beams × two polarizations = **4 analogue
+  outputs** for the whole array. The delays are "fixed for good". So there is no digital beamforming and no electronic steering;
+  four inputs fit one RFSoC 4x2.
+- Measured, per Jasper: "about 70K of system temperature at the total output". Band still 1.2–1.6 GHz, but with the RFI "about
+  150 MHz of 'free area' with Tsys actually at 70K".
+- In the team's terms (they specify the receiver by SEFD and sensitivity, not SNR): sensitivity A_eff / T_sys = 3 / 70 =
+  0.043 m²/K (was 0.0087); **SEFD = 2kT_sys / A_eff = 6.4·10⁴ Jy** (was 3.2·10⁵); G/T at 1.4 GHz 10.7 dB/K (was 3.8). Time per TOA
+  goes as SEFD² / B, a position error as SEFD / √B.
+- Claude's arithmetic from 3 m² and 256 elements, not from the team: pitch 0.108 m (half a wavelength at 1.4 GHz), side 1.73 m,
+  final beam 7.3° / 6.3° / 5.5° at 1.2 / 1.4 / 1.6 GHz, directivity 29.2 dBi. No grating lobes at this pitch (FM-43's cause is gone).
+- The team's goal (Jasper: "ideally, they want to detect a pulsar within a single pass through the beam"). Scaled from the
+  simulated 1.93 h per SNR 7 TOA at 3.2·10⁵ Jy, not simulated: B0329+54 drifts through the beam in 0.72 h (FWHM), worth 0.55 h at
+  the peak; one pass gives SNR 18 with 400 MHz and **SNR 11 with 150 MHz** at the beam centre (TOA 460 µs), 7 for a zenith-facing
+  panel without a tilt (2.6° off centre), 5 on a low-flux day. SNR 7 per pass with 150 MHz needs SEFD ≤ 1.0·10⁵ Jy.
+- Position: a pulsar seen at one fixed hour angle gives a TOA per day and **no position** (the site's delay is then a constant that
+  merges with c_k). Scale estimates for 30 days and 150 MHz: both fixed beams on B0329+54 (the second catches it 2.2 h from
+  culmination) about 120 km, east–west only; the panel on a tracking mount about 10 / 16 km east / north.
+- Working assumption (Jasper, 23 Nov: "i think assuming a decent power splitter is okay, beams are on continuously without
+  switching"): the two beams come from a power splitter, so both are live all the time with no loss of SNR or integration time.
+  Not confirmed by the team: Jasper saw "SPDT" (a switch) in a diagram, role unknown; an alternating switch would halve the time
+  per beam.
+- Open, with the team: a fixed panel or a mount ("still open to decide"); a measured SEFD or G/T per beam; where the LNAs sit;
+  what the second beam is for; what the SPDT switches.
+- For the project: the 2 Nov objective's "digital beamforming" and step E4 do not fit this hardware; a reference scenario at
+  6.4·10⁴ Jy, 150 MHz and fixed beams needs new runs; the fast simulator has no drift through a beam. None of this is decided.
+Log: `2026-11-23_array-3m2-analog-beams.md`.
+
 *Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W_eq)/W_eq),
 n_pol 2, B 400 MHz, target SNR 7 from the threshold sweep). P, DM, W50, S₁₄₀₀ from the
 **ATNF catalogue v2.6.5** (queried 6 Oct 2026; all pulsars with S₁₄₀₀ > 25 mJy plus MSPs
