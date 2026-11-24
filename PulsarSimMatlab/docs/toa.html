@@ -52,7 +52,7 @@ channel path all 128 channels are fitted at once, each weighted by how noisy it 
 spin frequency), not an absolute TOA. Both need the shift τ, which the next section finds.</p>
 
 <h2 id="fftfit">8.2 FFTFIT: finding the shift (Taylor 1992)</h2>
-<p>The shift is found with FFTFIT, the standard pulsar-timing method: continuous shifts, fast, and the maximum-likelihood estimator for
+<p>The shift is found with FFTFIT <a class="cite" href="references.html#ref-taylor1992">[7]</a>, the standard pulsar-timing method: continuous shifts, fast, and the maximum-likelihood estimator for
 white noise, which is the weak-signal regime. The SNR sweep showed it within 1 % of the theoretical optimum up to −5 dB. It loses only at very high SNR, where
 self-noise dominates (1.5× at +10 dB, 2.4× at +20 dB), which is irrelevant for the small-antenna target.</p>
 <p>Behind the method lies one optimisation problem. It asks for the baseline, amplitude and shift that leave the smallest squared residual
@@ -247,7 +247,7 @@ a fit that lands one sharp peak over, as happens for about 2.5 % of J0437−4715
 (analysis of 24 Nov 2026, Section 8.7). The fix for such a case is the per-channel noise
 calibration (the switch <code>noiseCal</code>, off by default). <code>testOptimalTOA</code> test 4 checks <code>pChi2</code> itself: it draws 800 profiles per SNR
 level with the exact covariance of a blanked fold, for 'equal' and 'optimal' weighting; <code>pChi2</code> is uniform by a
-Kolmogorov–Smirnov test at the 10⁻³ level.</p>
+Kolmogorov–Smirnov test <a class="cite" href="references.html#ref-massey1951">[39]</a> at the 10⁻³ level.</p>
 <p>One cause makes <code>pChi2</code> small without a fault in the noise model: scintillation. It gives every channel its own pulse
 amplitude, while the 'optimal' fit assumes the same amplitude in every channel (<code>ChannelGain</code> 1, Section 8.6). The misfit
 adds to χ² in proportion to SNR². In the scenario runs with scintillation at the array's design point, 10–11 % of B0329+54's TOAs have
@@ -310,7 +310,7 @@ bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a valu
 FFTFIT is exact. With one channel and equal weights, <var>N</var>(τ) is proportional to <var>C</var>(τ) and <var>D</var><sub>n</sub> no
 longer depends on τ, so Eq. (8.11) becomes Eq. (8.6). With unequal weights the denominator has to stay, because a blank changes how much of
 the pulse the fit can see at each shift.</p>
-<p>The error bars come from a sandwich estimator, \(\mathrm{Cov} = A^{-1}BA^{-1}\), \(A = J^\mathsf{T}WJ\), \(B = J^\mathsf{T}W\Sigma WJ\): \(J\) the derivatives of the
+<p>The error bars come from a sandwich estimator <a class="cite" href="references.html#ref-white1980">[40]</a><a class="cite" href="references.html#ref-huber1967">[59]</a>, \(\mathrm{Cov} = A^{-1}BA^{-1}\), \(A = J^\mathsf{T}WJ\), \(B = J^\mathsf{T}W\Sigma WJ\): \(J\) the derivatives of the
 model with respect to the fit parameters, \(W\) the fit weights (diagonal), \(\Sigma\) the full noise covariance of every channel (all lags).
 These \(A\), \(B\), \(W\) are matrices, not amplitude, bandwidth or taper. The weights ignore neighbour covariances (correlation ~0.26, a small
 loss); the error bars do not. The sandwich estimator is honest even when the fit's weights are not exactly the inverse covariance; the
@@ -497,7 +497,7 @@ turns summed). <code>estimateTOA</code> accepts any [NBin × 1] profile with pha
 template source (a multi-component model or a high-SNR observed profile); its phase 0 then defines the TOA. <code>gaussianTemplate</code>
 and <code>foldToTOA</code> also take a component matrix, with rows [amplitude, centre, FWHM] in turns. The template is then the sum of the
 Gaussians, scaled to a maximum of 1, and phase 0 is the components' reference point, which is not necessarily the peak. An example:
-B0329+54 at 1410 MHz has five components (arXiv:1703.03582, Table 2): a core at 0, a broad component at −0.003 turns, and outer ones at
+B0329+54 at 1410 MHz has five components (Shang et al. 2017 <a class="cite" href="references.html#ref-shang2017">[38]</a>, Table 2): a core at 0, a broad component at −0.003 turns, and outer ones at
 −0.032, +0.021 and +0.026 turns. A single Gaussian with the catalogue W<sub>50</sub> would put only half its flux in the pulse area, and so
 overstate the peak by 3 dB. A template with two sharp peaks close together has its own failure at low SNR: J0437's are 57 µs apart, and
 about 2.5 % of its TOAs at SNR 7.3 are fitted one peak over (<a href="scenario.html#j0437profile">scenario, Section R7.3</a>).</p>

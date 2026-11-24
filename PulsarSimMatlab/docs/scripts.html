@@ -203,7 +203,7 @@ It stops with an error if the sky files do not match the parameters (<code>check
 mode, seed, DM, band, refFreq). Per seed it runs the receiver simulation, then <code>processIQ</code> and <code>foldToTOA</code> as in <code>main.m</code>
 (<code>'Verbose', false</code>; its own files in <code>data/mc/</code>). It uses the front end that <code>pipelineParams</code> chooses;
 the default is channels, with excision and optimal weighting. Pooled over the seeds, it reports <code>validateTOA</code> on all TOAs
-and on the good ones; <code>pChi2</code> (mean, fraction below 0.05, Kolmogorov–Smirnov distance to
+and on the good ones; <code>pChi2</code> (mean, fraction below 0.05, Kolmogorov–Smirnov <a class="cite" href="references.html#ref-massey1951">[39]</a> distance to
 uniform); detection rate (unknown phase); on the channel path the blanked fraction (false flags on pure noise).</p>
 <p>On the full band (−5 dB, 90 TOAs), rms/pred is 0.950 ± 0.075, χ²<sub>red</sub> 0.91, and 72 % lie within 1σ. <code>pChi2</code> is uniform.
 The result was reproduced exactly on <code>processIQ</code> (19 Oct).</p>

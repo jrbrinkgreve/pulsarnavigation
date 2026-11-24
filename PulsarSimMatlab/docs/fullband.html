@@ -28,7 +28,7 @@ simulator's truth (the <a href="conventions.html#truth">ground-truth rule</a>).<
 <div class="sig">info = applyInverseDispersion(inFile, outFile, fs, fLO, DM, fLow, fHigh, 'RefFreq', refFreq)</div>
 <p class="meta"><a href="api.html#applyinversedispersion">Full interface and help text of <code>applyInverseDispersion</code> →</a></p>
 
-<p id="dedisp-short">Stage 5 undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied, so
+<p id="dedisp-short">Stage 5 undoes interstellar dispersion, exactly. It filters the complex voltage with the inverse of the chirp that stage 2 applied <a class="cite" href="references.html#ref-hankinsrickett1975">[2]</a>, so
 every frequency comes out at the time it would have at 1.6 GHz. It uses only the catalogue DM and the receiver settings.</p>
 <div class="callout note"><span class="ttl">Worked numbers at DM 5 (kept for visual clarity)</span>
 <p>The figures, FFT sizes and run times in this section are worked out at DM 5, where the figures are easier to read. The default
@@ -50,7 +50,7 @@ the band, the filter is</p>
 <dt>\(H_\mathrm{inv}(f)\)</dt><dd>the inverse dispersion filter, one value per FFT bin</dd>
 <dt>\(f\)</dt><dd>RF frequency of the bin: \(f_\mathrm{LO} + f_\mathrm{bb}\) [Hz], with \(f_\mathrm{bb}\) its baseband frequency</dd>
 <dt>\(f_\mathrm{ref}\)</dt><dd>radio reference frequency, whose timing is left unchanged [Hz] (<code>RefFreq</code>, default <code>fHigh</code> = 1.6 GHz)</dd>
-<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10¹⁵ s Hz² pc⁻¹ cm³ (= 4.148808·10³ s MHz² pc⁻¹ cm³)</dd>
+<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10¹⁵ s Hz² pc⁻¹ cm³ (= 4.148808·10³ s MHz² pc⁻¹ cm³) <a class="cite" href="references.html#ref-lorimerkramer2005">[1]</a></dd>
 <dt>\(\mathrm{DM}\)</dt><dd>dispersion measure from the catalogue [pc cm⁻³] (<code>ephem.DM</code>; 5 in the worked numbers, 25 by default)</dd>
 <dt>\(W(f)\)</dt><dd>the observer's band window: 1 inside, raised-cosine (sin²) edges, 0 outside</dd>
 </dl>
@@ -65,7 +65,7 @@ R-D2</a>). The taper <var>W</var> (8 MHz raised-cosine edges) keeps the filter's
 Section 5.2 work.</p>
 
 <h3 id="dedisp-how">5.2 Streaming by overlap-save</h3>
-<p>The filter's reach is very lopsided: 6.3 ms into the future, a few µs into the past. Overlap-save suits that, whereas stage 2's
+<p>The filter's reach is very lopsided: 6.3 ms into the future, a few µs into the past. Overlap-save <a class="cite" href="references.html#ref-stockham1966">[21]</a> suits that, whereas stage 2's
 forward filter only reaches forward and uses overlap-add (<a href="sky.html#disp-why">sky page</a>). The stage works in six steps.</p>
 <ol>
 <li><b>Check the inputs:</b> the band must lie inside <var>f</var><sub>LO</sub> ± <var>f</var><sub>s</sub>/2, and <var>f</var><sub>ref</sub> inside the
@@ -333,7 +333,7 @@ from 800 million complex samples per second to 1 million power values, so everyt
 <h3 id="detect-phys">6.1 Why square, then fold</h3>
 <p>After dedispersion the pulse is still noise; only its variance carries the signal (<a href="sky.html#gen-phys">Section 1.1</a>).
 |<var>z</var>|² estimates the variance. For noise whose variance follows a known profile, a profile-weighted sum of |<var>z</var>|² is the
-optimal (Neyman–Pearson) test statistic. The optimal order is therefore: square, then fold the turns, then match the template.
+optimal (Neyman–Pearson <a class="cite" href="references.html#ref-neymanpearson1933">[6]</a>) test statistic. The optimal order is therefore: square, then fold the turns, then match the template.
 Everything linear (dedispersion, RFI blanking, and beamforming, which the array does in analogue hardware) must happen before the square, because after it the phase is gone.</p>
 <p>Each 1 µs bin averages about <var>B</var><sub>n</sub>·Δ<var>t</var> ≈ 390 independent samples, so its noise is 1/√390 ≈ 5.1 % of its mean
 (the radiometer equation).</p>

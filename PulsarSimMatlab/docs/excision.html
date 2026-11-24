@@ -302,7 +302,7 @@ sequence, and the order of the terms does not change the sum. The sum exceeds \(
 probability then passes to wait \(k+1\). After the last wait, the waiting is over. These rates are the matrix \(Q\) of Eq. (E.2):</p>
 <div class="eq">\[ \begin{gathered} \frac{d\boldsymbol{\pi}}{dx} = \boldsymbol{\pi}\, Q, \qquad \boldsymbol{\pi}(0) = [1\;0\;\cdots\;0] \\[4pt] P\Big(\sum_{k} \lambda_k E_k > x\Big) = \boldsymbol{\pi}(x)\,\mathbf{1} = [1\;0\;\cdots\;0]\, \exp(Qx)\, \mathbf{1} \end{gathered} \]</div>
 <p>This is Eq. (E.2). For \(n = 1\) it is \(e^{-x}\), which equals \(10^{-6}\) at \(x = \ln 10^6 = 13.82\): the first threshold in the
-table below. When all \(\lambda_k\) differ, the same probability also has a closed form:</p>
+table below. When all \(\lambda_k\) differ, the same probability also has a closed form <a class="cite" href="references.html#ref-amari1997">[34]</a>:</p>
 <div class="eq">\[ P\Big(\sum_{k} \lambda_k E_k > x\Big) = \sum_{k=1}^{n} \Big( \prod_{j \ne k} \frac{\lambda_k}{\lambda_k - \lambda_j} \Big)\, e^{-x/\lambda_k} \]</div>
 <p>The closed form fails in practice. Each of its terms divides by differences \(\lambda_k - \lambda_j\), and many eigenvalues here are
 nearly equal. The eigenvalues of a correlation matrix roughly follow the power spectrum of the samples, and the channel's spectrum is
@@ -530,7 +530,7 @@ sample lag τ = 0…(<var>L</var><sub>max</sub>+1)<var>n</var>−1, where <var>n
 <var>L</var><sub>max</sub> = 7 and <var>n</var> = 4 that is 32 lags. For every detected bin <var>k</var> and channel,
 <b><var>W</var></b> is the mean of <var>C</var>(<var>a</var>,<var>a</var>) over the bin's samples divided by its unblanked value.
 <b><var>V</var></b> and <b><var>X</var>(<var>L</var>)</b> are (1/<var>n</var>²)·Σ|<var>C</var>|² over the sample pairs of bins <var>k</var>
-and <var>k</var>+<var>L</var>, relative to the radiometer value, by Isserlis' theorem: for Gaussian voltages, the covariance of two powers
+and <var>k</var>+<var>L</var>, relative to the radiometer value, by Isserlis' theorem <a class="cite" href="references.html#ref-isserlis1918">[4]</a>: for Gaussian voltages, the covariance of two powers
 is the squared covariance of the voltages.</p>
 <p>Exact numbers per bin are needed because no simple rule works. The plan was a simpler rule: the variance of a partly blanked bin would lie between <var>W</var>² and
 <var>W</var> times the normal value. An experiment (<code>tests/expBlankingVariance.m</code>) showed that neither rule holds, with errors of

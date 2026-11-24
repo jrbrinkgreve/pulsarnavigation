@@ -36,6 +36,7 @@ const PAGES = [
   { file: "api.html",         title: "Function reference" },
   { file: "formulas.html",    title: "Formulas" },
   { file: "glossary.html",    title: "Glossary" },
+  { file: "references.html",  title: "References" },
   { file: "maintenance.html", title: "Docs maintenance" },
 ];
 

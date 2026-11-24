@@ -63,7 +63,7 @@ with a low-pass and keeps every <var>D</var>-th sample:</p>
 file is therefore an ordinary IQ file, with LO <var>f</var><sub>c,j</sub> and rate <var>f</var><sub>s</sub>/<var>D</var>. The unit DC gain
 keeps tone amplitudes and power densities, so the channels' useful bands add up to the IQ band power.</p>
 <p>Evaluated directly for 128 channels, Eq. (5a.1) costs about 2700 multiplications per input sample. Sections 5a.2 to 5a.5 build, one
-step at a time, a filterbank that gives the same numbers for about 27. Section 5a.6 assembles it.</p>
+step at a time, a filterbank <a class="cite" href="references.html#ref-bellanger1976">[25]</a> that gives the same numbers for about 27. Section 5a.6 assembles it.</p>
 
 <h3>5a.2 The prototype filter</h3>
 <p>The filter <var>h</var> appears in every channel, so its shape is every channel's shape. Ideally it is a block in frequency. Gain 1
@@ -72,9 +72,9 @@ inside the slice lets the slice through unchanged. Gain 0 outside keeps the neig
 <div class="eq"><span class="label">(5a.2)</span>\[ h(r) = \frac{\sin(2\pi f_\mathrm{cut}\, r / f_s)}{\pi r} \]</div>
 <p>Its zero crossings lie <var>f</var><sub>s</sub>/(2<var>f</var><sub>cut</sub>) samples apart. With <var>f</var><sub>cut</sub> = 2.083 MHz,
 that is every 192 samples (Figure 5a.1a). Section 5a.5 explains this cut-off.</p>
-<p>An exact block needs a sinc that never ends. The code tapers the sinc to zero with a Kaiser window. In frequency, each vertical edge
+<p>An exact block needs a sinc that never ends. The code tapers the sinc to zero with a Kaiser window <a class="cite" href="references.html#ref-kaiserschafer1980">[24]</a>. In frequency, each vertical edge
 becomes a slope, and the ripples outside the block fall below −80 dB. The block width and the slope width Δ<var>f</var> are separate
-settings. The block width sets the spacing of the zero crossings. The slope width sets the length, by the Kaiser rule
+settings. The block width sets the spacing of the zero crossings. The slope width sets the length, by the Kaiser rule <a class="cite" href="references.html#ref-smith_sasp">[29]</a><a class="cite" href="references.html#ref-kaiser1974">[58]</a>
 \(M = \lceil (A-8)/(2.285\cdot 2\pi\,\Delta f/f_s) \rceil + 1\). A slope of 1.042 MHz at <var>A</var> = 80 dB needs 3853 taps, or
 4.8 µs.</p>
 <div class="table-wrap"><table>
@@ -593,7 +593,7 @@ the end of the useful band and the start of the stopband:</p>
 <div class="eq"><span class="label">(5a.6)</span>\[ \Delta f = \frac{f_s}{D} - \mathrm{ChanWidth} = 1.042\ \mathrm{MHz}, \qquad f_\mathrm{cut} = \frac{f_s}{2D} = 2.083\ \mathrm{MHz} \]</div>
 <p>These are the two numbers that Section 5a.2 took as given. With this cut-off, the prototype's zero crossings lie exactly <var>D</var>
 samples apart.</p>
-<p>Sliding by <var>K</var> = 256 instead is called critical sampling. It makes Δ<var>f</var> zero, so the filter would have to be
+<p>Sliding by <var>K</var> = 256 instead is called critical sampling <a class="cite" href="references.html#ref-harris2003">[33]</a>. It makes Δ<var>f</var> zero, so the filter would have to be
 infinitely long. With our prototype, the copies would reach 1 MHz into the useful band (Figure 5a.4b).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 590" role="img" aria-label="A channel response and its copies after decimation: with D = 192 the copies stay below -80 dB in the useful band; with D = 256 they reach into it">
@@ -1104,7 +1104,7 @@ error bars are exact phase bin by phase bin.</figcaption>
 
 <h3>6b.3 The exact noise model</h3>
 <p>Both numbers follow exactly from the channel's spectrum. A bin is the mean of |<var>y</var>|² over <var>n</var> samples. For a Gaussian <var>y</var> with normalized autocorrelation <var>R</var>,
-Isserlis' theorem (see <a href="physics.html#isserlis">physics</a>) gives the bin's variance and covariances, relative to the radiometer
+Isserlis' theorem <a class="cite" href="references.html#ref-isserlis1918">[4]</a><a class="cite" href="references.html#ref-reed1962">[5]</a> (see <a href="physics.html#isserlis">physics</a>) gives the bin's variance and covariances, relative to the radiometer
 value:</p>
 <div class="eq"><span class="label">(6b.1)</span>\[ V = \frac{C(0)}{\mathrm{rad}}, \qquad X_L = \frac{C(L)}{\mathrm{rad}}, \qquad C(L) = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a - b + Ln)\right|^2, \qquad \mathrm{rad} = \frac{1}{n}\sum_{l} \left|R(l)\right|^2 \]</div>
 <dl class="where">

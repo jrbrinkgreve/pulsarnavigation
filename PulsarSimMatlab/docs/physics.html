@@ -217,7 +217,7 @@ index, so the <b>group delay</b> depends on frequency:</p>
 <dt>\(\tau(f)\)</dt><dd>dispersion delay at radio frequency \(f\), relative to infinite frequency [s]</dd>
 <dt>\(f\)</dt><dd>radio frequency [MHz in this formula]; the band is 1200–1600 MHz (<code>fLow</code>, <code>fHigh</code>)</dd>
 <dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the number of free electrons along the line of sight [pc cm⁻³] (<code>DM</code> = 25)</dd>
-<dt>\(K\)</dt><dd>dispersion constant (from the electron charge and mass)</dd>
+<dt>\(K\)</dt><dd>dispersion constant (from the electron charge and mass) <a class="cite" href="references.html#ref-lorimerkramer2005">[1]</a></dd>
 </dl>
 <p>For DM = 25 pc cm⁻³ the delay is 40.52 ms at 1.6 GHz and 72.03 ms at 1.2 GHz. Each pulse is therefore smeared over <b>31.51 ms</b> across
 the 400 MHz band: sixty times the 0.5 ms pulse width, and more than three rotation periods. Several figures on these pages are drawn at DM 5
@@ -248,7 +248,7 @@ of dispersion do the rest. First, it only changes phases: dispersion is a linear
 moves no energy between frequencies, and its exact inverse is the conjugate filter, applied to the complex voltages. This is <b>coherent
 dedispersion</b>. Second, it commutes with the receiver bandpass: both are linear time-invariant filters, so the order does not matter,
 and the simulator can apply dispersion only inside the observed band and still be exact there.</p>
-<p>Coherent dedispersion works on the phases, so it needs the voltages. The cheaper alternative, incoherent dedispersion, works on detected
+<p>Coherent dedispersion <a class="cite" href="references.html#ref-hankinsrickett1975">[2]</a> works on the phases, so it needs the voltages. The cheaper alternative, incoherent dedispersion, works on detected
 power instead: it splits the band into channels, detects each and shifts the channels in time. That leaves the smearing <em>inside</em>
 each channel (<a href="fullband.html#dedisp-why">full-band page</a>). The channelized front end does both: it splits the band into 3.125 MHz channels
 <em>and</em> dedisperses each one coherently, so no smearing is left.</p>
@@ -300,7 +300,7 @@ makes the complex envelope. What remains is the step Section P2 asked for: turni
 
 <h2 id="detection">P5 · Square-law detection and the radiometer equation</h2>
 <p>That step is detection. It forms |<var>z</var>|² = I² + Q² and averages it over time bins of length Δ<var>t</var> (about 1 µs). For
-Gaussian voltages the averaged power estimates the variance, and the estimate has a relative noise given by the radiometer equation:</p>
+Gaussian voltages the averaged power estimates the variance, and the estimate has a relative noise given by the radiometer equation <a class="cite" href="references.html#ref-dicke1946">[3]</a>:</p>
 <div class="eq"><span class="label">(P.6) radiometer equation</span>\[ \frac{\sigma_P}{P} = \frac{1}{\sqrt{B_n\,\Delta t}} \]</div>
 <dl class="where">
 <dt>\(P\)</dt><dd>the mean detected power of a time bin: the expected value of \(|z|^2\) [V²]</dd>
@@ -391,7 +391,7 @@ shape of the power spectrum</dd>
 8 MHz raised-cosine edges used here, <var>B</var><sub>n</sub> ≈ 391.6 MHz for receiver noise.</p></details>
 <h3 id="isserlis">Where the radiometer equation comes from</h3>
 <p>Eq. (P.6) counts independent samples, but in a filtered band neighbouring samples are correlated, and the code needs the exact effect
-of that. It follows from one theorem. For Gaussian voltages, Isserlis' (Wick's) theorem says: the covariance of two power samples is the square of the correlation between their
+of that. It follows from one theorem. For Gaussian voltages, Isserlis' (Wick's) theorem <a class="cite" href="references.html#ref-isserlis1918">[4]</a><a class="cite" href="references.html#ref-reed1962">[5]</a> says: the covariance of two power samples is the square of the correlation between their
 voltages, \(\operatorname{cov}\!\left(|z_a|^2, |z_b|^2\right) = P^2\,|R(a-b)|^2\). Adding this up over all pairs in a bin of \(n\) samples gives
 its variance:</p>
 <div class="eq"><span class="label">(P.8)</span>\[ \frac{\operatorname{var}(\hat P)}{P^2} = \frac{1}{n^2} \sum_{a=0}^{n-1} \sum_{b=0}^{n-1} \left|R(a-b)\right|^2 \]</div>
@@ -409,7 +409,7 @@ whole noise model. In narrow channels it predicts that neighbouring time bins ar
 channel's correlation time (<a href="channels.html#powcov"><code>powerCovariance</code></a>). With blanking it gives the exact variance of
 each bin (<a href="excision.html#weights"><code>blankingWeights</code></a>).</p>
 <p>With detection in place, the remaining order is detect, then fold, then match the template, and that order is the best one. For noise whose variance follows a profile, the best possible test
-statistic (Neyman–Pearson) is a profile-weighted sum of |<var>z</var>|². Detection, folding and template matching compute exactly that, in the
+statistic (Neyman–Pearson <a class="cite" href="references.html#ref-neymanpearson1933">[6]</a>) is a profile-weighted sum of |<var>z</var>|². Detection, folding and template matching compute exactly that, in the
 cheapest order: detection cuts the data rate by ~800× (800 complex samples become one power value per µs), and folding turns hours of data
 into one short profile before the fit. Other orders, such as matched-filtering each pulse and adding the results, or folding before squaring, are worse. Of the three steps, folding is the
 one that lifts a weak pulsar out of the noise.</p>
@@ -510,9 +510,9 @@ amplitude × template shifted by τ + noise, and the fitted shift τ (in turns) 
 <dt>\(f_\mathrm{ref}\)</dt><dd>the <em>spin</em> frequency at \(t_\mathrm{ref}\) [Hz] (<code>fold.subint.fRef</code>); it converts turns to
 seconds. Not the 1.6 GHz radio reference frequency</dd>
 </dl>
-<p>The fit uses FFTFIT (Taylor 1992): a cross-correlation in the Fourier domain that handles shifts smaller than a bin exactly. Two simpler estimators exist, and both are worse. The centroid of the pulse would also weight the noisy wings, which have long lever arms; it was measured to be about 2× noisier than FFTFIT
+<p>The fit uses FFTFIT (Taylor 1992) <a class="cite" href="references.html#ref-taylor1992">[7]</a>: a cross-correlation in the Fourier domain that handles shifts smaller than a bin exactly. Two simpler estimators exist, and both are worse. The centroid of the pulse would also weight the noisy wings, which have long lever arms; it was measured to be about 2× noisier than FFTFIT
 (<a href="results.html#centroid">validation record</a>). The highest bin is limited to the bin width and jumps with the noise. FFTFIT, by contrast, fits continuous shifts, is fast, and is the maximum-likelihood fit for white noise.</p>
-<p>Even the best fit cannot beat a floor set by the noise. That floor, the best possible precision (the Cramér–Rao bound), is about the
+<p>Even the best fit cannot beat a floor set by the noise. That floor, the best possible precision (the Cramér–Rao bound <a class="cite" href="references.html#ref-rao1945">[51]</a><a class="cite" href="references.html#ref-cramer1946">[52]</a><a class="cite" href="references.html#ref-kay1993">[53]</a>), is about the
 pulse width divided by the SNR. In the weak-signal limit (pulse much
 weaker than the noise, the target regime), for a Gaussian pulse of width σ<sub>t</sub>:</p>
 <div class="eq"><span class="label">(P.11)</span>\[ \mathrm{SNR} \approx \rho\,\sqrt{B\,\sigma_t\sqrt{\pi}} \approx 388\,\rho, \qquad \sigma_\mathrm{TOA} \approx \frac{\sqrt{2}\,\sigma_t}{\mathrm{SNR}} \]</div>
@@ -616,7 +616,7 @@ It compares two hypotheses, <b>H0</b> (baseline + noise) and <b>H1</b> (baseline
 says the best test at a fixed false-alarm probability <var>P</var><sub>FA</sub> is a matched filter compared with a threshold η.</p>
 <p>The threshold depends on how much is known about the phase. With a known phase (tracking: you know where the pulse should be) there
 is one test, and η = Φ⁻¹(1 − <var>P</var><sub>FA</sub>) = 3.09 for <var>P</var><sub>FA</sub> = 10⁻³. With an unknown phase (acquisition:
-the pulse could be anywhere) the test searches all phases and takes the maximum, so the threshold must be higher. Rice's formula for
+the pulse could be anywhere) the test searches all phases and takes the maximum, so the threshold must be higher. Rice's formula <a class="cite" href="references.html#ref-rice1945">[8]</a> for
 the maximum of a smooth Gaussian process gives η = 4.15 at 10⁻³. At that threshold the search costs as much as about 60 independent trials.
 The "Rice factor" of 5.5 in that formula is not a number of trials: it is the number of times per turn that the noise crosses its mean
 level upwards.</p>
@@ -672,15 +672,15 @@ is split into many images whose waves add with random phases: where they add up 
 Two scales describe the pattern.</p>
 <p>The first is the <b>scintle bandwidth</b> Δν<sub>d</sub>. The waves' path differences are a fixed delay, so their relative phases
 change with frequency, and two frequencies further apart than Δν<sub>d</sub> see independent patterns. It grows steeply with frequency
-(∝ ν<sup>4.4</sup> for Kolmogorov turbulence) and shrinks with distance and DM. The second is the <b>scintle time</b> Δt<sub>d</sub>:
+(∝ ν<sup>4.4</sup> for Kolmogorov turbulence <a class="cite" href="references.html#ref-rickett1990">[9]</a>) and shrinks with distance and DM. The second is the <b>scintle time</b> Δt<sub>d</sub>:
 the time to cross one scintle as the line of sight moves through the pattern (relative speed of pulsar, Earth and plasma). It grows with
 frequency (∝ ν<sup>1.2</sup>).</p>
 <p>Inside one scintle the flux is random, and its statistics follow from the same picture. When many paths with random phases add up, the field is complex Gaussian, so the intensity is exponentially
 distributed: mean 1 (the catalogue flux), but 10 % of the time below 0.1 and 5 % of the time above 3. Averaging over many scintles (a band
 much wider than Δν<sub>d</sub>, or a time much longer than Δt<sub>d</sub>) smooths this out; within one scintle there is no averaging.</p>
 <p>For J0437, the scenario's millisecond pulsar, there is little averaging. J0437−4715 at 1.4 GHz (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come from the IAR
-timing campaign, rescaled from Keith et al. 2013. Observations at 327 MHz, rescaled, give two time scales instead: ~500 s and ~5700 s
-(Gwinn et al. 2006). The scales also vary noticeably from epoch to epoch, by factors of 2–3 (refractive scintillation). Δν<sub>d</sub> is
+timing campaign <a class="cite" href="references.html#ref-sosafiscella2021">[10]</a>, rescaled from Keith et al. 2013 <a class="cite" href="references.html#ref-keith2013">[11]</a>. Observations at 327 MHz, rescaled, give two time scales instead: ~500 s and ~5700 s
+(Gwinn et al. 2006 <a class="cite" href="references.html#ref-gwinn2006">[12]</a>). The scales also vary noticeably from epoch to epoch, by factors of 2–3 (refractive scintillation). Δν<sub>d</sub> is
 larger than the receiver's 400 MHz band, and five times the 150 MHz that is clean at the design point, so the band holds less than one
 scintle: there is little averaging over frequency, and the band-averaged flux is fully modulated in time (Figure P.7).</p>
 <figure class="scroll">

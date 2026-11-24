@@ -13,7 +13,7 @@
 −44 dB for J0437−4715), the SNR of a pass and the time per TOA come from, and why the project targets weak signals.</p>
 <p class="meta">Drafted 6 October 2026 from Jasper's hardware. The receiver and every budget were updated on 23 November 2026 for the array
 as it is being built; those runs are Claude's. Since 24 November 2026 the fixed panel is the case, and the runs that follow the pulsar
-are a what-if (Jasper's working assumptions, R1.1). Pulsar data from the ATNF catalogue v2.6.5.</p>
+are a what-if (Jasper's working assumptions, R1.1). Pulsar data from the ATNF catalogue <a class="cite" href="references.html#ref-manchester2005">[45]</a> v2.6.5.</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#receiver">R1 · Receiver</a></li>
@@ -60,7 +60,7 @@ the SEFD follows from it; a lower SEFD is better (<a href="glossary.html#sefd">g
 </table></div>
 <p>This SEFD with the 150 MHz is the design point of every run on this page, and the default of
 <a href="scripts.html#scenario"><code>runScenario.m</code></a>, under the name <code>"array3m2"</code>. It is the only design point: no
-worst case has been defined for this array. For comparison, Parkes has an SEFD of about 30 Jy and a 25 m dish about 1000 Jy. An SNR
+worst case has been defined for this array. For comparison, Parkes has an SEFD of about 30 Jy <a class="cite" href="references.html#ref-manchester2001">[46]</a> and a 25 m dish about 1000 Jy. An SNR
 follows from the SEFD through Eq. (R.1) of the next section, for a named pulsar, bandwidth and time. The time per TOA goes as
 SEFD²/<var>B</var>, and a position error as SEFD/√<var>B</var>. The sky adds to <var>T</var><sub>sys</sub>: about 3–5 K off the Galactic
 plane, and 5–20 K for sources in the plane such as Vela. Whether the measured 70 K includes it is not known.</p>
@@ -304,7 +304,7 @@ gain: the what-if of <a href="#merit">R1.2</a>, the panel on a tracking mount.</
 the 30° S runs stood for a ship that sailed south. The receiver had first been drafted, on 6 Oct, as a ground station. Since 2 Nov 2026 the
 goal is a static array at a site that is not known beforehand.</p></details>
 <p>That makes B0329+54 the scenario's northern pulsar, so its own properties matter. At 1.4 GHz it has P 714.5 ms, DM 26.8 (which is why the default DM is 25), W<sub>50</sub> 6.6 ms and S<sub>1400</sub> 203 mJy;
-scintles of about 7 MHz × 13 min (ATA 2025, Wang et al. 2005); five profile components, and an abnormal mode about 15 % of the time. Its ρ in
+scintles of about 7 MHz × 13 min (ATA 2025 <a class="cite" href="references.html#ref-brown2025">[47]</a>, Wang et al. 2005 <a class="cite" href="references.html#ref-wang2005">[48]</a>); five profile components <a class="cite" href="references.html#ref-shang2017">[38]</a>, and an abnormal mode about 15 % of the time <a class="cite" href="references.html#ref-chen2011">[44]</a>. Its ρ in
 the simulator's convention, with the five components, is −38.0 dB at the design point.</p>
 
 <h2 id="simulated">R7 · Simulated TOA budget (fast simulator)</h2>
@@ -344,7 +344,7 @@ error bar comes from the curvature at the peak, so it does not cover this: it is
 (<a href="limits.html#estimation">limits</a>).</p>
 <h3 id="j0437profile">R7.3 J0437's real profile has wings: about 5× more data per TOA</h3>
 <p>A single Gaussian with the catalogue W<sub>50</sub> of 0.141 ms is not what J0437 looks like: its W<sub>10</sub> is 1.02 ms, four times
-a Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database, CC BY 4.0) gives a W<sub>eq</sub> 2.4× the Gaussian's,
+a Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015 <a class="cite" href="references.html#ref-dai2015">[49]</a>, EPN database <a class="cite" href="references.html#ref-lorimer1998">[50]</a>, CC BY 4.0) gives a W<sub>eq</sub> 2.4× the Gaussian's,
 so ρ is 3.75 dB lower: −44.2 dB at the design point. The wings add flux but little timing, and the core is sharper than a Gaussian,
 so the resolution rule needs NBin 1024. The profile was fitted with 8 Gaussian components, whose W<sub>50</sub>, W<sub>10</sub>,
 W<sub>eq</sub>, spectral width and timing merit are within 1 % of the measured profile's. Against the single Gaussian, the first runs with

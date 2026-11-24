@@ -273,7 +273,7 @@ in a flat band <var>B</var> = 400 MHz (stored in <code>info.prediction</code>):<
 <div class="eq"><span class="label">(3.2)</span>\[ \mathrm{SNR}_\mathrm{pulse}^2 = B \int \frac{\left(\rho\,p(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt, \qquad \frac{1}{\sigma_\mathrm{TOA}^2} = B \int \frac{\left(\rho\,p'(t)\right)^2}{\left(1 + \rho\,p(t)\right)^2}\,dt \]</div>
 <dl class="where">
 <dt>\(\mathrm{SNR}_\mathrm{pulse}\)</dt><dd>the best possible (matched-filter) SNR of one pulse</dd>
-<dt>\(\sigma_\mathrm{TOA}\)</dt><dd>the smallest possible TOA error of one pulse [s] (Cramér–Rao bound)</dd>
+<dt>\(\sigma_\mathrm{TOA}\)</dt><dd>the smallest possible TOA error of one pulse [s] (Cramér–Rao bound <a class="cite" href="references.html#ref-rao1945">[51]</a><a class="cite" href="references.html#ref-cramer1946">[52]</a>)</dd>
 <dt>\(B\)</dt><dd>bandwidth [Hz], here a flat 400 MHz</dd>
 <dt>\(\rho\)</dt><dd>\(10^{\texttt{snrDB}/10}\)</dd>
 <dt>\(p(t)\)</dt><dd>power profile of one pulse, peak 1 (Gaussian, standard deviation 212.3 µs)</dd>
@@ -316,7 +316,7 @@ to the absolute sample index. A change of block size can therefore never change 
 <var>a</var>²/2 = INR·<var>P</var><sub>band</sub>.</li>
 <li>Impulses: white bursts with σ = √INR·σ<sub>n</sub>, so their in-band share has the same ratio.</li>
 <li>Phases: cycles = mod(<var>n</var>·<var>f</var>/<var>f</var><sub>s</sub>, 1) + …, in double from the absolute index <var>n</var>.</li>
-<li>Random parts: noise from <code>mt19937ar</code> (seed <code>noiseSeed</code>); each RFI source from its own <code>mrg32k3a</code>
+<li>Random parts: noise from <code>mt19937ar</code> <a class="cite" href="references.html#ref-matsumoto1998">[22]</a> (seed <code>noiseSeed</code>); each RFI source from its own <code>mrg32k3a</code> <a class="cite" href="references.html#ref-lecuyer1999">[23]</a>
 stream (seed + 1000·source index), with substreams per 65,536-chip chunk (bpsk), per burst (impulse) or per 65,536-sample chunk
 (noise). Impulse times are drawn once for the whole file (Poisson).</li>
 </ul>
@@ -587,7 +587,7 @@ unrepresentative special case.</p>
 budget made on 9 Oct 2026 for the array of that time, a 0.61 m² ground station with <var>T</var><sub>sys</sub> ≈ 70 K. Receiver noise
 <var>kT</var><sub>sys</sub><var>B</var> = −124 dBW in 400 MHz, and INR is relative to that. The gain of that array was ~22 dBi in the main
 beam (~15°), ~0–3 dBi to the rest of the sky, and −10 dBi assumed towards the horizon. GNSS levels are the published minimum received
-power + ~3 dB, summed over the visible satellites. The other levels are link-budget estimates (±10 dB).</p>
+power <a class="cite" href="references.html#ref-isgps200">[28]</a> + ~3 dB, summed over the visible satellites. The other levels are link-budget estimates (±10 dB).</p>
 <p>The list has not been re-estimated for the array of 23 November 2026. Three things are known for that array. About 150 MHz of the
 band is clean of RFI, at a measured 70 K (the antenna team, via Jasper). Its beam is about 6° wide, with a directivity of 29.2 dBi
 (Claude's arithmetic from 3 m²), so its gain towards each source differs from the list's. And the scenario runs at the design point cut
@@ -603,10 +603,10 @@ impulses (<a href="scenario.html#rfivariants">scenario</a>).</p>
 <tr><td>GPS L2</td><td>bpsk</td><td>1227.60 MHz</td><td>−22 dB</td></tr>
 <tr><td>En-route radar, beam passage</td><td>pulsed</td><td>1332.9 MHz, 2 µs, PRF 973 Hz, 10 s scan, 1.4° beam centred in the file, sidelobes −30 dB</td><td>+40 dB main beam</td></tr>
 <tr><td>Radar 2, sidelobes only</td><td>pulsed</td><td>1257.3 MHz, 2 µs, PRF 351 Hz, 12 s scan (beam far away), sidelobes −35 dB</td><td>+20 dB main beam</td></tr>
-<tr><td>LTE band 32, operator 1</td><td>noise</td><td>1459.5 MHz, 13.5 MHz occupied</td><td>0 dB</td></tr>
+<tr><td>LTE band 32 <a class="cite" href="references.html#ref-3gpp_band32">[26]</a>, operator 1</td><td>noise</td><td>1459.5 MHz, 13.5 MHz occupied</td><td>0 dB</td></tr>
 <tr><td>LTE band 32, operator 2</td><td>noise</td><td>1472 MHz, 9 MHz occupied</td><td>−6 dB</td></tr>
 <tr><td>LTE band 32, operator 3</td><td>noise</td><td>1484.5 MHz, 13.5 MHz occupied</td><td>−3 dB</td></tr>
-<tr><td>Inmarsat downlink, block 1</td><td>noise</td><td>1528.0 MHz, 4 MHz</td><td>−17 dB</td></tr>
+<tr><td>Inmarsat downlink, block 1 <a class="cite" href="references.html#ref-itu_res222">[57]</a></td><td>noise</td><td>1528.0 MHz, 4 MHz</td><td>−17 dB</td></tr>
 <tr><td>Inmarsat downlink, block 2</td><td>noise</td><td>1541.4 MHz, 6.4 MHz</td><td>−20 dB</td></tr>
 <tr><td>Inmarsat downlink, block 3</td><td>noise</td><td>1550.5 MHz, 2.8 MHz</td><td>−23 dB</td></tr>
 <tr><td>Broadband impulses</td><td>impulse</td><td>200 ns, 50 per second</td><td>+20 dB</td></tr>
@@ -844,7 +844,7 @@ so the orange zones would land on the band; the filter suppresses them by about 
 <li>LO phase in cycles: mod(<var>n</var><sub>0</sub>·<var>r</var>, 1) + (0:<var>n</var>−1)·<var>r</var>, <var>r</var> = <var>f</var><sub>LO</sub>/<var>f</var><sub>in</sub>,
 from the block's absolute start index <var>n</var><sub>0</sub>.</li>
 <li>Low-pass: Kaiser-windowed sinc, odd length <var>M</var> = 2049, unit DC gain, cut-off 0.9·<var>f</var><sub>s</sub>/2 = 360 MHz, stopband
-80 dB, transition ≈ (80 − 8)/(2.285·(<var>M</var> − 1))·<var>f</var><sub>in</sub>/2π = 9.8 MHz. So the gain is flat to ±355 MHz and
+80 dB, transition ≈ (80 − 8)/(2.285·(<var>M</var> − 1))·<var>f</var><sub>in</sub>/2π = 9.8 MHz <a class="cite" href="references.html#ref-smith_sasp">[29]</a><a class="cite" href="references.html#ref-kaiser1974">[58]</a>. So the gain is flat to ±355 MHz and
 −80 dB beyond ±365 MHz.</li>
 <li>Checks (warnings): the stopband must start below the output Nyquist frequency (no aliasing into the output), and the band must lie
 in the flat passband.</li>
@@ -910,9 +910,9 @@ negligible for the pulsar, a noise floor under strong RFI.</td></tr>
 <h3 id="clock-how">4a.2 The clock model</h3>
 <p>The model has a fixed part and a random part. The fixed part is an offset at the start, a rate and an ageing drift. A commercial SDR's
 reference oscillator is specified to ±2 ppm, so its rate can be up to 2·10⁻⁶, which adds 7.2 ms per hour. On top of that, the oscillator's
-frequency wanders at random. Its spectrum has three parts, each set by one coefficient: white frequency noise (<var>h</var>₀), flicker
+frequency wanders at random. Its spectrum has three parts, each set by one coefficient <a class="cite" href="references.html#ref-barnes1971">[30]</a>: white frequency noise (<var>h</var>₀), flicker
 (<var>h</var>₋₁) and a random walk (<var>h</var>₋₂). The noise is drawn on a 60 s grid over the whole span and is linear in between.</p>
-<p>The size of each noise is easiest to read from the usual measure of an oscillator's stability, its Allan deviation σ<sub><var>y</var></sub>(τ): the typical change of the average
+<p>The size of each noise is easiest to read from the usual measure of an oscillator's stability, its Allan deviation <a class="cite" href="references.html#ref-allan1966">[31]</a> σ<sub><var>y</var></sub>(τ): the typical change of the average
 frequency from one interval of length τ to the next. White noise makes it fall with τ, flicker keeps it flat, and a random walk makes it
 grow (Figure 4a.1).</p>
 <figure class="scroll">
@@ -1003,7 +1003,7 @@ pulse after about a day and a half, and B0329+54's 6.6 ms only after about 20 da
 <tr><th>Preset</th><th><var>h</var>₀</th><th><var>h</var>₋₁</th><th><var>h</var>₋₂</th><th>What it is</th></tr>
 <tr><td><code>"perfect"</code></td><td>0</td><td>0</td><td>0</td><td>No noise (the default).</td></tr>
 <tr><td><code>"crystal"</code></td><td>1.8·10⁻²¹</td><td>6.5·10⁻²²</td><td>1.37·10⁻²⁴</td><td>The worked example of Van Dierendonck,
-McGraw and Brown (1984): a crystal oscillator stable to 3 parts in 10¹¹.</td></tr>
+McGraw and Brown (1984) <a class="cite" href="references.html#ref-vandierendonck1984">[32]</a>: a crystal oscillator stable to 3 parts in 10¹¹.</td></tr>
 </table></div>
 <p>The crystal preset's time error, about 0.66 µs in an hour and 76 µs in a day, is steadier than the TCXO estimate of 3.6 µs per hour.
 The noise of a commercial SDR's oscillator is not published. It is best measured on the device itself, against a better reference.</p>

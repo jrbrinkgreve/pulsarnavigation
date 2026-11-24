@@ -47,7 +47,7 @@ are random, rather than a pulse shape, is the first thing to understand.</p>
 <p>The pulse appears only after squaring and averaging (Figure 1.1), which is why the processing detects power and folds. A
 deterministic pulse in the voltage would hide two things the pipeline must handle: the choice of detector, and the noise the pulsar adds
 itself (self-noise), which matters at high SNR. The noise is white from 0 to <var>f</var><sub>in</sub>/2 = 2 GHz. That is a property of
-the simulation grid, not of real pulsars, whose spectra fall as a power law (see <a href="limits.html">limitations</a>).</p>
+the simulation grid, not of real pulsars, whose spectra fall as a power law <a class="cite" href="references.html#ref-maron2000">[27]</a> (see <a href="limits.html">limitations</a>).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 382" role="img" aria-label="The generated voltage: noise whose variance rises once per turn; its power follows the profile G">
   <path class="axis" d="M70 130 H830"/>
@@ -306,7 +306,7 @@ The voltage chain with B0329+54's five components agrees with the fast simulator
 <h3>1.4 Exact times, private random numbers</h3>
 <p>Whatever the profile, the stored pulse times are only ground truth if they are exact. Each sample's time is computed in double precision
 from its index, never by adding up steps. The random numbers come from a private
-stream (<code>mt19937ar</code>, seed 42) that nothing else touches. The pulse times in <code>info.pulseCenters</code> are therefore exact,
+stream (<code>mt19937ar</code> <a class="cite" href="references.html#ref-matsumoto1998">[22]</a>, seed 42) that nothing else touches. The pulse times in <code>info.pulseCenters</code> are therefore exact,
 and the block size cannot change the data (test 5 of <code>testGeneratePulsarSignal</code> checks this bit for bit). The receiver noise
 has its own seed, so it can change without changing the pulsar. See <a href="conventions.html#time">conventions §5–6</a>.</p>
 
@@ -411,13 +411,13 @@ slowed more. The delay at frequency <var>f</var>, relative to an infinitely high
 <dl class="where">
 <dt>\(\tau(f)\)</dt><dd>delay at radio frequency \(f\), relative to an infinitely high frequency [s]</dd>
 <dt>\(f\)</dt><dd>radio frequency [MHz in this formula]</dd>
-<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10³ s MHz² pc⁻¹ cm³</dd>
+<dt>\(K\)</dt><dd>dispersion constant, 4.148808·10³ s MHz² pc⁻¹ cm³ <a class="cite" href="references.html#ref-lorimerkramer2005">[1]</a></dd>
 <dt>\(\mathrm{DM}\)</dt><dd>dispersion measure: the column density of free electrons along the line of sight [pc cm⁻³]
 (<code>DM</code> = 5 in the worked numbers, 25 by default)</dd>
 </dl>
 <p>Eq. (2.1) is derived on the <a href="physics.html#dispersion">physics</a> page. What matters here is that the delay also changes <em>inside</em>
 each sub-band, so the pulse is smeared there too (Figure 2.1). Shifting whole sub-bands back, or a Taylor expansion of the phase, cannot undo that smear; filtering the voltage with
-the inverse chirp can (stages 5 and 5b). Testing that only makes sense if the simulated dispersion is exact too, so stage 2 applies the
+the inverse chirp can <a class="cite" href="references.html#ref-hankinsrickett1975">[2]</a> (stages 5 and 5b). Testing that only makes sense if the simulated dispersion is exact too, so stage 2 applies the
 exact phase.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 336" role="img" aria-label="The pulse in 16 sub-bands before and after dispersion: after dispersion lower frequencies arrive later, along a 1/f-squared curve">
@@ -668,7 +668,7 @@ exact even for large bin indices.</li>
 
 <h3>2.4 Streaming by overlap-add</h3>
 <p>The file is far too long to filter in one piece. One FFT of 1 s of data would need 2³² points, about 189 GB, and direct convolution
-25 million multiply-adds per sample. The file is therefore cut into blocks, each filtered with one FFT. The result is longer than the
+25 million multiply-adds per sample. The file is therefore cut into blocks, each filtered with one FFT <a class="cite" href="references.html#ref-stockham1966">[21]</a>. The result is longer than the
 block by the kernel length minus one; that tail, the <b>carry</b>, is added to the start of the next block's result (Figure 2.4).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 262" role="img" aria-label="Overlap-add: each block is filtered with one FFT; the result is longer than the block, and its tail is added to the start of the next block's result">

@@ -103,7 +103,7 @@ per stage</a>), against 24 GB of memory.</p>
 <p>Every stage is therefore <b>file in → file out, streamed in blocks</b>: read a block of samples from the input file; process it (filters
 that reach across blocks keep the overlap they need); write the result and check that every sample was written. Memory is bounded by
 the block or FFT size, never by the file size. Filters that span many samples (the dispersion kernel has 126 million taps at the default
-DM 25) use FFT convolution with <b>overlap-add</b> (forward dispersion, IQ filter) or <b>overlap-save</b> (dedispersion), with the FFT
+DM 25) use FFT convolution with <b>overlap-add</b> (forward dispersion, IQ filter) or <b>overlap-save</b> <a class="cite" href="references.html#ref-stockham1966">[21]</a> (dedispersion), with the FFT
 size chosen automatically to minimise the total cost within a <code>MaxMemoryGB</code> limit.</p>
 <p>Streaming also mirrors how real recorded data would be processed. Checking every <code>fwrite</code> count prevents the worst failure:
 a run that "succeeds" on a half-written file because the disk was full.</p>
@@ -280,9 +280,9 @@ same time whatever block size a stage streams with.</figcaption>
 <p>Exact times make a run repeatable only if its random numbers are repeatable too. Each random process has its own private <code>RandStream</code>; the global random number generator is never touched.</p>
 <div class="table-wrap"><table>
 <tr><th>Process</th><th>Generator</th><th>Seed</th></tr>
-<tr><td>Pulsar signal</td><td><code>mt19937ar</code></td><td><code>seed</code> (42)</td></tr>
+<tr><td>Pulsar signal</td><td><code>mt19937ar</code> <a class="cite" href="references.html#ref-matsumoto1998">[22]</a></td><td><code>seed</code> (42)</td></tr>
 <tr><td>Receiver noise</td><td><code>mt19937ar</code></td><td><code>noiseSeed</code> (seed + 1 = 43)</td></tr>
-<tr><td>RFI</td><td><code>mrg32k3a</code> substreams</td><td>per chip chunk / per burst</td></tr>
+<tr><td>RFI</td><td><code>mrg32k3a</code> <a class="cite" href="references.html#ref-lecuyer1999">[23]</a> substreams</td><td>per chip chunk / per burst</td></tr>
 <tr><td>Fast simulator (<code>simulateFold</code>)</td><td><code>mt19937ar</code></td><td><code>'Seed'</code> (default 1); its scintillation field
 has its own stream</td></tr>
 <tr><td>Receiver clock (<code>makeClock</code>)</td><td>own stream</td><td><code>'Seed'</code> (default 1)</td></tr>
@@ -298,8 +298,8 @@ chunk or burst depend only on its own index.</p>
 
 <h2 id="args">C7 · Arguments and toolboxes</h2>
 <p>The remaining rules concern the code itself. Required inputs are positional; everything else is a name-value option in an <code>arguments</code> block (MATLAB R2019b+;
-<code>mustBeTextScalar</code> needs R2020b+). The code also avoids the Signal Processing Toolbox: the filters (Kaiser-windowed sincs, raised-cosine tapers,
-the polyphase filterbank) are built by hand. Hand-built filters are fully understood and fully specified in the code: tap count, stopband,
+<code>mustBeTextScalar</code> needs R2020b+). The code also avoids the Signal Processing Toolbox: the filters (Kaiser-windowed sincs <a class="cite" href="references.html#ref-kaiserschafer1980">[24]</a>, raised-cosine tapers,
+the polyphase filterbank <a class="cite" href="references.html#ref-bellanger1976">[25]</a>) are built by hand. Hand-built filters are fully understood and fully specified in the code: tap count, stopband,
 delay and gain convention are all visible, and there is no toolbox dependency.</p>
 
 <h2 id="params">C8 · One parameter file</h2>

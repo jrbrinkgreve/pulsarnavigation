@@ -12,7 +12,7 @@
 <p class="lede">Each TOA arrives a little early or late against the phase that stage 7a predicted. The receiver is not quite where it
 thinks it is, and its clock is not quite right. This stage turns those residuals into the receiver's position and clock.</p>
 <p class="meta">Functions: <code>navFit</code> (a fixed site, all TOAs at once) and <code>navFilter</code> (a moving receiver: a Kalman
-filter and smoother; archived, Section 10.4) · input: the TOA residuals, observed minus predicted for the trajectory the observer assumes · block D</p>
+filter <a class="cite" href="references.html#ref-kalman1960">[41]</a> and smoother; archived, Section 10.4) · input: the TOA residuals, observed minus predicted for the trajectory the observer assumes · block D</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#signal">10.1 The navigation signal</a></li>
@@ -778,7 +778,7 @@ error bars become 2.6 times too small. The position hardly suffers, because the 
 <var>q</var><sub>v</sub> (default 1.2·10⁻⁷ m²/s³, about 0.1 m/s per day); the clock with <var>c</var>²<var>q</var>₁ and
 <var>c</var>²<var>q</var>₂. Measurement: <var>c r</var> = <b>a</b>(<var>t</var>)·<var>M</var>(<var>t</var>)ᵀ<var>d</var> + <var>b</var> +
 <var>J</var><sub>k</sub>, with <var>M</var>(<var>t</var>) the local frame of the dead-reckoning track. The smoother is
-Rauch-Tung-Striebel. Outliers: the same mixture as <code>navFit</code>, applied to each TOA's innovation in one pass. On the real
+Rauch-Tung-Striebel <a class="cite" href="references.html#ref-rts1965">[42]</a>. Outliers: the same mixture as <code>navFit</code>, applied to each TOA's innovation in one pass. On the real
 surface a horizontal error <var>d</var> lies <var>d</var>²/2<var>R</var> below the tangent plane (7 km at 300 km); the closed loop keeps
 <var>d</var> small.</p></details>
 <details><summary>Options and outputs</summary>
@@ -1030,7 +1030,7 @@ prediction</a>).</td><td><span class="badge validated">validated 22 Oct</span></
 <div class="table-wrap"><table>
 <tr><th>Item</th><th>Why it waits</th><th>What it needs</th></tr>
 <tr><td>J0437's binary orbit</td><td>It was set aside while the scenario was 52° N, where J0437 never rises. That reason has gone: a site anywhere needs it, and so do the many millisecond pulsars that are binaries.</td><td>A binary timing model
-(ELL1) in the predictor and the truth: about 3 s of delay over 5.74 days.</td></tr>
+(ELL1 <a class="cite" href="references.html#ref-lange2001">[43]</a>) in the predictor and the truth: about 3 s of delay over 5.74 days.</td></tr>
 <tr><td>Real ship and probe trajectories</td><td>No data yet.</td><td>Logged positions into a moving-platform trajectory
 (the old <code>'track'</code> type is in <code>old/moving_platform/</code>); a reader for a probe's trajectory file.</td></tr>
 <tr><td>The Earth's real axis in the fit's rows</td><td>The rows use the Earth rotation angle only. Against real data the axis has

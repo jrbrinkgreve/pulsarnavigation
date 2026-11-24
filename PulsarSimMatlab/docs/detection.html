@@ -30,7 +30,7 @@ at the predicted phase (D2) or at every possible shift (D3), and compared with a
 flagged by χ² (D5).</p>
 
 <h2 id="question">D1 · The question, and the noise under H0</h2>
-<p><code>detectPulsar</code> makes a Neyman–Pearson test of two hypotheses: <b>H0</b> (baseline + noise) against <b>H1</b> (baseline +
+<p><code>detectPulsar</code> makes a Neyman–Pearson test <a class="cite" href="references.html#ref-neymanpearson1933">[6]</a> of two hypotheses: <b>H0</b> (baseline + noise) against <b>H1</b> (baseline +
 template-shaped pulse + noise). It tests at a fixed false-alarm probability <var>P</var><sub>FA</sub>, by default 10⁻³ per profile, for every
 sub-int and for the total fold. It uses only what the observer has: the fold, the template, <var>B</var><sub>noise</sub> and
 <var>P</var><sub>FA</sub>.</p>
@@ -70,7 +70,7 @@ about 1700 km), so the pulse could be anywhere. <var>T</var>(τ) is computed for
 its variance, and <var>T</var><sub>max</sub> is the largest, at <code>phaseMax</code>. Searching gives noise more chances, so it needs a
 higher threshold.</p>
 <p>How much higher? Neighbouring shifts are nearly identical, because a smooth template moved by one bin barely changes, so "number of bins
-× <var>Q</var>(η)" would be far too pessimistic. Rice (1944) gives the expected number of up-crossings of a level η by a smooth, stationary
+× <var>Q</var>(η)" would be far too pessimistic. Rice (1944) <a class="cite" href="references.html#ref-rice1945">[8]</a> gives the expected number of up-crossings of a level η by a smooth, stationary
 Gaussian process. The maximum exceeds η if <var>T</var> starts above it, or crosses it:</p>
 <div class="eq"><span class="label">(D.3)</span>\[ P(T_\mathrm{max} > \eta) \approx Q(\eta) + \frac{\sqrt{\lambda_2}}{2\pi}\, e^{-\eta^2/2}, \qquad \lambda_2 = \frac{\sum_{k \ge 1} (2\pi k)^2\, |S_k|^2}{\sum_{k \ge 1} |S_k|^2} \]</div>
 <dl class="where">
