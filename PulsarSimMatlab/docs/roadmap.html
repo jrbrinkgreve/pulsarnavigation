@@ -532,24 +532,30 @@ oscillator).</td><td><span class="badge todo">open</span></td></tr>
 <p>Two things are parked meanwhile: the navigation filter (<code>navFilter</code>, <code>runShip</code>) and the vehicle's motion uncertainty
 in the fold.
 The trajectory interface stays, so they can return if a moving platform is developed later.</p>
-<h3>Physics notes from the revision</h3>
+<h3>Physics notes from the revision (23 Oct 2026)</h3>
+<p>These three notes are kept as they were written on 23 October 2026, for the receiver of that time: 0.61 m², digital beams, a nominal
+and a worst-case flux. What has changed since is in the paragraph after them.</p>
 <p>The revision rests on three physics notes. The first is about the polarizations in the beamformer (E4). X and Y of one element share its position, so the 16 element positions are the only spatial
 information. Each pulsar gets two beams with the same steering weights, one from the X streams and one from the Y streams. Each beam is
 detected, and the powers are added (total intensity): the receiver noise is independent in X and Y, so the SNR gains √2. Combining X and
 Y before detection gains nothing for an unpolarized source and would have to follow Faraday and parallactic rotation for a polarized one.
-Separate TOAs per polarization would halve the SNR per profile and lose TOAs at worst-case flux. The separate streams still serve RFI excision and calibration.
-With the hardware of 23 Nov the steering weights are gone, because the beams are formed in analogue hardware. Each of the two beams
-still arrives as two polarizations, on separate outputs.</p>
-<p>The second is about integration time. The equatorial components improve as 1/√T: twice the precision costs four times the time. The
-numbers of 23 Oct were for the design point of that time; the planning study rerun at the array's design point
-(<code>expNavPlan</code>, Claude's run of 23 Nov; part of the what-if of a tracking mount) gives for B0329+54 alone about ±9.5 km east after 30 days and ±5.2 km after 100 days.
-With the crystal clock the polar component does not improve with time (28 km after 30 and after 100 days), because the clock's wander
+Separate TOAs per polarization would halve the SNR per profile and lose TOAs at worst-case flux. The separate streams still serve RFI excision and calibration.</p>
+<p>The second is about integration time. The equatorial components improve as 1/√T: twice the precision costs four times the time. B0329+54 alone
+gives about ±31 km east after 30 days and ±16 km after 100 days at nominal flux (±80 and ±43 km at worst-case flux). With the crystal
+clock the polar component does not improve with time (64 km at nominal flux after 30 and after 100 days), because the clock's wander
 looks like a polar offset; pulsars at other declinations or a better oscillator separate the two.</p>
 <p>The third is about extra pulsars. A pulsar's weight in the fit goes as 1/(σ<sub>TOA</sub>·√hours per TOA)². From 52° N, B0950+08,
-B1642−03 and B1929+10 add about 16, 19 and 4 % of B0329+54's information. Their main gain is the polar component: 28 → 14 km in 30
-days (8 km in 100 days) with the crystal clock, in the planning study of 23 Nov. That study follows every pulsar whenever it is up, each
-in its own beam, which the hardware of 23 Nov does not do. On 23 Oct, at the worst case of that time, B1642−03 and B1929+10 gave no TOA in
-30 days, which is why E3b looks at processing below the TOA threshold; at the design point they give 36 and 24.</p>
+B1642−03 and B1929+10 add about 16, 19 and 4 % of B0329+54's information. Their main gain is the polar component: 64 → 40 km in 30
+days (24 km in 100 days) with the crystal clock. At worst-case flux, B1642−03 and B1929+10 give no TOA in 30 days, which is why E3b
+looks at processing below the TOA threshold.</p>
+<p><b>Since then (23–24 Nov 2026).</b> The physics of the three notes is unchanged; the hardware and the numbers are not. The beams are now
+formed in analogue hardware, so the steering weights of the first note are gone; each of the two beams still arrives as two
+polarizations, on separate outputs. The planning study was rerun at the array's design point (<code>expNavPlan</code>, Claude's run of
+23 Nov). It belongs to the what-if of a tracking mount (<a href="scenario.html#merit">scenario, R1.2</a>), and it follows every pulsar
+whenever it is up, each in its own beam, which the hardware does not do. In it B0329+54 alone gives about ±9.5 km east after 30 days
+and ±5.2 km after 100 days. The polar component with the crystal clock is 28 km, after 30 and after 100 days. With B0950+08, B1642−03
+and B1929+10 it goes from 28 to 14 km in 30 days (8 km in 100 days), and B1642−03 and B1929+10 give 36 and 24 TOAs in 30 days. No
+worst case is defined for the new array.</p>
 
 <h2>Open items</h2>
 <p>The review-week items carry an R- prefix (R-D1, R-N1, R-C1, R-E1, …), so they do not collide with the block steps E0–E6. The notes

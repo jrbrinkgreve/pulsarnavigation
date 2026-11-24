@@ -108,6 +108,19 @@ contradicts) and wrote the changelog entry in `maintenance.html`. Also recorded:
 Left by the subagent as questions: `Chi2Alarm` defaults to 10⁻³ while the scenario tables count pChi2 < 0.05; the
 23 Nov history entry still mentions that a wider beam was run and dropped.
 
+## The roadmap's dated note, restored (later on 24 Nov)
+
+The docs update of 23 Nov had replaced the numbers inside the roadmap's "Physics notes from the revision", a note of
+23 Oct. At 10:54 (the reminder Jasper asked for) I showed him the old and the new numbers and two options. Jasper:
+"option 2, restore it as a dated record". Done: the three notes are back word for word from commit `4a28aa2`, under the
+heading "Physics notes from the revision (23 Oct 2026)" with one line saying which receiver they were written for, and
+one paragraph "Since then (23–24 Nov 2026)" after them with what changed (analogue beams; the planning study at the
+design point: ±9.5 / ±5.2 km east, polar 28 km, 28 → 14 km with the three extra pulsars, 36 and 24 TOAs), labelled as
+part of the what-if of a tracking mount. Checked in the preview: renders, the link resolves, no console errors.
+The changelog entry of 24 Nov in `maintenance.html` has a sentence on it.
+
+For a next docs job: tell a subagent explicitly that a dated note keeps its numbers and gets the new ones beside it.
+
 ## Files
 
 `.claude/runs/2026-11-24_investigate/investigate.m` and `investigate.log` (gitignored, this Mac only).
