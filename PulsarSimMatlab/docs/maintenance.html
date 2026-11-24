@@ -410,6 +410,12 @@ A citation is a link of class <code>cite</code> with the text <code>[n]</code> t
 text and in table cells, with the formulas page citing in the first cell of a row and the glossary in the term. Every entry lists the pages that cite it.
 No sentence was changed except "(arXiv:1703.03582, Table 2)" on the TOA page, now "(Shang et al. 2017 [38], Table 2)". Nine sources that were open at first were confirmed the same day and appended as [51] to [59]. What still has no confirmed source carries no number and is listed
 at the end of the References page. The register with every check is <code>logs/references.md</code>. No code change. Log: <code>logs/2026-11-24_docs-references.md</code>.</td></tr>
+<tr><td>24 Nov 2026</td><td>after <code>f8ded9b</code></td><td>TOA page, Section 8.3: the derivation of the error bar written out in five steps (Jasper: "make the derivations there clearer. I have a
+hard time following 100%"). The slope of the correlation as a weighted sum of the data, Eqs. (8.7) and (8.8); its noise at the true shift, Eq. (8.9), with the two sums behind
+<var>d</var>ᵀ·Cov·<var>d</var>; the shift of the peak, Eq. (8.10); the variance, Eq. (8.11), the old Eq. (8.7) with one step more; the white-noise check that ends in √2·σ<sub>t</sub>/SNR, with the 0.962 behind
+its ≈; the amplitude error written out. The equations of the section run on as (8.7) to (8.11), so the old (8.8) to (8.12) are now (8.12) to (8.16) (Jasper: "the equation numbering seems off", after a first version with sub-labels 8.7a to 8.7d). New Figure 8.2 (<code>gen_toaerr.py</code>): the peak and its slope with and without noise, and
+the scatter of the fitted shift against Eq. (8.11). The χ² figure is now 8.3 and the notch figure 8.4 (their scripts and the figures' README follow). Roadmap, Open items: a row for the
+eleven reference mismatches that wait for a decision. No code change. Log: <code>logs/2026-11-24_toa-uncertainty.md</code>.</td></tr>
 </table></div>
 
 </main>

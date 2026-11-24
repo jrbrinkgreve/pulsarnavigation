@@ -141,26 +141,167 @@ required; stop at 10⁻¹⁴ turns.</li>
 </svg>
 <figcaption><b>Figure 8.1.</b> FFTFIT on a simulated profile (2048 bins, 5 % Gaussian, true shift 40 µs, white noise). (a) The data and the fitted
 <var>a</var> + <var>b</var>·<var>s</var>(φ − τ̂). (b) The cross-correlation with the template, exact between bins from the Fourier phases;
-τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.7): the template slope, so only the pulse flanks set the error.</figcaption>
+τ̂ is its peak. (c) The weights <var>d</var> of Eq. (8.11): the template slope, so only the pulse flanks set the error.</figcaption>
 </figure>
 
 <h2 id="err">8.3 The uncertainty</h2>
-<p>The peak condition answers it: \(\hat\tau\) is where \(C'(\tau) = 0\), and \(C'\) is a <b>linear</b>
-combination of the data: \(C' = \sum_j d_j\, p_j\), with \(d\) from the
-template slope, largest on the pulse flanks. Noise moves \(C'\) by \(\delta C'\), and the peak moves until \(C' = 0\) again:
-\(\delta\tau = -\delta C'/C''\). Therefore</p>
-<div class="eq"><span class="label">(8.7)</span>\[ \operatorname{var}(\hat\tau) = \frac{d^{\mathsf T}\, \mathrm{Cov}\; d}{C''^{\,2}} \qquad \text{(and similarly } \sigma_b \text{ from } C(\tau)\text{)} \]</div>
+<p>The answer follows from the peak condition of Section 8.2, in five steps. The profile is the model of Eq. (8.1) at the true shift
+\(\tau_0\), plus noise: \(p_j = a + b\,s(\phi_j - \tau_0) + n_j\). The noise \(n_j\) has zero mean and a known covariance between phase
+bins, Cov. The fit returns the shift \(\hat\tau\) where \(C(\tau)\) peaks, and the question is how far the noise moves that peak.</p>
+<p>The first step writes the slope of the correlation as a weighted sum of the data. By Parseval's theorem, the correlation of Eq. (8.5)
+is also a sum over phase bins, and differentiating it touches only the template:</p>
+<div class="eq"><span class="label">(8.7)</span>\[ C(\tau) = c_0 \sum_j p_j\; \tilde s(\phi_j - \tau), \qquad c_0 = \tfrac{N}{2} \]</div>
+<div class="eq"><span class="label">(8.8)</span>\[ C'(\tau) = \sum_j d_j(\tau)\; p_j, \qquad d_j(\tau) = -\,c_0\; \tilde s'(\phi_j - \tau) \]</div>
 <dl class="where">
-<dt>\(\hat\tau\)</dt><dd>the fitted shift [turns]</dd>
 <dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
-<dt>\(d\)</dt><dd>the weights that give \(C'(\hat\tau) = \sum_j d_j p_j\); they follow the slope of the shifted template (the DC and Nyquist harmonics left out)</dd>
-<dt>\(\mathrm{Cov}\)</dt><dd>noise covariance matrix of the profile bins (below)</dd>
-<dt>\(C'\), \(C''\)</dt><dd>first and second derivative of \(C(\tau)\) with respect to \(\tau\), at the peak</dd>
-<dt>\(\sigma_b\)</dt><dd>error of the amplitude \(b\)</dd>
+<dt>\(\tilde s\), \(\tilde s'\)</dt><dd>the template with the DC and Nyquist harmonics left out, as the fit uses it, and its slope with respect to phase [per turn]</dd>
+<dt>\(N\), \(c_0\)</dt><dd>number of phase bins; a constant that cancels in Eq. (8.11)</dd>
+<dt>\(d\)</dt><dd>the weights that give \(C'(\tau) = \sum_j d_j p_j\) (<code>dvec</code> in the code)</dd>
+<dt>\(C'\), \(C''\)</dt><dd>first and second derivative of \(C(\tau)\) with respect to \(\tau\); in Eq. (8.11) at the peak</dd>
 </dl>
-<p>This is first-order error propagation (the delta method). For white noise it equals the least-squares/Fisher error, and for a Gaussian
-pulse it gives σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR.</p>
-<p>Eq. (8.7) still needs <b>the noise covariance Cov</b>, which comes from one of two noise models. In <b><code>'radiometer'</code></b> (default), each time bin has
+<p>So \(C'\) is a <b>linear</b> combination of the data. Its weights \(d_j\) are minus the slope of the shifted template: zero at the peak
+and far from the pulse, largest on the pulse flanks (Figure 8.1c). They sum to zero.</p>
+<p>The second step evaluates that slope at the true shift, where only the noise is left. Of the model's three terms in Eq. (8.8), the
+baseline term \(a \sum_j d_j\) is zero. So is the pulse term, which is \(b\) times the slope of the template's own correlation at its
+peak. The noise remains:</p>
+<div class="eq"><span class="label">(8.9)</span>\[ \begin{gathered} \delta C' \equiv C'(\tau_0) = \sum_j d_j\, n_j \\ \operatorname{var}(\delta C') = \sum_j d_j^2\; \mathrm{Cov}_{j,j} \;+\; 2 \sum_{L \ge 1} \sum_j d_j\, d_{j+L}\; \mathrm{Cov}_{j,\,j+L} \;=\; d^{\mathsf T}\, \mathrm{Cov}\; d \end{gathered} \]</div>
+<dl class="where">
+<dt>\(\delta C'\)</dt><dd>the slope of the correlation at the true shift: zero without noise</dd>
+<dt>\(\mathrm{Cov}\)</dt><dd>noise covariance matrix of the profile bins (below): \(\mathrm{Cov}_{j,j}\) is the variance of bin \(j\), \(\mathrm{Cov}_{j,j+L}\) its covariance with the bin \(L\) places further</dd>
+<dt>\(d^{\mathsf T}\, \mathrm{Cov}\; d\)</dt><dd>the two sums as one matrix product (<code>varC1</code> in the code)</dd>
+</dl>
+<p>This is the variance of a weighted sum. The first sum is what independent bins would give. The second is the noise that neighbouring
+phase bins share: linear assignment in the fold gives neighbours a correlation of about ¼ (<code>weightX</code>,
+<a href="fold.html#weights">fold</a>). Neighbouring \(d_j\) have the same sign, so it adds, and without it the error bar would be about
+18 % too small.</p>
+<p>The third step turns the error of the slope into a shift of the peak. The fit lands where the slope is zero. Near the peak the slope
+is a straight line with gradient \(C''\), negative at a maximum, which without noise crosses zero at \(\tau_0\). The noise lifts that line
+by \(\delta C'\), so the crossing moves (Figure 8.2b):</p>
+<div class="eq"><span class="label">(8.10)</span>\[ 0 = C'(\hat\tau) \approx \delta C' + C''\,(\hat\tau - \tau_0) \quad\Longrightarrow\quad \hat\tau - \tau_0 = -\frac{\delta C'}{C''} \]</div>
+<p>The noise tilts the top of the hill, and the summit slides until the tilt is gone. A sharper peak, with a larger |\(C''\)|, slides
+less.</p>
+<figure class="scroll">
+<svg class="wide" viewBox="0 0 860 236" role="img" aria-label="How noise moves the peak of the correlation: the peak with and without noise, the slope whose zero crossing moves, and the scatter of the fitted shift against Eq. 8.11">
+  <text class="ttl" x="60" y="20">a · the peak of C(τ)</text>
+  <path class="axis" d="M60 190 H290"/>
+  <path class="axis" d="M60 40 V190"/>
+  <path class="axis" d="M60.0 190 v5"/>
+  <text class="sub" x="60.0" y="208" text-anchor="middle">-200</text>
+  <path class="axis" d="M175.0 190 v5"/>
+  <text class="sub" x="175.0" y="208" text-anchor="middle">0</text>
+  <path class="axis" d="M290.0 190 v5"/>
+  <text class="sub" x="290.0" y="208" text-anchor="middle">200</text>
+  <text class="sub" x="175.0" y="224" text-anchor="middle">shift τ − τ₀ [µs]</text>
+  <path class="curve" d="M60.0 175.9 L60.6 175.2 L61.1 174.5 L61.7 173.8 L62.3 173.0 L62.9 172.3 L63.5 171.6 L64.0 170.9 L64.6 170.2 L65.2 169.5 L65.8 168.8 L66.3 168.2 L66.9 167.5 L67.5 166.8 L68.0 166.1 L68.6 165.4 L69.2 164.7 L69.8 164.0 L70.3 163.4 L70.9 162.7 L71.5 162.0 L72.1 161.4 L72.7 160.7 L73.2 160.0 L73.8 159.4 L74.4 158.7 L75.0 158.0 L75.5 157.4 L76.1 156.7 L76.7 156.1 L77.2 155.4 L77.8 154.8 L78.4 154.1 L79.0 153.5 L79.5 152.9 L80.1 152.2 L80.7 151.6 L81.3 151.0 L81.8 150.4 L82.4 149.7 L83.0 149.1 L83.6 148.5 L84.1 147.9 L84.7 147.3 L85.3 146.7 L85.9 146.0 L86.5 145.4 L87.0 144.8 L87.6 144.2 L88.2 143.6 L88.8 143.1 L89.3 142.5 L89.9 141.9 L90.5 141.3 L91.0 140.7 L91.6 140.1 L92.2 139.6 L92.8 139.0 L93.3 138.4 L93.9 137.9 L94.5 137.3 L95.1 136.7 L95.7 136.2 L96.2 135.6 L96.8 135.1 L97.4 134.5 L98.0 134.0 L98.5 133.5 L99.1 132.9 L99.7 132.4 L100.2 131.9 L100.8 131.3 L101.4 130.8 L102.0 130.3 L102.5 129.8 L103.1 129.3 L103.7 128.8 L104.3 128.2 L104.9 127.7 L105.4 127.2 L106.0 126.7 L106.6 126.3 L107.2 125.8 L107.7 125.3 L108.3 124.8 L108.9 124.3 L109.4 123.8 L110.0 123.4 L110.6 122.9 L111.2 122.4 L111.8 122.0 L112.3 121.5 L112.9 121.1 L113.5 120.6 L114.0 120.2 L114.6 119.7 L115.2 119.3 L115.8 118.9 L116.3 118.4 L116.9 118.0 L117.5 117.6 L118.1 117.2 L118.7 116.7 L119.2 116.3 L119.8 115.9 L120.4 115.5 L121.0 115.1 L121.5 114.7 L122.1 114.3 L122.7 113.9 L123.2 113.5 L123.8 113.2 L124.4 112.8 L125.0 112.4 L125.5 112.0 L126.1 111.7 L126.7 111.3 L127.3 111.0 L127.8 110.6 L128.4 110.3 L129.0 109.9 L129.6 109.6 L130.1 109.2 L130.7 108.9 L131.3 108.6 L131.9 108.2 L132.4 107.9 L133.0 107.6 L133.6 107.3 L134.2 107.0 L134.8 106.7 L135.3 106.4 L135.9 106.1 L136.5 105.8 L137.1 105.5 L137.6 105.2 L138.2 104.9 L138.8 104.6 L139.3 104.4 L139.9 104.1 L140.5 103.8 L141.1 103.6 L141.6 103.3 L142.2 103.1 L142.8 102.8 L143.4 102.6 L143.9 102.3 L144.5 102.1 L145.1 101.9 L145.7 101.6 L146.2 101.4 L146.8 101.2 L147.4 101.0 L148.0 100.8 L148.6 100.6 L149.1 100.4 L149.7 100.2 L150.3 100.0 L150.9 99.8 L151.4 99.6 L152.0 99.4 L152.6 99.3 L153.2 99.1 L153.7 98.9 L154.3 98.8 L154.9 98.6 L155.4 98.5 L156.0 98.3 L156.6 98.2 L157.2 98.0 L157.8 97.9 L158.3 97.8 L158.9 97.6 L159.5 97.5 L160.1 97.4 L160.6 97.3 L161.2 97.2 L161.8 97.1 L162.4 97.0 L162.9 96.9 L163.5 96.8 L164.1 96.7 L164.7 96.6 L165.2 96.5 L165.8 96.5 L166.4 96.4 L167.0 96.3 L167.5 96.3 L168.1 96.2 L168.7 96.2 L169.2 96.1 L169.8 96.1 L170.4 96.0 L171.0 96.0 L171.6 96.0 L172.1 95.9 L172.7 95.9 L173.3 95.9 L173.8 95.9 L174.4 95.9 L175.0 95.9 L175.6 95.9 L176.2 95.9 L176.7 95.9 L177.3 95.9 L177.9 95.9 L178.4 96.0 L179.0 96.0 L179.6 96.0 L180.2 96.1 L180.8 96.1 L181.3 96.2 L181.9 96.2 L182.5 96.3 L183.1 96.3 L183.6 96.4 L184.2 96.5 L184.8 96.5 L185.4 96.6 L185.9 96.7 L186.5 96.8 L187.1 96.9 L187.7 97.0 L188.2 97.1 L188.8 97.2 L189.4 97.3 L190.0 97.4 L190.5 97.5 L191.1 97.6 L191.7 97.8 L192.2 97.9 L192.8 98.0 L193.4 98.2 L194.0 98.3 L194.5 98.5 L195.1 98.6 L195.7 98.8 L196.3 98.9 L196.8 99.1 L197.4 99.3 L198.0 99.4 L198.6 99.6 L199.2 99.8 L199.7 100.0 L200.3 100.2 L200.9 100.4 L201.4 100.6 L202.0 100.8 L202.6 101.0 L203.2 101.2 L203.8 101.4 L204.3 101.6 L204.9 101.9 L205.5 102.1 L206.1 102.3 L206.6 102.6 L207.2 102.8 L207.8 103.1 L208.3 103.3 L208.9 103.6 L209.5 103.8 L210.1 104.1 L210.7 104.4 L211.2 104.6 L211.8 104.9 L212.4 105.2 L213.0 105.5 L213.5 105.8 L214.1 106.1 L214.7 106.4 L215.2 106.7 L215.8 107.0 L216.4 107.3 L217.0 107.6 L217.6 107.9 L218.1 108.2 L218.7 108.6 L219.3 108.9 L219.8 109.2 L220.4 109.6 L221.0 109.9 L221.6 110.3 L222.1 110.6 L222.7 111.0 L223.3 111.3 L223.9 111.7 L224.4 112.0 L225.0 112.4 L225.6 112.8 L226.2 113.2 L226.8 113.5 L227.3 113.9 L227.9 114.3 L228.5 114.7 L229.0 115.1 L229.6 115.5 L230.2 115.9 L230.8 116.3 L231.3 116.7 L231.9 117.2 L232.5 117.6 L233.1 118.0 L233.7 118.4 L234.2 118.9 L234.8 119.3 L235.4 119.7 L236.0 120.2 L236.5 120.6 L237.1 121.1 L237.7 121.5 L238.2 122.0 L238.8 122.4 L239.4 122.9 L240.0 123.4 L240.6 123.8 L241.1 124.3 L241.7 124.8 L242.3 125.3 L242.9 125.8 L243.4 126.3 L244.0 126.7 L244.6 127.2 L245.2 127.7 L245.7 128.2 L246.3 128.8 L246.9 129.3 L247.5 129.8 L248.0 130.3 L248.6 130.8 L249.2 131.3 L249.8 131.9 L250.3 132.4 L250.9 132.9 L251.5 133.5 L252.0 134.0 L252.6 134.5 L253.2 135.1 L253.8 135.6 L254.3 136.2 L254.9 136.7 L255.5 137.3 L256.1 137.9 L256.6 138.4 L257.2 139.0 L257.8 139.6 L258.4 140.1 L258.9 140.7 L259.5 141.3 L260.1 141.9 L260.7 142.5 L261.2 143.1 L261.8 143.6 L262.4 144.2 L263.0 144.8 L263.6 145.4 L264.1 146.0 L264.7 146.7 L265.3 147.3 L265.9 147.9 L266.4 148.5 L267.0 149.1 L267.6 149.7 L268.1 150.4 L268.7 151.0 L269.3 151.6 L269.9 152.2 L270.5 152.9 L271.0 153.5 L271.6 154.1 L272.2 154.8 L272.8 155.4 L273.3 156.1 L273.9 156.7 L274.5 157.4 L275.1 158.0 L275.6 158.7 L276.2 159.4 L276.8 160.0 L277.4 160.7 L277.9 161.4 L278.5 162.0 L279.1 162.7 L279.7 163.4 L280.2 164.0 L280.8 164.7 L281.4 165.4 L281.9 166.1 L282.5 166.8 L283.1 167.5 L283.7 168.2 L284.2 168.8 L284.8 169.5 L285.4 170.2 L286.0 170.9 L286.5 171.6 L287.1 172.3 L287.7 173.0 L288.3 173.8 L288.9 174.5 L289.4 175.2 L290.0 175.9"/>
+  <path class="curve2" d="M60.0 182.6 L60.6 181.7 L61.1 180.8 L61.7 179.9 L62.3 179.0 L62.9 178.2 L63.5 177.3 L64.0 176.4 L64.6 175.6 L65.2 174.7 L65.8 173.8 L66.3 173.0 L66.9 172.1 L67.5 171.3 L68.0 170.4 L68.6 169.5 L69.2 168.7 L69.8 167.8 L70.3 167.0 L70.9 166.2 L71.5 165.3 L72.1 164.5 L72.7 163.6 L73.2 162.8 L73.8 162.0 L74.4 161.1 L75.0 160.3 L75.5 159.5 L76.1 158.6 L76.7 157.8 L77.2 157.0 L77.8 156.2 L78.4 155.4 L79.0 154.6 L79.5 153.7 L80.1 152.9 L80.7 152.1 L81.3 151.3 L81.8 150.5 L82.4 149.7 L83.0 148.9 L83.6 148.1 L84.1 147.4 L84.7 146.6 L85.3 145.8 L85.9 145.0 L86.5 144.2 L87.0 143.4 L87.6 142.7 L88.2 141.9 L88.8 141.1 L89.3 140.4 L89.9 139.6 L90.5 138.9 L91.0 138.1 L91.6 137.3 L92.2 136.6 L92.8 135.8 L93.3 135.1 L93.9 134.4 L94.5 133.6 L95.1 132.9 L95.7 132.2 L96.2 131.4 L96.8 130.7 L97.4 130.0 L98.0 129.3 L98.5 128.5 L99.1 127.8 L99.7 127.1 L100.2 126.4 L100.8 125.7 L101.4 125.0 L102.0 124.3 L102.5 123.6 L103.1 122.9 L103.7 122.3 L104.3 121.6 L104.9 120.9 L105.4 120.2 L106.0 119.5 L106.6 118.9 L107.2 118.2 L107.7 117.5 L108.3 116.9 L108.9 116.2 L109.4 115.6 L110.0 114.9 L110.6 114.3 L111.2 113.6 L111.8 113.0 L112.3 112.4 L112.9 111.7 L113.5 111.1 L114.0 110.5 L114.6 109.9 L115.2 109.3 L115.8 108.7 L116.3 108.0 L116.9 107.4 L117.5 106.8 L118.1 106.3 L118.7 105.7 L119.2 105.1 L119.8 104.5 L120.4 103.9 L121.0 103.3 L121.5 102.8 L122.1 102.2 L122.7 101.6 L123.2 101.1 L123.8 100.5 L124.4 100.0 L125.0 99.4 L125.5 98.9 L126.1 98.3 L126.7 97.8 L127.3 97.2 L127.8 96.7 L128.4 96.2 L129.0 95.7 L129.6 95.2 L130.1 94.6 L130.7 94.1 L131.3 93.6 L131.9 93.1 L132.4 92.6 L133.0 92.2 L133.6 91.7 L134.2 91.2 L134.8 90.7 L135.3 90.2 L135.9 89.8 L136.5 89.3 L137.1 88.8 L137.6 88.4 L138.2 87.9 L138.8 87.5 L139.3 87.0 L139.9 86.6 L140.5 86.2 L141.1 85.7 L141.6 85.3 L142.2 84.9 L142.8 84.5 L143.4 84.0 L143.9 83.6 L144.5 83.2 L145.1 82.8 L145.7 82.4 L146.2 82.0 L146.8 81.7 L147.4 81.3 L148.0 80.9 L148.6 80.5 L149.1 80.2 L149.7 79.8 L150.3 79.4 L150.9 79.1 L151.4 78.7 L152.0 78.4 L152.6 78.1 L153.2 77.7 L153.7 77.4 L154.3 77.1 L154.9 76.7 L155.4 76.4 L156.0 76.1 L156.6 75.8 L157.2 75.5 L157.8 75.2 L158.3 74.9 L158.9 74.6 L159.5 74.3 L160.1 74.0 L160.6 73.8 L161.2 73.5 L161.8 73.2 L162.4 73.0 L162.9 72.7 L163.5 72.5 L164.1 72.2 L164.7 72.0 L165.2 71.7 L165.8 71.5 L166.4 71.3 L167.0 71.1 L167.5 70.8 L168.1 70.6 L168.7 70.4 L169.2 70.2 L169.8 70.0 L170.4 69.8 L171.0 69.6 L171.6 69.4 L172.1 69.3 L172.7 69.1 L173.3 68.9 L173.8 68.8 L174.4 68.6 L175.0 68.4 L175.6 68.3 L176.2 68.1 L176.7 68.0 L177.3 67.9 L177.9 67.7 L178.4 67.6 L179.0 67.5 L179.6 67.4 L180.2 67.3 L180.8 67.1 L181.3 67.0 L181.9 66.9 L182.5 66.9 L183.1 66.8 L183.6 66.7 L184.2 66.6 L184.8 66.5 L185.4 66.5 L185.9 66.4 L186.5 66.3 L187.1 66.3 L187.7 66.2 L188.2 66.2 L188.8 66.2 L189.4 66.1 L190.0 66.1 L190.5 66.1 L191.1 66.1 L191.7 66.0 L192.2 66.0 L192.8 66.0 L193.4 66.0 L194.0 66.0 L194.5 66.1 L195.1 66.1 L195.7 66.1 L196.3 66.1 L196.8 66.1 L197.4 66.2 L198.0 66.2 L198.6 66.3 L199.2 66.3 L199.7 66.4 L200.3 66.4 L200.9 66.5 L201.4 66.6 L202.0 66.6 L202.6 66.7 L203.2 66.8 L203.8 66.9 L204.3 67.0 L204.9 67.1 L205.5 67.2 L206.1 67.3 L206.6 67.4 L207.2 67.5 L207.8 67.6 L208.3 67.8 L208.9 67.9 L209.5 68.0 L210.1 68.2 L210.7 68.3 L211.2 68.5 L211.8 68.6 L212.4 68.8 L213.0 69.0 L213.5 69.1 L214.1 69.3 L214.7 69.5 L215.2 69.7 L215.8 69.9 L216.4 70.0 L217.0 70.2 L217.6 70.4 L218.1 70.7 L218.7 70.9 L219.3 71.1 L219.8 71.3 L220.4 71.5 L221.0 71.8 L221.6 72.0 L222.1 72.2 L222.7 72.5 L223.3 72.7 L223.9 73.0 L224.4 73.3 L225.0 73.5 L225.6 73.8 L226.2 74.1 L226.8 74.3 L227.3 74.6 L227.9 74.9 L228.5 75.2 L229.0 75.5 L229.6 75.8 L230.2 76.1 L230.8 76.4 L231.3 76.7 L231.9 77.1 L232.5 77.4 L233.1 77.7 L233.7 78.0 L234.2 78.4 L234.8 78.7 L235.4 79.1 L236.0 79.4 L236.5 79.8 L237.1 80.1 L237.7 80.5 L238.2 80.9 L238.8 81.2 L239.4 81.6 L240.0 82.0 L240.6 82.4 L241.1 82.8 L241.7 83.2 L242.3 83.6 L242.9 84.0 L243.4 84.4 L244.0 84.8 L244.6 85.2 L245.2 85.6 L245.7 86.0 L246.3 86.5 L246.9 86.9 L247.5 87.3 L248.0 87.8 L248.6 88.2 L249.2 88.7 L249.8 89.1 L250.3 89.6 L250.9 90.1 L251.5 90.5 L252.0 91.0 L252.6 91.5 L253.2 91.9 L253.8 92.4 L254.3 92.9 L254.9 93.4 L255.5 93.9 L256.1 94.4 L256.6 94.9 L257.2 95.4 L257.8 95.9 L258.4 96.4 L258.9 97.0 L259.5 97.5 L260.1 98.0 L260.7 98.5 L261.2 99.1 L261.8 99.6 L262.4 100.2 L263.0 100.7 L263.6 101.3 L264.1 101.8 L264.7 102.4 L265.3 102.9 L265.9 103.5 L266.4 104.1 L267.0 104.6 L267.6 105.2 L268.1 105.8 L268.7 106.4 L269.3 107.0 L269.9 107.6 L270.5 108.1 L271.0 108.7 L271.6 109.3 L272.2 110.0 L272.8 110.6 L273.3 111.2 L273.9 111.8 L274.5 112.4 L275.1 113.0 L275.6 113.7 L276.2 114.3 L276.8 114.9 L277.4 115.6 L277.9 116.2 L278.5 116.8 L279.1 117.5 L279.7 118.1 L280.2 118.8 L280.8 119.5 L281.4 120.1 L281.9 120.8 L282.5 121.4 L283.1 122.1 L283.7 122.8 L284.2 123.5 L284.8 124.1 L285.4 124.8 L286.0 125.5 L286.5 126.2 L287.1 126.9 L287.7 127.6 L288.3 128.3 L288.9 129.0 L289.4 129.7 L290.0 130.4"/>
+  <path class="curve" d="M171.0 95.9 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <path class="thin" d="M175.0 100.9 V190"/>
+  <path class="curve2" d="M189.0 66.0 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <path class="thin" d="M193.0 71.0 V190"/>
+  <text class="sub" x="80.1" y="168">blue: no noise</text>
+  <text class="sub" x="80.1" y="182">orange: one draw</text>
+  <text class="ttl" x="340" y="20">b · its slope C′(τ)</text>
+  <path class="axis" d="M340 190 H570"/>
+  <path class="axis" d="M340.0 190 v5"/>
+  <text class="sub" x="340.0" y="208" text-anchor="middle">-100</text>
+  <path class="axis" d="M455.0 190 v5"/>
+  <text class="sub" x="455.0" y="208" text-anchor="middle">0</text>
+  <path class="axis" d="M570.0 190 v5"/>
+  <text class="sub" x="570.0" y="208" text-anchor="middle">100</text>
+  <text class="sub" x="455.0" y="224" text-anchor="middle">shift τ − τ₀ [µs]</text>
+  <path class="axis" d="M340 124.9 H570"/>
+  <path class="curve" d="M340.0 72.4 L341.2 72.8 L342.3 73.3 L343.4 73.8 L344.6 74.2 L345.8 74.7 L346.9 75.2 L348.1 75.7 L349.2 76.2 L350.4 76.6 L351.5 77.1 L352.6 77.6 L353.8 78.1 L354.9 78.6 L356.1 79.1 L357.2 79.5 L358.4 80.0 L359.6 80.5 L360.7 81.0 L361.9 81.5 L363.0 82.0 L364.2 82.5 L365.3 83.0 L366.4 83.5 L367.6 84.0 L368.8 84.5 L369.9 85.0 L371.1 85.5 L372.2 86.0 L373.4 86.5 L374.5 87.1 L375.6 87.6 L376.8 88.1 L377.9 88.6 L379.1 89.1 L380.2 89.6 L381.4 90.1 L382.6 90.7 L383.7 91.2 L384.9 91.7 L386.0 92.2 L387.2 92.7 L388.3 93.3 L389.4 93.8 L390.6 94.3 L391.8 94.8 L392.9 95.4 L394.1 95.9 L395.2 96.4 L396.4 97.0 L397.5 97.5 L398.6 98.0 L399.8 98.6 L400.9 99.1 L402.1 99.6 L403.2 100.2 L404.4 100.7 L405.6 101.2 L406.7 101.8 L407.9 102.3 L409.0 102.9 L410.1 103.4 L411.3 103.9 L412.5 104.5 L413.6 105.0 L414.8 105.6 L415.9 106.1 L417.1 106.7 L418.2 107.2 L419.4 107.7 L420.5 108.3 L421.6 108.8 L422.8 109.4 L423.9 109.9 L425.1 110.5 L426.2 111.0 L427.4 111.6 L428.6 112.1 L429.7 112.7 L430.8 113.2 L432.0 113.8 L433.2 114.3 L434.3 114.9 L435.4 115.4 L436.6 116.0 L437.8 116.5 L438.9 117.1 L440.1 117.7 L441.2 118.2 L442.4 118.8 L443.5 119.3 L444.7 119.9 L445.8 120.4 L447.0 121.0 L448.1 121.5 L449.2 122.1 L450.4 122.6 L451.6 123.2 L452.7 123.7 L453.9 124.3 L455.0 124.9 L456.1 125.4 L457.3 126.0 L458.5 126.5 L459.6 127.1 L460.8 127.6 L461.9 128.2 L463.0 128.7 L464.2 129.3 L465.4 129.8 L466.5 130.4 L467.6 131.0 L468.8 131.5 L469.9 132.1 L471.1 132.6 L472.2 133.2 L473.4 133.7 L474.5 134.3 L475.7 134.8 L476.9 135.4 L478.0 135.9 L479.2 136.5 L480.3 137.0 L481.4 137.6 L482.6 138.1 L483.8 138.7 L484.9 139.2 L486.1 139.8 L487.2 140.3 L488.4 140.9 L489.5 141.4 L490.7 142.0 L491.8 142.5 L493.0 143.1 L494.1 143.6 L495.2 144.1 L496.4 144.7 L497.6 145.2 L498.7 145.8 L499.9 146.3 L501.0 146.9 L502.1 147.4 L503.3 147.9 L504.4 148.5 L505.6 149.0 L506.8 149.5 L507.9 150.1 L509.0 150.6 L510.2 151.1 L511.4 151.7 L512.5 152.2 L513.6 152.7 L514.8 153.3 L516.0 153.8 L517.1 154.3 L518.2 154.9 L519.4 155.4 L520.5 155.9 L521.7 156.4 L522.9 157.0 L524.0 157.5 L525.1 158.0 L526.3 158.5 L527.5 159.0 L528.6 159.6 L529.8 160.1 L530.9 160.6 L532.0 161.1 L533.2 161.6 L534.4 162.1 L535.5 162.7 L536.7 163.2 L537.8 163.7 L539.0 164.2 L540.1 164.7 L541.2 165.2 L542.4 165.7 L543.5 166.2 L544.7 166.7 L545.9 167.2 L547.0 167.7 L548.1 168.2 L549.3 168.7 L550.5 169.2 L551.6 169.7 L552.8 170.2 L553.9 170.7 L555.0 171.1 L556.2 171.6 L557.4 172.1 L558.5 172.6 L559.6 173.1 L560.8 173.6 L562.0 174.0 L563.1 174.5 L564.2 175.0 L565.4 175.5 L566.5 175.9 L567.7 176.4 L568.9 176.9"/>
+  <path class="curve2" d="M340.0 50.5 L341.2 51.0 L342.3 51.5 L343.4 51.9 L344.6 52.4 L345.8 52.9 L346.9 53.4 L348.1 53.9 L349.2 54.4 L350.4 54.9 L351.5 55.4 L352.6 55.8 L353.8 56.3 L354.9 56.8 L356.1 57.3 L357.2 57.9 L358.4 58.4 L359.6 58.9 L360.7 59.4 L361.9 59.9 L363.0 60.4 L364.2 60.9 L365.3 61.4 L366.4 61.9 L367.6 62.5 L368.8 63.0 L369.9 63.5 L371.1 64.0 L372.2 64.6 L373.4 65.1 L374.5 65.6 L375.6 66.2 L376.8 66.7 L377.9 67.2 L379.1 67.8 L380.2 68.3 L381.4 68.8 L382.6 69.4 L383.7 69.9 L384.9 70.5 L386.0 71.0 L387.2 71.6 L388.3 72.1 L389.4 72.7 L390.6 73.2 L391.8 73.8 L392.9 74.3 L394.1 74.9 L395.2 75.4 L396.4 76.0 L397.5 76.5 L398.6 77.1 L399.8 77.7 L400.9 78.2 L402.1 78.8 L403.2 79.4 L404.4 79.9 L405.6 80.5 L406.7 81.1 L407.9 81.6 L409.0 82.2 L410.1 82.8 L411.3 83.3 L412.5 83.9 L413.6 84.5 L414.8 85.1 L415.9 85.7 L417.1 86.2 L418.2 86.8 L419.4 87.4 L420.5 88.0 L421.6 88.6 L422.8 89.1 L423.9 89.7 L425.1 90.3 L426.2 90.9 L427.4 91.5 L428.6 92.1 L429.7 92.7 L430.8 93.3 L432.0 93.8 L433.2 94.4 L434.3 95.0 L435.4 95.6 L436.6 96.2 L437.8 96.8 L438.9 97.4 L440.1 98.0 L441.2 98.6 L442.4 99.2 L443.5 99.8 L444.7 100.4 L445.8 101.0 L447.0 101.6 L448.1 102.2 L449.2 102.8 L450.4 103.4 L451.6 104.0 L452.7 104.6 L453.9 105.2 L455.0 105.8 L456.1 106.4 L457.3 107.0 L458.5 107.6 L459.6 108.2 L460.8 108.8 L461.9 109.4 L463.0 110.0 L464.2 110.7 L465.4 111.3 L466.5 111.9 L467.6 112.5 L468.8 113.1 L469.9 113.7 L471.1 114.3 L472.2 114.9 L473.4 115.5 L474.5 116.1 L475.7 116.7 L476.9 117.3 L478.0 117.9 L479.2 118.6 L480.3 119.2 L481.4 119.8 L482.6 120.4 L483.8 121.0 L484.9 121.6 L486.1 122.2 L487.2 122.8 L488.4 123.4 L489.5 124.0 L490.7 124.6 L491.8 125.2 L493.0 125.9 L494.1 126.5 L495.2 127.1 L496.4 127.7 L497.6 128.3 L498.7 128.9 L499.9 129.5 L501.0 130.1 L502.1 130.7 L503.3 131.3 L504.4 131.9 L505.6 132.5 L506.8 133.1 L507.9 133.7 L509.0 134.3 L510.2 135.0 L511.4 135.6 L512.5 136.2 L513.6 136.8 L514.8 137.4 L516.0 138.0 L517.1 138.6 L518.2 139.2 L519.4 139.8 L520.5 140.4 L521.7 141.0 L522.9 141.6 L524.0 142.2 L525.1 142.8 L526.3 143.4 L527.5 144.0 L528.6 144.6 L529.8 145.1 L530.9 145.7 L532.0 146.3 L533.2 146.9 L534.4 147.5 L535.5 148.1 L536.7 148.7 L537.8 149.3 L539.0 149.9 L540.1 150.5 L541.2 151.1 L542.4 151.6 L543.5 152.2 L544.7 152.8 L545.9 153.4 L547.0 154.0 L548.1 154.6 L549.3 155.1 L550.5 155.7 L551.6 156.3 L552.8 156.9 L553.9 157.5 L555.0 158.0 L556.2 158.6 L557.4 159.2 L558.5 159.7 L559.6 160.3 L560.8 160.9 L562.0 161.5 L563.1 162.0 L564.2 162.6 L565.4 163.2 L566.5 163.7 L567.7 164.3 L568.9 164.9"/>
+  <path class="dash" d="M455.0 124.9 V105.8"/>
+  <text class="sub" x="462.0" y="98.8">lift δC′</text>
+  <path class="curve" d="M451.0 124.9 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <path class="curve2" d="M487.1 124.9 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <text class="sub" x="566" y="54" text-anchor="end">gradient C″</text>
+  <text class="sub" x="344" y="168">the zero crossing</text>
+  <text class="sub" x="344" y="182">moves by −δC′/C″</text>
+  <text class="ttl" x="620" y="20">c · the shift over 4000 draws</text>
+  <path class="axis" d="M620 190 H850"/>
+  <path class="axis" d="M620.0 190 v5"/>
+  <text class="sub" x="620.0" y="208" text-anchor="middle">-80</text>
+  <path class="axis" d="M677.5 190 v5"/>
+  <text class="sub" x="677.5" y="208" text-anchor="middle">-40</text>
+  <path class="axis" d="M735.0 190 v5"/>
+  <text class="sub" x="735.0" y="208" text-anchor="middle">0</text>
+  <path class="axis" d="M792.5 190 v5"/>
+  <text class="sub" x="792.5" y="208" text-anchor="middle">40</text>
+  <path class="axis" d="M850.0 190 v5"/>
+  <text class="sub" x="850.0" y="208" text-anchor="middle">80</text>
+  <text class="sub" x="735.0" y="224" text-anchor="middle">fitted shift τ̂ − τ₀ [µs]</text>
+  <path class="fillsoft" d="M620.5 190 V190.0 H626.7 V190 Z"/>
+  <path class="fillsoft" d="M627.7 190 V190.0 H633.9 V190 Z"/>
+  <path class="fillsoft" d="M634.9 190 V189.0 H641.1 V190 Z"/>
+  <path class="fillsoft" d="M642.1 190 V188.7 H648.2 V190 Z"/>
+  <path class="fillsoft" d="M649.2 190 V185.3 H655.4 V190 Z"/>
+  <path class="fillsoft" d="M656.4 190 V185.0 H662.6 V190 Z"/>
+  <path class="fillsoft" d="M663.6 190 V178.6 H669.8 V190 Z"/>
+  <path class="fillsoft" d="M670.8 190 V168.9 H677.0 V190 Z"/>
+  <path class="fillsoft" d="M678.0 190 V169.5 H684.2 V190 Z"/>
+  <path class="fillsoft" d="M685.2 190 V149.4 H691.4 V190 Z"/>
+  <path class="fillsoft" d="M692.4 190 V131.0 H698.6 V190 Z"/>
+  <path class="fillsoft" d="M699.6 190 V117.9 H705.8 V190 Z"/>
+  <path class="fillsoft" d="M706.8 190 V107.1 H712.9 V190 Z"/>
+  <path class="fillsoft" d="M713.9 190 V85.3 H720.1 V190 Z"/>
+  <path class="fillsoft" d="M721.1 190 V76.3 H727.3 V190 Z"/>
+  <path class="fillsoft" d="M728.3 190 V53.5 H734.5 V190 Z"/>
+  <path class="fillsoft" d="M735.5 190 V59.2 H741.7 V190 Z"/>
+  <path class="fillsoft" d="M742.7 190 V64.2 H748.9 V190 Z"/>
+  <path class="fillsoft" d="M749.9 190 V87.7 H756.1 V190 Z"/>
+  <path class="fillsoft" d="M757.1 190 V102.8 H763.2 V190 Z"/>
+  <path class="fillsoft" d="M764.2 190 V120.2 H770.4 V190 Z"/>
+  <path class="fillsoft" d="M771.4 190 V136.0 H777.6 V190 Z"/>
+  <path class="fillsoft" d="M778.6 190 V155.4 H784.8 V190 Z"/>
+  <path class="fillsoft" d="M785.8 190 V167.9 H792.0 V190 Z"/>
+  <path class="fillsoft" d="M793.0 190 V173.2 H799.2 V190 Z"/>
+  <path class="fillsoft" d="M800.2 190 V177.6 H806.4 V190 Z"/>
+  <path class="fillsoft" d="M807.4 190 V184.3 H813.6 V190 Z"/>
+  <path class="fillsoft" d="M814.6 190 V187.3 H820.8 V190 Z"/>
+  <path class="fillsoft" d="M821.8 190 V188.3 H827.9 V190 Z"/>
+  <path class="fillsoft" d="M828.9 190 V189.0 H835.1 V190 Z"/>
+  <path class="fillsoft" d="M836.1 190 V190.0 H842.3 V190 Z"/>
+  <path class="fillsoft" d="M843.3 190 V189.7 H849.5 V190 Z"/>
+  <path class="curve" d="M620.0 189.9 L621.1 189.9 L622.3 189.9 L623.5 189.9 L624.6 189.9 L625.8 189.9 L626.9 189.8 L628.0 189.8 L629.2 189.8 L630.4 189.8 L631.5 189.7 L632.6 189.7 L633.8 189.6 L635.0 189.6 L636.1 189.5 L637.2 189.5 L638.4 189.4 L639.5 189.3 L640.7 189.2 L641.9 189.1 L643.0 189.0 L644.1 188.9 L645.3 188.7 L646.5 188.6 L647.6 188.4 L648.8 188.2 L649.9 188.0 L651.0 187.7 L652.2 187.5 L653.4 187.2 L654.5 186.8 L655.6 186.5 L656.8 186.1 L658.0 185.7 L659.1 185.2 L660.2 184.7 L661.4 184.2 L662.5 183.6 L663.7 183.0 L664.9 182.3 L666.0 181.5 L667.1 180.7 L668.3 179.9 L669.5 179.0 L670.6 178.0 L671.8 176.9 L672.9 175.8 L674.0 174.6 L675.2 173.3 L676.4 171.9 L677.5 170.5 L678.6 169.0 L679.8 167.3 L681.0 165.7 L682.1 163.9 L683.2 162.0 L684.4 160.0 L685.5 158.0 L686.7 155.9 L687.9 153.6 L689.0 151.3 L690.1 148.9 L691.3 146.5 L692.5 143.9 L693.6 141.3 L694.8 138.6 L695.9 135.8 L697.0 133.0 L698.2 130.1 L699.4 127.2 L700.5 124.2 L701.6 121.2 L702.8 118.1 L704.0 115.0 L705.1 112.0 L706.2 108.9 L707.4 105.8 L708.5 102.7 L709.7 99.7 L710.9 96.7 L712.0 93.8 L713.1 90.9 L714.3 88.0 L715.5 85.3 L716.6 82.6 L717.8 80.1 L718.9 77.6 L720.0 75.3 L721.2 73.1 L722.4 71.0 L723.5 69.1 L724.6 67.4 L725.8 65.8 L727.0 64.3 L728.1 63.1 L729.2 62.0 L730.4 61.1 L731.5 60.5 L732.7 60.0 L733.9 59.7 L735.0 59.6 L736.1 59.7 L737.3 60.0 L738.5 60.5 L739.6 61.1 L740.8 62.0 L741.9 63.1 L743.0 64.3 L744.2 65.8 L745.4 67.4 L746.5 69.1 L747.6 71.0 L748.8 73.1 L750.0 75.3 L751.1 77.6 L752.2 80.1 L753.4 82.6 L754.5 85.3 L755.7 88.0 L756.9 90.9 L758.0 93.8 L759.2 96.7 L760.3 99.7 L761.5 102.7 L762.6 105.8 L763.8 108.9 L764.9 112.0 L766.0 115.0 L767.2 118.1 L768.4 121.2 L769.5 124.2 L770.6 127.2 L771.8 130.1 L773.0 133.0 L774.1 135.8 L775.2 138.6 L776.4 141.3 L777.5 143.9 L778.7 146.5 L779.9 148.9 L781.0 151.3 L782.1 153.6 L783.3 155.9 L784.5 158.0 L785.6 160.0 L786.8 162.0 L787.9 163.9 L789.0 165.7 L790.2 167.3 L791.4 169.0 L792.5 170.5 L793.7 171.9 L794.8 173.3 L796.0 174.6 L797.1 175.8 L798.2 176.9 L799.4 178.0 L800.5 179.0 L801.7 179.9 L802.9 180.7 L804.0 181.5 L805.1 182.3 L806.3 183.0 L807.5 183.6 L808.6 184.2 L809.8 184.7 L810.9 185.2 L812.0 185.7 L813.2 186.1 L814.4 186.5 L815.5 186.8 L816.7 187.2 L817.8 187.5 L819.0 187.7 L820.1 188.0 L821.2 188.2 L822.4 188.4 L823.5 188.6 L824.7 188.7 L825.9 188.9 L827.0 189.0 L828.1 189.1 L829.3 189.2 L830.5 189.3 L831.6 189.4 L832.8 189.5 L833.9 189.5 L835.0 189.6 L836.2 189.6 L837.4 189.7 L838.5 189.7 L839.6 189.8 L840.8 189.8 L842.0 189.8 L843.1 189.8 L844.2 189.9 L845.4 189.9 L846.5 189.9 L847.7 189.9 L848.9 189.9 L850.0 189.9"/>
+  <text class="sub" x="624" y="54">curve: Eq. (8.11), 20.5 µs</text>
+  <text class="sub" x="624" y="68">bars: scatter 21.0 µs</text>
+</svg>
+<figcaption><b>Figure 8.2.</b> How noise moves the peak, for the profile of Figure 8.1 with more noise. (a) The correlation near its
+peak without noise and for one noise draw: the maximum has moved. (b) The slope of both. Without noise it crosses zero at the true shift.
+Noise lifts the line by δ<var>C</var>′, and the crossing moves by −δ<var>C</var>′/<var>C</var>″, Eq. (8.10). (c) The fitted shift over
+many noise draws, against a Gaussian of the width that Eq. (8.11) gives.</figcaption>
+</figure>
+<p>The fourth step turns Eq. (8.10) into an error bar. From one noise draw to the next, its numerator \(\delta C'\) changes
+completely: it is pure noise, with mean zero and the variance of Eq. (8.9). Its denominator \(C''\) hardly changes: the pulse sets
+the curvature of the peak, and the noise alters it by a fraction of order 1/SNR. So \(C''\) is treated as a constant, the value the
+fit measures at the peak (<code>c2</code> in the code). A random number divided by a constant has its variance divided by the constant
+squared, and \(\tau_0\) is fixed:</p>
+<div class="eq"><span class="label">(8.11)</span>\[ \operatorname{var}(\hat\tau) = \frac{\operatorname{var}(\delta C')}{C''^{\,2}} = \frac{d^{\mathsf T}\, \mathrm{Cov}\; d}{C''^{\,2}}, \qquad \sigma_\mathrm{TOA} = \frac{\sigma_\tau}{f_\mathrm{ref}} \]</div>
+<dl class="where">
+<dt>\(\hat\tau\), \(\sigma_\tau\)</dt><dd>the fitted shift [turns], and its standard deviation, \(\sqrt{\operatorname{var}(\hat\tau)}\)</dd>
+<dt>\(f_\mathrm{ref}\)</dt><dd>the spin frequency of Eq. (8.2), which turns a shift into a time</dd>
+</dl>
+<p>Steps three and four are first-order error propagation (the delta method). Figure 8.2c shows that it holds: over many noise draws
+the fitted shift scatters with the width of Eq. (8.11).</p>
+<p>The fifth step checks the result for white noise. Independent bins of variance \(\sigma^2\) give
+\(d^{\mathsf T}\mathrm{Cov}\,d = \sigma^2 c_0^2 \sum_j \tilde s'^{\,2}_j\), and the curvature, from the pulse term alone, is
+\(C'' = -c_0\, b \sum_j \tilde s'^{\,2}_j\). The constant \(c_0\) cancels:</p>
+<div class="eq">\[ \operatorname{var}(\hat\tau) = \frac{\sigma^2}{b^2 \sum_j \tilde s'^{\,2}_j} \]</div>
+<p>This is the least-squares/Fisher error, which Eq. (8.11) therefore equals for white noise. Only the slope of the template enters, which
+is why the flanks carry all the timing. For a Gaussian pulse of standard deviation σ<sub>φ</sub> in turns,
+\(\sum_j \tilde s'^{\,2}_j = N\sqrt{\pi}/(2\sigma_\phi)\), and the matched-filter SNR with a known baseline is
+\(\mathrm{SNR}^2 = b^2 \sum_j s_j^2/\sigma^2 = b^2 N \sigma_\phi \sqrt{\pi}/\sigma^2\). Dividing the two:</p>
+<div class="eq">\[ \operatorname{var}(\hat\tau) = \frac{2\,\sigma_\phi^2}{\mathrm{SNR}^2} \quad\Longrightarrow\quad \sigma_\mathrm{TOA} = \frac{\sqrt{2}\;\sigma_t}{\mathrm{SNR}} \]</div>
+<p>So for a Gaussian pulse it gives σ<sub>TOA</sub> ≈ √2·σ<sub>t</sub>/SNR (<a href="physics.html#toa">physics</a>, Figure P.6). The ≈ is
+there because the fit also estimates the baseline, which makes its own SNR 0.962 of the one above
+(<a href="detection.html">detection</a>).</p>
+<p>The error of the amplitude needs step two only. By Eq. (8.6), \(\hat b = C(\hat\tau)/\sum_k |S_k|^2\), and \(C(\hat\tau)\) is a
+weighted sum of the data with weights \(g_j = c_0\, \tilde s(\phi_j - \hat\tau)\). So
+\(\sigma_b^2 = g^{\mathsf T}\, \mathrm{Cov}\; g \,/\, (\sum_k |S_k|^2)^2\) (<code>varC0</code>, <code>bErr</code>), where \(\sigma_b\) is
+the error of the amplitude \(b\). The SNR of a TOA is \(\hat b/\sigma_b\).</p>
+<p>Eq. (8.11) still needs <b>the noise covariance Cov</b>, which comes from one of two noise models. In <b><code>'radiometer'</code></b> (default), each time bin has
 variance <var>m</var>²/(<var>B</var><sub>noise</sub>·Δ<var>t</var>), where <var>m</var> = <var>a</var> + <var>b</var>·<var>s</var> is the
 <b>fitted</b> model, so the pulsar's own contribution, self-noise, is included. Each phase bin then has variance
 σ<sub>tb</sub>²·<code>weight2</code>/<code>weight</code>², and its covariance with the neighbours comes from <code>weightX</code>
@@ -178,8 +319,8 @@ and the χ² flag. In an early radar test (full band, no excision) the fit locke
 1 µs, the actual errors about 2000 µs rms.</p></div>
 
 <h2 id="chi2">8.4 The χ² quality flag</h2>
-<p>The error bar of Eq. (8.7) is only honest if the profile is the template plus noise. The fit therefore tests that, on the pulse:</p>
-<div class="eq"><span class="label">(8.8)</span>\[ \chi^2_\mathrm{red} = \frac{1}{n - 3} \sum_{j\,\in\,\text{on-pulse}} \frac{(p_j - m_j)^2}{v_j} \]</div>
+<p>The error bar of Eq. (8.11) is only honest if the profile is the template plus noise. The fit therefore tests that, on the pulse:</p>
+<div class="eq"><span class="label">(8.12)</span>\[ \chi^2_\mathrm{red} = \frac{1}{n - 3} \sum_{j\,\in\,\text{on-pulse}} \frac{(p_j - m_j)^2}{v_j} \]</div>
 <dl class="where">
 <dt>\(p_j\)</dt><dd>profile value in phase bin \(j\)</dd>
 <dt>\(m_j\)</dt><dd>the fitted model \(a + b\,s(\phi_j - \hat\tau)\) in that bin</dd>
@@ -190,7 +331,7 @@ and the χ² flag. In an early radar test (full band, no excision) the fit locke
 in units of the predicted noise. If the profile is template + noise with the predicted variance, χ²<sub>red</sub> ≈ 1 ± √(2/<var>n</var>),
 about ± 0.09 for ~260 bins. A sub-int is flagged (<code>flagChi2</code>) when χ²<sub>red</sub> &gt; <code>MaxRedChi2</code> = 2. That is far
 above the clean scatter and above the known excess at high SNR (1.05–1.1), and far below what a radar does (939–1625). It deliberately
-does not react to moderate RFI: a carrier gives χ² ~1.3, and its TOAs are still valid (Figure 8.2).</p>
+does not react to moderate RFI: a carrier gives χ² ~1.3, and its TOAs are still valid (Figure 8.3).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 280" role="img" aria-label="Reduced chi-squared of the TOA fit: the clean distribution, the measured cases and the threshold 2">
   <path class="axis" d="M60 230 H840"/>
@@ -220,7 +361,7 @@ does not react to moderate RFI: a carrier gives χ² ~1.3, and its TOAs are stil
   <path class="curve2" stroke-width="5" d="M741.6 86 H788.1"/>
   <text class="sub" x="733.6" y="90" text-anchor="end">radar in the profile (full band, 5 Oct)</text>
 </svg>
-<figcaption><b>Figure 8.2.</b> Why the χ² flag sits at 2. Blue: the distribution of the reduced χ² for a clean profile (~260 on-pulse bins). Orange: values
+<figcaption><b>Figure 8.3.</b> Why the χ² flag sits at 2. Blue: the distribution of the reduced χ² for a clean profile (~260 on-pulse bins). Orange: values
 seen in the validation runs. The threshold is far above clean profiles and the small known excesses, and far below a radar spike in the
 profile. A carrier (~1.3) is deliberately not flagged.</figcaption>
 </figure>
@@ -278,7 +419,7 @@ That is why optimal weighting exists.</p>
 <h2 id="optimal">8.6 Optimal weighting, the default in <code>main.m</code></h2>
 <p>Optimal weighting keeps the channels apart. <code>'Weighting','optimal'</code> fits all of them at once with one shift and one
 amplitude:</p>
-<div class="eq"><span class="label">(8.9)</span>\[ \mathrm{prof}_{cj} = a_c + b\, s_c\, T(\phi_j - \tau) + \text{noise} \]</div>
+<div class="eq"><span class="label">(8.13)</span>\[ \mathrm{prof}_{cj} = a_c + b\, s_c\, T(\phi_j - \tau) + \text{noise} \]</div>
 <dl class="where">
 <dt>\(\mathrm{prof}_{cj}\)</dt><dd>folded profile of channel \(c\) in phase bin \(j\)</dd>
 <dt>\(a_c\)</dt><dd>a baseline per channel</dd>
@@ -291,14 +432,14 @@ amplitude:</p>
 <p>The amplitude is shared on purpose: at the design point's levels (−38 to −44 dB) each channel's pulse has an SNR below 1 per
 sub-int, and one free amplitude per channel would fit noise. One amplitude with a known spectral shape uses all channels' information for the one thing that matters, the shift. The optimisation
 problem is that of Eq. (8.3) with two changes: every channel has its own baseline, and every bin counts by how noisy it is:</p>
-<div class="eq"><span class="label">(8.10)</span>\[ \begin{gathered} \min_{a_c,\,b,\,\tau}\; \sum_c \sum_j w_{cj} \big[\, \mathrm{prof}_{cj} - a_c - b\, s_c\, T(\phi_j - \tau) \,\big]^2 \\ w_{cj} = \frac{1}{\operatorname{var}(\mathrm{prof}_{cj})} \end{gathered} \]</div>
+<div class="eq"><span class="label">(8.14)</span>\[ \begin{gathered} \min_{a_c,\,b,\,\tau}\; \sum_c \sum_j w_{cj} \big[\, \mathrm{prof}_{cj} - a_c - b\, s_c\, T(\phi_j - \tau) \,\big]^2 \\ w_{cj} = \frac{1}{\operatorname{var}(\mathrm{prof}_{cj})} \end{gathered} \]</div>
 <p>The variance comes from the radiometer model with the current fit, or from per-channel off-pulse residuals, so the weights depend on the
-answer. The fit therefore holds the weights fixed, solves Eq. (8.10), recomputes the weights and repeats until it converges
+answer. The fit therefore holds the weights fixed, solves Eq. (8.14), recomputes the weights and repeats until it converges
 (|Δτ| &lt; 10⁻¹²), at most <code>MaxIterations</code> = 10 times. Whether it converged is kept in <code>toa.converged</code>; a sub-int
 that did not converge keeps its TOA, and the summary counts it.</p>
 <p>With the weights fixed, the problem reduces along the same route as FFTFIT. For a fixed τ, <var>a</var><sub>c</sub> and <var>b</var>
 follow by weighted least squares. Putting them back again leaves a function of τ alone:</p>
-<div class="eq"><span class="label">(8.11)</span>\[ \hat b(\tau) = \frac{N(\tau)}{D_n(\tau)}, \qquad \chi^2_\mathrm{min}(\tau) = \text{const} - \frac{N(\tau)^2}{D_n(\tau)} \]</div>
+<div class="eq"><span class="label">(8.15)</span>\[ \hat b(\tau) = \frac{N(\tau)}{D_n(\tau)}, \qquad \chi^2_\mathrm{min}(\tau) = \text{const} - \frac{N(\tau)^2}{D_n(\tau)} \]</div>
 <dl class="where">
 <dt>\(N(\tau)\)</dt><dd>\(\sum_c s_c \sum_j w_{cj}\,(\mathrm{prof}_{cj} - \bar p_c)\, T(\phi_j - \tau)\), the weighted cross-correlation; here \(N\) is not the number of phase bins</dd>
 <dt>\(D_n(\tau)\)</dt><dd>\(\sum_c s_c^2 \sum_j w_{cj}\, \big[T(\phi_j - \tau) - \bar T_c(\tau)\big]^2\), how much of the pulse shape the weighted bins can see</dd>
@@ -308,7 +449,7 @@ follow by weighted least squares. Putting them back again leaves a function of �
 <p>So τ maximizes <var>N</var>(τ)/√<var>D</var><sub>n</sub>(τ), the weighted matched filter: FFT correlations on the upsampled grid, a
 bounded search (<code>fminbnd</code>), then Newton on the analytic slope (a value-only search stops at ~10⁻¹⁰ turns). The link back to
 FFTFIT is exact. With one channel and equal weights, <var>N</var>(τ) is proportional to <var>C</var>(τ) and <var>D</var><sub>n</sub> no
-longer depends on τ, so Eq. (8.11) becomes Eq. (8.6). With unequal weights the denominator has to stay, because a blank changes how much of
+longer depends on τ, so Eq. (8.15) becomes Eq. (8.6). With unequal weights the denominator has to stay, because a blank changes how much of
 the pulse the fit can see at each shift.</p>
 <p>The error bars come from a sandwich estimator <a class="cite" href="references.html#ref-white1980">[40]</a><a class="cite" href="references.html#ref-huber1967">[59]</a>, \(\mathrm{Cov} = A^{-1}BA^{-1}\), \(A = J^\mathsf{T}WJ\), \(B = J^\mathsf{T}W\Sigma WJ\): \(J\) the derivatives of the
 model with respect to the fit parameters, \(W\) the fit weights (diagonal), \(\Sigma\) the full noise covariance of every channel (all lags).
@@ -317,7 +458,7 @@ loss); the error bars do not. The sandwich estimator is honest even when the fit
 plain <var>A</var>⁻¹ would only be right if they were.</p>
 <p>Empty bins weigh nothing, so there is <b>no exclusion rule and no dips</b>; <code>nChanUsed</code> = channels with data; new output
 <code>chanBaseline</code>. <code>amp</code> = <var>b</var>·Σ<var>s</var><sub>c</sub> (the summed pulse), <code>baseline</code> = Σ<var>a</var><sub>c</sub>.</p>
-<p>These weights have a side benefit, seen in the RFI tests: weighting by 1/level² is a built-in notch for narrowband RFI (Figure 8.3). A carrier that cut
+<p>These weights have a side benefit, seen in the RFI tests: weighting by 1/level² is a built-in notch for narrowband RFI (Figure 8.4). A carrier that cut
 the full-band SNR to 74 leaves the channel path at 92.</p>
 <p>Every fit so far, with one channel or many, has taken one input for granted: the template.</p>
 <details><summary>History</summary>
@@ -484,7 +625,7 @@ the full-band SNR to 74 leaves the channel path at 92.</p>
   <path class="thin" d="M362.3 66.9 V228.9"/>
   <text class="sub" x="356.3" y="62.9" text-anchor="start">carrier (−5 dB): weight 0.0006</text>
 </svg>
-<figcaption><b>Figure 8.3.</b> The built-in notch of optimal weighting, for the illustrative scenario's three continuous sources (expected levels from
+<figcaption><b>Figure 8.4.</b> The built-in notch of optimal weighting, for the illustrative scenario's three continuous sources (expected levels from
 their INRs, not a measurement). The fit weights each channel by 1/level², so the carrier's channel gets about 1/1700 of a clean channel's
 weight and is in effect left out, which costs only ~0.4 % of the SNR (one channel of 128); with all three sources the loss is ~3 %. This is
 why constant-envelope RFI needs no excision on the channel path (<a href="excision.html#results">excision results</a>: SNR 91.9 with the
@@ -508,7 +649,7 @@ bars come out too small. <code>estimateTOA</code> therefore warns (<code>estimat
 <var>r</var> = max(binDt·<var>f</var>₀, 1/NBin) is more than 1/10 of the template width <var>w</var>, and returns both, in
 <code>info.binResolution</code> and <code>info.templateWidth</code>. The width comes from the template's harmonics, over the harmonics that
 the fit uses:</p>
-<div class="eq"><span class="label">(8.12)</span>\[ w = \frac{\sqrt{3\ln 2}}{\pi\,k_t} \approx \frac{0.459}{k_t}, \qquad k_t^2 = \frac{\sum_k k^4 |S_k|^2}{\sum_k k^2 |S_k|^2} \]</div>
+<div class="eq"><span class="label">(8.16)</span>\[ w = \frac{\sqrt{3\ln 2}}{\pi\,k_t} \approx \frac{0.459}{k_t}, \qquad k_t^2 = \frac{\sum_k k^4 |S_k|^2}{\sum_k k^2 |S_k|^2} \]</div>
 <p>This width is the right measure because of what averaging does to each harmonic. Averaging over <var>r</var> turns multiplies harmonic <var>k</var> by sin(π<var>kr</var>)/(π<var>kr</var>) ≈ 1 − (π<var>kr</var>)²/6, and the
 fit weights harmonic <var>k</var> by <var>k</var>²|<var>S<sub>k</sub></var>|², so the model error grows as (π<var>r k<sub>t</sub></var>)²/6. For a
 Gaussian, <var>w</var> is exactly its FWHM, so the measurements below, made with the Gaussian pulse before this definition, hold unchanged.
@@ -563,11 +704,11 @@ of equal weighting's.</p>
 <ul>
 <li>A TOA is the sub-int's reference time plus the fitted shift over the spin frequency (Eq. 8.2); FFTFIT finds the shift by least squares
 (Eq. 8.3), which reduces to the highest peak of the cross-correlation (Eq. 8.6), exact between bins.</li>
-<li>Its error bar propagates the full noise covariance of the fold through the peak condition (Eq. 8.7), with the noise level taken from
+<li>Its error bar propagates the full noise covariance of the fold through the peak condition (Eq. 8.11), with the noise level taken from
 the fitted model, never from the truth.</li>
 <li>χ² above 2 flags profiles that are not template-shaped; <code>pChi2</code> reports smaller noise-model errors without dropping
 TOAs.</li>
-<li>On the channel path one shift and one amplitude are fitted to all channels by weighted least squares (Eq. 8.10), with sandwich error
+<li>On the channel path one shift and one amplitude are fitted to all channels by weighted least squares (Eq. 8.14), with sandwich error
 bars; the inverse-variance weights also notch out narrowband RFI.</li>
 </ul></div>
 <p>A TOA is only useful if the pulse is really there. The next page, <a href="detection.html">detection and good TOAs</a>, decides

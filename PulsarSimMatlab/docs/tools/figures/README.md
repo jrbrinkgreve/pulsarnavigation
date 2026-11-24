@@ -55,8 +55,9 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_periodic.py` | periodicRFI: found pulses, gaps, predicted pulses (schematic) | excision.html (Figure E.7) |
 | `gen_nearest.py` | nearest-bin rounding errors repeat every turn | fold.html (Figure 7.3) |
 | `gen_subint.py` | turns per sub-int for SNR 6–7 vs snrDB | fold.html (Figure 7.4) |
-| `gen_chi2.py` | reduced χ² distribution, measured cases, threshold 2 (needs scipy) | toa.html (Figure 8.2) |
-| `gen_chanweights.py` | expected channel weights of the optimal fit with the illustrative RFI | toa.html (Figure 8.3) |
+| `gen_toaerr.py` | how noise moves the peak of the FFTFIT correlation: the peak and its slope with and without noise, the scatter of the shift against Eq. (8.11) | toa.html (Figure 8.2) |
+| `gen_chi2.py` | reduced χ² distribution, measured cases, threshold 2 (needs scipy) | toa.html (Figure 8.3) |
+| `gen_chanweights.py` | expected channel weights of the optimal fit with the illustrative RFI | toa.html (Figure 8.4) |
 | `gen_rice.py` | detection thresholds vs PFA: known, unknown (Rice), naive counts (needs scipy) | detection.html (Figure D.1) |
 | `gen_pd.py` | detection probability vs SNR and the measured good-TOA fractions (needs scipy) | detection.html (Figure D.4) |
 | `gen_qq.py` | reading validateTOA: Q-Q plots, uncertainty of the rms ratio (illustrative; needs scipy) | validation.html (Figure 9.2) |

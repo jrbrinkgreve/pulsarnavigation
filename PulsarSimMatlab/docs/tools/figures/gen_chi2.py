@@ -37,7 +37,7 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 280" role="img" aria-label="Reduced chi-squared of the TOA fit: the clean distribution, the measured cases and the threshold 2">
   ''' + '\n  '.join(o) + '''
 </svg>
-<figcaption><b>Figure 8.2.</b> Why the χ² flag sits at 2. Blue: the distribution of the reduced χ² for a clean profile (~260 on-pulse bins). Orange: values
+<figcaption><b>Figure 8.3.</b> Why the χ² flag sits at 2. Blue: the distribution of the reduced χ² for a clean profile (~260 on-pulse bins). Orange: values
 seen in the validation runs. The threshold is far above clean profiles and the small known excesses, and far below a radar spike in the
 profile. A carrier (~1.3) is deliberately not flagged.</figcaption>
 </figure>'''
