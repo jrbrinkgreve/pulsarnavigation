@@ -178,7 +178,7 @@ the channels and with blanking, and each made the noise model more exact:</p>
 <ul>
 <li><b>Gamma threshold tail too thin</b> (<code>detectRFI</code>). 1.1× the intended false flags at 10⁻⁶. → exact phase-type thresholds.</li>
 <li><b>Long detection windows blanked the bright pulse</b> (<code>detectRFI</code>). 14 % of on-pulse data at −5 dB with 256-sample windows. → windows ≤ 16 samples.</li>
-<li><b>Radar sidelobes survive per-sample excision</b> (the locked radar). A locked radar left a 150 µs bias at −54 dB. → the frequency guard, ±7 channels.</li>
+<li><b>Radar sidelobes survive per-sample excision</b> (the locked radar). A locked radar left a 150 µs bias at −54 dB, the weakest level of that run. → the frequency guard, ±7 channels.</li>
 <li><b>Rotating-radar sidelobe pulses are missed one by one.</b> → the periodic mask (<code>periodicRFI</code>), which blanks the predicted pulses.</li>
 </ul>
 <p>Two findings concerned how a fit is judged:</p>
@@ -204,7 +204,7 @@ area: a 3 dB lower peak and ~3× the data per TOA. J0437's wings cost ~5×. → 
 carrier channel made the blanking data-dependent: phase bins with blanking came out 4–9 % noisier than modelled. → per-channel
 thresholds from each channel's own correlation (<a href="excision.html#chanthr">excision</a>).</li>
 <li><b>A narrow core on a broad component gives rare outliers</b> (20–21 Oct). About 0.3–0.5 % of B0329+54's TOAs at SNR ~7 land one
-core width off, and χ² cannot flag them; over 100 days 1.9 % lie beyond 3σ. → handled in the navigation fit and filter, not by longer
+core width off, and χ² cannot flag them; over 100 days 1.9 % lay beyond 3σ (the runs of October; in the reruns of 23 Nov 0.1 % lie beyond 5σ). → handled in the navigation fit and filter, not by longer
 groups: their error model is a mixture with 2 % of the TOAs 4× wider (<a href="navigation.html#navfit">navigation</a>).</li>
 </ul>
 <p>Navigation, finally, taught two lessons about priors:</p>
@@ -228,7 +228,9 @@ that are correlated hide it.</p>
 1.07–1.08 at every point. That is one shared fluctuation of the same 10 noise seeds, not an effect of SNR.</li>
 <li><b>A surprising number from one run can be scatter.</b> J0437's pull width of 0.88 in one scenario run looked like error bars too
 large; a second run gave 0.94, and adaptive and fixed groups on the same data both gave ~1.1. Likewise B0329+54's first 30-day site fit
-came out 2.2σ low; a 1000 km run with the same seeds was low by the same amount, and new days landed on the truth.</li>
+came out 2.2σ low; a 1000 km run with the same seeds was low by the same amount, and new days landed on the truth. The reruns of
+23 Nov repeated it: 73.9 ± 9.4 km for 100 km and 972.8 ± 9.4 km for 1000 km, again with shared seeds, while eight independent draws gave a mean
+of 93.2 km with a spread of 10.0 km. → Runs that share seeds share their noise; compare settings with independent draws.</li>
 <li><b>Errors correlated along a track make one run noisier than its pulls suggest.</b> A smoothed ship track's errors are correlated
 over days, so the pulls of one ship's TOAs are not independent, and two-sigma effects in single runs looked like bugs. → pulls at fixed
 times over many seeds, against an ideal twin on the same TOAs (<a href="validation.html#longruns">validation</a>). The same pooling error

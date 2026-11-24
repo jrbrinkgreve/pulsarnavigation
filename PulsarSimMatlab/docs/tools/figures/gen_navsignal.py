@@ -3,11 +3,13 @@ import scipy.io as sio
 from pathlib import Path
 from plotsvg import Ax
 # The navigation signal (navigation.html #signal): B0329+54's simulated TOAs from 52 N 5 E, the true site 100 km east of the
-# assumed one, perfect clock, nominal flux (runScenario motion run of 21 Oct 2026; local only:
-# data/scenario/pre-22oct-tag/scenario_B0329_nominal_clean_30d_motion_perfect.mat, needs scipy).
+# assumed one, perfect clock, the array's design point "array3m2" with the pulsar followed through its pass (runScenario
+# motion run of 23 Nov 2026, Claude's run; local only:
+# data/scenario/scenario_B0329_array3m2_clean_30d_motion_perfect.mat, needs scipy). Until 23 Nov 2026 the figure showed the
+# run of 21 Oct at the earlier design point (pre-22oct-tag/scenario_B0329_nominal_clean_30d_motion_perfect.mat, 302 TOAs).
 # The curve: navFit's row r = -R_z(theta)' n . dx / c for dx = 100 km east, theta the Earth rotation angle.
 root = Path(__file__).resolve().parents[3]
-R = sio.loadmat(root / 'data/scenario/pre-22oct-tag/scenario_B0329_nominal_clean_30d_motion_perfect.mat',
+R = sio.loadmat(root / 'data/scenario/scenario_B0329_array3m2_clean_30d_motion_perfect.mat',
                 squeeze_me=True, struct_as_record=False)['R']
 G = [g for g in np.atleast_1d(R.groups) if g.good]
 t = np.array([g.tAbs for g in G]); r = np.array([g.resid for g in G]) * 1e6; s = np.array([g.sigma for g in G]) * 1e6
@@ -25,12 +27,12 @@ r = r - c0
 truth = np.array([g.trueResid for g in G]) * 1e6
 print(f'{len(t)} good TOAs; sigma median {np.median(s):.0f} us; constant {c0:.0f} us; model vs trueResid max {np.max(np.abs(model(t) - truth)):.2f} us')
 o = []
-# left: three days of TOAs
+# left: one day of TOAs (87 a day at the design point; three days until 23 Nov 2026, when a day had 10)
 d0 = np.floor(t[0] / 86400) * 86400                     # the first TOA's day
-td = (t - t[0]) / 3600; sel = td <= 72
-L = Ax(80, 50, 400, 230, (0, 72), (-2600, 2600))
+td = (t - t[0]) / 3600; sel = td <= 24
+L = Ax(80, 50, 400, 230, (0, 24), (-2600, 2600))
 H = lambda tt: np.mod(era(tt) + lon - ra + np.pi, 2 * np.pi) - np.pi
-tc = np.linspace(t[0], t[0] + 72 * 3600, 2000)
+tc = np.linspace(t[0], t[0] + 24 * 3600, 2000)
 el = np.degrees(np.arcsin(np.sin(lat) * np.sin(dec) + np.cos(lat) * np.cos(dec) * np.cos(H(tc))))
 below = el < 20; edges = np.flatnonzero(np.diff(below.astype(int)))
 segs = []; start = 0 if below[0] else None
@@ -42,14 +44,14 @@ for a, b in segs:
     xa, xb = float(L.X((tc[a] - t[0]) / 3600)), float(L.X((tc[b] - t[0]) / 3600))
     o.append(f'<rect class="fillfg" x="{xa:.1f}" y="{L.y0}" width="{xb - xa:.1f}" height="{L.h}"><title>below 20°: no data</title></rect>')
 o.append(f'<path class="grid" d="M{L.x0} {float(L.Y(0)):.1f} H{L.x0 + L.w}"/>')
-o.append(L.frame(xticks=[0, 12, 24, 36, 48, 60, 72], yticks=[-2000, -1000, 0, 1000, 2000], xlab='hours since the first TOA', ylab='residual [µs]'))
+o.append(L.frame(xticks=[0, 4, 8, 12, 16, 20, 24], yticks=[-2000, -1000, 0, 1000, 2000], xlab='hours since the first TOA', ylab='residual [µs]'))
 for x, y, e in zip(td[sel], r[sel], s[sel]):
     X, Y1, Y2 = float(L.X(x)), float(L.Y(y - e)), float(L.Y(y + e))
     o.append(f'<path class="err" d="M{X:.1f} {Y1:.1f} V{Y2:.1f}"/>')
 for x, y, e in zip(td[sel], r[sel], s[sel]):
-    o.append(f'<circle class="s1f" cx="{float(L.X(x)):.1f}" cy="{float(L.Y(y)):.1f}" r="4"><title>a TOA: {y:+.0f} ± {e:.0f} µs</title></circle>')
+    o.append(f'<circle class="s1f" cx="{float(L.X(x)):.1f}" cy="{float(L.Y(y)):.1f}" r="3"><title>a TOA: {y:+.0f} ± {e:.0f} µs</title></circle>')
 o.append(f'<path class="s2" d="{L.path((tc - t[0]) / 3600, model(tc))}"/>')
-o.append('<text class="ttl" x="80" y="24">Three days of TOAs</text>')
+o.append('<text class="ttl" x="80" y="24">One day of TOAs</text>')
 # right: 30 days folded on the sidereal day, 2 h bins of hour angle
 Hh = np.degrees(H(t)) / 15
 Rp = Ax(560, 50, 270, 230, (-12, 12), (-500, 500))
@@ -71,12 +73,13 @@ lx, ly = 80, 326
 o.append(f'<circle class="s1f" cx="{lx}" cy="{ly}" r="4"/><text class="sub" x="{lx + 10}" y="{ly + 4}">measured residuals, ±1σ</text>')
 o.append(f'<path class="s2" d="M{lx + 210} {ly} h20"/><text class="sub" x="{lx + 236}" y="{ly + 4}">the signal of a site 100 km east: a daily sine of 193 µs</text>')
 svg = '''<figure class="scroll">
-<svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated TOA residuals of B0329+54 for a site 100 km east: three days of single TOAs, and all 30 days averaged by hour angle, against the daily sine of 193 microseconds">
+<svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated TOA residuals of B0329+54 for a site 100 km east: one day of single TOAs, and all 30 days averaged by hour angle, against the daily sine of 193 microseconds">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption><b>Figure 10.1.</b> The navigation signal in the simulated data. Left: three days of B0329+54's TOAs for a site 100 km east of the assumed one
+<figcaption><b>Figure 10.1.</b> The navigation signal in the simulated data. Left: one day of B0329+54's TOAs for a site 100 km east of the assumed one
 (grey: the pulsar below 20°). Each TOA's error bar, about {np.median(s):.0f} µs, is four times the signal, a daily sine of 193 µs. Right: all {len(t)} TOAs of
 30 days averaged in 2-hour bins of hour angle, where the sine stands out. Data: the 30-day run of <code>runScenario</code> with
-<code>motion.on</code>; the constant offset of the profile reference is removed.</figcaption>
+<code>motion.on</code> at the array's design point, the pulsar followed through its pass (Claude's run, 23 Nov 2026); the constant offset
+of the profile reference is removed.</figcaption>
 </figure>'''
 open('navsignal.svg', 'w').write(svg)

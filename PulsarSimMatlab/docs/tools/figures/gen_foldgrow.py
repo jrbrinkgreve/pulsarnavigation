@@ -3,7 +3,8 @@ from plotsvg import Ax
 # Folding (physics.html, section 6). a: simulated folded profiles (128 phase bins, Gaussian pulse of 5 % FWHM) after 1, 16, 256
 # and 4096 turns, at a matched-filter SNR of 0.25 per turn, shown in units of the per-bin noise: the noise stays, the pulse
 # grows as sqrt(N). b: SNR against observing time for the simulated pulsar (10 ms period), SNR per turn ~373*rho (results.html,
-# threshold sweep: flat band x baseline loss 0.962), with the design threshold SNR 7.
+# threshold sweep: flat band x baseline loss 0.962), with the design threshold SNR 7. The two weak curves are the levels of the
+# design point of 23 Nov 2026 (runScenario's "array3m2"): B0329+54 -38.0 dB, J0437-4715 -44.2 dB.
 rng = np.random.default_rng(5)
 nb = 128
 ph = (np.arange(nb) + 0.5)/nb - 0.5
@@ -37,19 +38,23 @@ yt = float(B.Y(7))
 o.append(f'<path class="fillwhy" d="M{B.x0} {B.y0} H{B.x0 + B.w} V{yt:.1f} H{B.x0} Z"/>')
 o.append(f'<path class="dash" d="M{B.x0} {yt:.1f} H{B.x0 + B.w}"/>')
 o.append(f'<rect class="fillwhy" x="{B.x0 + 196}" y="{B.y0 + 161}" width="20" height="10"/><text class="sub" x="{B.x0 + 222}" y="{B.y0 + 170}">SNR ≥ 7: usable TOA</text>')
-for rdb, cls in ((-5, 'curve'), (-20, 'curve3'), (-40, 'curve2'), (-54, 'curve4')):
+levels = [-5, -20, -38, -44.2]
+for rdb, cls in zip(levels, ('curve', 'curve3', 'curve2', 'curve4')):
     s1 = 373*10**(rdb/10)
     tend = min(1e6, 0.01*(1e3/s1)**2)
     tt = np.logspace(-2, np.log10(tend), 60)
     snr = s1*np.sqrt(tt/0.01)
     o.append(f'<path class="{cls}" d="M{" L".join(f"{lx(t):.1f} {float(B.Y(s)):.1f}" for t, s in zip(tt, snr))}"/>')
     tc = 0.01*(7/s1)**2
-    ly = B.y0 + 186 + 15*[-5, -20, -40, -54].index(rdb)
+    ly = B.y0 + 186 + 15*levels.index(rdb)
     o.append(f'<path class="{cls}" d="M{B.x0 + 196} {ly - 4} h20"/><text class="sub" x="{B.x0 + 222}" y="{ly}">ρ = {rdb} dB'.replace('-', '−') + '</text>')
     if tc > 0.01:
         o.append(f'<path class="dot2" d="M{lx(tc) - 3.5:.1f} {yt:.1f} a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>')
-        lab_t = f'{tc*1e3:.0f} ms' if tc < 1 else (f'{tc/60:.1f} min' if tc < 3600 else f'{tc/3600:.0f} h')
-        o.append(f'<text class="sub" x="{lx(tc) + 6:.1f}" y="{yt + 16:.1f}">{lab_t}</text>')
+        lab_t = f'{tc*1e3:.0f} ms' if tc < 1 else (f'{tc/60:.2g} min' if tc < 3600 else f'{tc/3600:.0f} h')
+        if rdb == -38:      # above and left of its dot: below it the next curve passes
+            o.append(f'<text class="sub" x="{lx(tc) - 6:.1f}" y="{yt - 8:.1f}" text-anchor="end">{lab_t}</text>')
+        else:
+            o.append(f'<text class="sub" x="{lx(tc) + 6:.1f}" y="{yt + 16:.1f}">{lab_t}</text>')
 o.append(f'<text class="ttl" x="530" y="20">b · SNR grows as √time (10 ms pulsar)</text>')
 svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 360" role="img" aria-label="Folding: the pulse emerges from the noise as more turns are added; SNR against observing time for several signal strengths">
@@ -57,8 +62,10 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure P.5.</b> Folding. (a) Simulated folded profiles at an SNR of 0.25 per turn, scaled so the noise per bin stays the same: the pulse grows
 as √<var>N</var> and is clear after a few thousand turns. (b) SNR against observing time for the simulated 10 ms pulsar (SNR per turn ≈
-373·ρ): each 10 dB weaker signal needs 100× longer. At −54 dB a TOA with SNR 7 takes about 62 hours; J0437, with its narrower pulse and
-both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h (16 h at nominal
-flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
+373·ρ, for one polarization in the voltage chain's 400 MHz): each 10 dB weaker signal needs 100× longer. At −44.2 dB, the level of
+J0437−4715 at the array's design point, a TOA with SNR 7 takes this pulsar about 41 minutes, and at B0329+54's −38 dB about 2.3 minutes.
+The real pulsars have other pulse shapes, and the design point has two polarizations in 150 MHz: followed through their passes, the fast
+simulator gives 1.7 h of data per TOA for J0437−4715 and 0.23 h for B0329+54 (Claude's runs, 23 Nov;
+<a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>'''
 open('foldgrow.svg', 'w').write(svg)

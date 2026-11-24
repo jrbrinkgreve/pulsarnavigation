@@ -19,8 +19,9 @@ places each pulse where the true trajectory and clock put it.</p>
 <a href="tests.html#simrfi"><code>expSimRFI</code></a> · the truth of a moving receiver: <a href="#truth"><code>trueResiduals</code></a>
 · block C</p>
 
-<p>A J0437 TOA needs 16 hours of data at nominal flux, and 82–95 hours in the worst case (<a href="scenario.html#hundred">scenario</a>).
-The voltage chain writes about 72.5 GB per second on the default path, so hours are out of reach. But after the fold, everything is
+<p>At the array's design point a TOA of B0329+54 needs 0.23 hours of data and one of J0437 about 1.7 hours, and a position needs weeks
+of TOAs (<a href="scenario.html#hundred">scenario</a>).
+The voltage chain writes about 72.5 GB per second on the default path, so even one TOA is out of reach. But after the fold, everything is
 described by a few validated numbers per phase bin: the mean (baseline plus the smoothed pulse), the variance (the radiometer equation),
 and the correlation with the neighbouring bins. <code>simulateFold</code> draws exactly that: 20 hours in 60 s sub-ints take 0.05 s.</p>
 <p>It reproduces the voltage chain within its statistics in three settings: the full band from the detection threshold to +20 dB; the
@@ -196,7 +197,8 @@ neighbouring bins: ¼, as in a real fold, and none beyond; bars are the model, d
 </figure>
 
 <h2 id="channels">F3 · Channels</h2>
-<p>The default path folds 128 channels separately. Three things differ from the full band.</p>
+<p>The default path folds 128 channels separately. Three things differ from the full band. (<code>runScenario</code>'s design point
+uses 48 of them, channels 33–80, which the band-edge taper below does not touch.)</p>
 <p>The first is that the time bins are correlated. In a 3.125 MHz channel, consecutive 0.96 µs detected bins are correlated: <var>V</var> 0.888,
 <var>X</var>(1) 0.046, and so on up to 7 lags (<code>'NoiseCoeffs'</code>, from <code>detectChannels</code>). For time bins spread
 evenly in phase, the weights have a closed form: \( W_2 = n\sum_L c(L)\,K(L\delta) \), \( W_X(d) = n\sum_L c(L)\,K(d - L\delta) \), with \(c(0) = V\),
@@ -333,13 +335,14 @@ fold of the plain <code>nTurns</code> interface.</p>
 timing merit are within 1 % of the measured profile's.</li>
 <li>NBin 1024, because the core is sharper than a Gaussian and <code>estimateTOA</code>'s resolution rule needs it.</li>
 <li>Sub-ints of 300 s.</li>
-<li>ρ = −54.8 dB (worst case) or −51.2 dB (nominal), in the simulator's convention. The wings add flux but little timing, so ρ is 3.75 dB
+<li>ρ = −44.2 dB at the array's design point, in the simulator's convention. The wings add flux but little timing, so ρ is 3.75 dB
 below that of a single Gaussian with the catalogue W<sub>50</sub> (<a href="scenario.html#simulated">scenario</a>).</li>
 <li>Two polarizations: <code>'NPol', 2</code> (below), and the observer passes <code>Bnoise</code> × 2.</li>
 </ul>
 <details><summary>History</summary>
 <p>Until 21 Oct 2026 the J0437 runs used a single Gaussian: power-profile FWHM 0.141 ms = 0.0245 turns, NBin 512 (11.2 µs bins,
-FWHM/12.5), and ρ = −51.0 dB (worst case) or −47.4 dB (nominal). 20 h × 128 channels in 60 s sub-ints was then about 1.3 GB of folds.
+FWHM/12.5), and ρ = −51.0 dB (worst case) or −47.4 dB (nominal) at the design points of that time (the 0.61 m² receiver planned before
+23 November 2026). 20 h × 128 channels in 60 s sub-ints was then about 1.3 GB of folds.
 The example below keeps those settings.</p></details></div>
 <p>The last setting in that list, two polarizations, has its own option, <code>'NPol'</code>. The array receives two polarizations, and the processing adds their detected powers
 into total intensity. The simulated fold is then the average of NPol independent polarizations. An unpolarized pulsar has the same ρ in
@@ -386,7 +389,8 @@ sub-int holding the middle turn, because the f0 model does not hold there (<a hr
 stops when the merged profile's matched-filter statistic T0 at the predicted phase reaches the target, by default 7, the design rule, and
 then starts a new group (Figure F.2). By default it never merges across a gap between passes; what is left at the end of a pass becomes a
 last group below the target, for the good-TOA rule to judge. With <code>'AcrossGaps', true</code> a group continues in the next pass. That is
-needed when one TOA takes longer than a pass: J0437 in the worst case needs 82–95 h of data, against passes of 8–15 h. It assumes a phase
+needed when one TOA takes longer than a pass: at the array's design point B1929+10 needs about 11.5 h of data, against passes of 8–15 h,
+while B0329+54 (0.23 h) and J0437 (1.7 h) fit within one. It assumes a phase
 model that stays coherent over the gap: on real data the observer's predictor, with motion and the barycentric correction
 (<a href="fold.html#prediction">stage 7a</a>). In the simulator without motion the ephemeris is the truth, so it is exact there; with motion
 each sub-int's pulse is shifted by what the predictor misses (Section F9). With <code>'TargetSNR', Inf</code> and <code>'MaxSubints'</code>
@@ -594,20 +598,18 @@ about 76 µs in a day, and 13 ms in a month, so the clock must be part of the na
 by day (<code>motion.track</code> <code>"daily"</code>): after each day it fits all its TOAs so far with <code>navFit</code> and the clock
 model, and folds the next day with the predicted clock. Its prediction one day ahead is then off by a few hundred µs: harmless for
 B0329+54's 6.6 ms pulse, too much for J0437's 0.14 ms (<a href="scripts.html#scenario">run scripts</a>).</p>
-<p>A TOA merges sub-ints, often over hours and sometimes over two passes a day apart, so it is a time-average. Its true parts and the clock
+<p>A TOA merges sub-ints, over a quarter of an hour to hours, and for a weak pulsar over two passes a day apart, so it is a time-average. Its true parts and the clock
 estimate the observer used are averaged over its sub-ints. Its time tag is the time nearest its mean time whose sidereal phase is the
 circular mean of its sub-ints' (<code>sideTag</code>), and it carries its sub-ints' times (<code>tSub</code>) for the navigation fit's
-averaged rows (<a href="navigation.html#averaged">navigation</a>). The first 30-day run of B0329+54 with the true site 100 km east and a
-perfect clock gave the navigation fit its first data:</p>
-<div class="table-wrap"><table>
-<tr><th>Flux</th><th>Good TOAs</th><th>σ per TOA</th><th>Std of the pulls</th><th>Expected precision per equatorial component</th></tr>
-<tr><td>Nominal</td><td class="num">302 (10 per day)</td><td class="num">738 µs</td><td class="num">1.03</td><td class="num">±31 km: 100 km is a 3σ detection</td></tr>
-<tr><td>Worst case</td><td class="num">59 (2 per day)</td><td class="num">744 µs</td><td class="num">1.13</td><td class="num">±110 km: about 330 days are needed for 3σ</td></tr>
-</table></div>
-<p>The motion costs no TOAs: the same run without it gave 299 good TOAs at nominal flux. The navigation fit on these runs finds the 100 km
-offset as 36.5 ± 29.6 km at nominal flux (<a href="navigation.html#navfit">navigation</a>).</p>
+averaged rows (<a href="navigation.html#averaged">navigation</a>). The 30-day run of B0329+54 with the true site 100 km east and a
+perfect clock gives the navigation fit its data. At the array's design point, with the pulsar followed through its pass, it has
+2634 good TOAs (88 per day) of 711 µs. The motion costs no TOAs: the same run without it gave 2596. The navigation fit on this run
+finds the east component to ±9.4 km and the radial one to ±11.9 km, so the 100 km offset is detected at 7.9σ; the estimate itself,
+73.9 km, is low, mostly through its noise draw (<a href="navigation.html#firstresult">navigation</a>; Claude's run, 23 Nov 2026).</p>
 <details><summary>History</summary>
-<p>Added 21 Oct 2026 as the last part of step D3c. The first 30-day run with motion followed the same evening. The worst-case
+<p>Added 21 Oct 2026 as the last part of step D3c. The first 30-day run with motion followed the same evening, at the design points of
+the receiver planned then (0.61 m², 400 MHz): 302 good TOAs of 738 µs at nominal flux (±31 km per equatorial component, 36.5 ± 29.6 km
+for the 100 km offset) and 59 TOAs of 744 µs in the worst case. The worst-case
 precision was first given as ±71 km, from a fit that took each TOA as a point in time. Half of those TOAs span the daily gap with
 about 9.5 hours of data, and with their rows averaged over the data (22 Oct) the honest figure is ±110 km. The daily clock tracking
 (step D4b-2) and the time-average tags (<code>sideTag</code>, <code>tSub</code>) were added on 22 Oct; until then a TOA was tagged at
@@ -619,10 +621,12 @@ its middle turn, which for a TOA across the daily gap lies between its data.</p>
 <p><code>rhoDB</code> is the simulator's <code>snrDB</code>: the peak of the Gaussian pulse over the receiver noise. A simulated fold at
 −20 dB therefore compares one to one with a voltage-chain run at −20 dB. The <a href="scenario.html">reference scenario</a> defines ρ with
 a pulse width W<sub>eq</sub> = 2·W<sub>50</sub> as a margin, which makes its ρ 2.7 dB lower for the same pulsar: for J0437 as a single
-Gaussian in the worst case, −53.7 dB there and −51.0 dB here. <code>runScenario</code> converts the catalogue flux to the simulator's
+Gaussian at the array's design point, about −43.2 dB there and −40.5 dB here. <code>runScenario</code> converts the catalogue flux to the simulator's
 convention, with the true profile: ρ = <var>S</var><sub>1400</sub>/(SEFD·<var>W</var><sub>eq</sub>), with <var>W</var><sub>eq</sub> the
-pulse area of the unit-peak profile, in turns. The SEFD is 3.2·10⁵ Jy nominal and 7.4·10⁵ Jy in the worst case. For J0437's measured
-profile that gives −51.2 dB and −54.8 dB.</p></div>
+pulse area of the unit-peak profile, in turns. The SEFD is 6.44·10⁴ Jy at the array's design point, <code>"array3m2"</code>, the script's
+default since 23 November 2026 (<a href="scenario.html#receiver">scenario</a>). That gives −38.0 dB for B0329+54's five components and
+−44.2 dB for J0437's measured profile. The script keeps the two design points of the receiver planned before that date,
+<code>"nominal"</code> (3.2·10⁵ Jy) and <code>"worst"</code> (7.4·10⁵ Jy), at which J0437 is at −51.2 dB and −54.8 dB.</p></div>
 
 <h2 id="valid">F11 · Validation against the voltage chain</h2>
 <p>The simulator is only useful if it agrees with the voltage chain wherever both can run (Figure F.3).</p>
@@ -772,7 +776,7 @@ path of the navigation work.</p>
 sub-int is missing too: <code>'PhaseOffset'</code> takes one value per sub-int, or a function of time that is evaluated once
 per sub-int. A position error moves the pulse by only nanoseconds within a sub-int. An unestimated clock rate can move it by hundreds of
 microseconds, so the observer folds with its clock estimate (Section F8). So are the excision of bright pulses (the chain clips pulse peaks above ~−5
-dB) and RFI locked to the pulsar's period. Memory is a practical limit: 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array. For hours of data, channels with identical statistics
+dB) and RFI locked to the pulsar's period. Memory is a practical limit: 128 channels × 2048 bins × 1200 sub-ints is 2.5 GB per array (0.94 GB with the 48 channels of the design point). For hours of data, channels with identical statistics
 will be merged into effective channels. And sub-ints are independent (as in <code>foldProfile</code>, which does not store the covariance
 across sub-int boundaries).</p>
 <details><summary>History</summary><p>Block C was closed on 22 Oct 2026 (Jasper), like block B, with these items parked.</p></details>

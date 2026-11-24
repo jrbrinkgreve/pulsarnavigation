@@ -2,7 +2,7 @@
 EXPNAVFIT - Block D's first deliverable: B0329+54's site offset from simulated TOAs (block D4a)
 
 Experiment, not a unit test. Loads the 30-day motion runs of runScenario (motion.on: the true site
-100 km east of the assumed one at 52 N 5 E, a perfect clock; nominal and worst-case flux) and fits
+100 km east of the assumed one at 52 N 5 E, a perfect clock; the design points in 'fluxes' below) and fits
 the good TOAs with navFit:
   "self"        east and radial (equatorial) components plus a constant - what the observer gets
                 without a calibrated start;
@@ -25,7 +25,9 @@ Needs data/scenario/scenario_B0329_<flux>_clean_30d_motion_perfect.mat (runScena
 scriptDir = fileparts(mfilename('fullpath'));
 addpath(fullfile(scriptDir, '..', 'functions'));
 dataDir = fullfile(scriptDir, '..', 'data', 'scenario');
-for fl = ["nominal", "worst"]
+fluxes = "array3m2";        % runScenario's design points: "array3m2" (its default since 23 Nov 2026); ["nominal", "worst"]
+                            % for the runs before that. The SDR-clock part below reads the first one.
+for fl = fluxes
     fIn = fullfile(dataDir, sprintf('scenario_B0329_%s_clean_30d_motion_perfect.mat', fl));
     R = load(fIn).R;
     G = R.groups([R.groups.good]);
@@ -57,15 +59,15 @@ end
 % the SDR clock, tracked daily and not tracked
 hCr = makeClock([0 1], 'Preset', "crystal").h;
 for tg = ["sdr", "sdr_notrack"]
-    fIn = fullfile(dataDir, sprintf('scenario_B0329_nominal_clean_30d_motion_%s.mat', tg));
+    fIn = fullfile(dataDir, sprintf('scenario_B0329_%s_clean_30d_motion_%s.mat', fluxes(1), tg));
     if ~isfile(fIn), continue, end
     R = load(fIn).R; G = R.groups([R.groups.good]); M = R.motionTruth;
     psr = struct('raDeg', M.psr.raDeg, 'decDeg', M.psr.decDeg);
     toa = struct('t', [G.tAbs], 'r', [G.resid] + [G.clockUsed], 'sigma', [G.sigma]);
     if isfield(G, 'tSub'), toa.tSub = {G.tSub}; end
     f = navFit(toa, psr, M.trajAssumed, 'Clock', hCr, 'ClockStart', M.t0);
-    fprintf('\nexpNavFit: B0329+54, nominal flux, 30 days, SDR clock (rate %.2e), %s: %d good TOAs (perfect clock 302)\n', ...
-        M.clockRate, strrep(tg, '_', ' '), numel(G));
+    fprintf('\nexpNavFit: B0329+54, %s, 30 days, SDR clock (rate %.2e), %s: %d good TOAs\n', ...
+        fluxes(1), M.clockRate, strrep(tg, '_', ' '), numel(G));
     wk = ceil([G.day] / 7);
     fprintf('  the clock not estimated, rms per week: %s us\n', mat2str(round(1e6 * arrayfun(@(w) rms([G(wk == w).trueClock]), 1:max(wk)))));
     fprintf('  the fit with the clock model: east %6.1f +- %4.1f km (%+.1f sigma), radial %+6.1f +- %4.1f km; outliers %d; chi2 core %.3f\n', ...

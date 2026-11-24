@@ -10,31 +10,42 @@
 <main>
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 13 November 2026: blocks A–D closed. Block E leads to the position of a static array from several pulsars;
+<p class="meta">Status as of 23 November 2026: blocks A–D closed. Block E leads to the position of a static array from several pulsars;
 since 2 Nov the site is not known beforehand. Its first step, E0, is a review week: days 1 and 2 are done (26–27 Oct). The navigation
-redesign for a static site is a proposal that waits for Jasper's OK, and nothing of it is built. F later. Session-by-session history: <code>logs/</code>.</p>
+redesign for a static site is a proposal that waits for Jasper's OK, and nothing of it is built. Since 23 Nov the design point is the
+array of about 3 m² with two fixed analogue beams. F later. Session-by-session history: <code>logs/</code>.</p>
 
 <p>Most of the pipeline is done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
 review week (12–16 Oct), and the processing as one function, <code>processIQ</code> (19 Oct).</p>
 <p>Block C closed on 22 Oct: the fast simulator <code>simulateFold</code> is validated. It covers channels, RFI profiles,
 observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles and per-channel noise calibration.
 Its scenario runs give TOA budgets for B0329+54, seen from the Netherlands, and J0437, seen from 30° S
-(<a href="scenario.html#hundred">scenario</a>).</p>
+(<a href="scenario.html#hundred">scenario</a>; rerun on 23 Nov at the array's design point, Claude's runs).</p>
 <p>Block D closed the same day. It covers motion, phase prediction, the receiver's clock and navigation. All its unit tests pass in Jasper's
-runs; the scenario and ship runs are Claude's. A fixed site 100 km east is found by B0329+54 alone: ±30 km after 30 days, 4.9σ after
-100 days. The receiver's own crystal clock is tracked day by day without losing TOAs. A ship over 14 days keeps within 73 km rms of its
-track with a calibrated start, against 379 km by dead reckoning, at nominal flux; at worst-case flux it is at 298 km, against 372 km
-(Claude's run). And JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</p>
+runs; the scenario and ship runs are Claude's. A fixed site 100 km east is found by B0329+54 alone, followed through its pass: to ±9.4 km
+east and ±11.9 km radial after 30 days, and ±5.1 and ±6.5 km after 100 days, at the array's design point (Claude's runs, 23 Nov). The
+receiver's own crystal clock is tracked day by day without losing TOAs. The archived ship runs of 22 Oct, at the design point before
+23 November 2026 (0.61 m²), kept a ship over 14 days within 73 km rms of its track with a calibrated start, against 379 km by dead
+reckoning (Claude's runs). And JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</p>
 <p>These results are described on the pages <a href="fold.html#prediction">phase prediction</a>, <a href="receiver.html#clock">clock</a>
 and <a href="navigation.html">navigation</a>. The parked items are listed on the navigation page, each with what it needs (<a href="navigation.html#next">parked</a>).</p>
 <p>The work now is block E (revised 23 Oct, <a href="#blockE">below</a>). Its endpoint is a fixed position at a site in the Netherlands,
 estimated from several pulsars, with all 32 data streams beamformed and the full Earth–pulsar motion in the timing model, at
-worst-case flux. Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development.</p>
+worst-case flux (the endpoint as written on 23 Oct, for the array of that time; the hardware changed on 23 Nov and the plan is not
+revised). Its steps are E0–E6; E0 is a review week of five sessions (agreed 26 Oct), before any new development.</p>
 <p>On 2 Nov the objective changed: the array is static, but its site is not known beforehand, so the method must work anywhere on Earth.
 The field test will probably still be in the Netherlands. The navigation part is therefore being redesigned without dead reckoning and
 without a position prior. The proposal (steps D6a–e, <code>logs/2026-11-04_static-redesign.md</code>) waits for Jasper's OK, and
 nothing of it is built. On 5 Nov the ship's code (<code>navFilter</code>, <code>runShip</code>) moved to
 <code>old/moving_platform/</code>.</p>
+<p>On 23 Nov the array hardware changed (the antenna team, via Jasper). The array is about 3 m², and its beams are formed in analogue
+hardware, fixed in two directions, with four analogue outputs. The 32 data streams and the digital beamformer in block E's endpoint
+do not exist in this hardware. In the team's terms its SEFD is 6.44·10⁴ Jy at 70 K, and about 150 MHz of the band is clean of RFI.
+Since the same day this is the design point, the default of <code>runScenario.m</code>, and the scenario and navigation results were
+rerun for it (Claude's runs). They come as two figures of merit that are not mixed. With the pulsar followed through its pass,
+B0329+54 needs 0.23 h of data per SNR 7 TOA. In a single pass through a fixed beam it reaches an SNR of 11.5 per pass for the 6.3° beam
+that follows from 3 m², and 17.4 if the beam is 15°; the two do not belong to one filled aperture, and the team's measured beam width
+decides (<a href="scenario.html#hardware">scenario</a>). Block E's plan has not been revised (<a href="#blockE">below</a>).</p>
 <p>Block F follows: the real implementation, with IQ recordings at the Netherlands site from the antenna, mixer and SDR through
 <code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p>
 
@@ -83,6 +94,10 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
 <tr><td>2–3 Nov</td><td><b>The objective changed (2 Nov): a static array at a site not known beforehand.</b> A risk register with three fault tests (<code>testNavFitFaults</code>, <code>testFrontEndFaults</code>, <code>testFoldFaults</code>) and three new real-hardware scenarios, FM-40 to FM-42.</td></tr>
 <tr><td>4–5 Nov</td><td>The docs' numbers audited against the current defaults. The navigation redesign for a static site proposed (D6a–e; not approved, not built). Stage 7 simplified for a static site and the ship code archived in <code>old/moving_platform/</code>; 33 unit tests, all passed in Jasper's run of 5 Nov.</td></tr>
 <tr><td>9–13 Nov</td><td>Questions on the LO and the receiver clock answered (no code change); a handover note for the redesign (<code>logs/2026-11-13_handover-static-nav.md</code>).</td></tr>
+<tr><td>20–23 Nov</td><td>The array hardware. 20 Nov: 4×4 elements on the same 0.61 m², no code change. <b>23 Nov: about 3 m²,
+with two fixed analogue beams and four analogue outputs</b> (the antenna team, via Jasper; <a href="scenario.html#hardware">scenario</a>).
+The same day it became the default design point of <code>runScenario.m</code> (SEFD 6.44·10⁴ Jy, channels 33–80 of the 128), and the
+scenario and navigation results were rerun for it (Claude's runs).</td></tr>
 </table></div>
 
 <figure class="scroll">
@@ -213,7 +228,7 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
   <rect class="box" x="293" y="578" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="301" y="593">E3b extra beams, sub-threshold pulsars</text>
   <rect class="box" x="293" y="606" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
-  <text class="sub" x="301" y="621">E4 array: 32 streams, digital beams</text>
+  <text class="sub" x="301" y="621">E4 array: 4 analogue outputs, 2 fixed beams</text>
   <rect class="box" x="293" y="634" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
   <text class="sub" x="301" y="649">E5 oscillator, clock flicker in the fit</text>
   <rect class="box" x="293" y="662" width="275" height="22" rx="5" stroke-dasharray="5 4"/>
@@ -236,14 +251,15 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
   <rect class="box" x="640" y="695" width="22" height="14" rx="3" stroke-dasharray="4 3"/>
   <text class="sub" x="670" y="706">next / open</text>
 </svg>
-<figcaption><b>Figure 1.</b> The roadmap on 23 October. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
-TOA takes hours to tens of hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
+<figcaption><b>Figure 1.</b> The roadmap on 23 October, with step E4 relabelled for the hardware of 23 November. (1) The blocks on the calendar. C, the fast simulator, ran on 20–22 Oct; it came before D because a
+TOA takes from a quarter of an hour to hours of data, far beyond the voltage-level simulation. D, motion, phase and the navigation fit, ran on 21–22 Oct and is closed. (2) Block C's
 steps, all done. The simulator, the voltage-chain test of the RFI model, the per-channel detectRFI thresholds and the extra lags in the
 RFI profiles are validated (Jasper's run of 22 Oct). The experiments, the RFI variants, J0437's measured profile and the 100-day runs are
 done in Claude's runs; the robust fit against the low-SNR tail came with D4. (3) Blocks D, E and F. D's functions are validated in
 Jasper's runs. The scenario runs with motion and the ship runs are Claude's. A few items are parked (navigation page); since 23 Oct the
-ship filter is parked too. E, revised on 23 Oct, leads to one endpoint: a fixed position in the Netherlands from several pulsars, with
-all 32 data streams beamformed; its first step, the review week E0 (after the review of C and D), is under way. F is the real implementation on antenna data and a
+ship filter is parked too. E, revised on 23 Oct, leads to one endpoint: a fixed position in the Netherlands from several pulsars. It was
+planned for a digital beamformer on all data streams; the array of 23 Nov has four analogue outputs from two fixed beams, and E4 is not
+revised. Its first step, the review week E0 (after the review of C and D), is under way. F is the real implementation on antenna data and a
 GPU or FPGA.
 Generated by <code>docs/tools/figures/gen_roadmap.py</code> (update its lists).</figcaption>
 </figure>
@@ -262,10 +278,10 @@ groups over gaps, multi-component profiles, the calibrated observer) and <code>t
 <code>testDetectRFI</code> 4.
 <span class="badge written">done in Claude's runs</span>: C2 (<code>expSimVsChain</code>), the cost of RFI (<code>expSimRFI</code>),
 the scenario runs with all variants, and the 100-day runs
-(<a href="scenario.html#hundred">final budgets</a>).</td></tr>
+(<a href="scenario.html#hundred">final budgets</a>; rerun on 23 Nov at the array's design point).</td></tr>
 <tr><td><b>D</b></td><td>Relative motion, barycentric phase prediction, clock, the navigation fit</td><td><b>closed 22 Oct</b> (started 21 Oct).
-A simulated ship stays within 73 km rms of its true track with B0329+54 and B0950+08 and a drifting SDR clock, against 379 km for dead
-reckoning. JPL's DE440 with TDB − TT, precession and nutation is in for real data. Parked items with what each needs:
+A simulated ship stayed within 73 km rms of its true track with B0329+54 and B0950+08 and a drifting SDR clock, against 379 km for dead
+reckoning (archived runs of 22 Oct, at the design point before 23 November 2026, 0.61 m²). JPL's DE440 with TDB − TT, precession and nutation is in for real data. Parked items with what each needs:
 <a href="navigation.html#next">navigation</a>.
 <span class="badge validated">validated in Jasper's runs of 22 Oct</span>: D1 (<code>makeTrajectory</code>, <code>delayModel</code>), D2
 (<code>makePredictor</code>, <code>foldProfile</code> <code>'Predictor'</code>), D3a (<code>trueResiduals</code>: the true arrival against
@@ -275,8 +291,8 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 (<code>tSub</code>), and D5a–D5d (<code>loadEphemeris</code>, <code>delayModel</code> <code>'Ephemeris'</code>).
 <span class="badge written">Claude's runs</span>: the simulator's truth with a moving receiver and a clock in <code>runScenario</code>
 (D3c), the SDR clock tracked day by day (D4b-2), the planning study (D4c-0), the ship scenario <code>runShip</code> over eight ships
-(D4d-2), and the fixed-site reruns. See <a href="fold.html#prediction">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
-<tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 32 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>)</td><td><span class="badge todo">now</span>: E0, the review week</td></tr>
+(D4d-2), and the fixed-site runs (rerun on 23 Nov at the array's design point). See <a href="fold.html#prediction">phase prediction</a> and <a href="navigation.html">navigation</a>.</td></tr>
+<tr><td><b>E</b></td><td>A fixed position in the Netherlands from several pulsars, in simulation (revised 23 Oct): the review of C and D, the pulsar set, the complete timing model, the multi-pulsar fit, extra beams, the array with all 32 data streams, the oscillator, the shortest integration time (<a href="#blockE">steps E0–E6</a>). The hardware of 23 Nov has two fixed analogue beams and 4 outputs, not 32 streams; the steps are not yet revised</td><td><span class="badge todo">now</span>: E0, the review week</td></tr>
 <tr><td><b>F</b></td><td>Real implementation (Jasper, 22 Oct): IQ recordings at the Netherlands site from the antenna, mixer and SDR into <code>processIQ</code>; the processing ported to a GPU or FPGA and checked stage by stage against <code>processIQ</code> (the MATLAB reference); in the end in real time</td><td><span class="badge todo">later</span></td></tr>
 </table></div>
 
@@ -284,22 +300,24 @@ the prediction), D3b (<code>makeClock</code>: the receiver's clock), the observe
 <p>Two choices fixed the order of blocks B, C and D.</p>
 <div class="callout why"><span class="ttl">Excision before the fast simulator (decided 6 Oct)</span>
 <p>The alternative was the plan before 6 Oct: the fast simulator first, RFI later. Jasper's reason for the change: real data contains
-RFI, excision is mandatory, and simulations without RFI are not realistic. The physics supports it in three ways. At −54 dB one radar
-pulse ≈ 80,000 pulsar pulses, so excision must <b>blank</b> (weight 0), not subtract. Excision acts on voltages before dedispersion (a
+RFI, excision is mandatory, and simulations without RFI are not realistic. The physics supports it in three ways. At −44.2 dB, J0437−4715
+at the array's design point, one radar pulse ≈ 8,300 pulsar pulses, so excision must
+<b>blank</b> (weight 0), not subtract. Excision acts on voltages before dedispersion (a
 radar pulse is a 2 µs blip there), so a fast simulator at profile level can only reproduce its <em>effects</em>, and those must come
 from a real excision stage. And blanking needs a data weight per time bin and channel, which changes the fold's data product, so the
 interface had to be fixed before writing a simulator that emulates it.</p></div>
 <div class="callout why"><span class="ttl">The fast simulator before motion</span>
-<p>The alternative was to add motion (D) first, in the voltage simulator. That fails because at the worst-case design point a J0437 TOA takes many hours, longer than one pass. The catalogue estimate of 6 Oct
-gave ~20 h. The fast simulator with J0437's measured profile later gave 82–95 h in the worst case, and 16 h at nominal flux
-(<a href="scenario.html#hundred">scenario</a>). Hours cannot be simulated at voltage level: the default path writes ~72.5 GB per second
-(~61 GB on the full band). The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so
+<p>The alternative was to add motion (D) first, in the voltage simulator. That failed because a TOA takes far more data than the
+voltage simulator can make. For the design point of that time (0.61 m²) the catalogue estimate of 6 Oct gave ~20 h per J0437 TOA,
+longer than one pass. At the array's design point of 23 Nov a TOA still takes 0.23 h of data for B0329+54 and 1.7 h for J0437−4715,
+each followed through its pass (<a href="scenario.html#hundred">scenario</a>). Neither can be simulated at voltage level: the default
+path writes ~72.5 GB per second (~61 GB on the full band). The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so
 <code>detectPulsar</code> and <code>estimateTOA</code> run unchanged on it. Motion (D) is then a hard requirement: folding across passes
 needs a phase that stays coherent over days.</p></div>
 
 <h2>Block B: what remains</h2>
 <p>Block B was closed for now on 9 Oct (Jasper): the essentials are done; what remained was second-order, tuned against estimated RFI at a
-pulsar 80,000× brighter than the target. State, open items and ready designs: <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>. The periodic mask is off by default.</p>
+pulsar at −5 dB, 8,300× brighter than J0437−4715 at the array's design point. State, open items and ready designs: <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>. The periodic mask is off by default.</p>
 <p>Fixing the periodic mask is parked (found in B5e). <code>periodicRFI</code> accepts false emitters when detections are dense,
 and blanks ~30 % of the data (<a href="limits.html">limits</a>). The fix is designed: a grid-aware chance calculation, a minimum fraction
 of predicted pulses detected, and trial periods from strong pulses. Four points were added during the review:</p>
@@ -339,7 +357,9 @@ scenario, as a second list in <code>pipelineParams</code> (<a href="receiver.htm
 <h2>Block C: fast simulator (20–22 Oct, closed)</h2>
 <p>Block C was built in stages, after Jasper's decision of 20 Oct: one channel, the full-band equivalent, first; ρ in the simulator's <code>snrDB</code>
 convention. <code>runScenario</code> converts the catalogue flux to that convention: ρ = <var>S</var><sub>1400</sub>/(SEFD·<var>W</var><sub>eq</sub>),
-with <var>W</var><sub>eq</sub> the pulse area of the unit-peak profile and SEFD 3.2·10⁵ Jy nominal, 7.4·10⁵ Jy worst case.</p>
+with <var>W</var><sub>eq</sub> the pulse area of the unit-peak profile. The SEFD is that of the design point: 6.44·10⁴ Jy since
+23 Nov 2026 (<code>"array3m2"</code>, the script's default). The script keeps the two design points of October under their own names, so
+the results of that time stay reproducible.</p>
 <ul>
 <li><b>C1</b> <code>simulateFold</code>: the mean profile (the periodic Gaussian, smoothed by the time bin and the linear assignment,
 exact in Fourier space); asymptotic weights <var>n</var>, 2<var>n</var>/3, <var>n</var>/6, or weights copied from a voltage fold;
@@ -368,7 +388,8 @@ included, after the two fixes); the chain check of <code>noiseCal</code>; <code>
 <p>Two puzzles were understood: channel 61's extra non-Gaussianity averages out as 1/turns (the <code>testRFIChain</code> rerun), and
 the error bars at SNR ~7 with B0329+54's five-component template were mostly bin resolution, fixed with NBin 2048; a rare low-SNR outlier remains
 (<a href="scenario.html#simulated">scenario</a>, <a href="limits.html#estimation">limits</a>). The 100-day runs (Claude's runs, 22 Oct)
-then found the low-SNR tail: 1.9 % of B0329+54's TOAs lie beyond 3σ. The navigation
+then found the low-SNR tail: 1.9 % of B0329+54's TOAs lay beyond 3σ (at the design point of that time; for the reruns of 23 Nov the
+recorded tail is 0.1 % beyond 5σ). The navigation
 fit's outlier model is sized for it.</p>
 <p>Parked at the close were the time structure of rotating radars (C3d), refractive scintillation, excision of bright pulses and of RFI
 locked to the pulsar's period, and merging identical channels for very long runs (<a href="simulator.html#limits">simulator</a>).</p>
@@ -414,10 +435,11 @@ D4d-2 (<code>runShip</code>)</td></tr>
 a site anywhere needs it, and so do the many millisecond pulsars that are binaries) and real ship and probe trajectories (no data yet)</td><td><span class="badge validated">D5a–D5d
 validated 22 Oct</span> <span class="badge todo">J0437's orbit and real trajectories parked</span></td></tr>
 </table></div>
-<p>The results (<a href="results.html#blockD">validation record</a>): B0329+54 alone finds a fixed site 100 km east to ±30 km per equatorial
-component in 30 days, and at 4.9σ in 100 days. In the ship comparison (eight ships, 14 days, Claude's runs) the smoothed track stays
-within 73 km rms of the truth with a calibrated start, against 379 km for dead reckoning, and its error bars agree with those of an ideal
-twin. JPL's DE440 matches JPL Horizons to 4.5 cm for the geocentre, and to 28–30 m for a site. The details are on the pages <a href="fold.html#prediction">phase
+<p>The results (<a href="results.html#blockD">validation record</a>): B0329+54 alone, followed through its pass, finds a fixed site
+100 km east to ±9.4 km east and ±11.9 km radial in 30 days, and to ±5.1 and ±6.5 km in 100 days, at the array's design point (Claude's
+runs, 23 Nov). In the ship comparison (eight ships, 14 days; Claude's runs of 22 Oct at the design point before 23 November 2026,
+0.61 m², archived) the smoothed track stayed within 73 km rms of the truth with a calibrated start,
+against 379 km for dead reckoning, and its error bars agreed with those of an ideal twin. JPL's DE440 matches JPL Horizons to 4.5 cm for the geocentre, and to 28–30 m for a site. The details are on the pages <a href="fold.html#prediction">phase
 prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>. With this, block D closed, and block E turned
 the project toward one endpoint.</p>
 
@@ -429,6 +451,15 @@ all 32 data streams. The Earth–pulsar motion is modelled in full. The design p
 precision against integration time, with the shortest time as the aim.</p>
 <p>Changed on 2 Nov (Jasper): the site is not known beforehand. The method must locate a static array anywhere on Earth, and the
 Netherlands stays the probable test site. The decisions below are those of 23 Oct.</p>
+<p>Changed on 23 Nov (the antenna team, via Jasper): the array hardware. It is a 4×4 grid of tiles with 256 dual-polarized bowtie
+elements and about 3 m² of effective area. Its beams are formed by analogue delay-and-sum, hardwired to two directions: the panel's
+normal, and 20° off it along the grid's diagonal. Two beams × two polarizations give 4 analogue outputs for the whole array, which fit
+one RFSoC 4x2 board. So there are no 32 data streams, no digital beamformer and no electronic steering. This touches the endpoint's
+"own digital beam" per pulsar and steps E3, E3b and E4 below. The endpoint, the decisions and the steps are left as they were
+written, with a note where the hardware no longer fits; revising them is Jasper's decision. Since 23 Nov this array is the design
+point: the default of <code>runScenario.m</code> (SEFD 6.44·10⁴ Jy, about 150 MHz clean, two polarizations), for which the scenario and
+navigation results were rerun (Claude's runs). No worst case is defined for it, so the endpoint's "worst-case flux" has no counterpart
+yet. The hardware and the results are on the <a href="scenario.html#hardware">scenario page</a>.</p>
 <h3>Decisions (Jasper, 23 Oct)</h3>
 <div class="table-wrap"><table>
 <tr><th>Topic</th><th>Decision</th></tr>
@@ -436,10 +467,10 @@ Netherlands stays the probable test site. The decisions below are those of 23 Oc
 <tr><td>Flux</td><td>"Design for worst-case, get more ToA's if better." Nominal flux is reported alongside.</td></tr>
 <tr><td>Motion</td><td>The Earth–pulsar motion stays in full (delays, ephemeris, predictor). The navigation filter and the vehicle's motion
 uncertainty in the fold are parked.</td></tr>
-<tr><td>Array</td><td>All data streams are processed: 16 elements × 2 polarizations, with digital beamforming. The array became 4×4 on 20 November 2026, on the same 0.61 m² (it was 3×3, with 18 streams), so the sensitivity is unchanged. Dual polarization on all 16 elements is assumed from the 3×3 design.</td></tr>
+<tr><td>Array</td><td>All data streams are processed: 16 elements × 2 polarizations, with digital beamforming. The array became 4×4 on 20 November 2026, on the same 0.61 m² (it was 3×3, with 18 streams), so the sensitivity is unchanged. Dual polarization on all 16 elements is assumed from the 3×3 design. <b>Overtaken on 23 November 2026:</b> the hardware has about 3 m² and two fixed analogue beams, with 4 analogue outputs and no digital beamforming (above). This row has not been decided anew.</td></tr>
 <tr><td>Integration time</td><td>As short as possible. The fast simulator may run as long as needed to map precision against time.</td></tr>
 <tr><td>Later</td><td>The target precision, and the array hardware (element layout and spacing, element type, phase coherence of the SDR
-channels, calibration).</td></tr>
+channels, calibration). The array hardware is known since 23 November 2026 (above); whether the panel is fixed or on a mount is still open.</td></tr>
 </table></div>
 <h3>The steps</h3>
 <div class="table-wrap"><table>
@@ -471,14 +502,17 @@ bright northern candidates. <code>expNavPlan</code> on the real profiles then de
 of the observer, so that a run measures what the omission costs; then an end-to-end check against PINT or TEMPO2.</td><td><span class="badge todo">open</span></td></tr>
 <tr><td>E3</td><td>The multi-pulsar fixed-site solution in the fast simulator: a driver with one beam per pulsar, one shared clock, RFI and
 scintillation; the joint <code>navFit</code>; a Monte Carlo over seeds for bias and honest errors. The precision against integration
-time at worst-case flux, with the array as its budgeted gain.</td><td><span class="badge todo">open</span></td></tr>
+time at worst-case flux, with the array as its budgeted gain. Written for digital beams; the hardware of 23 Nov has two fixed beams, and the fast simulator has no drift of a pulsar through a beam.</td><td><span class="badge todo">open</span></td></tr>
 <tr><td>E3b</td><td>Extra beams and pulsars below the TOA threshold. Each beam sees all the data, so more pulsars cost computation, not observing
 time. A weak pulsar's data hold information that the per-TOA threshold (SNR ≈ 7) throws away. Two ways to use it: long coherent folds
 over days (with E2's timing model), and a direct fit of the position to all folded profiles. The result: how precision and the shortest
-integration time improve with more beams and processing.</td><td><span class="badge todo">open</span></td></tr>
-<tr><td>E4</td><td>The array: 32 streams at voltage level (element delays, independent noise per element, RFI from its own direction); the
+integration time improve with more beams and processing. With the two fixed analogue beams of 23 Nov the first sentences no longer hold: a pulsar is seen only while it drifts through a beam, and no extra beam can be formed.</td><td><span class="badge todo">open</span></td></tr>
+<tr><td>E4</td><td>As planned on 23 Oct, for a digital array: 32 streams at voltage level (element delays, independent noise per element, RFI from its own direction); the
 beamformer (steering weights per channel after <code>channelizeIQ</code>, which avoids beam squint over 400 MHz; simultaneous beams); the
-two polarizations; element calibration. The measured beam gain and RFI per beam then go into the fast simulator, and E3 is rerun.</td><td><span class="badge todo">open</span></td></tr>
+two polarizations; element calibration. The measured beam gain and RFI per beam then go into the fast simulator, and E3 is rerun.
+<b>This does not fit the hardware of 23 Nov.</b> There the beams are formed in analogue hardware with fixed delays, before the
+digitiser. The processing receives 4 signals, two beams × two polarizations, so it has no element streams to weight or to calibrate, it
+cannot steer, and it cannot null RFI by direction. One digitiser board suffices. What E4 becomes is not decided.</td><td><span class="badge todo">open</span></td></tr>
 <tr><td>E5</td><td>The oscillator: TCXO, OCXO or rubidium, and the clock's flicker term in the fit.</td><td><span class="badge todo">open</span></td></tr>
 <tr><td>E6</td><td>Refinement: the shortest integration time for a target precision, and the levers (pulsar set, collecting area,
 oscillator).</td><td><span class="badge todo">open</span></td></tr>
@@ -491,15 +525,19 @@ The trajectory interface stays, so they can return if a moving platform is devel
 information. Each pulsar gets two beams with the same steering weights, one from the X streams and one from the Y streams. Each beam is
 detected, and the powers are added (total intensity): the receiver noise is independent in X and Y, so the SNR gains √2. Combining X and
 Y before detection gains nothing for an unpolarized source and would have to follow Faraday and parallactic rotation for a polarized one.
-Separate TOAs per polarization would halve the SNR per profile and lose TOAs at worst-case flux. The separate streams still serve RFI excision and calibration.</p>
-<p>The second is about integration time. The equatorial components improve as 1/√T: twice the precision costs four times the time. B0329+54 alone
-gives about ±31 km east after 30 days and ±16 km after 100 days at nominal flux (±80 and ±43 km at worst-case flux). With the crystal
-clock the polar component does not improve with time (64 km at nominal flux after 30 and after 100 days), because the clock's wander
+Separate TOAs per polarization would halve the SNR per profile and lose TOAs at worst-case flux. The separate streams still serve RFI excision and calibration.
+With the hardware of 23 Nov the steering weights are gone, because the beams are formed in analogue hardware. Each of the two beams
+still arrives as two polarizations, on separate outputs.</p>
+<p>The second is about integration time. The equatorial components improve as 1/√T: twice the precision costs four times the time. The
+numbers of 23 Oct were for the design point of that time; the planning study rerun at the array's design point
+(<code>expNavPlan</code>, Claude's run of 23 Nov) gives for B0329+54 alone about ±9.5 km east after 30 days and ±5.2 km after 100 days.
+With the crystal clock the polar component does not improve with time (28 km after 30 and after 100 days), because the clock's wander
 looks like a polar offset; pulsars at other declinations or a better oscillator separate the two.</p>
 <p>The third is about extra pulsars. A pulsar's weight in the fit goes as 1/(σ<sub>TOA</sub>·√hours per TOA)². From 52° N, B0950+08,
-B1642−03 and B1929+10 add about 16, 19 and 4 % of B0329+54's information. Their main gain is the polar component: 64 → 40 km in 30
-days (24 km in 100 days) with the crystal clock. At worst-case flux, B1642−03 and B1929+10 give no TOA in 30 days, which is why E3b
-looks at processing below the TOA threshold.</p>
+B1642−03 and B1929+10 add about 16, 19 and 4 % of B0329+54's information. Their main gain is the polar component: 28 → 14 km in 30
+days (8 km in 100 days) with the crystal clock, in the planning study of 23 Nov. That study follows every pulsar whenever it is up, each
+in its own beam, which the hardware of 23 Nov does not do. On 23 Oct, at the worst case of that time, B1642−03 and B1929+10 gave no TOA in
+30 days, which is why E3b looks at processing below the TOA threshold; at the design point they give 36 and 24.</p>
 
 <h2>Open items</h2>
 <p>The review-week items carry an R- prefix (R-D1, R-N1, R-C1, R-E1, …), so they do not collide with the block steps E0–E6. The notes
@@ -510,7 +548,7 @@ looks at processing below the TOA threshold.</p>
 The register (<code>logs/2026-11-02_risk-register.md</code>) has 39 scenarios, FM-1 to FM-39. Most are already on this list; these
 sixteen actions are new, in order of priority, and none is built:
 <ol>
-<li>FM-11, test: a daily (solar-day) rate term in <code>makeClock</code>, and the position bias it gives in <code>expNavFit</code>. With the planned TCXO it may be 2–25 times the fit's own error (estimate). Before E5. The test is written (<a href="tests.html#navfitfaults"><code>testNavFitFaults</code></a> case 1, Claude's run).</li>
+<li>FM-11, test: a daily (solar-day) rate term in <code>makeClock</code>, and the position bias it gives in <code>expNavFit</code>. With the planned TCXO it may be 2–25 times the fit's own error (an estimate of 2 Nov against ±30 km, the design point of that time; the fit's error is now ±9.4 km, so the same term weighs about three times more). Before E5. The test is written (<a href="tests.html#navfitfaults"><code>testNavFitFaults</code></a> case 1, Claude's run).</li>
 <li>FM-8, development and test: a switch in <code>processIQ</code> for an inverted band. For F, a check of the frequency mapping with a known line (GPS L1) before the first observation.</li>
 <li>FM-9, development and test: an F ingest that reads the SDR's time stamps and overflow flags, and blanks the gaps. The test runs now, with clock steps in <code>trueResiduals</code>.</li>
 <li>FM-10, test, then development: <code>runScenario</code> with an uncalibrated ±2 ppm clock; if no TOAs come, a rate search at acquisition.</li>
@@ -576,8 +614,8 @@ unchanged, and the FPGA/GPU port is checked against the outputs. To be done befo
 path (A3b) → <code>runSNRSweep</code>, <code>runH0</code> and <code>runRFITest</code> (the full band and the RFI cases bit-identical;
 <code>runH0</code> on the channel path gives false alarms at the design rate). <code>runLockedRadar</code> stays as it is, because it
 processes difference channels by superposition.</p></td></tr>
-<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element, |X|² + |Y|² after detection; the fast simulator covers it statistically first (done 20 Oct: <code>simulateFold</code> <code>'NPol'</code>); the voltage chain stays single-pol for now. Part of block E.</td></tr>
-<tr id="item3"><td><span class="badge todo">open</span> Band-edge taper on the pulsar only (read-through item 3, 13 Oct)</td><td>The 8 MHz sin² band edges shape the simulated pulsar, but not the receiver noise. So the outer channels hold little pulse: channels 1 and 128 keep 2.4 %, channels 2 and 127 42 %, and channels 3 and 126 96 %. The optimal fit still assumes equal pulse strength (<code>ChannelGain</code> 1). This costs +2.5 % in σ<sub>TOA</sub> on the channel path, the whole 2.2 % gap between the channel path's error bars and the full band's (<a href="limits.html#signal">limitations</a>). It also gives a <code>pChi2</code> excess that grows with SNR², so it is irrelevant at the weak-signal target. Options: shape the noise with the same taper, or take <code>ChannelGain</code> from the observer's bandpass (<code>logs/2026-10-13_full-review.md</code>). 17 Nov: the excess was seen in a high-signal test, where every TOA failed <code>pChi2</code>; with the taper passed to the fit through <code>foldToTOA</code>'s new <code>'ChannelGain'</code> it is gone (0.999 against 1.086, Claude's run; <code>logs/2026-11-17_budget-recheck-big30.md</code>). Decided 19 Nov (Jasper): the run scripts stay as they are and pass no gains, because the excess only shows from an SNR of about 50 per TOA and never removes a TOA; a strong-signal run passes the taper by hand (<code>logs/2026-11-19_channel-gain-step2.md</code>).</td></tr>
+<tr><td><span class="badge todo">todo</span> Second polarization</td><td>Two independent noise streams per element (per beam output with the hardware of 23 Nov, which has no element streams), |X|² + |Y|² after detection; the fast simulator covers it statistically first (done 20 Oct: <code>simulateFold</code> <code>'NPol'</code>); the voltage chain stays single-pol for now. Part of block E. To do since 23 Nov (Jasper: "put the addition of this function on the todo list"): one new function that adds the two polarization folds of a beam into one fold, with its unit test. Each of the four outputs goes through <code>processIQ</code> by itself first; the sums and weights of two folds on the same sub-int grid add, and the noise model then takes the plain noise bandwidth. A scratch check on the fast simulator's folds gave √2 in SNR over one stream and 1.008 against <code>simulateFold</code>'s <code>'NPol'</code> 2 (Claude's run, <code>logs/2026-11-23_array-3m2-analog-beams.md</code>). The two beams are not added: they are separate observations. Not built.</td></tr>
+<tr id="item3"><td><span class="badge todo">open</span> Band-edge taper on the pulsar only (read-through item 3, 13 Oct)</td><td>The 8 MHz sin² band edges shape the simulated pulsar, but not the receiver noise. So the outer channels hold little pulse: channels 1 and 128 keep 2.4 %, channels 2 and 127 42 %, and channels 3 and 126 96 %. The optimal fit still assumes equal pulse strength (<code>ChannelGain</code> 1). This costs +2.5 % in σ<sub>TOA</sub> on the channel path, the whole 2.2 % gap between the channel path's error bars and the full band's (<a href="limits.html#signal">limitations</a>). The scenario runs at the design point use channels 33–80 only, which the taper does not touch. It also gives a <code>pChi2</code> excess that grows with SNR², so it is irrelevant at the weak-signal target. Options: shape the noise with the same taper, or take <code>ChannelGain</code> from the observer's bandpass (<code>logs/2026-10-13_full-review.md</code>). 17 Nov: the excess was seen in a high-signal test, where every TOA failed <code>pChi2</code>; with the taper passed to the fit through <code>foldToTOA</code>'s new <code>'ChannelGain'</code> it is gone (0.999 against 1.086, Claude's run; <code>logs/2026-11-17_budget-recheck-big30.md</code>). Decided 19 Nov (Jasper): the run scripts stay as they are and pass no gains, because the excess only shows from an SNR of about 50 per TOA and never removes a TOA; a strong-signal run passes the taper by hand (<code>logs/2026-11-19_channel-gain-step2.md</code>).</td></tr>
 <tr id="item8"><td><span class="badge todo">open</span> No exact optimum on the channel path (read-through item 8)</td><td><code>expectedPowerModel</code> gives the best achievable TOA error for the full band only. So a default run (channel path) has no optimum to compare against, and the channel-path sweeps use the measured mean T0 as their SNR axis (<a href="scripts.html#sweep">run scripts</a>).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Legacy code</td><td><code>old/envelopeReconstruction</code>, <code>old/plotEnvelope</code>: kept in <code>old/</code> as legacy (not on the path, not used, not updated).</td></tr>
 <tr><td><span class="badge validated">done 12 Oct</span> Bug: <code>blankingWeights</code> with long time bins</td><td>Found 9 Oct: at lag τ = numel(h) − 1, <code>q</code> is a scalar and <code>fft(q, M)</code> returned a row, so <code>Kf .* Qf</code> became an M×M array. Fixed 12 Oct with <code>fft(q, M, 1)</code>; <code>testBlankingWeights</code> test 4 (long bins) passes (Claude's and Jasper's runs). Lag-array memory fixed the same day (bit-identical). Still open: run time ∝ bin length, and whole-file processing (<code>blankingWeights</code>, <code>detectRFI</code>, <code>periodicRFI</code>; L = 1 s already exceeds the 4 GB default): "excision for long data", when real data is close.</td></tr>
@@ -656,7 +694,7 @@ the navigation solution (least squares → Kalman)</td><td>done in block D (<a h
 <a href="receiver.html#clock">clock</a>, <a href="navigation.html">navigation</a>)</td></tr>
 <tr><td>Clock jitter</td><td>the receiver's clock is modelled at fold level in block D (<code>makeClock</code>); the ADC's sampling jitter is
 negligible (<a href="limits.html#timing">limitations</a>)</td></tr>
-<tr><td>Multiple pulsars (≥ 4); the 4×4 array with geometric delays and beamforming at IQ level; polarization</td><td>block E (E1, E3, E3b, E4)</td></tr>
+<tr><td>Multiple pulsars (≥ 4); the 4×4 array with geometric delays and beamforming at IQ level; polarization</td><td>block E (E1, E3, E3b, E4). Since 23 Nov the beamforming is analogue and fixed in the hardware, so beamforming at IQ level does not fit it (<a href="#blockE">block E</a>)</td></tr>
 <tr><td>Real IQ recordings; the FPGA/GPU port of the processing, with <code>processIQ</code> as the reference</td><td>block F</td></tr>
 </table></div>
 <p>Still open, in no block yet:</p>

@@ -1087,8 +1087,6 @@ reaches SNR ~7. This matters when scintillation changes the flux from hour to ho
   <path class="axis" d="M90 40 V290"/>
   <path class="axis" d="M90.0 290 v5"/>
   <text class="sub" x="90.0" y="308" text-anchor="middle">-60</text>
-  <path class="axis" d="M146.0 290 v5"/>
-  <text class="sub" x="146.0" y="308" text-anchor="middle">-54</text>
   <path class="axis" d="M183.3 290 v5"/>
   <text class="sub" x="183.3" y="308" text-anchor="middle">-50</text>
   <path class="axis" d="M276.7 290 v5"/>
@@ -1125,10 +1123,10 @@ reaches SNR ~7. This matters when scintillation changes the flux from hour to ho
   <text class="sub" x="656" y="127.2">1 h</text>
   <path class="grid" d="M90 83.9 H650"/>
   <text class="sub" x="656" y="87.9">1 day</text>
-  <path class="dot" d="M142.5 72.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <text class="sub" x="154.0" y="66.2">design target: 2.2·10⁷ turns ≈ 62 h</text>
-  <path class="dot" d="M273.2 151.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <text class="sub" x="284.7" y="145.9">−40 dB: 3.5·10⁴ turns ≈ 6 min</text>
+  <path class="dot" d="M234.0 128.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="245.5" y="122.0">J0437−4715 (−44.2 dB): 2.4·10⁵ turns ≈ 41 min</text>
+  <path class="dot" d="M291.8 163.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="303.3" y="157.3">B0329+54 (−38.0 dB): 1.4·10⁴ turns ≈ 2.3 min</text>
   <path class="dot" d="M459.8 265.9 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
   <text class="sub" x="471.3" y="259.9">−20 dB: 3.5 turns</text>
   <path class="dot" d="M599.8 281.4 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
@@ -1137,8 +1135,9 @@ reaches SNR ~7. This matters when scintillation changes the flux from hour to ho
   <path class="curve2" d="M519.3333333333334 84.47980091355498 h18"/><text class="sub" x="543.3333333333334" y="88.47980091355498">SNR 6</text>
 </svg>
 <figcaption><b>Figure 7.4.</b> The number of turns for an SNR of 6–7 per sub-int, <var>N</var> = (SNR/373·ρ)², for the simulated 10 ms pulsar (grid lines:
-the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int; at the design target one
-sub-int takes about 62 hours (the <a href="scenario.html">scenario page</a>'s number).</figcaption>
+the time this takes). At −5 dB every turn is enough, which is why <code>main.m</code> folds one turn per sub-int. At the levels of the array's design point
+(dots) one sub-int of this test pulsar, with one polarization in 400 MHz, takes about 2.3 minutes for B0329+54's −38.0 dB and 41 minutes
+for J0437−4715's −44.2 dB.</figcaption>
 </figure>
 
 <details><summary>Options and outputs</summary>

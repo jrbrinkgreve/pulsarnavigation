@@ -9,9 +9,10 @@
 <body>
 <main>
 <h1>Reference scenario</h1>
-<p class="lede">The real hardware and pulsars the pipeline is designed for. This is where the number "−54 dB" and the hours of data
-per TOA come from, and why the project targets weak signals.</p>
-<p class="meta">Drafted 6 October 2026 from Jasper's hardware; questions answered the same day. Pulsar data from the ATNF catalogue v2.6.5.</p>
+<p class="lede">The real hardware and pulsars the pipeline is designed for. This is where the signal levels (−38 dB for B0329+54,
+−44 dB for J0437−4715) and the time per TOA come from, and why the project targets weak signals.</p>
+<p class="meta">Drafted 6 October 2026 from Jasper's hardware. The receiver and every budget were updated on 23 November 2026 for the array
+as it is being built; those runs are Claude's. Pulsar data from the ATNF catalogue v2.6.5.</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#receiver">R1 · Receiver</a></li>
@@ -24,41 +25,94 @@ per TOA come from, and why the project targets weak signals.</p>
 <li><a href="#rfivariants">R8 · With realistic RFI: the scenario variants</a></li>
 <li><a href="#hundred">R9 · 100 days: the final budgets</a></li>
 </ol></div>
-<p>The pipeline is designed for a small array (0.61 m², 1.2–1.6 GHz) and the best pulsar it can time, J0437−4715. At the worst-case design
-point the pulse peak is about 54 dB below the receiver noise. The catalogue estimate on this page (R2) gives about 21 hours of data per TOA;
-the fast simulator with J0437's measured profile gives 82–95 hours, and 16 hours at nominal flux (R9). That is why the project targets weak
-signals, why TOAs must be folded across several passes, and why the fast simulator was built. The array stands still at a site that is not known beforehand, so the method must work anywhere on Earth. The scenario runs time B0329+54
-from 52° N, where the field test will probably be, and J0437 from 30° S, because J0437 never rises at 52° N (R6).</p>
+<p>The pipeline is designed for a small array (about 3 m², 1.2–1.6 GHz, of which about 150 MHz is clean of RFI) and the pulsars it can
+time. At the array's design point the pulse peak of B0329+54 is 38.0 dB below the receiver noise, and that of J0437−4715 44.2 dB. Followed
+through its pass, B0329+54 needs 0.23 hours of data per TOA and gives 87 TOAs a day; J0437 needs about 1.7 hours and gives 7 a day (R7,
+R9). A fixed panel sees B0329+54 drift through its beam once a day, with an SNR of about 11.5 per pass (R7.4). That is why the project
+targets weak signals, why the weaker pulsars must be folded across several passes, and why the fast simulator was built. The array stands
+still at a site that is not known beforehand, so the method must work anywhere on Earth. The scenario runs time B0329+54 from 52° N, where
+the field test will probably be, and J0437 from 30° S, because J0437 never rises at 52° N (R6).</p>
+<div class="callout note"><span class="ttl">One design point, since 23 November 2026</span>
+<p>Every table and figure on this page is for the array's design point: an SEFD of 6.44·10⁴ Jy and 150 MHz of bandwidth (R1). The runs
+are Claude's, of 23 November 2026; Jasper has not yet run them himself. Results for the receiver that was planned before that date
+(0.61 m², 400 MHz) remain only in the History boxes, as a dated record.</p></div>
 
 <h2 id="receiver">R1 · Receiver</h2>
-<p>Everything starts from the receiver: a 4×4 array of <b>0.61 m²</b> (3×3 until 20 November 2026; the area, and so every number on this page, is unchanged), with <b>dual polarization</b> on every element, band <b>1.2–1.6
-GHz</b>, at a static site (R6), and <b>T<sub>sys</sub> 60–80 K</b>. It must be site-independent ("should work anywhere"): the station position
-is an input parameter, no pulsar is hard-coded, and sources are chosen by visibility. Its sensitivity is summed up by the SEFD, for a
-nominal and a worst case:</p>
+<p>Every number on this page starts from the receiver. It is an array of about <b>3 m²</b> effective area, with <b>dual polarization</b>,
+in the band <b>1.2–1.6 GHz</b>, at a static site (R6). Its system temperature is about <b>70 K</b>, measured at the array's output. With
+the RFI, about <b>150 MHz</b> of the band is clean at that 70 K. These are the antenna engineering team's figures, passed on by Jasper on
+23 November 2026. Where the clean 150 MHz sits is not known; the runs take channels 33–80 of the 128, which is 1300–1450 MHz. The
+receiver must be site-independent ("should work anywhere"): the station position is an input parameter, no pulsar is hard-coded, and
+sources are chosen by visibility.</p>
+<p>The antenna team specifies a receiver by its sensitivity and its SEFD, not by an SNR. Both describe the instrument alone, whereas an
+SNR also needs a pulsar, a bandwidth and an observing time. The sensitivity is <var>A</var><sub>eff</sub>/<var>T</var><sub>sys</sub>, and
+the SEFD follows from it; a lower SEFD is better (<a href="glossary.html#sefd">glossary</a>):</p>
 <div class="table-wrap"><table>
-<tr><th>Design point</th><th>A<sub>eff</sub></th><th>T<sub>sys</sub></th><th>SEFD = 2<var>k</var>T<sub>sys</sub>/A<sub>eff</sub></th></tr>
-<tr><td>nominal</td><td>0.61 m²</td><td>70 K</td><td>≈ 3.2·10⁵ Jy</td></tr>
-<tr><td><b>worst case (design point)</b></td><td>0.61 m² × aperture efficiency ~0.5 ≈ 0.3 m²</td><td>80 K</td><td><b>≈ 7.4·10⁵ Jy</b> (2.3× nominal)</td></tr>
+<tr><th>Quantity</th><th>Definition</th><th>The design point (about 3 m², 70 K)</th></tr>
+<tr><td>Sensitivity</td><td><var>A</var><sub>eff</sub>/<var>T</var><sub>sys</sub></td><td class="num">0.043 m²/K</td></tr>
+<tr><td><b>SEFD</b></td><td>2<var>k</var><var>T</var><sub>sys</sub>/<var>A</var><sub>eff</sub> = 2760 Jy / (<var>A</var><sub>eff</sub>/<var>T</var><sub>sys</sub> in m²/K)</td><td class="num"><b>6.44·10⁴ Jy</b></td></tr>
+<tr><td>G/T at 1.4 GHz</td><td>10 log<sub>10</sub>(4π<var>A</var><sub>eff</sub>/λ² / <var>T</var><sub>sys</sub>)</td><td class="num">10.7 dB/K</td></tr>
 </table></div>
-<p>These are large numbers: for comparison, Parkes has ~30 Jy and a 25 m dish ~1000 Jy. The array beam is wide (~15°), so T<sub>sys</sub> also includes the beam-averaged sky
-temperature: ~3–5 K off the Galactic plane, ~5–20 K for plane sources such as Vela.</p>
-<p>The pipeline is designed for the worst case, because the effective area is not known precisely, and the time per TOA scales as SEFD², so the worst case takes
-5.3× longer than the nominal one. The pipeline must work there; nominal performance is the bonus. That is why the project targets the
-weak-signal regime, and why, for example, improvements to the estimator at high SNR have low priority.</p>
-<details><summary>History</summary><p>Jasper's decision, 6 Oct 2026.</p></details>
+<p>This SEFD with the 150 MHz is the design point of every run on this page, and the default of
+<a href="scripts.html#scenario"><code>runScenario.m</code></a>, under the name <code>"array3m2"</code>. It is the only design point: no
+worst case has been defined for this array. For comparison, Parkes has an SEFD of about 30 Jy and a 25 m dish about 1000 Jy. An SNR
+follows from the SEFD through Eq. (R.1) of the next section, for a named pulsar, bandwidth and time. The time per TOA goes as
+SEFD²/<var>B</var>, and a position error as SEFD/√<var>B</var>. The sky adds to <var>T</var><sub>sys</sub>: about 3–5 K off the Galactic
+plane, and 5–20 K for sources in the plane such as Vela. Whether the measured 70 K includes it is not known.</p>
+<p>Even with this array the pulse peak is 38 to 44 dB below the receiver noise for the two best pulsars (R2). That is why the project
+targets the weak-signal regime, and why, for example, improvements to the estimator at high SNR have low priority.</p>
+<details><summary>History: the receiver planned until 23 November 2026</summary><p>From 6 Oct to 23 Nov 2026 the receiver was planned as
+an array of 0.61 m² (3×3 elements, 4×4 on the same area since 20 Nov 2026), with a digital beamformer on its data streams (18, then 32),
+<var>T</var><sub>sys</sub> of 60–80 K, a beam of about 15°, about 22 dBi, and all 400 MHz in use. It had two design points: "nominal"
+(0.61 m², 70 K, SEFD 3.2·10⁵ Jy, 0.0087 m²/K, 3.8 dB/K) and "worst case" (0.3 m², 80 K, SEFD 7.4·10⁵ Jy), which was the one to design
+for (Jasper's decision, 6 Oct 2026). Every result dated before 23 November 2026 belongs to them, and <code>runScenario.m</code> keeps
+both under the names <code>"nominal"</code> and <code>"worst"</code>. Against the nominal one, the design point of today has the time
+per TOA × 0.108, ρ + 6.96 dB, and a position error × 0.329. The record of the change is
+<code>logs/2026-11-23_array-3m2-analog-beams.md</code>.</p></details>
+
+<h3 id="hardware">R1.1 The array and its two beams</h3>
+<p>The array is a 4×4 grid of tiles, and each tile holds 4×4 dual-polarized bowtie elements: 256 elements in all. Its beams are formed
+in analogue hardware, by delay-and-sum in two stages: inside each tile, then across the 16 tiles. The delays are fixed for good, and
+they are hardwired to two directions:</p>
+<dl class="facts">
+<dt>Beam 1</dt><dd>(θ, φ) = (0°, 0°): the panel's normal</dd>
+<dt>Beam 2</dt><dd>(θ, φ) = (20°, 45°): tilted 20° from the normal, along the grid's diagonal (θ is the angle from the normal, φ the
+direction in the panel's plane)</dd>
+<dt>Outputs</dt><dd>four analogue signals for the whole array: two beams × two polarizations. They fit one RFSoC 4x2 board, which has
+four inputs</dd>
+</dl>
+<p>So this hardware has no digital beamforming and no electronic steering. A pulsar is seen only while it is inside one of the two beams,
+and pointing anywhere else needs the panel to move. Whether the panel is fixed or on a mount has not been decided. The team's goal is to
+detect a pulsar within a single pass through the beam. The two beams are taken to come from a power splitter, so that both are live all
+the time, each with the full area. That is Jasper's working assumption of 23 November 2026, not yet confirmed by the team.</p>
+<p>The geometry is Claude's arithmetic from 3 m² and 256 elements, not the team's data. The element pitch is 0.108 m, half a wavelength
+at 1.4 GHz, and the directivity is 29.2 dBi. The beam is about 6° wide:</p>
+<div class="table-wrap"><table>
+<tr><th>Frequency</th><th class="num">1.2 GHz</th><th class="num">1.4 GHz</th><th class="num">1.6 GHz</th></tr>
+<tr><td>Beam width (half power, 0.886 λ/<var>D</var>)</td><td class="num">7.3°</td><td class="num">6.3°</td><td class="num">5.5°</td></tr>
+</table></div>
+
+<h3 id="merit">R1.2 Two figures of merit</h3>
+<p>Because the mount is not decided, this site reports two figures of merit, and never mixes them. The first is the <b>integration time
+per TOA</b>: the hours of data that one TOA at SNR 7 needs, with the TOAs per day and the σ per TOA that go with it. It applies when the
+pulsar is <b>followed</b> through its pass, which for this hardware means the panel on a tracking mount. R7 to R9 give it, from
+<code>runScenario.m</code>. The second is the <b>SNR per pass</b>: the SNR, and the TOA error, of the one TOA that a pulsar gives when
+it drifts once a day through a fixed beam. It applies to a fixed panel. <a href="#pass">R7.4</a> gives it, from a scratch copy of the
+script, because the repository's script has no drift through a beam. Neither is converted into the other, and every position result
+says which case it belongs to.</p>
 
 <h2 id="time">R2 · Time per TOA</h2>
 <p>The SEFD and a pulsar's flux decide how long a TOA takes. For each pulsar, the catalogue gives its period <var>P</var>, pulse width <var>W</var><sub>50</sub> and mean flux
 <var>S</var><sub>mean</sub> at 1.4 GHz. The radiometer equation gives the SNR of a folded profile after observing for a time <var>t</var> (dual
-polarization, 400 MHz); solving for SNR 7, the design rule from the <a href="results.html#threshold">threshold sweep</a>, gives the time per
+polarization, 150 MHz); solving for SNR 7, the design rule from the <a href="results.html#threshold">threshold sweep</a>, gives the time per
 TOA, and the TOA error at SNR 7 follows from the pulse width (<a href="physics.html#toa">physics</a>):</p>
 <div class="eq"><span class="label">(R.1)</span>\[ \mathrm{SNR} = \frac{S_\mathrm{mean}}{\mathrm{SEFD}}\, \sqrt{n_\mathrm{pol}\, B\, t}\; \sqrt{\frac{P - W_\mathrm{eq}}{W_\mathrm{eq}}}, \qquad \rho = \frac{S_\mathrm{peak}}{\mathrm{SEFD}}, \qquad \sigma_\mathrm{TOA} = \frac{\sqrt{2}\; W_{50}/2.355}{7} \]</div>
 <dl class="where">
 <dt>\(\mathrm{SNR}\)</dt><dd>SNR of the folded profile after observing for a time \(t\)</dd>
 <dt>\(S_\mathrm{mean}\)</dt><dd>the pulsar's mean flux density at 1.4 GHz, from the catalogue [Jy]</dd>
-<dt>\(\mathrm{SEFD}\)</dt><dd>system-equivalent flux density of the receiving system [Jy]</dd>
+<dt>\(\mathrm{SEFD}\)</dt><dd>system-equivalent flux density of the receiving system [Jy] (6.44·10⁴ Jy)</dd>
 <dt>\(n_\mathrm{pol}\)</dt><dd>number of polarizations (2)</dd>
-<dt>\(B\)</dt><dd>bandwidth [Hz] (400 MHz)</dd>
+<dt>\(B\)</dt><dd>bandwidth [Hz] (150 MHz)</dd>
 <dt>\(t\)</dt><dd>observing time [s]</dd>
 <dt>\(P\)</dt><dd>pulse period [s] (called \(T\) on the other pages)</dd>
 <dt>\(W_{50}\)</dt><dd>pulse width at 50 % of the peak [s], from the catalogue</dd>
@@ -71,67 +125,68 @@ TOA, and the TOA error at SNR 7 follows from the pulse width (<a href="physics.h
 <p>The ρ in this table uses <var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/<var>W</var><sub>eq</sub>, with the margin
 <var>W</var><sub>eq</sub> = 2·<var>W</var><sub>50</sub>. The simulator's <code>snrDB</code> is the peak of a Gaussian of FWHM
 <var>W</var><sub>50</sub>: <var>S</var><sub>peak</sub> = <var>S</var><sub>mean</sub>·<var>P</var>/(1.0645·<var>W</var><sub>50</sub>), 2.7 dB higher
-for the same pulsar. In <code>snrDB</code> terms J0437's worst case is about −51 dB (−47 dB nominal), so the design target of −54 dB carries a
-margin of about 3 dB. Do not combine the two: the simulator's own pulsar (10 ms, 5 %, one polarization) at <code>snrDB</code> −54 needs about
-62 h per TOA at SNR 7, not the 21 h of the J0437 row.</p></div>
+for the same pulsar. In <code>snrDB</code> terms a single Gaussian with J0437's W<sub>50</sub> would be at about −40.5 dB; the runs use its
+measured profile, which is at −44.2 dB (R7.3). Do not combine the two: the simulator's own pulsar (10 ms, 5 %, one polarization, 400 MHz)
+at <code>snrDB</code> −44.2 needs about 0.7 h per TOA at SNR 7, not the 0.42 h of the J0437 row.</p></div>
 <div class="table-wrap"><table>
-<tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t nominal [h]</th><th>t worst [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
-<tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−50</td><td>3.9</td><td><b>21</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
-<tr><td><b>J0835−4510</b> (Vela)</td><td>−45</td><td>89.3</td><td>67.8</td><td>1.7</td><td>1050</td><td>−41</td><td>0.1</td><td><b>0.3</b></td><td>146 (44 km)</td><td>&lt; 25° N</td></tr>
-<tr><td><b>J0332+5434</b> (B0329+54)</td><td>+55</td><td>714.5</td><td>26.8</td><td>6.6</td><td>203</td><td>−45</td><td>0.8</td><td><b>4.2</b></td><td>566 (170 km)</td><td>&gt; 15° S</td></tr>
-<tr><td>J0953+0755 (B0950+08)</td><td>+8</td><td>253.1</td><td>3.0</td><td>8.6</td><td>100</td><td>−53</td><td>12</td><td>67</td><td>738 (221 km)</td><td>62° S–78° N</td></tr>
-<tr><td>J1752−2806 (B1749−28)</td><td>−28</td><td>562.6</td><td>50.3</td><td>6.6</td><td>48</td><td>−52</td><td>18</td><td>96</td><td>566 (170 km)</td><td>&lt; 42° N</td></tr>
-<tr><td>J1645−0317 (B1642−03)</td><td>−3</td><td>387.7</td><td>35.8</td><td>3.8</td><td>26</td><td>−54</td><td>52</td><td>278</td><td>326 (98 km)</td><td>73° S–67° N</td></tr>
-<tr><td>J1932+1059 (B1929+10)</td><td>+11</td><td>226.5</td><td>3.2</td><td>5.6</td><td>29</td><td>−57</td><td>106</td><td>571</td><td>480 (144 km)</td><td>59° S–81° N</td></tr>
-<tr><td>J1939+2134 (B1937+21, MSP)</td><td>+22</td><td>1.56</td><td>71.0</td><td>~0.05</td><td>13.9</td><td>−62</td><td>670</td><td>3600</td><td>5 (1.4 km)</td><td>&gt; 48° S</td></tr>
-<tr><td>J1713+0747 (MSP)</td><td>+8</td><td>4.57</td><td>16.0</td><td>0.30</td><td>8.3</td><td>−67</td><td>3700</td><td>20000</td><td>26</td><td></td></tr>
-<tr><td>J2145−0750 (MSP)</td><td>−8</td><td>16.05</td><td>9.0</td><td>0.40</td><td>5.5</td><td>−65</td><td>3000</td><td>16000</td><td>34</td><td></td></tr>
+<tr><th>Pulsar</th><th>dec</th><th>P [ms]</th><th>DM</th><th>W50 [ms]</th><th>S₁₄₀₀ [mJy]</th><th>ρ [dB]</th><th>t per TOA [h]</th><th>σ<sub>TOA</sub> [µs] (c·σ)</th><th>visible from</th></tr>
+<tr><td><b>J0437−4715</b> (MSP)</td><td>−47</td><td>5.76</td><td>2.6</td><td>0.141</td><td>150</td><td>−43</td><td><b>0.42</b></td><td><b>12</b> (3.6 km)</td><td>&lt; 23° N</td></tr>
+<tr><td><b>J0835−4510</b> (Vela)</td><td>−45</td><td>89.3</td><td>67.8</td><td>1.7</td><td>1050</td><td>−34</td><td><b>0.007</b></td><td>146 (44 km)</td><td>&lt; 25° N</td></tr>
+<tr><td><b>J0332+5434</b> (B0329+54)</td><td>+55</td><td>714.5</td><td>26.8</td><td>6.6</td><td>203</td><td>−38</td><td><b>0.09</b></td><td>566 (170 km)</td><td>&gt; 15° S</td></tr>
+<tr><td>J0953+0755 (B0950+08)</td><td>+8</td><td>253.1</td><td>3.0</td><td>8.6</td><td>100</td><td>−46</td><td>1.3</td><td>738 (221 km)</td><td>62° S–78° N</td></tr>
+<tr><td>J1752−2806 (B1749−28)</td><td>−28</td><td>562.6</td><td>50.3</td><td>6.6</td><td>48</td><td>−45</td><td>1.9</td><td>566 (170 km)</td><td>&lt; 42° N</td></tr>
+<tr><td>J1645−0317 (B1642−03)</td><td>−3</td><td>387.7</td><td>35.8</td><td>3.8</td><td>26</td><td>−47</td><td>5.6</td><td>326 (98 km)</td><td>73° S–67° N</td></tr>
+<tr><td>J1932+1059 (B1929+10)</td><td>+11</td><td>226.5</td><td>3.2</td><td>5.6</td><td>29</td><td>−50</td><td>11.5</td><td>480 (144 km)</td><td>59° S–81° N</td></tr>
+<tr><td>J1939+2134 (B1937+21, MSP)</td><td>+22</td><td>1.56</td><td>71.0</td><td>~0.05</td><td>13.9</td><td>−55</td><td>72</td><td>5 (1.4 km)</td><td>&gt; 48° S</td></tr>
+<tr><td>J1713+0747 (MSP)</td><td>+8</td><td>4.57</td><td>16.0</td><td>0.30</td><td>8.3</td><td>−60</td><td>400</td><td>26</td><td></td></tr>
+<tr><td>J2145−0750 (MSP)</td><td>−8</td><td>16.05</td><td>9.0</td><td>0.40</td><td>5.5</td><td>−58</td><td>320</td><td>34</td><td></td></tr>
 </table></div>
 <p>Some bright pulsars are left out because their DM is too high for now: J1644−4559 (DM 479), J0738−4042 (161), J1935+1616 (159), J0837−4135 (147).</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Time per TOA against TOA precision for the candidate pulsars at the worst-case design point">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="Time per TOA against TOA precision for the candidate pulsars at the array's design point">
   <path class="axis" d="M80 280 H800 M80 30 V280"/>
-  <path class="axis" d="M80.0 280 v5"/><text class="sub" x="80.0" y="298" text-anchor="middle">0.1</text>
-  <path class="axis" d="M200.0 280 v5"/><text class="sub" x="200.0" y="298" text-anchor="middle">1</text>
-  <path class="axis" d="M320.0 280 v5"/><text class="sub" x="320.0" y="298" text-anchor="middle">10</text>
-  <path class="axis" d="M440.0 280 v5"/><text class="sub" x="440.0" y="298" text-anchor="middle">100</text>
-  <path class="axis" d="M560.0 280 v5"/><text class="sub" x="560.0" y="298" text-anchor="middle">1000</text>
-  <path class="axis" d="M680.0 280 v5"/><text class="sub" x="680.0" y="298" text-anchor="middle">10000</text>
-  <path class="axis" d="M800.0 280 v5"/><text class="sub" x="800.0" y="298" text-anchor="middle">100000</text>
+  <path class="axis" d="M80.0 280 v5"/><text class="sub" x="80.0" y="298" text-anchor="middle">0.001</text>
+  <path class="axis" d="M200.0 280 v5"/><text class="sub" x="200.0" y="298" text-anchor="middle">0.01</text>
+  <path class="axis" d="M320.0 280 v5"/><text class="sub" x="320.0" y="298" text-anchor="middle">0.1</text>
+  <path class="axis" d="M440.0 280 v5"/><text class="sub" x="440.0" y="298" text-anchor="middle">1</text>
+  <path class="axis" d="M560.0 280 v5"/><text class="sub" x="560.0" y="298" text-anchor="middle">10</text>
+  <path class="axis" d="M680.0 280 v5"/><text class="sub" x="680.0" y="298" text-anchor="middle">100</text>
+  <path class="axis" d="M800.0 280 v5"/><text class="sub" x="800.0" y="298" text-anchor="middle">1000</text>
   <path class="axis" d="M80 225.0 h-5"/><text class="sub" x="72" y="229.0" text-anchor="end">10</text>
   <path class="axis" d="M80 146.3 h-5"/><text class="sub" x="72" y="150.3" text-anchor="end">100</text>
   <path class="axis" d="M80 67.6 h-5"/><text class="sub" x="72" y="71.6" text-anchor="end">1000</text>
-  <text class="sub" x="440.0" y="316" text-anchor="middle">time per TOA, worst case [h] (SNR 7, dual polarization)</text>
+  <text class="sub" x="440.0" y="316" text-anchor="middle">time per TOA [h] (SNR 7, dual polarization, 150 MHz)</text>
   <text class="sub" x="80" y="20">σ_TOA [µs]</text>
-  <path class="dash" d="M80.0 127.3 L83.6 128.5 L87.2 129.7 L90.9 130.9 L94.5 132.1 L98.1 133.3 L101.7 134.5 L105.3 135.7 L108.9 136.8 L112.6 138.0 L116.2 139.2 L119.8 140.4 L123.4 141.6 L127.0 142.8 L130.7 144.0 L134.3 145.1 L137.9 146.3 L141.5 147.5 L145.1 148.7 L148.7 149.9 L152.4 151.1 L156.0 152.3 L159.6 153.5 L163.2 154.6 L166.8 155.8 L170.5 157.0 L174.1 158.2 L177.7 159.4 L181.3 160.6 L184.9 161.8 L188.5 162.9 L192.2 164.1 L195.8 165.3 L199.4 166.5 L203.0 167.7 L206.6 168.9 L210.3 170.1 L213.9 171.3 L217.5 172.4 L221.1 173.6 L224.7 174.8 L228.3 176.0 L232.0 177.2 L235.6 178.4 L239.2 179.6 L242.8 180.7 L246.4 181.9 L250.1 183.1 L253.7 184.3 L257.3 185.5 L260.9 186.7 L264.5 187.9 L268.1 189.1 L271.8 190.2 L275.4 191.4 L279.0 192.6 L282.6 193.8 L286.2 195.0 L289.8 196.2 L293.5 197.4 L297.1 198.5 L300.7 199.7 L304.3 200.9 L307.9 202.1 L311.6 203.3 L315.2 204.5 L318.8 205.7 L322.4 206.9 L326.0 208.0 L329.6 209.2 L333.3 210.4 L336.9 211.6 L340.5 212.8 L344.1 214.0 L347.7 215.2 L351.4 216.3 L355.0 217.5 L358.6 218.7 L362.2 219.9 L365.8 221.1 L369.4 222.3 L373.1 223.5 L376.7 224.7 L380.3 225.8 L383.9 227.0 L387.5 228.2 L391.2 229.4 L394.8 230.6 L398.4 231.8 L402.0 233.0 L405.6 234.1 L409.2 235.3 L412.9 236.5 L416.5 237.7 L420.1 238.9 L423.7 240.1 L427.3 241.3 L431.0 242.5 L434.6 243.6 L438.2 244.8 L441.8 246.0 L445.4 247.2 L449.0 248.4 L452.7 249.6 L456.3 250.8 L459.9 251.9 L463.5 253.1 L467.1 254.3 L470.8 255.5 L474.4 256.7 L478.0 257.9 L481.6 259.1 L485.2 260.3 L488.8 261.4 L492.5 262.6 L496.1 263.8 L499.7 265.0 L503.3 266.2 L506.9 267.4 L510.6 268.6 L514.2 269.7 L517.8 270.9 L521.4 272.1 L525.0 273.3 L528.6 274.5 L532.3 275.7 L535.9 276.9 L539.5 278.1 L543.1 279.2"/>
-  <text class="sub" x="236.1" y="170.6" transform="rotate(-18 236.1 170.6)">σ·√t = 55 µs·√h (J0437)</text>
-  <path class="dash" d="M101.7 30.2 L105.3 31.4 L108.9 32.6 L112.6 33.8 L116.2 35.0 L119.8 36.2 L123.4 37.4 L127.0 38.6 L130.7 39.7 L134.3 40.9 L137.9 42.1 L141.5 43.3 L145.1 44.5 L148.7 45.7 L152.4 46.9 L156.0 48.0 L159.6 49.2 L163.2 50.4 L166.8 51.6 L170.5 52.8 L174.1 54.0 L177.7 55.2 L181.3 56.4 L184.9 57.5 L188.5 58.7 L192.2 59.9 L195.8 61.1 L199.4 62.3 L203.0 63.5 L206.6 64.7 L210.3 65.8 L213.9 67.0 L217.5 68.2 L221.1 69.4 L224.7 70.6 L228.3 71.8 L232.0 73.0 L235.6 74.2 L239.2 75.3 L242.8 76.5 L246.4 77.7 L250.1 78.9 L253.7 80.1 L257.3 81.3 L260.9 82.5 L264.5 83.6 L268.1 84.8 L271.8 86.0 L275.4 87.2 L279.0 88.4 L282.6 89.6 L286.2 90.8 L289.8 91.9 L293.5 93.1 L297.1 94.3 L300.7 95.5 L304.3 96.7 L307.9 97.9 L311.6 99.1 L315.2 100.3 L318.8 101.4 L322.4 102.6 L326.0 103.8 L329.6 105.0 L333.3 106.2 L336.9 107.4 L340.5 108.6 L344.1 109.7 L347.7 110.9 L351.4 112.1 L355.0 113.3 L358.6 114.5 L362.2 115.7 L365.8 116.9 L369.4 118.1 L373.1 119.2 L376.7 120.4 L380.3 121.6 L383.9 122.8 L387.5 124.0 L391.2 125.2 L394.8 126.4 L398.4 127.5 L402.0 128.7 L405.6 129.9 L409.2 131.1 L412.9 132.3 L416.5 133.5 L420.1 134.7 L423.7 135.9 L427.3 137.0 L431.0 138.2 L434.6 139.4 L438.2 140.6 L441.8 141.8 L445.4 143.0 L449.0 144.2 L452.7 145.3 L456.3 146.5 L459.9 147.7 L463.5 148.9 L467.1 150.1 L470.8 151.3 L474.4 152.5 L478.0 153.7 L481.6 154.8 L485.2 156.0 L488.8 157.2 L492.5 158.4 L496.1 159.6 L499.7 160.8 L503.3 162.0 L506.9 163.1 L510.6 164.3 L514.2 165.5 L517.8 166.7 L521.4 167.9 L525.0 169.1 L528.6 170.3 L532.3 171.5 L535.9 172.6 L539.5 173.8 L543.1 175.0 L546.7 176.2 L550.4 177.4 L554.0 178.6 L557.6 179.8 L561.2 180.9 L564.8 182.1 L568.4 183.3 L572.1 184.5 L575.7 185.7 L579.3 186.9 L582.9 188.1 L586.5 189.3 L590.2 190.4 L593.8 191.6 L597.4 192.8 L601.0 194.0 L604.6 195.2 L608.2 196.4 L611.9 197.6 L615.5 198.7 L619.1 199.9 L622.7 201.1 L626.3 202.3 L629.9 203.5 L633.6 204.7 L637.2 205.9 L640.8 207.1 L644.4 208.2 L648.0 209.4 L651.7 210.6 L655.3 211.8 L658.9 213.0 L662.5 214.2 L666.1 215.4 L669.7 216.5 L673.4 217.7 L677.0 218.9 L680.6 220.1 L684.2 221.3 L687.8 222.5 L691.5 223.7 L695.1 224.9 L698.7 226.0 L702.3 227.2 L705.9 228.4 L709.5 229.6 L713.2 230.8 L716.8 232.0 L720.4 233.2 L724.0 234.3 L727.6 235.5 L731.3 236.7 L734.9 237.9 L738.5 239.1 L742.1 240.3 L745.7 241.5 L749.3 242.7 L753.0 243.8 L756.6 245.0 L760.2 246.2 L763.8 247.4 L767.4 248.6 L771.1 249.8 L774.7 251.0 L778.3 252.1 L781.9 253.3 L785.5 254.5 L789.1 255.7 L792.8 256.9 L796.4 258.1 L800.0 259.3"/>
-  <text class="sub" x="533.4" y="163.8" transform="rotate(-18 533.4 163.8)">σ·√t = 1160 (B0329+54)</text>
-  <path class="thin" stroke-dasharray="2 3" d="M365.6 30 V280"/><text class="sub" x="369.6" y="42">1 day</text>
-  <circle cx="358.7" cy="218.7" r="5.5" class="dot2"/>
-  <text class="lbl" x="366.7" y="210.7" text-anchor="start" font-weight="600">J0437−4715</text>
-  <circle cx="137.3" cy="133.3" r="5.5" class="dot2"/>
-  <text class="lbl" x="145.3" y="125.3" text-anchor="start" font-weight="600">Vela</text>
-  <circle cx="274.8" cy="87.0" r="5.5" class="dot2"/>
-  <text class="lbl" x="282.8" y="79.0" text-anchor="start" font-weight="600">B0329+54</text>
-  <circle cx="419.1" cy="77.9" r="4" class="dot"/>
-  <text class="sub" x="411.1" y="68.9" text-anchor="end">B0950+08</text>
-  <circle cx="437.9" cy="87.0" r="4" class="dot"/>
-  <text class="sub" x="445.9" y="101.0" text-anchor="start">B1749−28</text>
-  <circle cx="493.3" cy="105.9" r="4" class="dot"/>
-  <text class="sub" x="501.3" y="109.9" text-anchor="start">B1642−03</text>
-  <circle cx="530.8" cy="92.6" r="4" class="dot"/>
-  <text class="sub" x="538.8" y="86.6" text-anchor="start">B1929+10</text>
-  <circle cx="626.8" cy="248.7" r="4" class="dot"/>
-  <text class="sub" x="618.8" y="252.7" text-anchor="end">B1937+21</text>
-  <circle cx="716.1" cy="192.3" r="4" class="dot"/>
-  <text class="sub" x="724.1" y="206.3" text-anchor="start">J1713+0747</text>
-  <circle cx="704.5" cy="183.1" r="4" class="dot"/>
-  <text class="sub" x="696.5" y="174.1" text-anchor="end">J2145−0750</text>
+  <path class="dash" d="M80.0 114.5 L83.6 115.7 L87.2 116.9 L90.9 118.1 L94.5 119.3 L98.1 120.5 L101.7 121.7 L105.3 122.8 L108.9 124.0 L112.6 125.2 L116.2 126.4 L119.8 127.6 L123.4 128.8 L127.0 130.0 L130.7 131.2 L134.3 132.3 L137.9 133.5 L141.5 134.7 L145.1 135.9 L148.7 137.1 L152.4 138.3 L156.0 139.5 L159.6 140.6 L163.2 141.8 L166.8 143.0 L170.5 144.2 L174.1 145.4 L177.7 146.6 L181.3 147.8 L184.9 149.0 L188.5 150.1 L192.2 151.3 L195.8 152.5 L199.4 153.7 L203.0 154.9 L206.6 156.1 L210.3 157.3 L213.9 158.4 L217.5 159.6 L221.1 160.8 L224.7 162.0 L228.3 163.2 L232.0 164.4 L235.6 165.6 L239.2 166.8 L242.8 167.9 L246.4 169.1 L250.1 170.3 L253.7 171.5 L257.3 172.7 L260.9 173.9 L264.5 175.1 L268.1 176.2 L271.8 177.4 L275.4 178.6 L279.0 179.8 L282.6 181.0 L286.2 182.2 L289.8 183.4 L293.5 184.6 L297.1 185.7 L300.7 186.9 L304.3 188.1 L307.9 189.3 L311.6 190.5 L315.2 191.7 L318.8 192.9 L322.4 194.0 L326.0 195.2 L329.6 196.4 L333.3 197.6 L336.9 198.8 L340.5 200.0 L344.1 201.2 L347.7 202.4 L351.4 203.5 L355.0 204.7 L358.6 205.9 L362.2 207.1 L365.8 208.3 L369.4 209.5 L373.1 210.7 L376.7 211.8 L380.3 213.0 L383.9 214.2 L387.5 215.4 L391.2 216.6 L394.8 217.8 L398.4 219.0 L402.0 220.2 L405.6 221.3 L409.2 222.5 L412.9 223.7 L416.5 224.9 L420.1 226.1 L423.7 227.3 L427.3 228.5 L431.0 229.6 L434.6 230.8 L438.2 232.0 L441.8 233.2 L445.4 234.4 L449.0 235.6 L452.7 236.8 L456.3 237.9 L459.9 239.1 L463.5 240.3 L467.1 241.5 L470.8 242.7 L474.4 243.9 L478.0 245.1 L481.6 246.3 L485.2 247.4 L488.8 248.6 L492.5 249.8 L496.1 251.0 L499.7 252.2 L503.3 253.4 L506.9 254.6 L510.6 255.7 L514.2 256.9 L517.8 258.1 L521.4 259.3 L525.0 260.5 L528.6 261.7 L532.3 262.9 L535.9 264.1 L539.5 265.2 L543.1 266.4 L546.7 267.6 L550.4 268.8 L554.0 270.0 L557.6 271.2 L561.2 272.4 L564.8 273.5 L568.4 274.7 L572.1 275.9 L575.7 277.1 L579.3 278.3 L582.9 279.5"/>
+  <text class="sub" x="272.2" y="169.6" transform="rotate(-18 272.2 169.6)">σ·√t = 8 µs·√h (J0437)</text>
+  <path class="dash" d="M141.5 30.2 L145.1 31.4 L148.7 32.6 L152.4 33.8 L156.0 35.0 L159.6 36.2 L163.2 37.4 L166.8 38.5 L170.5 39.7 L174.1 40.9 L177.7 42.1 L181.3 43.3 L184.9 44.5 L188.5 45.7 L192.2 46.8 L195.8 48.0 L199.4 49.2 L203.0 50.4 L206.6 51.6 L210.3 52.8 L213.9 54.0 L217.5 55.2 L221.1 56.3 L224.7 57.5 L228.3 58.7 L232.0 59.9 L235.6 61.1 L239.2 62.3 L242.8 63.5 L246.4 64.6 L250.1 65.8 L253.7 67.0 L257.3 68.2 L260.9 69.4 L264.5 70.6 L268.1 71.8 L271.8 73.0 L275.4 74.1 L279.0 75.3 L282.6 76.5 L286.2 77.7 L289.8 78.9 L293.5 80.1 L297.1 81.3 L300.7 82.4 L304.3 83.6 L307.9 84.8 L311.6 86.0 L315.2 87.2 L318.8 88.4 L322.4 89.6 L326.0 90.8 L329.6 91.9 L333.3 93.1 L336.9 94.3 L340.5 95.5 L344.1 96.7 L347.7 97.9 L351.4 99.1 L355.0 100.2 L358.6 101.4 L362.2 102.6 L365.8 103.8 L369.4 105.0 L373.1 106.2 L376.7 107.4 L380.3 108.6 L383.9 109.7 L387.5 110.9 L391.2 112.1 L394.8 113.3 L398.4 114.5 L402.0 115.7 L405.6 116.9 L409.2 118.0 L412.9 119.2 L416.5 120.4 L420.1 121.6 L423.7 122.8 L427.3 124.0 L431.0 125.2 L434.6 126.3 L438.2 127.5 L441.8 128.7 L445.4 129.9 L449.0 131.1 L452.7 132.3 L456.3 133.5 L459.9 134.7 L463.5 135.8 L467.1 137.0 L470.8 138.2 L474.4 139.4 L478.0 140.6 L481.6 141.8 L485.2 143.0 L488.8 144.1 L492.5 145.3 L496.1 146.5 L499.7 147.7 L503.3 148.9 L506.9 150.1 L510.6 151.3 L514.2 152.5 L517.8 153.6 L521.4 154.8 L525.0 156.0 L528.6 157.2 L532.3 158.4 L535.9 159.6 L539.5 160.8 L543.1 161.9 L546.7 163.1 L550.4 164.3 L554.0 165.5 L557.6 166.7 L561.2 167.9 L564.8 169.1 L568.4 170.3 L572.1 171.4 L575.7 172.6 L579.3 173.8 L582.9 175.0 L586.5 176.2 L590.2 177.4 L593.8 178.6 L597.4 179.7 L601.0 180.9 L604.6 182.1 L608.2 183.3 L611.9 184.5 L615.5 185.7 L619.1 186.9 L622.7 188.1 L626.3 189.2 L629.9 190.4 L633.6 191.6 L637.2 192.8 L640.8 194.0 L644.4 195.2 L648.0 196.4 L651.7 197.5 L655.3 198.7 L658.9 199.9 L662.5 201.1 L666.1 202.3 L669.7 203.5 L673.4 204.7 L677.0 205.9 L680.6 207.0 L684.2 208.2 L687.8 209.4 L691.5 210.6 L695.1 211.8 L698.7 213.0 L702.3 214.2 L705.9 215.3 L709.5 216.5 L713.2 217.7 L716.8 218.9 L720.4 220.1 L724.0 221.3 L727.6 222.5 L731.3 223.7 L734.9 224.8 L738.5 226.0 L742.1 227.2 L745.7 228.4 L749.3 229.6 L753.0 230.8 L756.6 232.0 L760.2 233.1 L763.8 234.3 L767.4 235.5 L771.1 236.7 L774.7 237.9 L778.3 239.1 L781.9 240.3 L785.5 241.5 L789.1 242.6 L792.8 243.8 L796.4 245.0 L800.0 246.2"/>
+  <text class="sub" x="392.2" y="104.5" transform="rotate(-18 392.2 104.5)">σ·√t = 170 (B0329+54)</text>
+  <path class="thin" stroke-dasharray="2 3" d="M605.6 30 V280"/><text class="sub" x="609.6" y="42">1 day</text>
+  <circle cx="394.8" cy="218.7" r="5.5" class="dot2"/>
+  <text class="lbl" x="402.8" y="210.7" text-anchor="start" font-weight="600">J0437−4715</text>
+  <circle cx="181.4" cy="133.3" r="5.5" class="dot2"/>
+  <text class="lbl" x="189.4" y="125.3" text-anchor="start" font-weight="600">Vela</text>
+  <circle cx="314.5" cy="87.0" r="5.5" class="dot2"/>
+  <text class="lbl" x="322.5" y="79.0" text-anchor="start" font-weight="600">B0329+54</text>
+  <circle cx="453.7" cy="77.9" r="4" class="dot"/>
+  <text class="sub" x="445.7" y="68.9" text-anchor="end">B0950+08</text>
+  <circle cx="473.5" cy="87.0" r="4" class="dot"/>
+  <text class="sub" x="481.5" y="101.0" text-anchor="start">B1749−28</text>
+  <circle cx="529.8" cy="105.9" r="4" class="dot"/>
+  <text class="sub" x="537.8" y="109.9" text-anchor="start">B1642−03</text>
+  <circle cx="567.3" cy="92.6" r="4" class="dot"/>
+  <text class="sub" x="575.3" y="86.6" text-anchor="start">B1929+10</text>
+  <circle cx="662.9" cy="248.7" r="4" class="dot"/>
+  <text class="sub" x="654.9" y="252.7" text-anchor="end">B1937+21</text>
+  <circle cx="752.2" cy="192.3" r="4" class="dot"/>
+  <text class="sub" x="760.2" y="206.3" text-anchor="start">J1713+0747</text>
+  <circle cx="740.6" cy="183.1" r="4" class="dot"/>
+  <text class="sub" x="732.6" y="174.1" text-anchor="end">J2145−0750</text>
 </svg>
-<figcaption><b>Figure R.1.</b> The table above as a map (worst case, both axes logarithmic). Down is more precise, left is faster. Along a dashed line the
+<figcaption><b>Figure R.1.</b> The table above as a map (the design point, both axes logarithmic). Down is more precise, left is faster. Along a dashed line the
 figure of merit σ<sub>TOA</sub>·√<var>t</var> is constant: averaging <var>N</var> TOAs trades time for precision along it. J0437 and Vela
-lead; B0329+54 is the only northern source with TOAs within a pass; the faint millisecond pulsars would be precise but take months.</figcaption>
+lead; B0329+54 is by far the fastest northern source; the faint millisecond pulsars would be precise but need tens to hundreds of hours
+of data.</figcaption>
 </figure>
 
 <h2 id="visibility">R3 · Who can see what</h2>
@@ -189,30 +244,33 @@ this changes from site to site (Figure R.2).</p>
 </svg>
 <figcaption><b>Figure R.2.</b> Hours per day each candidate is more than 20° above the horizon, against the station's latitude (the scenario's visibility
 rule). J0437 and Vela, the two best sources, are southern: from 30° S each is up about 12 h a day, from 52° N never. B0329+54 is the only
-fast northern source. A TOA that needs 21 hours on source therefore takes about two days of calendar time for J0437 from 30° S
-(<a href="limits.html">limitations</a>).</figcaption>
+fast northern source. At the design point a J0437 TOA needs about 1.7 hours of data (R9) and fits within one pass from 30° S; a TOA
+that needs more hours than its pulsar is up in a day takes several days of calendar time (<a href="limits.html">limitations</a>).</figcaption>
 </figure>
 
 <h2 id="conclusions">R4 · Conclusions</h2>
 <p>To compare pulsars, the time and the precision of a TOA are combined into one figure of merit, σ<sub>TOA</sub>·√<var>t</var>, in µs·√h;
-smaller is better. In the worst case it is 55 for J0437, 80 for Vela, 1160 for B0329+54, and 5400–11,500 for the other normal pulsars.
-The faint millisecond pulsars score well on paper (B1937+21 300, J1713+0747 3700, J2145−0750 4300), but a single TOA takes them months
-to years.</p>
-<p>By that measure Vela is as good as J0437. It is bright, with a TOA in about 20 min, but it has a wider pulse, DM 67.8, glitches and
+smaller is better. At the design point it is 8 for J0437, 12 for Vela, 170 for B0329+54, and 770–1630 for the other normal pulsars.
+The faint millisecond pulsars score well on paper (B1937+21 42, J1713+0747 520, J2145−0750 610), but a single TOA takes them tens to
+hundreds of hours of data.</p>
+<p>By that measure Vela is as good as J0437. It is bright, with a TOA in under a minute, but it has a wider pulse, DM 67.8, glitches and
 timing noise. J0437 is by far the fastest millisecond pulsar to time, because the time per TOA scales as <var>S</var>⁻², so a pulsar 15× fainter
-takes 225× longer. J0437 resembles the voltage chain's simulated pulsar (P 5.8 ms against 10 ms; DM 2.6 against the default 25), at ρ ≈ −54 dB in the
-worst case. This estimate gives it about 21 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight. With its measured profile
-the fast simulator gives 82–95 h and 13 µs (R9).</p>
-<p>Both good sources are southern, however. For northern sites <b>B0329+54</b> is the only source with TOAs within a pass, and from Europe
-and most of North America a millisecond pulsar's TOA takes very long: B1937+21, the fastest there, needs 670 h of data at nominal flux. Normal pulsars are needed anyway, for geometry (≥ 4 well-separated directions for
+takes 225× longer. J0437 resembles the voltage chain's simulated pulsar (P 5.8 ms against 10 ms; DM 2.6 against the default 25). This
+estimate gives it about 0.4 h per TOA, for σ<sub>TOA</sub> ≈ 12 µs: 3.6 km along the line of sight. With its measured profile, at
+ρ = −44.2 dB, the fast simulator gives 1.7 h and 12.8 µs (R9).</p>
+<p>Both good sources are southern, however. For northern sites <b>B0329+54</b> is by far the fastest source: 0.09 h per TOA in this
+estimate, against 1.3 h for B0950+08, the next. From Europe and most of North America a millisecond pulsar's TOA takes very long:
+B1937+21, the fastest there, needs about 72 h of data. Normal pulsars are needed anyway, for geometry (≥ 4 well-separated directions for
 3-D position + clock) and for visibility, at the cost of wide pulses (σ<sub>TOA</sub> 0.3–0.7 ms at SNR 7) and timing noise.</p>
 
 <h2 id="consequences">R5 · Consequences for the pipeline</h2>
-<p>These conclusions forced seven things on the design. The first is that the signal is weak everywhere: ρ ≈ −54 dB, so the per-pulse
-SNR is ≪ 1. Self-noise is then negligible and FFTFIT is optimal, but any phase-dependent bias must be ≪ 4·10⁻⁶ of the baseline. A weak
-signal takes time, and that has two more consequences. A 20 h TOA spans several passes, so the fold must run across passes with gaps,
-which makes barycentric phase prediction (D, <a href="fold.html#prediction">stage 7a</a>) a hard requirement. And hours of data cannot
-be simulated at voltage level, which is why the fast simulator (C) exists.</p>
+<p>These conclusions forced seven things on the design. The first is that the signal is weak everywhere: ρ is −38 dB for B0329+54 and
+−44 dB for J0437, so the per-pulse SNR is ≪ 1. Self-noise is then negligible and FFTFIT is optimal, but any phase-dependent bias must be
+≪ 4·10⁻⁵ of the baseline for J0437. A weak signal takes time, and that has two more consequences. A TOA of a weaker pulsar needs more
+data than one pass holds: B1929+10 needs 11.5 h (R2), and with a fixed panel even B0329+54 gets only a pass worth about half an hour a
+day (R7.4). So the fold must run across passes with gaps, which makes barycentric phase prediction (D, <a href="fold.html#prediction">stage 7a</a>) a hard
+requirement. And a position needs weeks of TOAs, which cannot be simulated at voltage level; that is why the fast simulator (C)
+exists.</p>
 <p>The pulsars themselves set two more. The DM target is 100 (Vela 67.8, B1937+21 71.0, B0740−28 73.8, plus margin), which calls for
 the channelized front end on the processing side. Dual polarization gives √2 in SNR (2× in time), so the second polarization must be
 added.</p>
@@ -223,23 +281,63 @@ measured SNR and the sub-int length adapts. RFI is far stronger than the pulsar,
 <p>Where the array observes from matters as much as what it observes. The array stands still, but its site is not known beforehand, so no
 latitude can be built into the method. The scenario runs still need one, and use two. The first is 52° N, in the Netherlands, where the field
 test will probably be. From there J0437 (maximum elevation −9°) and Vela (−7°) never rise. <b>B0329+54</b> never sets, and is above 20° for
-19.6 h a day. The second is 30° S, where J0437 is up 12.3 h a day. The simulations assume a beam steered at the pulsar, with constant gain
-over a pass.</p>
+19.6 h a day. The second is 30° S, where J0437 is up 12.3 h a day. The runs of R7 to R9 follow the pulsar through that time with constant
+gain: the "followed" case of <a href="#merit">R1.2</a>, the array on a tracking mount. A fixed panel sees one short pass a day through
+each beam (<a href="#pass">R7.4</a>).</p>
 <details><summary>History</summary><p>Jasper's information, 20 Oct 2026: the array would go on a ship, with the Netherlands as its location;
 the 30° S runs stood for a ship that sailed south. The receiver had first been drafted, on 6 Oct, as a ground station. Since 2 Nov 2026 the
 goal is a static array at a site that is not known beforehand.</p></details>
 <p>That makes B0329+54 the scenario's northern pulsar, so its own properties matter. At 1.4 GHz it has P 714.5 ms, DM 26.8 (which is why the default DM is 25), W<sub>50</sub> 6.6 ms and S<sub>1400</sub> 203 mJy;
 scintles of about 7 MHz × 13 min (ATA 2025, Wang et al. 2005); five profile components, and an abnormal mode about 15 % of the time. Its ρ in
-the simulator's convention is −41.9 dB nominal, −45.5 dB worst case.</p>
+the simulator's convention, with the five components, is −38.0 dB at the design point.</p>
 
 <h2 id="simulated">R7 · Simulated TOA budget (fast simulator)</h2>
-<p>The catalogue estimates of R2 are checked with the fast simulator, in three tables made one after the other as the pulse profiles became
-more realistic. The current best estimates are B0329+54 with its five components (R7.2) and J0437 with its measured eight-component profile
-(R7.3). The first table, with single Gaussians, stays as the reference that the later ones are compared with. All runs use
-<a href="scripts.html#scenario"><code>runScenario.m</code></a>, with 30 simulated days per case: daily passes above 20°, dual polarization, and
-128 channels with the band-edge taper; receiver noise only ("clean"; RFI and scintillation follow in R8); TOAs formed by merging 120 s or
-300 s sub-ints until SNR ~7, also over the gap to the next pass; the true pulse 0.1 FWHM away from the prediction, and no motion.</p>
-<h3>R7.1 Single Gaussians with the catalogue W<sub>50</sub></h3>
+<p>The catalogue estimates of R2 are checked with the fast simulator, which uses the pulsars' real profiles: B0329+54 with its five
+components (R7.2) and J0437 with its measured eight-component profile (R7.3). All runs use
+<a href="scripts.html#scenario"><code>runScenario.m</code></a> at its design point <code>"array3m2"</code>: an SEFD of 6.44·10⁴ Jy,
+channels 33–80 of the 128 (1300–1450 MHz), and dual polarization. The pulsar is followed through its daily pass above 20° with constant
+gain, so R7.1 to R7.3, R8 and R9 give the first figure of merit of <a href="#merit">R1.2</a>, the integration time per TOA. Each case
+covers 30 simulated days, with receiver noise only ("clean"; RFI and scintillation follow in R8). TOAs are formed by merging 120 s or
+300 s sub-ints until SNR ~7, also over the gap to the next pass; the true pulse is 0.1 FWHM away from the prediction, and there is no
+motion.</p>
+<h3>R7.1 The budget at the design point <span class="badge written">Claude's run</span></h3>
+<div class="table-wrap"><table>
+<tr><th>Pulsar, followed through its pass</th><th>ρ</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h [µs·√h]</th></tr>
+<tr><td>B0329+54 from 52° N (19.6 h a day)</td><td>−38.0 dB</td><td class="num">86.5</td><td>0.23 (0.17–0.30)</td><td>705 µs (211 km)</td><td class="num">1.10</td><td>76 µs (23 km)</td><td class="num">341</td></tr>
+<tr><td>J0437 from 30° S (12.3 h a day)</td><td>−44.2 dB</td><td class="num">6.90</td><td>1.75 (1.25–2.33)</td><td>12.8 µs (3.8 km)</td><td class="num">1.33</td><td>4.9 µs (1.5 km)</td><td class="num">16.9</td></tr>
+</table></div>
+<p>"rms/pred" is the standard deviation of (TOA − truth)/σ, which is 1 for honest error bars. Both pulsars need more data than R2
+estimated: B0329+54 0.23 h against 0.09 h, and J0437 1.75 h against 0.42 h. Their real profiles explain that (R7.2, R7.3). Both TOAs
+still fit well within one pass. These are TOA budgets: per day, B0329+54's TOAs constrain the line-of-sight distance to 23 km, and
+J0437's to 1.5 km. The navigation fit turns the TOAs into a position: with motion, B0329+54 alone finds a fixed site to ±9.4 km east
+and ±11.9 km radial in 30 days when it is followed (<a href="navigation.html#navfit">navigation</a>).</p>
+<details><summary>Runs</summary><p>Claude's runs, 23 Nov 2026: 2596 good TOAs of B0329+54 in 6–7 min, and 207 of J0437 in under 2 min.
+Result files: <code>data/scenario/scenario_&lt;B0329|J0437&gt;_array3m2_clean_30d.mat</code>.</p></details>
+<h3>R7.2 B0329+54's real profile (five components)</h3>
+<p>B0329+54's five components at 1410 MHz spread the same flux over twice the pulse area of a single Gaussian with the catalogue
+W<sub>50</sub>. The peak is therefore 3 dB lower, and a TOA needs about 3× more data. The runs are at NBin 2048, where the narrowest
+component is 11 bins wide. At NBin 1024 it was only 5.6 bins wide, and the error bars came out too small (History).</p>
+<p>Even at NBin 2048 a rare low-SNR outlier remains: a TOA that lands about one core width off, ±0.0064 turns (4.5 ms). In the runs at
+the design point 0.1 % of B0329+54's TOAs lie more than 5σ off. The first runs showed what they are (20–21 Oct 2026, History): TOAs at
+|z| 6.4–6.9 with SNR 7.6–7.8 and χ² 1.00–1.02, so χ² cannot flag them; the pull test at SNR 7 gave the same kind (2 of 600). The cause
+is the shape of the template: its autocorrelation has no second peak there, it is 0.75 on a smooth shoulder, and
+the first side peak is at ±0.025 turns. A narrow core on a broad component lets noise move the maximum onto the shoulder now and then. The
+error bar comes from the curvature at the peak, so it does not cover this: it is the estimator's threshold effect. At SNR 10 there were none
+(0 of 600). For navigation: use a robust (outlier-tolerant) position fit, or a target SNR of about 10 for B0329+54
+(<a href="limits.html#estimation">limits</a>).</p>
+<h3>R7.3 J0437's real profile has wings: about 5× more data per TOA</h3>
+<p>A single Gaussian with the catalogue W<sub>50</sub> of 0.141 ms is not what J0437 looks like: its W<sub>10</sub> is 1.02 ms, four times
+a Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database, CC BY 4.0) gives a W<sub>eq</sub> 2.4× the Gaussian's,
+so ρ is 3.75 dB lower: −44.2 dB at the design point. The wings add flux but little timing, and the core is sharper than a Gaussian,
+so the resolution rule needs NBin 1024. The profile was fitted with 8 Gaussian components, whose W<sub>50</sub>, W<sub>10</sub>,
+W<sub>eq</sub>, spectral width and timing merit are within 1 % of the measured profile's. Against the single Gaussian, the first runs with
+this profile needed 5.3× the data per TOA and had 2.5× the σ·√h; the white-noise estimate predicted 5.1× and 2.53× (History).</p>
+<p>One thing is open for J0437: its error bars are too small in the clean runs. The rms/pred is 1.33 over 30 days and 1.23 over 100 days
+(R9), where 1 is honest. This has not been looked into.</p>
+<details><summary>History: the first tables, 20–21 Oct 2026, at the design points before 23 November 2026</summary>
+<p>These three tables were made one after the other as the pulse profiles became more realistic. They belong to the receiver planned
+then (0.61 m², all 128 channels, 400 MHz): "nominal" is an SEFD of 3.2·10⁵ Jy and "worst case" 7.4·10⁵ Jy. They were not rerun.</p>
+<p><b>Single Gaussians with the catalogue W<sub>50</sub></b> (Claude's run, 20 Oct 2026, 30 days, clean):</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h [µs·√h]</th></tr>
 <tr><td>B0329+54, nominal (−41.9 dB)</td><td>28.4</td><td>0.67 (0.47–0.93)</td><td>534 µs (160 km)</td><td>1.04</td><td>101 µs (30 km)</td><td>436</td></tr>
@@ -247,148 +345,126 @@ more realistic. The current best estimates are B0329+54 with its five components
 <tr><td>J0437, nominal (−47.4 dB)</td><td>3.8</td><td>3.2 (2.1–4.4)</td><td>11.4 µs (3.4 km)</td><td>0.94</td><td>5.9 µs (1.8 km)</td><td>20</td></tr>
 <tr><td>J0437, worst case (−51.0 dB)</td><td>0.77</td><td>15.2 (11.1–20.2); 27 h calendar time</td><td>11.6 µs (3.5 km)</td><td>0.84 ± 0.12</td><td>13 µs (4 km)</td><td>45</td></tr>
 </table></div>
-<p>The hours per TOA agree with the radiometer equation, allowing about 10 % for the band-edge taper. The error bars are honest, and there
-are no outliers. A worst-case J0437 TOA needs more data than one pass holds, and spans the gap to the next pass. The figures of merit are
-better than R2's estimates (1160 and 55 µs·√h), which used the margin W<sub>eq</sub> = 2·W<sub>50</sub>. These are TOA budgets: per day,
-B0329+54's TOAs constrain the line-of-sight distance to 30–70 km, and J0437's to 2–4 km. The navigation fit turns the TOAs into a position:
-with motion and its five components, B0329+54 alone finds a fixed site to ±30 km per equatorial component in 30 days
-(<a href="navigation.html#navfit">navigation</a>). Single Gaussians, however, are not what these pulsars look like.</p>
-<h3>R7.2 B0329+54's real profile (five components)</h3>
-<p>B0329+54's five components at 1410 MHz spread the same flux over twice the pulse area of a single Gaussian with the catalogue
-W<sub>50</sub>. The peak is therefore 3 dB lower (ρ −45.0 dB nominal, −48.6 dB worst case), and a TOA needs about 3× more data. The rerun:
-30 days, clean, B0329+54 at NBin 2048, where its narrowest component is 11 bins wide; J0437 is still a single Gaussian here.</p>
-<div class="table-wrap"><table>
-<tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h</th></tr>
-<tr><td>B0329+54, nominal</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs (220 km)</td><td>1.05 (robust 1.02)</td><td>232 µs (70 km)</td><td>1021</td></tr>
-<tr><td>B0329+54, worst case</td><td>1.97</td><td>10.0 (6.5–12.9)</td><td>743 µs (223 km)</td><td>1.36 (1.10 without one 6.4σ TOA)</td><td>529 µs (159 km)</td><td>2354</td></tr>
-<tr><td>J0437, nominal</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs (3.4 km)</td><td>0.88 (robust 0.67)</td><td>5.9 µs (1.8 km)</td><td>21</td></tr>
-<tr><td>J0437, worst case</td><td>0.73</td><td>16.5 (11.6–21.4)</td><td>11.5 µs (3.5 km)</td><td>0.89</td><td>13 µs (4 km)</td><td>47</td></tr>
-</table></div>
-<p>The rerun is at NBin 2048 because at NBin 1024 the narrowest component was only 5.6 bins wide. B0329+54 then gave 9.6 (nominal) and 1.8 (worst case)
-TOAs per day, at 2.0 and 11.0 h per TOA, with rms/pred 1.18 and 1.17. Most of that excess was bin resolution.</p>
-<p>Even at NBin 2048 a rare low-SNR outlier remains: one TOA in each of two runs lands about one core width off: ±0.0064 turns (4.5 ms),
-|z| 6.4–6.9. That is about 0.3 % of ~700 TOAs, as in the pull test at SNR 7 (2 of 600). These TOAs have SNR 7.6–7.8 and χ² 1.00–1.02, so χ²
-cannot flag them. The cause is the shape of the template: its autocorrelation has no second peak there, it is 0.75 on a smooth shoulder, and
-the first side peak is at ±0.025 turns. A narrow core on a broad component lets noise move the maximum onto the shoulder now and then. The
-error bar comes from the curvature at the peak, so it does not cover this: it is the estimator's threshold effect. At SNR 10 there were none
-(0 of 600). For navigation: use a robust (outlier-tolerant) position fit, or a target SNR of about 10 for B0329+54. J0437's 0.88 was
-statistical scatter: a second run gave 0.94, and adaptive and fixed groups on the same data both gave about 1.1
-(<a href="limits.html#estimation">limits</a>).</p>
-<h3>R7.3 J0437's real profile has wings: about 5× more data per TOA</h3>
-<p>The J0437 rows above use a single Gaussian with the catalogue W<sub>50</sub> of 0.141 ms. But J0437's W<sub>10</sub> is 1.02 ms, four times
-a Gaussian's. The measured Parkes profile at 1369 MHz (Dai et al. 2015, EPN database, CC BY 4.0) gives a W<sub>eq</sub> 2.4× the Gaussian's,
-so ρ is 3.75 dB lower: −51.2 dB nominal, −54.8 dB worst case. The wings add flux but little timing, and the core is sharper than a Gaussian,
-so the resolution rule needs NBin 1024. The profile was fitted with 8 Gaussian components, whose W<sub>50</sub>, W<sub>10</sub>,
-W<sub>eq</sub>, spectral width and timing merit are within 1 % of the measured profile's. Simulated for 60 days, clean, at NBin 1024:</p>
+<p>The hours per TOA agreed with the radiometer equation, allowing about 10 % for the band-edge taper; the error bars were honest, and
+there were no outliers. J0437's low rms/pred (0.84–0.94) was statistical scatter: adaptive and fixed groups on the same data both gave
+about 1.1.</p>
+<p><b>B0329+54 with five components</b> (21 Oct 2026): ρ −45.0 dB nominal and −48.6 dB worst case; 9.97 and 1.97 TOAs per day at 1.93 h
+and 10.0 h of data per TOA; σ 734 µs and 743 µs. The 734 µs that the navigation unit tests use as their TOA error is the σ of that
+nominal run. At NBin 1024 the same cases gave 9.6 and 1.8 TOAs per day, at 2.0 and 11.0 h per TOA, with rms/pred 1.18 and 1.17. Most
+of that excess was bin resolution, which is why the runs are at NBin 2048. The outliers one core width off were about 0.3 % of
+~700 TOAs.</p>
+<p><b>J0437 with its measured profile</b> (Claude's scratch run, 21 Oct 2026, 60 days, clean, NBin 1024; ρ −51.2 dB nominal and −54.8 dB
+worst case). Jasper adopted the measured profile in <code>runScenario</code> the same day.</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th>good TOAs per day</th><th>hours of data per TOA (10–90 %)</th><th>span</th><th>σ<sub>TOA</sub> (c·σ)</th><th>rms/pred</th><th>per day, σ/√N</th><th>σ·√h</th></tr>
 <tr><td>J0437, nominal, 8 components</td><td>0.68</td><td>16.9 (11.8–22.8)</td><td>31 h</td><td>13.0 µs (3.9 km)</td><td>1.10 (41 TOAs)</td><td>15.7 µs (4.7 km)</td><td>53</td></tr>
 <tr><td>J0437, worst case, 8 components</td><td>0.12</td><td>95 (69–129)</td><td>7.4 days</td><td>12.9 µs (3.9 km)</td><td>1.46 (7 TOAs)</td><td>37 µs (11 km)</td><td>126</td></tr>
 </table></div>
-<p>Against the single Gaussian, this is 5.3× the data per TOA and 2.5× the σ·√h; the white-noise estimate predicted 5.1× and 2.53×. Per day,
-J0437 now constrains the range to about 5 km (nominal) and 11 km (worst case), instead of 2–4 km. In the worst case one TOA spans a week of
-passes. This profile is now the one <code>runScenario</code> uses, and its 30-day runs with all variants follow.</p>
-<details><summary>Runs</summary><p>R7.1: Claude's run, 20 Oct 2026. R7.3: Claude's scratch run, 21 Oct 2026; Jasper adopted the measured
-profile in <code>runScenario</code> on 21 Oct 2026.</p></details>
+</details>
+
+<h3 id="pass">R7.4 A single pass through a fixed beam <span class="badge written">Claude's run</span></h3>
+<p>This is the second figure of merit of <a href="#merit">R1.2</a>: the SNR of one pass, for a fixed panel. B0329+54 drifts through a
+fixed beam once a day, and gives one TOA per pass. The fast simulator has no gain that changes within a pass. A pass is therefore
+simulated as a window at full gain that carries the same SNR² as a drift through a Gaussian beam of the stated width: 0.753 × the beam
+width, divided by the drift rate of 15°/h × cos δ. The runs are scratch runs with a copy of the scenario script, at the design point,
+clean, over 120 passes through the beam centre:</p>
+<div class="table-wrap"><table>
+<tr><th>Beam width</th><th>Window at full gain</th><th>Passes detected</th><th>SNR per pass, median (10–90 %; lowest)</th><th>TOA error per pass</th><th>rms/pred</th></tr>
+<tr><td>6.3°, which follows from 3 m²</td><td>0.545 h</td><td class="num">120 of 120</td><td>11.49 (10.38–12.62; 9.00)</td><td class="num">459 µs</td><td class="num">1.12</td></tr>
+<tr><td>if the beam is 15°</td><td>1.299 h</td><td class="num">120 of 120</td><td>17.41 (16.58–18.73; 15.55)</td><td class="num">303 µs</td><td class="num">1.02</td></tr>
+</table></div>
+<p>The two rows are alternatives, not a range. An area of 3 m² implies a beam of about 6° (R1.1); Jasper named a beam of 15°. A 15° beam
+and 3 m² do not belong to one filled aperture, so both were run, and the team's measured beam width decides which row holds. Two things
+lower the SNR of a pass, and both are scaled from the 6.3° row, not simulated. A pass off the beam centre loses gain: a zenith-facing
+panel has B0329+54 2.6° off centre, which gives SNR × 0.62. And on a low-flux day (the 5th percentile, 0.45 of the mean flux, from the
+literature) the SNR is about 5.</p>
+<p>A TOA per day is not yet a position. A pulsar that is seen every day at the same hour angle gives no position at all: the site's
+delay at that hour angle is a constant, and it merges with the pulsar's own phase constant. The position from fixed beams, over 30 days
+of passes with the true site 100 km east of the assumed one (scratch runs):</p>
+<div class="table-wrap"><table>
+<tr><th>Fixed panel, 30 days of single passes</th><th>6.3° beam</th><th>if the beam is 15°</th></tr>
+<tr><td>One beam on the pulsar (one hour angle a day)</td><td>the fit is singular: no position</td><td>singular: no position</td></tr>
+<tr><td>Both beams on the pulsar (the second 2.23 h after culmination)</td><td>±108 km along one axis (0.958 east, 0.287 radial); the other axis undetermined</td><td>±71 km along the same axis; the other undetermined</td></tr>
+</table></div>
+<p>The second row assumes full gain in both beams. For comparison, the panel on a tracking mount gives ±9.4 km east and ±11.9 km radial
+in the same 30 days (the followed case, <a href="navigation.html#navfit">navigation</a>).</p>
+<details><summary>Runs</summary><p>Claude's scratch runs, 23 Nov 2026, with a copy of <code>runScenario.m</code> kept outside the repository
+(<code>runScenario3m2.m</code>). The repository's script follows the pulsar and has no drift through a beam.</p></details>
 
 <h2 id="rfivariants">R8 · With realistic RFI: the scenario variants</h2>
-<p>The realistic L-band RFI (LTE, GNSS, Inmarsat, radars, impulses; the measured 1 s profile after excision) costs about 20–25 % of the TOAs
-per day, and about 10–15 % in σ·√h. Without the per-channel noise calibration, the error bars are only about 3 % too small, but χ² is 1.07 and
-the pChi2 test flags 89–100 % of the TOAs. With the calibration, χ² is 1.00 and at most 7 % are flagged, which makes the calibration the
-setting for real data. The variants of <code>runScenario</code>, each over 30 days:</p>
+<p>Inside the clean 150 MHz the realistic L-band RFI costs little: about 2 % of the TOAs per day. The RFI is the measured 1 s profile
+after excision, cut to the design point's channels. Of the model's sources, channels 33–80 hold the radar at 1332.9 MHz, the carrier at
+1388.9 MHz and the broadband impulses; LTE, GNSS and Inmarsat lie outside them. The variants of <code>runScenario</code>, each over 30 days
+with the pulsar followed through its pass:</p>
 <dl class="facts">
-<dt>clean</dt><dd>receiver noise only (the tables above)</dd>
+<dt>clean</dt><dd>receiver noise only (R7.1)</dd>
 <dt>RFI</dt><dd>the realistic RFI profile; the observer uses the clean, flat-channel noise model</dd>
 <dt>+ calibration</dt><dd>the observer folds with the measured per-channel noise (<code>'ObserverNoise', 'measured'</code>, as
 <code>processIQ</code>'s <code>noiseCal</code>)</dd>
 <dt>+ scintillation</dt><dd>also interstellar scintillation (B0329+54: scintles ~7 MHz, 780 s; J0437: ~740 MHz, 2290 s)</dd>
 <dt>fixed groups</dt><dd>the same, with groups of the median adaptive length instead of adaptive ones</dd>
 </dl>
-<p>B0329+54 is at NBin 2048 with five components. J0437 appears twice: with the single Gaussian of the first runs, and with its measured
-profile (eight components, NBin 1024), which takes about 5× longer per TOA. "rms/pred" is the standard deviation of (TOA − truth)/σ; in
-brackets, without the rare outliers with |z| &gt; 4. The RFI rows of B0329+54 and of J0437 with its measured profile use the current RFI profiles (per-channel <code>detectRFI</code> thresholds,
-30 lags); the single-Gaussian J0437 rows still use the first profiles.</p>
-<details><summary>Runs</summary><p>Current profiles: Claude's runs, 23 Oct, 4.2 h. Single-Gaussian J0437 rows: 20–21 Oct.</p></details>
+<p>B0329+54 is at NBin 2048 with five components, J0437 at NBin 1024 with its measured profile. "rms/pred" is the standard deviation
+of (TOA − truth)/σ; "beyond 5σ" is the fraction of the TOAs with |z| &gt; 5.</p>
+<details><summary>Runs</summary><p>Claude's runs, 23 Nov 2026: 6–7 min per B0329+54 case, 1.2–1.8 min per J0437 case. Result files:
+<code>data/scenario/scenario_&lt;pulsar&gt;_array3m2_&lt;variant&gt;_30d.mat</code>.</p></details>
 <div class="table-wrap"><table>
-<tr><th>Case</th><th>Variant</th><th>TOAs per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
-<tr><td>B0329+54, nominal</td><td>clean</td><td>9.97</td><td>1.93 (1.30–2.67)</td><td>734 µs</td><td>1.05</td><td>1.00</td><td>6 %</td><td>1021</td></tr>
-<tr><td></td><td>RFI</td><td>7.90</td><td>2.40 (1.67–3.35)</td><td>736 µs</td><td>1.11 (1.03)</td><td>1.08</td><td><b>100 %</b></td><td>1140</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>7.83</td><td>2.43 (1.70–3.39)</td><td>736 µs</td><td>1.03</td><td>1.00</td><td>2 %</td><td>1148</td></tr>
-<tr><td></td><td>+ scintillation</td><td>7.93</td><td>2.40 (1.50–3.44)</td><td>735 µs</td><td>1.22 (1.02)</td><td>1.00</td><td>3 %</td><td>1139</td></tr>
-<tr><td></td><td>fixed groups</td><td>8.10</td><td>2.40</td><td>746 µs</td><td>1.62 (1.05)</td><td>1.00</td><td>3 %</td><td>1156</td></tr>
-<tr><td>B0329+54, worst case</td><td>clean</td><td>1.97</td><td>10.0 (6.5–12.9)</td><td>743 µs</td><td>1.36 (1.10)</td><td>1.00</td><td>7 %</td><td>2354</td></tr>
-<tr><td></td><td>RFI</td><td>1.53</td><td>12.4 (8.3–16.8)</td><td>740 µs</td><td>1.12</td><td>1.08</td><td><b>100 %</b></td><td>2607</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>1.53</td><td>12.8 (7.6–17.1)</td><td>740 µs</td><td>1.76 (1.01)</td><td>1.00</td><td>4 %</td><td>2644</td></tr>
-<tr><td></td><td>+ scintillation</td><td>1.53</td><td>12.9 (8.0–17.0)</td><td>743 µs</td><td>1.83 (1.05)</td><td>1.00</td><td>7 %</td><td>2666</td></tr>
-<tr><td></td><td>fixed groups</td><td>1.50</td><td>12.9</td><td>730 µs</td><td>1.00</td><td>1.00</td><td>0 %</td><td>2621</td></tr>
-<tr><td>J0437, nominal (single Gaussian)</td><td>clean</td><td>3.7</td><td>3.25 (2.2–4.3)</td><td>11.5 µs</td><td>0.88</td><td>1.00</td><td>4 %</td><td>21</td></tr>
-<tr><td></td><td>RFI</td><td>3.00</td><td>4.17 (2.82–5.25)</td><td>11.5 µs</td><td>0.97</td><td>1.07</td><td><b>89 %</b></td><td>23.4</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>2.97</td><td>4.00 (2.82–5.25)</td><td>11.4 µs</td><td>1.02</td><td>1.00</td><td>6 %</td><td>22.8</td></tr>
-<tr><td></td><td>+ scintillation</td><td>3.43</td><td>2.33 (0.25–7.87)</td><td>11.3 µs</td><td>0.90</td><td>1.00</td><td>6 %</td><td><b>17.3</b></td></tr>
-<tr><td></td><td>fixed groups</td><td>2.73</td><td>2.33</td><td>12.3 µs</td><td>0.94</td><td>1.00</td><td>5 %</td><td>18.8</td></tr>
-<tr><td>J0437, worst case (single Gaussian)</td><td>clean</td><td>0.73</td><td>16.5 (11.6–21.4)</td><td>11.5 µs</td><td>0.89</td><td>1.00</td><td>13 %</td><td>47</td></tr>
-<tr><td></td><td>RFI</td><td>0.57</td><td>21.1 (15.8–27.3)</td><td>11.6 µs</td><td>0.83</td><td>1.07</td><td><b>100 %</b></td><td>53.1</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>21.3 (14.8–26.3)</td><td>11.5 µs</td><td>1.01</td><td>1.00</td><td>0 %</td><td>53.0</td></tr>
-<tr><td></td><td>+ scintillation</td><td>0.53</td><td>24.5 (7.2–35.2)</td><td>11.4 µs</td><td>0.85</td><td>1.00</td><td>0 %</td><td>56.6</td></tr>
-<tr><td></td><td>fixed groups</td><td>0.50</td><td>24.5</td><td>11.8 µs</td><td>0.99</td><td>1.00</td><td>0 %</td><td>58.6</td></tr>
-<tr><td>J0437, nominal (measured profile)</td><td>clean</td><td>0.73</td><td>15.5 (13.6–20.0)</td><td>13.0 µs</td><td>1.10</td><td>1.00</td><td>9 %</td><td>51.3</td></tr>
-<tr><td></td><td>RFI</td><td>0.57</td><td>21.7 (13.7–28.0)</td><td>13.1 µs</td><td>1.20</td><td>1.07</td><td><b>100 %</b></td><td>60.8</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>0.57</td><td>20.7 (13.6–29.0)</td><td>13.0 µs</td><td>1.25</td><td>1.00</td><td>0 %</td><td>59.2</td></tr>
-<tr><td></td><td>+ scintillation</td><td>0.60</td><td>19.5 (3.4–38.3)</td><td>12.9 µs</td><td>1.13</td><td>1.00</td><td>6 %</td><td>57.0</td></tr>
-<tr><td></td><td>fixed groups</td><td>0.57</td><td>19.5</td><td>13.5 µs</td><td>1.15</td><td>1.00</td><td>0 %</td><td>59.6</td></tr>
-<tr><td>J0437, worst case (measured profile)</td><td>clean</td><td>0.13</td><td>87 (60–105)</td><td>13.1 µs</td><td>0.61</td><td>1.00</td><td>25 %</td><td>123</td></tr>
-<tr><td></td><td>RFI</td><td>0.10</td><td>126 (57–132)</td><td>13.2 µs</td><td>1.49</td><td>1.06</td><td><b>100 %</b></td><td>149</td></tr>
-<tr><td></td><td>RFI + calibration</td><td>0.10</td><td>122 (62–140)</td><td>13.2 µs</td><td>1.78</td><td>1.00</td><td>0 %</td><td>146</td></tr>
-<tr><td></td><td>+ scintillation</td><td>0.10</td><td>101 (69–165)</td><td>13.2 µs</td><td>1.11</td><td>0.99</td><td>0 %</td><td>132</td></tr>
-<tr><td></td><td>fixed groups</td><td>0.10</td><td>101</td><td>13.2 µs</td><td>0.92</td><td>1.00</td><td>0 %</td><td>132</td></tr>
+<tr><th>Pulsar</th><th>Variant</th><th>TOAs per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>beyond 5σ</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
+<tr><td>B0329+54</td><td>clean</td><td class="num">86.5</td><td>0.23 (0.17–0.30)</td><td class="num">705 µs</td><td class="num">1.10</td><td class="num">0.1 %</td><td class="num">0.999</td><td class="num">3.9 %</td><td class="num">341</td></tr>
+<tr><td></td><td>RFI</td><td class="num">85.0</td><td>0.23 (0.17–0.30)</td><td class="num">706 µs</td><td class="num">1.11</td><td class="num">0.1 %</td><td class="num">0.985</td><td class="num">0.7 %</td><td class="num">341</td></tr>
+<tr><td></td><td>RFI + calibration</td><td class="num">85.2</td><td>0.23 (0.17–0.30)</td><td class="num">707 µs</td><td class="num">1.10</td><td class="num">0.1 %</td><td class="num">0.999</td><td class="num">4.3 %</td><td class="num">341</td></tr>
+<tr><td></td><td>+ scintillation</td><td class="num">91.4</td><td>0.17 (0.10–0.40)</td><td class="num">700 µs</td><td class="num">1.10</td><td class="num">0.1 %</td><td class="num">1.006</td><td class="num">10.7 %</td><td class="num">286</td></tr>
+<tr><td></td><td>fixed groups</td><td class="num">98.3</td><td>0.17</td><td class="num">784 µs</td><td class="num"><b>5.54</b></td><td class="num">0.4 %</td><td class="num">1.006</td><td class="num">10.3 %</td><td class="num">320</td></tr>
+<tr><td>J0437</td><td>clean</td><td class="num">6.90</td><td>1.75 (1.25–2.33)</td><td class="num">12.8 µs</td><td class="num">1.33</td><td class="num">0.5 %</td><td class="num">0.999</td><td class="num">3.4 %</td><td class="num">16.9</td></tr>
+<tr><td></td><td>RFI</td><td class="num">6.73</td><td>1.75 (1.25–2.49)</td><td class="num">12.8 µs</td><td class="num">1.18</td><td class="num">0.0 %</td><td class="num">0.984</td><td class="num">0.0 %</td><td class="num">16.9</td></tr>
+<tr><td></td><td>RFI + calibration</td><td class="num">6.80</td><td>1.75 (1.25–2.47)</td><td class="num">12.8 µs</td><td class="num">1.19</td><td class="num">0.0 %</td><td class="num">0.998</td><td class="num">3.4 %</td><td class="num">16.9</td></tr>
+<tr><td></td><td>+ scintillation</td><td class="num">10.7</td><td>0.33 (0.08–3.42)</td><td class="num">12.2 µs</td><td class="num">1.13</td><td class="num">0.3 %</td><td class="num">0.998</td><td class="num">1.6 %</td><td class="num"><b>7.0</b></td></tr>
+<tr><td></td><td>fixed groups</td><td class="num">11.2</td><td>0.33</td><td class="num">15.1 µs</td><td class="num"><b>2.55</b></td><td class="num">1.8 %</td><td class="num">0.998</td><td class="num">2.1 %</td><td class="num">8.7</td></tr>
 </table></div>
-<details><summary>History: the RFI rows with the first profiles (until 23 Oct)</summary><p>Until 23 Oct the RFI rows used the
-first 1 s profiles (20 Oct: white <code>detectRFI</code> thresholds, 7 lags; kept in <code>data/rfi/profile_20oct/</code>, the old
-results in <code>data/scenario/profiles_20oct/</code>). The rerun with the current profiles changes the TOA rates, σ and σ·√h of
-B0329+54 by at most 2 %. The flat-channel χ² rises from 1.07 to 1.08, and with the calibration fewer TOAs are flagged (2 % instead
-of 7 % at nominal flux). The rms/pred values with outliers (1.76 and 1.83 at worst-case flux) move with which noise draw lands a
-TOA in the low-SNR tail; without the outliers they stay at 1.01–1.05. The J0437 rows rest on 17 and 3 TOAs and change within their
-scatter.</p></details>
-<p>With its measured profile, J0437 gives 22 TOAs in 30 days at nominal flux, and only 2–4 in the worst case, so the worst-case rows are
-statistics of a handful of TOAs. The RFI still costs about 22 % of the TOAs, and the calibration still brings χ² to 1.00. The gain from
-scintillation is gone: each TOA now needs about 20 h of data, which averages over roughly 30 scintles of 40 min, so there are no bright spells left to ride.</p>
-<p>Across all rows, each variant has its own effect. RFI costs about 21 % of the TOAs for B0329+54, and 20–24 % for J0437: the SNR loss of the measured profile (×0.895,
-<code>expSimRFI</code>), squared. The calibration brings χ² from 1.07 to 1.00, and the pChi2 flags from 89–100 % down to about 5 %, at no cost in TOAs. The voltage chain
-shows the same: χ² 1.24 → 0.99. Without it, a TOA-quality test on real data would reject almost everything.</p>
-<p>Scintillation depends on the scintle size. B0329+54's scintles (~7 MHz) average out over the 128 channels: no effect. J0437's (~740 MHz) make the whole band fade
-and brighten over about 40 min. Adaptive groups ride the bright spells, with 0.25–7.9 h of data per TOA, so σ·√h improves from 22.8 to 17.3 in
-the nominal case: information grows as the flux squared, and ⟨S²⟩ &gt; ⟨S⟩². Fixed groups keep part of that gain (18.8), but some of their
-TOAs fall to SNR ~5. The worst case, with 16–17 TOAs, is inconclusive.</p>
-<p>Outliers remain for B0329+54. With adaptive groups (SNR ≥ 7), 6 of ~1200 TOAs are 5–9σ off, at SNR 7.3–7.9, by one core width
-(0.005–0.009 turns): the threshold effect of R7.2; all but one are positive. Fixed groups reach down to SNR ~5.5, and add a jump to the
-template's side peak: z −19.3, at −0.0259 turns (the autocorrelation's side peak is at ±0.0247). For navigation: use adaptive groups, a robust
-fit, or a higher target SNR for pulsars with several components. Thirty days hold few such outliers, which is why the final budgets run for
-a hundred.</p>
+<p>Each variant has its own effect. The RFI costs B0329+54 about 2 % of its TOAs; J0437's rows, with about 200 TOAs each, cannot resolve so small a loss. Without the per-channel noise
+calibration χ² is 0.985, and the pChi2 test flags too few TOAs: 0.7 % and none, where 5 % is expected. With the calibration χ² is 1.00
+and 3–4 % are flagged, at no cost in TOAs. The calibration therefore stays the setting for real data, although inside the clean band it
+changes little.</p>
+<p>Scintillation depends on the scintle size. B0329+54's scintles (~7 MHz) are much narrower than the band. They widen the spread of the
+time per TOA, from 0.17–0.30 h to 0.10–0.40 h, and B0329+54 gives 91 TOAs a day instead of 85 (88 over 100 days, R9). With scintillation 10–11 % of its TOAs
+have a pChi2 below 0.05, where 5 % is expected; this has not been looked into. J0437's scintles (~740 MHz) make the whole band fade and
+brighten over about 40 min, and a TOA of 1.75 h is short enough for adaptive groups to ride the bright spells: 10.7 TOAs a day instead
+of 6.8, with 0.08–3.42 h of data per TOA, because information grows as the flux squared, and ⟨S²⟩ &gt; ⟨S⟩².</p>
+<p>Fixed groups are not safe. Their rms/pred is 5.54 for B0329+54 and 2.55 for J0437, and 0.4 % and 1.8 % of their TOAs lie more than 5σ
+off. Fixed groups reach down to a lower SNR than adaptive ones, where a TOA can jump to the template's side peak (the first run of this
+kind, on 21 Oct 2026, had one at −0.0259 turns; the autocorrelation's side peak is at ±0.0247). For navigation: use adaptive groups, a
+robust fit, or a higher target SNR for pulsars with several components.</p>
+<details><summary>History: the variants over the full band, until 23 November 2026</summary><p>At the design points before
+23 November 2026 (0.61 m², all 128 channels over 400 MHz; Claude's runs of 23 Oct 2026) the same RFI model cost much more, in a band
+that also holds the model's LTE, GNSS and Inmarsat sources: about 20–25 % of the TOAs per day and 10–15 % in σ·√h, the SNR loss of the measured profile
+squared (×0.895, <code>expSimRFI</code>). Without the calibration χ² was 1.07–1.08 and the pChi2 test flagged 89–100 % of the TOAs;
+with it χ² was 1.00 and at most 7 % were flagged. The voltage chain shows the same: χ² 1.24 → 0.99. B0329+54 gave 9.97 TOAs a day at nominal
+flux (clean) and 7.9 with RFI, at 734–746 µs. J0437 gave 0.73 a day at nominal flux and 0.13 in the worst case, with 15.5 h and 87 h
+of data per TOA; a TOA of about 20 h averaged over roughly 30 scintles of 40 min, so scintillation brought no gain then. The RFI
+profiles of those runs (per-channel <code>detectRFI</code> thresholds, 30 lags) are the ones in use now; the first profiles of 20 Oct
+are kept in <code>data/rfi/profile_20oct/</code>.</p></details>
 
-<h2 id="hundred">R9 · 100 days: the final budgets</h2>
-<p>Over 100 days the budgets of the 30-day runs hold. B0329+54 gives about 10 good TOAs a day at nominal flux, and 7.7 with realistic RFI and
-scintillation; J0437 gives one about every 1.3 days. The error bars are honest in the core of the distribution, but 1.9 % of B0329+54's TOAs
-lie beyond 3σ, seven times more than a Gaussian would give, so the navigation fit must expect such a tail. Two variants per case: clean, and
-the full realistic case (RFI with the observer's calibration, and scintillation). The RFI profiles were measured with the new excision code, and each case covers 100 simulated days.</p>
-<details><summary>Runs</summary><p>RFI profiles measured on 21 Oct. Claude's run, 21–22 Oct 2026, 9.8 h with other runs in parallel.</p></details>
+<h2 id="hundred">R9 · 100 days: the final budgets <span class="badge written">Claude's run</span></h2>
+<p>Over 100 days the budgets of the 30-day runs hold. Followed through its pass, B0329+54 gives about 86 good TOAs a day, clean, and 88
+with realistic RFI and scintillation; J0437 gives 7 a day, and 10 with scintillation. Two variants per case: clean, and the full
+realistic case (RFI with the observer's calibration, and scintillation). Each case covers 100 simulated days.</p>
+<details><summary>Runs</summary><p>Claude's runs, 23 Nov 2026, 21–23 min per B0329+54 case. Result files:
+<code>data/scenario/scenario_&lt;pulsar&gt;_array3m2_{clean,rfiCalScint}_100d.mat</code>.</p></details>
 <div class="table-wrap"><table>
-<tr><th>Case</th><th>Variant</th><th>Good TOAs</th><th>per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred (without |z| &gt; 4)</th><th>χ²<sub>red</sub></th><th>σ·√h</th></tr>
-<tr><td>B0329+54, nominal</td><td>clean</td><td class="num">978</td><td class="num">9.78</td><td>1.97 (1.30–2.73)</td><td class="num">734 µs</td><td class="num">1.16 (1.12)</td><td class="num">1.00</td><td class="num">1029</td></tr>
-<tr><td></td><td>RFI + cal. + scint.</td><td class="num">765</td><td class="num">7.65</td><td>2.47 (1.57–3.60)</td><td class="num">735 µs</td><td class="num">1.16 (1.07)</td><td class="num">1.00</td><td class="num">1155</td></tr>
-<tr><td>B0329+54, worst case</td><td>clean</td><td class="num">187</td><td class="num">1.87</td><td>10.1 (7.0–14.0)</td><td class="num">741 µs</td><td class="num">1.21 (1.12)</td><td class="num">1.00</td><td class="num">2358</td></tr>
-<tr><td></td><td>RFI + cal. + scint.</td><td class="num">146</td><td class="num">1.46</td><td>13.2 (8.6–18.2)</td><td class="num">742 µs</td><td class="num">1.40 (1.12)</td><td class="num">1.00</td><td class="num">2695</td></tr>
-<tr><td>J0437, nominal</td><td>clean</td><td class="num">76</td><td class="num">0.76</td><td>16.0 (11.5–21.0)</td><td class="num">13.0 µs</td><td class="num">1.13</td><td class="num">1.00</td><td class="num">52.1</td></tr>
-<tr><td></td><td>RFI + cal. + scint.</td><td class="num">68</td><td class="num">0.68</td><td>18.8 (2.4–30.8)</td><td class="num">13.0 µs</td><td class="num">1.10</td><td class="num">1.00</td><td class="num">56.4</td></tr>
-<tr><td>J0437, worst case</td><td>clean</td><td class="num">14</td><td class="num">0.14</td><td>82 (55–105)</td><td class="num">13.1 µs</td><td class="num">1.14</td><td class="num">1.00</td><td class="num">118</td></tr>
-<tr><td></td><td>RFI + cal. + scint.</td><td class="num">12</td><td class="num">0.12</td><td>95 (54–137)</td><td class="num">13.1 µs</td><td class="num">0.69</td><td class="num">1.00</td><td class="num">128</td></tr>
+<tr><th>Pulsar</th><th>Variant</th><th>Good TOAs</th><th>per day</th><th>hours per TOA (10–90 %)</th><th>σ<sub>TOA</sub></th><th>rms/pred</th><th>beyond 5σ</th><th>χ²<sub>red</sub></th><th>flagged (pChi2 &lt; 0.05)</th><th>σ·√h</th></tr>
+<tr><td>B0329+54</td><td>clean</td><td class="num">8649</td><td class="num">86.5</td><td>0.23 (0.17–0.30)</td><td class="num">705 µs</td><td class="num">1.12</td><td class="num">0.1 %</td><td class="num">0.999</td><td class="num">4.3 %</td><td class="num">341</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">8772</td><td class="num">87.7</td><td>0.20 (0.10–0.40)</td><td class="num">701 µs</td><td class="num">1.11</td><td class="num">0.1 %</td><td class="num">1.006</td><td class="num">10.4 %</td><td class="num">313</td></tr>
+<tr><td>J0437</td><td>clean</td><td class="num">709</td><td class="num">7.09</td><td>1.67 (1.17–2.33)</td><td class="num">12.8 µs</td><td class="num">1.23</td><td class="num">0.6 %</td><td class="num">0.999</td><td class="num">4.2 %</td><td class="num">16.5</td></tr>
+<tr><td></td><td>RFI + cal. + scint.</td><td class="num">1009</td><td class="num">10.1</td><td>0.33 (0.08–3.60)</td><td class="num">12.3 µs</td><td class="num">1.13</td><td class="num">0.2 %</td><td class="num">0.999</td><td class="num">3.7 %</td><td class="num">7.1</td></tr>
 </table></div>
-<p>The rates hold: the TOAs per day, hours per TOA and σ·√h are within a few percent of the 30-day runs. J0437's worst case now has
-12–14 TOAs instead of 2–4, which is still few. The core of the error bars is honest too: for B0329+54 at nominal flux the width of the central part of the pulls is 1.01 (from the
-median absolute deviation, and from the interquartile range).</p>
-<p>The tail, however, is heavier than Gaussian. 1.9 % of B0329+54's TOAs lie beyond 3σ, against 0.27 % for a Gaussian, and 0.3–0.7 % beyond 4σ.
-Almost all of them have an SNR of 7.1–8.1, just above the grouping threshold: the template-shape threshold effect of R7.2, which over 100 days
-shows up as a continuum between 3σ and 5σ. The first 30 days happened to have almost none: one TOA beyond 3σ. Whether the rate varies or that
-was chance is open. For the navigation fit this means that its outlier model must allow about 2 % of the TOAs beyond 3σ, not only 0.5 % beyond 4σ. J0437 has no such tail in these runs.</p>
+<p>The rates hold: the TOAs per day, hours per TOA and σ are within a few percent of the 30-day runs. The error bars are about 10 % too
+small for B0329+54 (rms/pred 1.11–1.12) and 13–23 % too small for J0437; J0437's clean value is the open point of R7.3.</p>
+<p>The tail of the distribution matters for the navigation fit. In these runs 0.1 % of B0329+54's TOAs lie more than 5σ off. The
+fractions beyond 3σ and 4σ have not been taken from the new runs. The 100-day runs of 21–22 Oct 2026, at the design points before
+23 November 2026 (978 TOAs at nominal flux), gave 1.9 % of B0329+54's TOAs beyond 3σ, against 0.27 % for a Gaussian, and 0.3–0.7 %
+beyond 4σ, while the central part of the pulls had a width of 1.01. Almost all of those TOAs had an SNR of 7.1–8.1, just above the
+grouping threshold: the template-shape threshold effect of R7.2. That tail set the outlier model of the navigation fit, which allows
+2 % of the TOAs to scatter 4 times wider (<a href="navigation.html#navfit">navigation</a>).</p>
 <p>These budgets set what <a href="navigation.html">navigation</a> can reach. The pages after this one are reference: the
 <a href="api.html">function reference</a>, the <a href="formulas.html">formulas</a> and the <a href="glossary.html">glossary</a>.</p>
 

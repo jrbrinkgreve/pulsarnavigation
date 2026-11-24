@@ -3491,6 +3491,17 @@ barycentric corrections, navigation solution).
    (item 3) covers it statistically first — done 20 Oct: simulateFold 'NPol' (the voltage chain
    itself stays single-pol). (23 Oct: the voltage-level polarizations are part of step E4 — two beams with the same
    steering weights, detected and added; §11.)
+   **To do, 23 Nov 2026 (Jasper: "put the addition of this function on the todo list").** The hardware of 23 Nov delivers four
+   analogue outputs, two beams × two polarizations (§11), so the two streams are per beam, not per element. `processIQ` takes one
+   stream and gives one fold; four outputs are four runs of it. Missing: **one new function that adds the two polarization folds
+   of a beam into one fold** (working name `addFolds`). Sums and weights of a fold add, as `mergeSubints` uses across time: `sum`,
+   `weight`, `weight2` and `weightX` add, `prof = sum ./ weight`, and the noise model then takes the plain Bnoise, not Bnoise × 2.
+   It must refuse folds whose sub-int grid, bins, channels or predictor differ. With it a unit test: two streams with independent
+   noise against one stream (√2 in SNR) and against `simulateFold` 'NPol' 2; different blanking masks in the two streams; unequal
+   noise levels. A scratch check of the adding on the fast simulator's folds passed (added / one stream 1.414; added / 'NPol' 2
+   1.008; spread of error / σ 1.10; Claude's run, `2026-11-23_array-3m2-analog-beams.md`). The two beams are not added: they are
+   separate observations, and their TOAs share a pulsar's constant in `navFit` only if the delay between the two beam paths is
+   known (risk register R12). Not built: physics and plan first, then Jasper's OK.
 9. **[done 12 Oct] Legacy `envelopeReconstruction` and `plotEnvelope`**: kept in `old/` as
    legacy (Jasper), with the other `old/` files; no active code calls them and `old/` is not on
    the path. Not updated (`binTime0`, `'ieee-le'`).
@@ -4196,6 +4207,28 @@ record of what every budget in these notes and in the docs was computed with. No
 - For the project: the 2 Nov objective's "digital beamforming" and step E4 do not fit this hardware; a reference scenario at
   6.4·10⁴ Jy, 150 MHz and fixed beams needs new runs; the fast simulator has no drift through a beam. None of this is decided.
 Log: `2026-11-23_array-3m2-analog-beams.md`.
+
+*The new array as the default design point, later on 23 Nov 2026 (Jasper: "Yes, make default"; "you can still include RFI to make
+sure that chain remains tested").* `runScenario.m` has a third design point, `"array3m2"`, as the default of `fluxes`: SEFD
+6.44·10⁴ Jy on channels 33–80 of the 128 (1300–1450 MHz, Claude's assumed place for the clean 150 MHz); the RFI profile and the
+scintillation band are cut to those channels, so the RFI variants run. `"nominal"` and `"worst"` are unchanged, bit for bit (the
+committed script against the edited one: identical TOAs). ρ: B0329+54 −37.98 dB, J0437−4715 −44.22 dB. The script still follows the
+pulsar through its pass, which for this hardware is the array on a tracking mount. Jasper's decisions the same day: one design point
+(no worst case for the new array); two figures of merit that are not mixed, the integration time per TOA (followed) and the SNR per
+pass (a fixed beam); the docs' −54 dB target replaced by the new levels. Results, all Claude's runs:
+- followed, clean, 30 d: B0329+54 0.23 h of data per TOA, 86.5 TOAs per day, σ 705 µs (was 1.93 h, 10 per day, 734 µs);
+  J0437−4715 1.75 h, 6.9 per day, 12.8 µs (was 15.5–16 h, 13.0 µs). With the modelled RFI and noise calibration 85.2 per day; with
+  scintillation 91.4 per day. J0437−4715's error bars are 23–33 % small in the clean runs, and with scintillation 10–11 % of
+  B0329+54's TOAs have pChi2 < 0.05: both not looked into.
+- a fixed site, B0329+54 alone, followed: ±9.4 km east and ±11.9 km radial after 30 d (was ±29.6 / ±37.2 km), ±5.1 / ±6.5 km after
+  100 d. The standard runs' estimates are 26–27 km low for a truth of 100 km and of 1000 km: one shared noise draw, since they
+  share their seeds; eight independent draws average 93.2 ± 3.5 km.
+- a single pass through a fixed beam (scratch copy; the simulator has no drift through a beam): SNR 11.5 and 459 µs per pass for
+  a 6.3° beam, 17.4 and 303 µs if the beam is 15° (Jasper wrote 15°; 3 m² implies about 6°; to be confirmed with the team). One beam
+  gives no position; both beams on B0329+54 give 108 km (71 km) along one axis in 30 d.
+The docs were moved to this design point on every page the same day (two docs subagents, checked by the main session); what could not
+be replaced is listed in `maintenance.html`'s changelog and in the log. `tests/expNavFit.m` and `tests/expNavPlan.m` take the design
+point from a `fluxes` setting. Log: `2026-11-23_array-3m2-analog-beams.md`.
 
 *Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W_eq)/W_eq),
 n_pol 2, B 400 MHz, target SNR 7 from the threshold sweep). P, DM, W50, S₁₄₀₀ from the

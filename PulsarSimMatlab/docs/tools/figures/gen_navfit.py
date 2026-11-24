@@ -3,12 +3,13 @@ import scipy.io as sio
 from pathlib import Path
 from plotsvg import Ax
 # navFit converging (navigation.html #navfit): the east component of a site 100 km east of the assumed one, fitted to the
-# TOAs of the first N days, N = 1 ... 100 (runScenario motion run, B0329+54, nominal flux, perfect clock, 22 Oct 2026; local only:
-# data/scenario/scenario_B0329_nominal_clean_100d_motion_perfect.mat, needs scipy). The fit is navFit's "self" model - dX, dY and
+# TOAs of the first N days, N = 1 ... 100 (runScenario motion run, B0329+54, the array's design point "array3m2" with the pulsar
+# followed through its pass, perfect clock, 23 Nov 2026, Claude's run; local only:
+# data/scenario/scenario_B0329_array3m2_clean_100d_motion_perfect.mat, needs scipy). The fit is navFit's "self" model - dX, dY and
 # one constant - by weighted least squares (navFit without its outlier model; the rows at each TOA's time: for these TOAs the
 # averaged rows change the result by under 1 km).
 root = Path(__file__).resolve().parents[3]
-R = sio.loadmat(root / 'data/scenario/scenario_B0329_nominal_clean_100d_motion_perfect.mat', squeeze_me=True, struct_as_record=False)['R']
+R = sio.loadmat(root / 'data/scenario/scenario_B0329_array3m2_clean_100d_motion_perfect.mat', squeeze_me=True, struct_as_record=False)['R']
 G = [g for g in np.atleast_1d(R.groups) if g.good]
 t = np.array([g.tAbs for g in G]); r = np.array([g.resid for g in G]); s = np.array([g.sigma for g in G])
 c = 299792458.0; lon = np.radians(5)
@@ -29,10 +30,10 @@ for N in days:
 est, err = np.array(est), np.array(err)
 print(f'{len(t)} TOAs; day 30: {est[29]:.1f} +- {err[29]:.1f} km; day 100: {est[99]:.1f} +- {err[99]:.1f} km ({est[99] / err[99]:.1f} sigma)')
 o = []
-P = Ax(90, 40, 640, 240, (0, 100), (-150, 250))
-for v in (0, 100, 200):
+P = Ax(90, 40, 640, 240, (0, 100), (0, 225))
+for v in (50, 100, 150, 200):
     o.append(f'<path class="grid" d="M{P.x0} {float(P.Y(v)):.1f} H{P.x0 + P.w}"/>')
-o.append(P.frame(xticks=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], yticks=[-100, 0, 100, 200], xlab='days of TOAs',
+o.append(P.frame(xticks=[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100], yticks=[0, 50, 100, 150, 200], xlab='days of TOAs',
                  ylab='east component of the offset [km]'))
 band = np.concatenate([est + err, (est - err)[::-1]]); dd = np.concatenate([days, days[::-1]])
 o.append(f'<path class="s1band" d="M' + ' L'.join(f'{float(P.X(a)):.1f} {float(P.Y(b)):.1f}' for a, b in zip(dd, band)) + ' Z"/>')
@@ -50,10 +51,10 @@ svg = '''<figure class="scroll">
 <svg class="wide" viewBox="0 0 860 352" role="img" aria-label="The east component of the site offset fitted to the first N days of simulated TOAs, converging on the true 100 km">
   ''' + '\n  '.join(o) + f'''
 </svg>
-<figcaption><b>Figure 10.3.</b> The east component of the site offset fitted to the first <var>N</var> days of B0329+54's simulated TOAs (nominal flux,
-perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.0f} km after 30 days and ±{err[99]:.0f} km after 100, where the offset stands
-out at {est[99] / err[99]:.1f}σ (<code>navFit</code> itself, with its outlier model: 80 ± 16 km, 4.9σ). After 30 days this noise draw sits 2σ low; the later
-days pull it back. Data: <code>runScenario</code>'s 100-day motion run, fitted with <code>navFit</code>'s model by weighted least
-squares.</figcaption>
+<figcaption><b>Figure 10.3.</b> The east component of the site offset fitted to the first <var>N</var> days of B0329+54's simulated TOAs (the array's design point,
+the pulsar followed through its pass, perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.1f} km after 30 days and
+±{err[99]:.1f} km after 100 (<code>navFit</code> itself, with its outlier model: 91.2 ± 5.1 km after 100 days). After 30 days this noise draw sits
+low, at {est[29]:.0f} km; the later days pull it back. Data: <code>runScenario</code>'s 100-day motion run (Claude's run, 23 Nov 2026), fitted with
+<code>navFit</code>'s model by weighted least squares.</figcaption>
 </figure>'''
 open('navfit.svg', 'w').write(svg)

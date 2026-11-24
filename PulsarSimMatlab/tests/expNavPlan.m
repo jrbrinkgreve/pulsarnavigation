@@ -19,6 +19,11 @@ middle of that stretch (adaptive groups also span the gap between passes). Numbe
   others     scenario.html's table (the radiometer estimate at SNR 7 with the catalogue W50 and S1400):
              B0950+08 12 / 67 h per TOA, 738 us; B1642-03 52 / 278 h, 326 us; B1929+10 106 / 571 h,
              480 us (nominal / worst). B1749-28 (dec -28) is never above 20 deg from 52 N.
+  "array3m2" runScenario's default design point since 23 Nov 2026 (SEFD 6.44e4 Jy, 150 MHz): B0329+54 from its
+             simulated 30-day run, 0.233 h per TOA at 705 us; the others from the same table with the time per TOA
+             x 0.108 (SEFD^2 / B): 1.30, 5.6 and 11.5 h, the TOA errors at SNR 7 unchanged. Each pulsar is still
+             taken as followed whenever it is up, in its own beam, which the hardware of 23 Nov (two fixed beams)
+             does not do: a planning study for the array on a tracking mount.
 Positions (J2000): B0329+54 53.2474 / +54.5787 deg; B0950+08 09h53m09.3s / +07d55m36s (ATNF);
 B1929+10 and B1642-03 from their J2000 names (J1932+1059, J1645-0317), to an arcminute - more than
 enough for a planning study.
@@ -36,12 +41,14 @@ P = struct('name', {'B0329+54', 'B0950+08', 'B1642-03', 'B1929+10'}, ...
     'raDeg', {53.2474, 15 * (9 + 53/60 + 9.3/3600), 15 * (16 + 45/60), 15 * (19 + 32/60)}, ...
     'decDeg', {54.5787, 7 + 55/60 + 36/3600, -(3 + 17/60), 10 + 59/60}, ...
     'hNom', {1.95, 12, 52, 106}, 'hWorst', {9.95, 67, 278, 571}, ...
-    'sigNom', {738e-6, 738e-6, 326e-6, 480e-6}, 'sigWorst', {744e-6, 738e-6, 326e-6, 480e-6});
+    'sigNom', {738e-6, 738e-6, 326e-6, 480e-6}, 'sigWorst', {744e-6, 738e-6, 326e-6, 480e-6}, ...
+    'hArr', {0.233, 1.30, 5.6, 11.5}, 'sigArr', {705e-6, 738e-6, 326e-6, 480e-6});
+fluxes = "array3m2";        % "array3m2" (default since 23 Nov 2026); ["nominal", "worst"] for the design points before
 sets = {1, [1 2], [1 2 3 4], [2 3 4]};
 setNames = {'B0329+54 alone', '+ B0950+08', '+ all three', 'the three without B0329+54'};
 
 for nDays = [30 100]
-    for fl = ["nominal", "worst"]
+    for fl = fluxes
         fprintf('\nexpNavPlan: %d days, %s flux, 52 N; predicted 1-sigma errors [km], clock one day ahead [us]\n', nDays, fl);
         fprintf('  %-28s | TOAs per pulsar      | perfect clock: east radial polar(cal) | crystal clock: east radial polar(cal) clock(self, cal)\n', 'pulsars');
         for is = 1:numel(sets)
@@ -49,7 +56,12 @@ for nDays = [30 100]
             [tt, ss, kk, nPer] = deal([], [], [], zeros(1, numel(idx)));
             for j = 1:numel(idx)
                 p = P(idx(j));
-                if fl == "nominal", h = p.hNom; s = p.sigNom; else, h = p.hWorst; s = p.sigWorst; end
+                switch fl
+                    case "nominal",  h = p.hNom;   s = p.sigNom;
+                    case "worst",    h = p.hWorst; s = p.sigWorst;
+                    case "array3m2", h = p.hArr;   s = p.sigArr;
+                    otherwise, error('expNavPlan:flux', 'Unknown design point %s.', fl);
+                end
                 tj = schedule(t1, nDays, lat, lon, elMin, p.raDeg, p.decDeg, h * 3600);
                 tt = [tt, tj]; ss = [ss, s * ones(size(tj))]; kk = [kk, j * ones(size(tj))]; %#ok<AGROW>
                 nPer(j) = numel(tj);

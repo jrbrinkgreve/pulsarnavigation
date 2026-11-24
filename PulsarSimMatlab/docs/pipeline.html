@@ -309,7 +309,7 @@ applies the inverse chirp to them, exactly as it does to real data: a broadband 
 only shifted by its frequency's delay (<a href="receiver.html#noise-why">receiver page</a>). Adding them before dispersion, or simulating the
 received signal directly, would get that wrong.</p>
 <p>Once the processing starts, the voltages stay complex until detection. Squaring to power early would shrink the data at once, but coherent dedispersion needs the phase,
-and RFI blanking and (later) beamforming are linear operations that must also come before squaring. After square-law detection only power is
+and RFI blanking is a linear operation that must also come before squaring (so is beamforming, which the array of 23 November 2026 does in analogue hardware, before the digitiser). After square-law detection only power is
 left, and the data are much smaller (Section O6).</p>
 <p>There are two front ends because the first one has two weaknesses. The full-band path (one big dedispersion filter over 400 MHz) was built and validated first. It is simple and exact,
 but its filter grows with DM (about 15 GB at DM 100) and it has nowhere to remove RFI. The channelized path splits the band into 128 channels

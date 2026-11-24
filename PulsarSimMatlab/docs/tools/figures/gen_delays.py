@@ -4,7 +4,7 @@ from delaymodel import delay, fixed, C, B0329
 # The delays, term by term (localisation.html #delays): delayModel's analytic terms for B0329+54 seen from 52 N 5 E,
 # over 2026 (the annual terms) and over two days from 1 March 2026 (the rotation), computed by delaymodel.py, a port
 # of functions/delayModel.m. c: the size of every term on one log scale, against the TOA noise of the two pulsars
-# (B0329+54 734 us, J0437 13 us: localisation.html #fix) and the signal navigation wants (100 km along the line of
+# (B0329+54 705 us, J0437 13 us, the runs at the design point of 23 Nov 2026; 734 us until then: localisation.html #fix) and the signal navigation wants (100 km along the line of
 # sight, 333 us). Curvature at 1 kpc (the page's table).
 DAY = 86400.0
 site = fixed(52, 5)
@@ -71,7 +71,7 @@ for i, (v, lab, val, cls) in enumerate(terms):
     o.append(f'<circle class="{cls}" cx="{x:.1f}" cy="{y}" r="5"><title>{lab}: {val}</title></circle>')
     xv, anc = (x - 9, 'end') if cls == 's2f' else (x + 9, 'start')    # the signal's value left of its dot, clear of the dashed line
     o.append(f'<text class="sub" x="{xv:.1f}" y="{y + 4}" text-anchor="{anc}"{col}>{val}</text>')
-for v, lab, anc, dx in ((734e-6, 'B0329+54 TOA noise', 'start', 5), (13e-6, 'J0437 TOA noise', 'end', -5)):
+for v, lab, anc, dx in ((705e-6, 'B0329+54 TOA noise', 'start', 5), (13e-6, 'J0437 TOA noise', 'end', -5)):
     x = float(E.X(np.log10(v)))
     o.append(f'<path class="dash" d="M{x:.1f} {E.y0 - 6} V{yA + 26}"/>')
     o.append(f'<text class="sub" x="{x + dx:.1f}" y="{yA + 36}" text-anchor="{anc}">{lab}</text>')

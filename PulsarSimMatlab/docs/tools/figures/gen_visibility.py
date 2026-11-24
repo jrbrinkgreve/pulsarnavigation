@@ -40,7 +40,7 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure R.2.</b> Hours per day each candidate is more than 20° above the horizon, against the station's latitude (the scenario's visibility
 rule). J0437 and Vela, the two best sources, are southern: from 30° S each is up about 12 h a day, from 52° N never. B0329+54 is the only
-fast northern source. A TOA that needs 21 hours on source therefore takes about two days of calendar time for J0437 from 30° S
-(<a href="limits.html">limitations</a>).</figcaption>
+fast northern source. At the design point a J0437 TOA needs about 1.7 hours of data (R9) and fits within one pass from 30° S; a TOA
+that needs more hours than its pulsar is up in a day takes several days of calendar time (<a href="limits.html">limitations</a>).</figcaption>
 </figure>'''
 open('visibility.svg', 'w').write(svg)

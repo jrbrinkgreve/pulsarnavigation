@@ -276,8 +276,8 @@ amplitude:</p>
 <dt>\(\phi_j\)</dt><dd>phase of bin \(j\) [turns]</dd>
 <dt>\(\tau\)</dt><dd>one common shift [turns]</dd>
 </dl>
-<p>The amplitude is shared on purpose: at −54 dB each channel's pulse has SNR ≪ 1 per sub-int, and 128 free amplitudes would fit
-noise. One amplitude with a known spectral shape uses all channels' information for the one thing that matters, the shift. The optimisation
+<p>The amplitude is shared on purpose: at the design point's levels (−38 to −44 dB) each channel's pulse has an SNR below 1 per
+sub-int, and one free amplitude per channel would fit noise. One amplitude with a known spectral shape uses all channels' information for the one thing that matters, the shift. The optimisation
 problem is that of Eq. (8.3) with two changes: every channel has its own baseline, and every bin counts by how noisy it is:</p>
 <div class="eq"><span class="label">(8.10)</span>\[ \begin{gathered} \min_{a_c,\,b,\,\tau}\; \sum_c \sum_j w_{cj} \big[\, \mathrm{prof}_{cj} - a_c - b\, s_c\, T(\phi_j - \tau) \,\big]^2 \\ w_{cj} = \frac{1}{\operatorname{var}(\mathrm{prof}_{cj})} \end{gathered} \]</div>
 <p>The variance comes from the radiometer model with the current fit, or from per-channel off-pulse residuals, so the weights depend on the

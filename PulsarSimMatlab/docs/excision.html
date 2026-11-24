@@ -96,8 +96,8 @@ its leftover lands in pulse phase.</p>
 <p>(DM 5 was the default until 20 Oct 2026.)</p></div>
 
 <h2 id="why">E1 · Why blank, and why here</h2>
-<p>A radar is the clearest example. At −5 dB, one radar pulse carries about as much energy as one pulsar pulse; at −54 dB, the design
-target, as much as about 80,000. That rules out subtracting it. Subtraction always leaves a residual in proportion to the RFI's strength,
+<p>A radar is the clearest example. At −5 dB, one radar pulse carries about as much energy as one pulsar pulse; at −44.2 dB,
+J0437−4715 at the array's design point, as much as about 8,300 (about 2,000 for B0329+54 at −38.0 dB). That rules out subtracting it. Subtraction always leaves a residual in proportion to the RFI's strength,
 and even a 99.9 % suppression would leave more radar than pulsar (Figure E.2). Excision therefore blanks: it sets the samples to zero.
 Zeroing leaves nothing behind: no RFI, but also no noise and no pulsar, so those samples simply get weight 0. Zeroing rather than deleting
 keeps the regular time grid that coherent dedispersion needs.</p>
@@ -107,8 +107,8 @@ keeps the regular time grid that coherent dedispersion needs.</p>
   <path class="axis" d="M90 40 V290"/>
   <path class="axis" d="M90.0 290 v5"/>
   <text class="sub" x="90.0" y="308" text-anchor="middle">-60</text>
-  <path class="axis" d="M162.0 290 v5"/>
-  <text class="sub" x="162.0" y="308" text-anchor="middle">-54</text>
+  <path class="axis" d="M210.0 290 v5"/>
+  <text class="sub" x="210.0" y="308" text-anchor="middle">-50</text>
   <path class="axis" d="M330.0 290 v5"/>
   <text class="sub" x="330.0" y="308" text-anchor="middle">-40</text>
   <path class="axis" d="M450.0 290 v5"/>
@@ -144,16 +144,18 @@ keeps the regular time grid that coherent dedispersion needs.</p>
   <path class="curve2" d="M474.0 63.9 h18"/><text class="sub" x="498.0" y="67.9">left after 99.9 % subtraction</text>
   <path class="curve" d="M90.0 142.3 L93.0 142.8 L96.0 143.4 L99.0 144.0 L102.0 144.5 L105.0 145.1 L108.0 145.7 L111.0 146.2 L114.0 146.8 L117.0 147.4 L120.0 148.0 L123.0 148.5 L126.0 149.1 L129.0 149.7 L132.0 150.2 L135.0 150.8 L138.0 151.4 L141.0 151.9 L144.0 152.5 L147.0 153.1 L150.0 153.6 L153.0 154.2 L156.0 154.8 L159.0 155.3 L162.0 155.9 L165.0 156.5 L168.0 157.0 L171.0 157.6 L174.0 158.2 L177.0 158.8 L180.0 159.3 L183.0 159.9 L186.0 160.5 L189.0 161.0 L192.0 161.6 L195.0 162.2 L198.0 162.7 L201.0 163.3 L204.0 163.9 L207.0 164.4 L210.0 165.0 L213.0 165.6 L216.0 166.1 L219.0 166.7 L222.0 167.3 L225.0 167.8 L228.0 168.4 L231.0 169.0 L234.0 169.5 L237.0 170.1 L240.0 170.7 L243.0 171.2 L246.0 171.8 L249.0 172.4 L252.0 173.0 L255.0 173.5 L258.0 174.1 L261.0 174.7 L264.0 175.2 L267.0 175.8 L270.0 176.4 L273.0 176.9 L276.0 177.5 L279.0 178.1 L282.0 178.6 L285.0 179.2 L288.0 179.8 L291.0 180.3 L294.0 180.9 L297.0 181.5 L300.0 182.0 L303.0 182.6 L306.0 183.2 L309.0 183.8 L312.0 184.3 L315.0 184.9 L318.0 185.5 L321.0 186.0 L324.0 186.6 L327.0 187.2 L330.0 187.7 L333.0 188.3 L336.0 188.9 L339.0 189.4 L342.0 190.0 L345.0 190.6 L348.0 191.1 L351.0 191.7 L354.0 192.3 L357.0 192.8 L360.0 193.4 L363.0 194.0 L366.0 194.5 L369.0 195.1 L372.0 195.7 L375.0 196.2 L378.0 196.8 L381.0 197.4 L384.0 198.0 L387.0 198.5 L390.0 199.1 L393.0 199.7 L396.0 200.2 L399.0 200.8 L402.0 201.4 L405.0 201.9 L408.0 202.5 L411.0 203.1 L414.0 203.6 L417.0 204.2 L420.0 204.8 L423.0 205.3 L426.0 205.9 L429.0 206.5 L432.0 207.0 L435.0 207.6 L438.0 208.2 L441.0 208.8 L444.0 209.3 L447.0 209.9 L450.0 210.5 L453.0 211.0 L456.0 211.6 L459.0 212.2 L462.0 212.7 L465.0 213.3 L468.0 213.9 L471.0 214.4 L474.0 215.0 L477.0 215.6 L480.0 216.1 L483.0 216.7 L486.0 217.3 L489.0 217.8 L492.0 218.4 L495.0 219.0 L498.0 219.5 L501.0 220.1 L504.0 220.7 L507.0 221.2 L510.0 221.8 L513.0 222.4 L516.0 223.0 L519.0 223.5 L522.0 224.1 L525.0 224.7 L528.0 225.2 L531.0 225.8 L534.0 226.4 L537.0 226.9 L540.0 227.5 L543.0 228.1 L546.0 228.6 L549.0 229.2 L552.0 229.8 L555.0 230.3 L558.0 230.9 L561.0 231.5 L564.0 232.0 L567.0 232.6 L570.0 233.2 L573.0 233.8 L576.0 234.3 L579.0 234.9 L582.0 235.5 L585.0 236.0 L588.0 236.6 L591.0 237.2 L594.0 237.7 L597.0 238.3 L600.0 238.9 L603.0 239.4 L606.0 240.0 L609.0 240.6 L612.0 241.1 L615.0 241.7 L618.0 242.3 L621.0 242.8 L624.0 243.4 L627.0 244.0 L630.0 244.5 L633.0 245.1 L636.0 245.7 L639.0 246.2 L642.0 246.8 L645.0 247.4 L648.0 248.0 L651.0 248.5 L654.0 249.1 L657.0 249.7 L660.0 250.2 L663.0 250.8 L666.0 251.4 L669.0 251.9 L672.0 252.5 L675.0 253.1 L678.0 253.6 L681.0 254.2 L684.0 254.8 L687.0 255.3 L690.0 255.9 L693.0 256.5 L696.0 257.0 L699.0 257.6 L702.0 258.2 L705.0 258.8 L708.0 259.3 L711.0 259.9 L714.0 260.5 L717.0 261.0 L720.0 261.6 L723.0 262.2 L726.0 262.7 L729.0 263.3 L732.0 263.9 L735.0 264.4 L738.0 265.0 L741.0 265.6 L744.0 266.1 L747.0 266.7 L750.0 267.3 L753.0 267.8 L756.0 268.4 L759.0 269.0 L762.0 269.5 L765.0 270.1 L768.0 270.7 L771.0 271.2 L774.0 271.8 L777.0 272.4 L780.0 273.0 L783.0 273.5 L786.0 274.1 L789.0 274.7 L792.0 275.2 L795.0 275.8 L798.0 276.4 L801.0 276.9 L804.0 277.5 L807.0 278.1 L810.0 278.6"/>
   <path class="curve" d="M474.0 79.9 h18"/><text class="sub" x="498.0" y="83.9">left after 99.99 % subtraction</text>
-  <path class="dot" d="M158.5 65.0 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <path class="dot" d="M158.5 133.2 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <text class="sub" x="170.0" y="69.0">~80,000</text>
-  <text class="sub" x="170.0" y="149.2">~80</text>
+  <path class="thin" d="M279.6 40 V290"/>
+  <text class="sub" x="285.6" y="262">J0437−4715 at the design point (−44.2 dB)</text>
+  <path class="dot" d="M276.1 87.3 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <path class="dot" d="M276.1 155.5 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="287.6" y="81.3">~8,300</text>
+  <text class="sub" x="287.6" y="149.5">~8</text>
   <path class="curve3" stroke-width="3" d="M90 288 H810"/>
   <text class="sub" x="102.0" y="282">blanked: exactly 0 left, at every SNR (drawn at the bottom)</text>
 </svg>
 <figcaption><b>Figure E.2.</b> The energy of one radar pulse in units of one pulsar pulse (top line): equal at −5 dB, then growing as 1/ρ as the pulsar gets
-weaker. The lines below show what a subtraction of 99.9 % or 99.99 % would leave. At the design target, both leftovers are still above
-the pulsar.</figcaption>
+weaker. The lines below show what a subtraction of 99.9 % or 99.99 % would leave. For J0437−4715 at the design point (−44.2 dB, dots) a
+99.9 % subtraction still leaves about 8 pulsar pulses of radar energy, and a 99.99 % one about as much as the pulsar itself.</figcaption>
 </figure>
 <p>The next question is where to blank. In the raw channel voltages, before dedispersion, a 2 µs radar pulse in a 3.125 MHz channel is
 about 8 samples in about 2 channels. At the default DM 25, dedispersion spreads it over about 400 samples and mixes it with good data. Blanking on the
@@ -662,7 +664,7 @@ each channel is processed whole. At <var>L</var> = 1 s the weight array is 4.8 G
 <h3>E4.2 The mean uses the true channel spectrum</h3>
 <p>Channel samples are not white. The channelizer's output rolls off to 0.5 at the channel's
 Nyquist frequency (mean 0.951), and its autocorrelation is significant out to a lag of about 19 samples. Blanking mixes this roll-off region
-into the band. For the mean <var>W</var> that matters, because at −54 dB the pulse peak is only about 4·10⁻⁶ of the baseline: any error in
+into the band. For the mean <var>W</var> that matters, because at −44.2 dB, J0437−4715 at the design point, the pulse peak is only about 4·10⁻⁵ of the baseline: any error in
 <var>W</var> that depends on pulse phase must be far below that. Errors that are the same at every phase only shift the baseline, which is
 harmless. <var>W</var> is therefore computed with the true autocorrelation <var>R</var><sub>x</sub> from the channelizer prototype, at one
 extra FFT per lag. The effect on <var>W</var> is about 1 % for nearly empty bins and at most 0.07 % for <var>W</var> ≥ 0.1. <var>V</var>
@@ -742,7 +744,8 @@ worst case instead: a radar whose pulses always land at the same pulse phase.</p
 pulse per turn then lands on the flank of the pulsar's pulse, one Gaussian width (+1σ<sub>t</sub>) after its peak, the worst place for
 timing. The leftover <var>L</var> is the folded radar power over the noise baseline, from a radar run minus a reference run with the same
 noise. The TOA bias at weaker pulsar strengths follows from noise-free folds, ρ·template + <var>L</var>, fitted with the optimal
-estimator.</p>
+estimator. The run tabulates the bias down to −54 dB, the weak-signal target until 23 November 2026. The pulsars of the array's design
+point are brighter, B0329+54 at −38.0 dB and J0437−4715 at −44.2 dB, and the run has no column at those levels.</p>
 <div class="table-wrap"><table>
 <tr><th rowspan="2">Radar</th><th rowspan="2">Excision</th><th rowspan="2">Blanked</th><th rowspan="2"><var>L</var> max</th><th colspan="4">TOA bias [µs] with the pulsar at</th><th rowspan="2">1 µs bias at</th></tr>
 <tr><th>−20 dB</th><th>−30 dB</th><th>−40 dB</th><th>−54 dB</th></tr>
@@ -786,8 +789,10 @@ estimator.</p>
   <text class="sub" x="90" y="32" text-anchor="start">|TOA bias| from the locked radar [µs]</text>
   <path class="dash" d="M90 172.1 H560"/>
   <text class="sub" x="556" y="167.1" text-anchor="end">1 µs</text>
-  <path class="thin" d="M125.2 40 V290"/>
-  <text class="sub" x="129.2" y="52">design target</text>
+  <path class="thin" d="M240.4 40 V290"/>
+  <text class="sub" x="236.4" y="52" text-anchor="end">J0437−4715</text>
+  <path class="thin" d="M313.2 40 V290"/>
+  <text class="sub" x="317.2" y="52" text-anchor="start">B0329+54</text>
   <path class="curve4" stroke-dasharray="5 3" d="M524.8 145.7 L407.2 107.6 L289.8 71.4 L125.2 59.2"/>
   <path class="dot" d="M521.8 145.7 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
   <path class="dot" d="M404.2 107.6 a3 3 0 1 0 6 0 a3 3 0 1 0 -6 0"/>
@@ -835,18 +840,19 @@ estimator.</p>
 <figcaption><b>Figure E.6.</b> The TOA bias left after excision by a radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst
 pulse phase, DM 5), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
 Every two extra guard channels cut the bias 3–4×. Guard 7, the default, keeps it below 1 µs down to −51 dB, and the periodic mask
-(Section E8) down to −58 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
+(Section E8) down to −58 dB. The vertical lines are the two pulsars at the array's design point (−44.2 and −38.0 dB); the run's weakest
+level is −54 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
 </figure>
 <p>The method holds: at −5 dB the measured bias equals the predicted one. The table then shows that excision alone is not enough at
-weak signals. It cuts the bias about 2000× at −5 dB, but a fixed leftover scales as 1/ρ: 4.9·10⁻⁴ of the baseline is about 120× the
-pulsar's peak at −54 dB.</p>
+weak signals. It cuts the bias about 2000× at −5 dB, but a fixed leftover scales as 1/ρ: 4.9·10⁻⁴ of the baseline is about 13× the
+peak of J0437−4715 at the design point (−44.2 dB).</p>
 <p>To remove that leftover, one has to know where it comes from. Each channel is dedispersed with its own delay, so radar energy
 <var>k</var> channels from the radar lands <var>k</var> × 59 µs (0.006 turns) from the radar's phase at DM 5, and <var>k</var> × 295 µs (0.03 turns) at DM 25: for RFI that is not dispersed, the
 fold's phase axis is in effect a channel axis. With realistic edges, the leftover comes from channels about 3 away, whose sidelobes are
 just below the threshold.</p>
 <p>Those channels are what the frequency guard of Section E2.5 blanks. It widens the clean notch around the radar, and every 2 extra
-channels cut the bias about 3–4× (Figure E.6). With guard 7, the default, the bias stays below 1 µs down to −51 dB, and is 2 µs at
-−54 dB (exact lock, worst placement).</p>
+channels cut the bias about 3–4× (Figure E.6). With guard 7, the default, the bias stays below 1 µs down to −51 dB, which is 7 dB below
+J0437−4715 at the design point; at −54 dB, the run's weakest level, it is 2 µs (exact lock, worst placement).</p>
 <p>With instant edges the guard does not help. The spectrum then falls off only as 1/<var>f</var>², and the leftover comes from channels
 far away. Two remedies remain: the periodic mask (Section E8), and Doppler decorrelation. The observer folds with the predicted,
 Doppler-shifted phase (<a href="fold.html#prediction">stage 7a</a>), so a radar locked to the pulse period on the ground cannot stay
@@ -875,7 +881,7 @@ kept, so that each pulse can be scored.</p>
 2× the noise per sample in its channels, so most pulses are missed one by one, and over a whole scan the sidelobes dominate what a rotating
 radar leaves behind. The main beam carries about 41 ms × full power per 10 s scan, and excision with the frequency guard leaves almost
 none of it. The −35 dB sidelobes carry about 3 ms × full power, of which about 60 % is missed. If the radar is locked to the pulsar, that
-leaves about 1.8·10⁻³ of the baseline in the fold: about 450× the pulsar at −54 dB. If it is not locked, the leftover is only noise,
+leaves about 1.8·10⁻³ of the baseline in the fold: about 47× the peak of J0437−4715 at the design point (−44.2 dB). If it is not locked, the leftover is only noise,
 spread evenly over pulse phase.</p>
 <p>Per-pulse thresholds cannot fix this. But the main-beam passage, about 15–40 pulses at +38 dB, measures the radar's period, pulse
 phase and channels precisely, so the weak sidelobe pulses can be blanked where they are predicted to be. The periodic mask of
@@ -1052,7 +1058,8 @@ emitters in noise or impulses, and finds the radar in both forms:</p>
 <tr><td>rotating radar, only −35 dB sidelobes</td><td>found from <code>detectRFI</code>'s 42 % of the pulses; with prediction 100 % blanked; radar energy left 0.48 → 8.8·10⁻⁶</td></tr>
 </table></div>
 <p>The second closes the loop with Section E6. In <code>runLockedRadar</code>, at DM 5, with the radar locked at 400 Hz at the worst phase, the
-periodic mask removes the −35 dB sidelobe radar almost completely:</p>
+periodic mask removes the −35 dB sidelobe radar almost completely (−54 dB is again the run's weakest level, 10 dB below J0437−4715 at
+the design point):</p>
 <div class="table-wrap"><table>
 <tr><th>Radar</th><th>Excision</th><th>Periodic mask</th><th>Blanked</th><th><var>L</var> max</th><th>Bias at −54 dB</th><th>1 µs bias at</th></tr>
 <tr><td>−35 dB sidelobes only</td><td>off</td><td>–</td><td>–</td><td>2.9·10⁻³</td><td>210 µs</td><td>−14 dB</td></tr>
@@ -1099,7 +1106,7 @@ accepts false emitters (around 14.1 kHz) and blanks about 30 % of the data, whic
 implemented (<a href="limits.html">limitations</a>,
 <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>).</p>
 <p>Locked RFI remains a residual risk. With the frequency guard and the periodic mask, an exactly locked radar at the worst phase leaves
-0.41 µs at −54 dB; with the guard alone, 2 µs. Both were measured at DM 5, and not yet at the default DM 25. The guard width does not grow with the event's strength, and the periodic mask handles
+0.41 µs at −54 dB; with the guard alone, 2 µs. Both were measured at DM 5 and at that level, 10 dB below J0437−4715 at the design point, and not yet at the default DM 25. The guard width does not grow with the event's strength, and the periodic mask handles
 fixed PRFs only. The guard's success also rests on the radar's 0.1 µs rise time, which is an assumption, still to be checked against
 ITU masks.</p></div>
 <details><summary>History</summary>
@@ -1114,7 +1121,7 @@ frequency guard of ±7 channels around strong events.</li>
 <li><code>blankingWeights</code> gives the fold the exact valid fraction and noise of every detected bin (Eq. E.3), so blanking cannot
 bias the TOA.</li>
 <li>A radar locked to the pulsar is the hard case. The frequency guard keeps its bias below 1 µs down to −51 dB, and the periodic mask,
-for fixed PRFs, down to −58 dB. These were measured at DM 5.</li>
+for fixed PRFs, down to −58 dB; the design point's pulsars are at −38.0 and −44.2 dB. These were measured at DM 5.</li>
 </ul></div>
 <p>The next page, <a href="fold.html">phase prediction and folding</a>, adds up the turns, with these weights.</p>
 

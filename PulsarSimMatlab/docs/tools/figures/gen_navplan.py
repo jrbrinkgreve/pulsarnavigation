@@ -1,15 +1,17 @@
 import numpy as np
 from plotsvg import Ax
-# Which extra pulsars help (navigation.html #plan): the planning study's numbers (tests/expNavPlan.m, logged 22 Oct 2026):
-# the polar component's 1-sigma error with a calibrated start and the crystal clock, nominal flux, from 52 N.
+# Which extra pulsars help (navigation.html #plan): the planning study's numbers (tests/expNavPlan.m at the design point
+# "array3m2", Claude's run of 23 Nov 2026): the polar component's 1-sigma error with a calibrated start and the crystal clock,
+# from 52 N, every pulsar followed whenever it is up. Until 23 Nov 2026 the figure showed the "nominal" design point of the
+# 0.61 m^2 receiver (logged 22 Oct): 30 days [63.7, 49.1, 39.8], 100 days [63.6, 34.3, 23.7], perfect clock 8.9 km.
 sets = ['B0329+54 alone', '+ B0950+08', '+ B0950+08, B1642−03, B1929+10']
-polar = {30: [63.7, 49.1, 39.8], 100: [63.6, 34.3, 23.7]}       # [km], crystal clock
-perfect100 = 8.9                                                # [km], B0329+54 alone, perfect clock, 100 days
+polar = {30: [28.2, 18.7, 13.5], 100: [28.2, 12.2, 7.9]}       # [km], crystal clock
+perfect100 = 3.0                                                # [km], B0329+54 alone, perfect clock, 100 days
 o = []
-A = Ax(110, 40, 650, 230, (0, 3), (0, 70))
-for v in (20, 40, 60):
+A = Ax(110, 40, 650, 230, (0, 3), (0, 32))
+for v in (10, 20, 30):
     o.append(f'<path class="grid" d="M{A.x0} {float(A.Y(v)):.1f} H{A.x0 + A.w}"/>')
-o.append(A.frame(xticks=[], yticks=[0, 20, 40, 60], ylab='polar error, 1σ [km]'))
+o.append(A.frame(xticks=[], yticks=[0, 10, 20, 30], ylab='polar error, 1σ [km]'))
 bw = 0.26
 for i, name in enumerate(sets):
     for j, (days, cls) in enumerate(((30, 's1f'), (100, 's2f'))):
@@ -33,9 +35,9 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure 10.4.</b> The error of the polar component (along the Earth's axis), with a calibrated start and the crystal clock, from 52° N at
-nominal flux. B0329+54 alone cannot tell the polar offset from the clock's wander, and more days do not help (64 km after 30 and after
-100 days). Pulsars at other declinations separate the two: B0950+08 brings it to 34 km in 100 days, all three extra pulsars to 24 km.
-With a perfect clock B0329+54 alone already reaches 9 km. Numbers: the planning study (<code>tests/expNavPlan.m</code>), from
-<code>navFit</code>'s <code>'Predict'</code>.</figcaption>
+the array's design point, with every pulsar followed whenever it is up. B0329+54 alone cannot tell the polar offset from the clock's wander,
+and more days do not help (28 km after 30 and after 100 days). Pulsars at other declinations separate the two: B0950+08 brings it to 12 km
+in 100 days, all three extra pulsars to 8 km. With a perfect clock B0329+54 alone already reaches 3 km. Numbers: the planning study
+(<code>tests/expNavPlan.m</code>), from <code>navFit</code>'s <code>'Predict'</code>.</figcaption>
 </figure>'''
 open('navplan.svg', 'w').write(svg)

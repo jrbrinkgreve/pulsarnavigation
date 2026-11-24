@@ -112,7 +112,8 @@ standard deviation \(\sigma_t\) = 212.3 µs</dd>
 <p>There is no fixed waveform: every turn is a new piece of noise, and only its loudness repeats. Averaged over turns the voltage is zero,
 pulse or not (Figure P.2b); only the power repeats. Radar and GNSS receivers correlate the voltage with a known waveform, but there is none
 here. The processing must therefore at some point <b>square</b> the voltage (detection) and then average many turns. Every step that needs
-the phase of the voltage (dedispersion, RFI blanking, later beamforming) must come <b>before</b> the squaring.</p>
+the phase of the voltage (dedispersion, RFI blanking, and beamforming, which the array does in analogue hardware) must come
+<b>before</b> the squaring.</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 440" role="img" aria-label="Why the processing squares the voltage: the average voltage over many turns is zero, the average power shows the pulse">
   <path class="axis" d="M60 160 H830"/>
@@ -195,14 +196,14 @@ the phase of the voltage (dedispersion, RFI blanking, later beamforming) must co
 </svg>
 <figcaption><b>Figure P.2.</b> Why the processing squares the voltage (toy numbers: 300 samples per turn, a pulsar twice as strong as the receiver noise at
 its peak so it shows in one turn). Every turn is new noise; only its loudness repeats. Averaging the voltage over many turns gives zero,
-pulse or not (b). Averaging the power gives the profile (c). The real signal is ~50 dB weaker, which is why it takes millions of turns
-instead of 500.</figcaption>
+pulse or not (b). Averaging the power gives the profile (c). The real signals are 41–47 dB weaker (−38.0 and −44.2 dB at the design
+point), which is why J0437−4715 takes about a million turns instead of 500.</figcaption>
 </figure>
 <h3 id="selfnoise">Self-noise</h3>
 <p>Squaring and averaging estimates a variance, and an estimate from a limited number of samples scatters. A detected power bin averages |<var>z</var>|² over about
 <var>B</var>·Δ<var>t</var> independent samples, so even without receiver noise its relative scatter is 1/√(<var>B</var>·Δ<var>t</var>)
 (Section P5). When the pulsar is bright, that scatter follows the pulse itself: largest at the peak, zero off-pulse. This <b>self-noise</b>
-limits the SNR of a very bright pulse. At the weak signals this project targets (−54 dB) it is negligible, but the noise model includes
+limits the SNR of a very bright pulse. At the weak signals this project targets (−38 to −44 dB at the design point) it is negligible, but the noise model includes
 it.</p>
 <p>The signal of Eq. (P.2) is made by <a href="sky.html#gen"><code>generatePulsarSignal</code></a>, and the self-noise term is part of
 <a href="validation.html#epm"><code>expectedPowerModel</code></a>. Before any receiver sees this signal, it crosses the interstellar
@@ -270,9 +271,10 @@ collecting area [m²]</dd>
 <p>The pages use ρ rather than an SNR because ρ depends only on the sky and the antenna. An SNR per sample, per time bin or of the folded
 profile would depend on choices made later in the pipeline (bandwidth, bin width, fold length), whereas one value of ρ describes a scenario
 for every stage. In the simulation \(\rho = A^2/\sigma_n^2\), with \(A\) the pulsar amplitude of Section P2 and \(\sigma_n\) the standard
-deviation of the receiver noise [V]. Two values matter. <b>−5 dB</b> is a bright pulsar on a large dish; most validation runs use it,
-because short runs then give precise checks. <b>About −54 dB</b> is J0437−4715 on the target 0.61 m² array: the worst-case design point
-(<a href="scenario.html">scenario</a>).</p>
+deviation of the receiver noise [V]. Two levels matter. <b>−5 dB</b> is a bright pulsar on a large dish; most validation runs use it,
+because short runs then give precise checks. <b>−44.2 dB</b> is J0437−4715 at the array's design point, and −38.0 dB is B0329+54: about
+3 m² at 70 K, an SEFD of 6.44·10⁴ Jy (<a href="scenario.html#receiver">scenario</a>). Until 23 November 2026 the weak level on these pages
+was −54 dB, J0437−4715 at the worst case of a 0.61 m² array.</p>
 <div class="callout warn"><span class="ttl">Do not confuse ρ with "the SNR"</span>
 <p>ρ is a per-hertz ratio at the pulse peak. The SNR of one pulse after matched filtering is ρ·√(<var>B</var>·σ<sub>t</sub>·√π) ≈ 388·ρ for this
 pulsar and band. The SNR of a folded sub-integration grows with √(turns) (Section P6). See also the glossary entry
@@ -476,21 +478,23 @@ a <b>sub-integration (sub-int)</b>, and each sub-int gives one TOA. How many tur
   <path class="curve3" d="M726 243 h20"/><text class="sub" x="752" y="247">ρ = −20 dB</text>
   <path class="dot2" d="M547.0 135.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
   <text class="sub" x="556.5" y="151.8">35 ms</text>
-  <path class="curve2" d="M530.0 230.5 L535.1 227.7 L540.2 224.9 L545.3 222.0 L550.3 219.2 L555.4 216.4 L560.5 213.6 L565.6 210.7 L570.7 207.9 L575.8 205.1 L580.8 202.3 L585.9 199.4 L591.0 196.6 L596.1 193.8 L601.2 191.0 L606.3 188.1 L611.4 185.3 L616.4 182.5 L621.5 179.7 L626.6 176.8 L631.7 174.0 L636.8 171.2 L641.9 168.4 L646.9 165.5 L652.0 162.7 L657.1 159.9 L662.2 157.1 L667.3 154.2 L672.4 151.4 L677.5 148.6 L682.5 145.8 L687.6 142.9 L692.7 140.1 L697.8 137.3 L702.9 134.5 L708.0 131.6 L713.1 128.8 L718.1 126.0 L723.2 123.2 L728.3 120.3 L733.4 117.5 L738.5 114.7 L743.6 111.9 L748.6 109.0 L753.7 106.2 L758.8 103.4 L763.9 100.6 L769.0 97.7 L774.1 94.9 L779.2 92.1 L784.2 89.3 L789.3 86.4 L794.4 83.6 L799.5 80.8 L804.6 78.0 L809.7 75.1 L814.7 72.3 L819.8 69.5 L824.9 66.7 L830.0 63.8"/>
-  <path class="curve2" d="M726 258 h20"/><text class="sub" x="752" y="262">ρ = −40 dB</text>
-  <path class="dot2" d="M697.0 135.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <text class="sub" x="706.5" y="151.8">5.9 min</text>
-  <path class="curve4" d="M530.0 288.8 L535.1 286.0 L540.2 283.2 L545.3 280.4 L550.3 277.5 L555.4 274.7 L560.5 271.9 L565.6 269.1 L570.7 266.2 L575.8 263.4 L580.8 260.6 L585.9 257.8 L591.0 254.9 L596.1 252.1 L601.2 249.3 L606.3 246.5 L611.4 243.6 L616.4 240.8 L621.5 238.0 L626.6 235.2 L631.7 232.3 L636.8 229.5 L641.9 226.7 L646.9 223.9 L652.0 221.0 L657.1 218.2 L662.2 215.4 L667.3 212.6 L672.4 209.7 L677.5 206.9 L682.5 204.1 L687.6 201.3 L692.7 198.4 L697.8 195.6 L702.9 192.8 L708.0 190.0 L713.1 187.2 L718.1 184.3 L723.2 181.5 L728.3 178.7 L733.4 175.9 L738.5 173.0 L743.6 170.2 L748.6 167.4 L753.7 164.6 L758.8 161.7 L763.9 158.9 L769.0 156.1 L774.1 153.3 L779.2 150.4 L784.2 147.6 L789.3 144.8 L794.4 142.0 L799.5 139.1 L804.6 136.3 L809.7 133.5 L814.7 130.7 L819.8 127.8 L824.9 125.0 L830.0 122.2"/>
-  <path class="curve4" d="M726 273 h20"/><text class="sub" x="752" y="277">ρ = −54 dB</text>
-  <path class="dot2" d="M802.0 135.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
-  <text class="sub" x="811.5" y="151.8">62 h</text>
+  <path class="curve2" d="M530.0 222.2 L535.1 219.4 L540.2 216.5 L545.3 213.7 L550.3 210.9 L555.4 208.1 L560.5 205.2 L565.6 202.4 L570.7 199.6 L575.8 196.8 L580.8 193.9 L585.9 191.1 L591.0 188.3 L596.1 185.5 L601.2 182.6 L606.3 179.8 L611.4 177.0 L616.4 174.2 L621.5 171.3 L626.6 168.5 L631.7 165.7 L636.8 162.9 L641.9 160.0 L646.9 157.2 L652.0 154.4 L657.1 151.6 L662.2 148.7 L667.3 145.9 L672.4 143.1 L677.5 140.3 L682.5 137.4 L687.6 134.6 L692.7 131.8 L697.8 129.0 L702.9 126.1 L708.0 123.3 L713.1 120.5 L718.1 117.7 L723.2 114.8 L728.3 112.0 L733.4 109.2 L738.5 106.4 L743.6 103.5 L748.6 100.7 L753.7 97.9 L758.8 95.1 L763.9 92.2 L769.0 89.4 L774.1 86.6 L779.2 83.8 L784.2 80.9 L789.3 78.1 L794.4 75.3 L799.5 72.5 L804.6 69.6 L809.7 66.8 L814.7 64.0 L819.8 61.2 L824.9 58.3 L830.0 55.5"/>
+  <path class="curve2" d="M726 258 h20"/><text class="sub" x="752" y="262">ρ = −38 dB</text>
+  <path class="dot2" d="M682.0 135.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="679.5" y="127.8" text-anchor="end">2.3 min</text>
+  <path class="curve4" d="M530.0 248.0 L535.1 245.2 L540.2 242.4 L545.3 239.5 L550.3 236.7 L555.4 233.9 L560.5 231.1 L565.6 228.2 L570.7 225.4 L575.8 222.6 L580.8 219.8 L585.9 216.9 L591.0 214.1 L596.1 211.3 L601.2 208.5 L606.3 205.6 L611.4 202.8 L616.4 200.0 L621.5 197.2 L626.6 194.3 L631.7 191.5 L636.8 188.7 L641.9 185.9 L646.9 183.0 L652.0 180.2 L657.1 177.4 L662.2 174.6 L667.3 171.7 L672.4 168.9 L677.5 166.1 L682.5 163.3 L687.6 160.4 L692.7 157.6 L697.8 154.8 L702.9 152.0 L708.0 149.1 L713.1 146.3 L718.1 143.5 L723.2 140.7 L728.3 137.8 L733.4 135.0 L738.5 132.2 L743.6 129.4 L748.6 126.5 L753.7 123.7 L758.8 120.9 L763.9 118.1 L769.0 115.2 L774.1 112.4 L779.2 109.6 L784.2 106.8 L789.3 103.9 L794.4 101.1 L799.5 98.3 L804.6 95.5 L809.7 92.6 L814.7 89.8 L819.8 87.0 L824.9 84.2 L830.0 81.3"/>
+  <path class="curve4" d="M726 273 h20"/><text class="sub" x="752" y="277">ρ = −44.2 dB</text>
+  <path class="dot2" d="M728.5 135.8 a3.5 3.5 0 1 0 7 0 a3.5 3.5 0 1 0 -7 0"/>
+  <text class="sub" x="738.0" y="151.8">41 min</text>
   <text class="ttl" x="530" y="20">b · SNR grows as √time (10 ms pulsar)</text>
 </svg>
 <figcaption><b>Figure P.5.</b> Folding. (a) Simulated folded profiles at an SNR of 0.25 per turn, scaled so the noise per bin stays the same: the pulse grows
 as √<var>N</var> and is clear after a few thousand turns. (b) SNR against observing time for the simulated 10 ms pulsar (SNR per turn ≈
-373·ρ): each 10 dB weaker signal needs 100× longer. At −54 dB a TOA with SNR 7 takes about 62 hours; J0437, with its narrower pulse and
-both polarizations, needs about 20 in the catalogue estimate; the fast simulator with its measured profile gives 82–95 h (16 h at nominal
-flux; <a href="scenario.html#hundred">scenario</a>).</figcaption>
+373·ρ, for one polarization in the voltage chain's 400 MHz): each 10 dB weaker signal needs 100× longer. At −44.2 dB, the level of
+J0437−4715 at the array's design point, a TOA with SNR 7 takes this pulsar about 41 minutes, and at B0329+54's −38 dB about 2.3 minutes.
+The real pulsars have other pulse shapes, and the design point has two polarizations in 150 MHz: followed through their passes, the fast
+simulator gives 1.7 h of data per TOA for J0437−4715 and 0.23 h for B0329+54 (Claude's runs, 23 Nov;
+<a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>
 <p>The fold is done by <a href="fold.html"><code>foldProfile</code></a>. Its output, the folded profile, is what the TOA is measured
 on.</p>
@@ -636,8 +640,8 @@ they must be found and blanked on the channel voltages, before dedispersion. The
 <tr><td>Impulse</td><td>broadband bursts</td><td>200 ns bursts across the whole band</td><td>harmless after coherent dedispersion (spread over the 31.5 ms sweep)</td></tr>
 <tr><td>Noise-like (noise)</td><td>LTE / OFDM, Inmarsat</td><td>band-limited Gaussian noise, indistinguishable from receiver noise</td><td>extra noise in its channels</td></tr>
 </table></div>
-<p>Subtraction does not work: at −54 dB one radar pulse carries the energy of about 80,000 pulsar pulses, and even 99.9 % suppression would
-leave more interference than pulsar. Samples with RFI are therefore <b>blanked</b>: set to zero, with weight 0. And it happens before
+<p>Subtraction does not work: at −44.2 dB, J0437−4715 at the design point, one radar pulse carries the energy of about 8,300 pulsar
+pulses, and even 99.9 % suppression would leave more interference than pulsar. Samples with RFI are therefore <b>blanked</b>: set to zero, with weight 0. And it happens before
 dedispersion, because there a radar pulse is a 2 µs blip in a few channels; after dedispersion it is smeared over about 90 µs at DM 25 and mixed with
 good data. The interference is made by <a href="receiver.html#rfi"><code>rfiSource</code></a>, and its removal is the subject of <a href="excision.html">RFI
 excision</a>.</p>
@@ -674,11 +678,11 @@ frequency (∝ ν<sup>1.2</sup>).</p>
 <p>Inside one scintle the flux is random, and its statistics follow from the same picture. When many paths with random phases add up, the field is complex Gaussian, so the intensity is exponentially
 distributed: mean 1 (the catalogue flux), but 10 % of the time below 0.1 and 5 % of the time above 3. Averaging over many scintles (a band
 much wider than Δν<sub>d</sub>, or a time much longer than Δt<sub>d</sub>) smooths this out; within one scintle there is no averaging.</p>
-<p>For J0437, the target pulsar, there is little averaging. J0437−4715 at 1.4 GHz (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come from the IAR
+<p>For J0437, the scenario's millisecond pulsar, there is little averaging. J0437−4715 at 1.4 GHz (DM 2.6, 156 pc) has Δν<sub>d</sub> ≈ 740 MHz and Δt<sub>d</sub> ≈ 2290 s. These values come from the IAR
 timing campaign, rescaled from Keith et al. 2013. Observations at 327 MHz, rescaled, give two time scales instead: ~500 s and ~5700 s
 (Gwinn et al. 2006). The scales also vary noticeably from epoch to epoch, by factors of 2–3 (refractive scintillation). Δν<sub>d</sub> is
-larger than our 400 MHz band, so the band holds about one scintle: there is little averaging over frequency, and the band-averaged flux is
-fully modulated in time (Figure P.7).</p>
+larger than the receiver's 400 MHz band, and five times the 150 MHz that is clean at the design point, so the band holds less than one
+scintle: there is little averaging over frequency, and the band-averaged flux is fully modulated in time (Figure P.7).</p>
 <figure class="scroll">
 <svg class="wide" viewBox="0 0 860 340" role="img" aria-label="Simulated interstellar scintillation: dynamic spectra for J0437 and for narrower scintles, and J0437's band-averaged flux against time">
   <text class="ttl" x="60" y="26">a · J0437 at 1.4 GHz: scintles ~740 MHz × ~38 min</text>
@@ -3817,8 +3821,8 @@ fully modulated in time (Figure P.7).</p>
   <path class="curve" d="M60.0 248.2 L72.1 239.9 L84.1 234.8 L96.2 234.1 L108.3 238.2 L120.3 246.6 L132.4 257.8 L144.4 269.7 L156.5 280.5 L168.6 288.9 L180.6 294.5 L192.7 297.4 L204.8 298.4 L216.8 298.2 L228.9 297.5 L241.0 296.6 L253.0 295.7 L265.1 294.7 L277.1 293.6 L289.2 292.1 L301.3 290.3 L313.3 288.2 L325.4 286.0 L337.5 284.3 L349.5 283.4 L361.6 283.8 L373.7 285.3 L385.7 287.9 L397.8 290.9 L409.8 293.7 L421.9 296.1 L434.0 297.7 L446.0 298.3 L458.1 298.1 L470.2 297.4 L482.2 296.7 L494.3 296.2 L506.3 295.8 L518.4 294.9 L530.5 292.7 L542.5 289.5 L554.6 286.2 L566.7 284.2 L578.7 284.5 L590.8 286.5 L602.9 288.5 L614.9 288.7 L627.0 285.9 L639.0 279.9 L651.1 272.2 L663.2 265.3 L675.2 261.6 L687.3 262.7 L699.4 268.4 L711.4 277.1 L723.5 286.2 L735.6 293.5 L747.6 297.7 L759.7 298.8 L771.7 298.0 L783.8 297.1 L795.9 296.8 L807.9 297.1 L820.0 297.2"/>
 </svg>
 <figcaption><b>Figure P.7.</b> Interstellar scintillation as the fast simulator draws it (one random realization; stronger colour = more flux, full colour at
-3× the mean). (a) J0437 at 1.4 GHz: its scintles (~740 MHz) are wider than our 400 MHz band, so the whole band brightens and fades together,
-about every 40 minutes. (b) The same with 50 MHz scintles: the band holds several scintles, and at any moment some channels are bright and
+3× the mean). (a) J0437 at 1.4 GHz: its scintles (~740 MHz) are wider than the 400 MHz band drawn here, and far wider than the 150 MHz in use at the
+design point, so the whole band brightens and fades together, about every 40 minutes. (b) The same with 50 MHz scintles: the band holds several scintles, and at any moment some channels are bright and
 others faint. (c) J0437's flux over the band against time: long stretches well below its catalogue average, and some well above.</figcaption>
 </figure>
 <p>For a navigation receiver this has three consequences. The first is for the SNR budget: the SNR per sub-int follows the flux, so the time to reach SNR ~7 per TOA varies by large factors from one hour to the

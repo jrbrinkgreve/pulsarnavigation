@@ -26,7 +26,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
 <tr><td><a href="#rfi"><code>runRFITest.m</code></a></td><td>What does each RFI type do, with and without excision?</td><td><code>data/rfi/</code></td><td>~45 s per case; realistic 3–6 min</td></tr>
 <tr><td><a href="#locked"><code>runLockedRadar.m</code></a></td><td>What does excision leave of a radar locked to the pulsar?</td><td><code>data/locked/</code></td><td>~9 min (all cases)</td></tr>
 <tr><td><a href="#rfiprofile"><code>runRFIProfile.m</code></a></td><td>What does RFI leave per channel after excision? (profiles for the fast simulator)</td><td><code>data/rfi/profile/</code></td><td>1 s: 25–50 min per case</td></tr>
-<tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S); with motion, the TOAs of a receiver that is not where it thinks</td><td><code>data/scenario/</code></td><td>~10 min per B0329+54 case for 30 simulated days</td></tr>
+<tr><td><a href="#scenario"><code>runScenario.m</code></a></td><td>Hours per TOA, TOAs per day, σ for B0329+54 (Netherlands) and J0437 (30° S); with motion, the TOAs of a receiver that is not where it thinks</td><td><code>data/scenario/</code></td><td>6–7 min per B0329+54 case for 30 simulated days at the design point, 21–23 min for 100 days</td></tr>
 <tr><td><a href="#ship"><code>runShip.m</code></a> (archived)</td><td>Can a ship keep its position with two pulsars and a drifting clock? (the closed loop with <code>navFilter</code>)</td><td><code>data/scenario/ship_*</code></td><td>~6 min per 14-day run</td></tr>
 </table></div>
 <figure class="scroll">
@@ -118,8 +118,8 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <text class="sub" x="220" y="299" text-anchor="middle">B0329+54, J0437</text>
   <rect class="box" x="293" y="281" width="134" height="28" rx="5"/>
   <text class="sub" x="360" y="299" text-anchor="middle">drawn per fold</text>
-  <rect class="box proc" x="433" y="281" width="134" height="28" rx="5"/>
-  <text class="sub" x="500" y="299" text-anchor="middle">nominal, worst</text>
+  <rect class="box" x="433" y="281" width="134" height="28" rx="5"/>
+  <text class="sub" x="500" y="299" text-anchor="middle">design point array3m2</text>
   <rect class="box proc" x="573" y="281" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="299" text-anchor="middle">clean, RFI variants</text>
   <rect class="box proc" x="713" y="281" width="134" height="28" rx="5"/>
@@ -130,7 +130,7 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
   <rect class="box" x="293" y="315" width="134" height="28" rx="5"/>
   <text class="sub" x="360" y="333" text-anchor="middle">drawn per fold</text>
   <rect class="box" x="433" y="315" width="134" height="28" rx="5"/>
-  <text class="sub" x="500" y="333" text-anchor="middle">nominal</text>
+  <text class="sub" x="500" y="333" text-anchor="middle">nominal (0.61 m²)</text>
   <rect class="box" x="573" y="315" width="134" height="28" rx="5"/>
   <text class="sub" x="640" y="333" text-anchor="middle">none</text>
   <rect class="box proc" x="713" y="315" width="134" height="28" rx="5"/>
@@ -142,8 +142,9 @@ noise, the pulsar, the signal strength or the interference. Each experiment answ
 <figcaption><b>Figure 1.</b> Each experiment changes one or two things and keeps the rest as in <code>main.m</code>, so its result can be traced to that
 change. Varying only the receiver noise tests the error bars; varying the pulsar too adds its self-noise; a zero sky is the
 true "no pulsar" case; the RFI experiments keep the noise of <code>main.m</code>, so a difference between two cases is the
-interference alone. <code>runScenario</code> draws folds with the fast simulator instead of voltages, for real
-pulsars over days.</figcaption>
+interference alone. <code>runScenario</code> and the archived <code>runShip</code> draw folds with the fast simulator instead of voltages,
+for real pulsars over days; <code>runScenario</code> runs at the array's design point, <code>runShip</code> ran at that of the receiver planned
+before 23 November 2026.</figcaption>
 </figure>
 <div class="callout note"><span class="ttl">Which front end the experiments use</span>
 <p><code>runMonteCarlo</code>, <code>runSNRSweep</code> and <code>runH0</code> run the front end that <code>frontEnd</code> chooses. They
@@ -324,7 +325,7 @@ coherently into the profile. This script measures how much. It stops if main's s
 <li>Bias at weak SNR: noise-free folds ρ·template + <var>L</var> through <code>estimateTOA</code>, ρ from −5 to −60 dB; the ρ where the bias reaches 1 µs.</li>
 </ol>
 <div class="callout why"><span class="ttl">Measure the leftover in baseline units, not as a TOA error</span>
-<p>The alternative would be to measure the TOA error caused by the radar at −5 dB. But the pulsar is ~80,000× weaker at −54 dB than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
+<p>The alternative would be to measure the TOA error caused by the radar at −5 dB. But the pulsar is ~8,000× weaker at −44 dB (J0437 at the array's design point) than at −5 dB, so a TOA test at −5 dB says little about the target. The leftover in units of
 the noise baseline does not depend on the pulsar, and comparing it with the pulse height ρ gives the bias at any SNR from one run.</p></div>
 <p>The cases are rows of <code>caseList</code> = [radar, excision, frequency guard, periodic mask]. The radars are: 0.1 µs edges,
 instant edges, and the 0.1 µs radar on a rotating antenna, seen only through −35 dB sidelobes. Cases 9–12 compare excision with and without
@@ -343,16 +344,32 @@ with the radar beam passages outside the run). It measures 30 lags (since 21 Oct
 them within its scatter, so they stay valid at the default DM.</p>
 <p>The 1 s profiles in <code>data/rfi/profile/</code> come from the current excision code (per-channel <code>detectRFI</code> thresholds,
 30 lags; measured 21 Oct, the default since 23 Oct). The first 1 s profiles (20 Oct: white thresholds, 7 lags) are kept in
-<code>data/rfi/profile_20oct/</code>. The 30-day RFI variants of <code>runScenario</code> were made with those; their rerun is pending. The
+<code>data/rfi/profile_20oct/</code>. The RFI variants of <code>runScenario</code> use the current profiles, cut to the design point's
+channels. The
 0.1 s profiles are the 20 Oct ones (<code>runRFITest</code>'s reference).</p>
 <details><summary>History</summary><p>Written 20 Oct 2026 (step C4b). 30 lags since 21 Oct; the profiles were measured again the same
 day.</p></details>
 
 <h2 id="scenario"><code>runScenario.m</code></h2>
 <p>The script runs the reference scenario with the fast simulator: B0329+54 from the Netherlands (52° N, passes of 19.6 h above 20°),
-and J0437 from 30° S (passes of 12.3 h), each at nominal and worst-case flux, with dual polarization and 128 channels with the band-edge
-taper. B0329+54 has five Gaussian components (NBin 2048); J0437 has eight components fitted to its measured Parkes profile
+and J0437 from 30° S (passes of 12.3 h), with dual polarization. B0329+54 has five Gaussian components (NBin 2048); J0437 has eight components fitted to its measured Parkes profile
 (NBin 1024; since 21 Oct, before that a single Gaussian, whose results are kept as <code>*_singleGauss512.mat</code>).</p>
+<p>A design point is an SEFD together with the channels in use, chosen by the setting <code>fluxes</code>:</p>
+<div class="table-wrap"><table>
+<tr><th><code>fluxes</code></th><th>Receiver</th><th>SEFD</th><th>Channels in use</th></tr>
+<tr><td><code>"array3m2"</code> (default since 23 Nov 2026)</td><td>the array: about 3 m², 70 K</td><td class="num">6.44·10⁴ Jy</td><td>33–80 of the 128: 1300–1450 MHz, the 150 MHz taken as clean of RFI (where the clean part really sits is not known)</td></tr>
+<tr><td><code>"nominal"</code></td><td>the receiver planned before 23 Nov 2026: 0.61 m², 70 K</td><td class="num">3.2·10⁵ Jy</td><td>all 128 (400 MHz)</td></tr>
+<tr><td><code>"worst"</code></td><td>the same receiver's worst case: 0.3 m², 80 K</td><td class="num">7.4·10⁵ Jy</td><td>all 128 (400 MHz)</td></tr>
+</table></div>
+<p>The two older design points are unchanged, bit for bit, so that results from before 23 November 2026 can be reproduced. For each
+design point the script takes the band-edge taper values of its channels, the RFI profile cut to them (the local function
+<code>pickChannels</code>), and the scintillation band at their frequencies. The result file also stores the SEFD (<code>sefd</code>)
+and the channels (<code>chanIdx</code>). At every design point the script follows the pulsar through its pass, above 20° elevation with
+constant gain. For the array that is the panel on a tracking mount; a drift through one of its fixed beams is not in the script
+(<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
+<details><summary>Validation of the change</summary><p>Claude's runs, 23 Nov 2026: the committed and the edited script give identical
+TOAs for <code>"nominal"</code> clean over 3 days and for <code>"worst"</code> with <code>rfiCal</code> and <code>rfiCalScint</code> over
+2 days; the default reproduces the scratch run it was derived from exactly (2596 TOAs in 30 days). Not yet run by Jasper.</p></details>
 <p>It works in four steps:</p>
 <ol>
 <li>Daily passes from latitude, declination and the 20° elevation mask, one per sidereal day.</li>
@@ -376,31 +393,36 @@ assumes a good ephemeris; a first test with an offset of 0.12 turns closed no gr
 the passes.</li>
 <li>Each TOA records its absolute time, the measured residual and the true one, split into position and clock: the input of the
 navigation fit. The result files get the suffix <code>_motion_perfect</code> or <code>_motion_sdr</code>.</li>
-<li>A TOA merges sub-ints, often over hours and sometimes over two passes a day apart, so it is a time-average. Its true parts and the
+<li>A TOA merges sub-ints, over a quarter of an hour to hours, and for a weak pulsar over two passes a day apart, so it is a time-average. Its true parts and the
 clock estimate the observer used are averaged over its sub-ints. Its time tag is the time nearest its mean time whose sidereal phase is
 the circular mean of its sub-ints' (<code>sideTag</code>), clamped to their span. It also carries its sub-ints' times
 (<code>tSub</code>), so that the navigation fit can average its row the same way.</li>
 <li>With the SDR clock the observer tracks it (<code>motion.track</code> <code>"daily"</code>). After each day it fits all its TOAs so
 far with <code>navFit</code> and the clock model, predicts its clock for the next day, and folds that day with the prediction. Until it
-has 20 TOAs, about two days, it keeps the calibration from port. <code>"none"</code> keeps the calibration throughout; those files get
+has 20 TOAs it keeps the calibration from port: less than a day at the array's design point, with 87 TOAs a day, and about two days
+at the earlier design point. <code>"none"</code> keeps the calibration throughout; those files get
 the suffix <code>_notrack</code>.</li>
 </ul>
-<p>A 6-day check with the SDR clock (true rate −1.17·10⁻⁶) shows why the tracking matters. The table gives, per day, the rms of the clock
+<p>A 6-day check with the SDR clock (true rate −1.17·10⁻⁶) shows why the tracking matters. It is the run of 22 Oct 2026, at the nominal
+design point of the receiver planned then (about 10 TOAs a day), and was not repeated. The table gives, per day, the rms of the clock
 the observer had not estimated; the pulse is 6.6 ms wide.</p>
 <div class="table-wrap"><table>
 <tr><th>Day</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th></tr>
 <tr><td>tracked</td><td class="num">1062 µs</td><td class="num">1316 µs</td><td class="num">43 µs</td><td class="num">45 µs</td><td class="num">282 µs</td><td class="num">33 µs</td></tr>
 <tr><td>not tracked</td><td class="num">1062 µs</td><td class="num">1150 µs</td><td class="num">1044 µs</td><td class="num">784 µs</td><td class="num">521 µs</td><td class="num">246 µs</td></tr>
 </table></div>
-<p>Day 2's 1.3 ms came from a rate fitted to one day; tracking therefore starts at 20 TOAs. Over the 30-day run the tracked clock's
-daily error stays between 16 µs and 620 µs on days 4–28, and every TOA is kept (<a href="navigation.html#navfit">navigation</a>).</p>
+<p>Day 2's 1.3 ms came from a rate fitted to one day; tracking therefore starts at 20 TOAs. In the 30-day run at the array's design
+point (Claude's run, 23 Nov 2026) the clock the observer had not estimated has an rms per week of 420, 108, 200, 138 and 346 µs, and
+2631 TOAs are kept, against 2634 with a perfect clock (<a href="navigation.html#navfit">navigation</a>).</p>
 <p>For J0437 a 1 ms clock-offset error is 0.17 turns, far outside its pulse, so <code>adaptiveSubints</code> would close no groups.
 For J0437 the observer must know its clock offset much better; keeping it known is the navigation filter's job.</p>
 <p>The variants are clean, RFI, RFI + calibration, + scintillation, and fixed groups for comparison. Results:
 <a href="scenario.html">scenario</a>.</p>
 
 <h2 id="ship"><code>runShip.m</code> (archived)</h2>
-<p>Archived in <code>old/moving_platform/</code> on 5 Nov 2026, because the work now aims at a static position. This section describes it as it stood.</p>
+<p>Archived in <code>old/moving_platform/</code> on 5 Nov 2026, because the work now aims at a static position. This section describes it as it stood.
+It ran at the design points of the receiver planned before 23 November 2026 (0.61 m², 400 MHz; <code>flux</code> <code>"nominal"</code>
+or <code>"worst"</code>), with its two pulsars in simultaneous digital beams, and was not rerun for the array.</p>
 <p>A ship that navigates by pulsars: the fast simulator and the navigation filter in a closed loop (block D4d). The ship knows its track
 only from dead reckoning, and an unknown current pushes it off that track.</p>
 <div class="table-wrap"><table>

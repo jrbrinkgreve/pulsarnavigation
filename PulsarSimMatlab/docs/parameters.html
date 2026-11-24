@@ -110,7 +110,7 @@ the band into 128 channels whose edges fall on the band edges (fine lines).</fig
 </figure>
 <p id="scales">In time: every sampling grid, the pulse, the interference and the length of a run, on one ruler (Figure 2).</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 62 hours a TOA takes at -54 dB">
+<svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 1.7 hours a J0437 TOA takes at the array's design point">
   <path class="axis" d="M40 150 H820"/>
   <path class="axis" d="M40.0 150 v4"/>
   <path class="axis" d="M88.8 150 v4"/>
@@ -187,28 +187,28 @@ the band into 128 channels whose edges fall on the band edges (fine lines).</fig
   <circle cx="527.5" cy="150" r="3.5" style="fill:var(--fg)"/>
   <text class="sub" x="527.5" y="116.0" text-anchor="middle" style="fill:var(--fg)">reference runs</text>
   <text class="lbl" x="527.5" y="129.0" text-anchor="middle">1 s</text>
-  <path class="thin" d="M765.3 150 V130.0" opacity="0.7"/>
-  <circle cx="765.3" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="765.3" y="116.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, catalogue est.</text>
-  <text class="lbl" x="765.3" y="129.0" text-anchor="middle">21 h</text>
-  <path class="thin" d="M794.2 150 V94.0" opacity="0.7"/>
-  <circle cx="794.2" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="794.0" y="80.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, simulated</text>
-  <text class="lbl" x="794.0" y="93.0" text-anchor="middle">82–95 h</text>
-  <path class="thin" d="M788.2 150 V174.0" opacity="0.7"/>
-  <circle cx="788.2" cy="150" r="3.5" style="fill:var(--fg)"/>
-  <text class="sub" x="773.7" y="194.0" text-anchor="middle" style="fill:var(--fg)">TOA at −54 dB (sim. pulsar)</text>
-  <text class="lbl" x="773.7" y="207.0" text-anchor="middle">62 h</text>
+  <path class="thin" d="M682.5 150 V94.0" opacity="0.7"/>
+  <circle cx="682.5" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="682.5" y="80.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, catalogue est.</text>
+  <text class="lbl" x="682.5" y="93.0" text-anchor="middle">0.42 h</text>
+  <path class="thin" d="M712.1 150 V130.0" opacity="0.7"/>
+  <circle cx="712.1" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="712.1" y="116.0" text-anchor="middle" style="fill:var(--fg)">J0437 TOA, simulated</text>
+  <text class="lbl" x="712.1" y="129.0" text-anchor="middle">1.7 h</text>
+  <path class="thin" d="M693.3 150 V174.0" opacity="0.7"/>
+  <circle cx="693.3" cy="150" r="3.5" style="fill:var(--fg)"/>
+  <text class="sub" x="693.3" y="194.0" text-anchor="middle" style="fill:var(--fg)">TOA at −44.2 dB (sim. pulsar)</text>
+  <text class="lbl" x="693.3" y="207.0" text-anchor="middle">0.7 h</text>
   <circle cx="44" cy="276" r="4" style="fill:var(--accent)"/><text class="sub" x="53" y="280">sampling and processing grid</text>
   <circle cx="234" cy="276" r="4" style="fill:var(--why)"/><text class="sub" x="243" y="280">the pulsar</text>
   <circle cx="424" cy="276" r="4" style="fill:var(--warn)"/><text class="sub" x="433" y="280">interference</text>
   <circle cx="614" cy="276" r="4" style="fill:var(--fg)"/><text class="sub" x="623" y="280">runs and time per TOA</text>
-  <text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to days (log scale)</text>
+  <text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to hours (log scale)</text>
 </svg>
 <figcaption><b>Figure 2.</b> Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase bins
-resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a
-million times longer, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
+resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the array's design point needs thousands of
+times longer (0.23 h for B0329+54, 1.7 h for J0437), and a position needs weeks of TOAs, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>
 
 <h2 id="pulsar">1 · Pulsar (ground truth for generation)</h2>
@@ -216,7 +216,7 @@ million times longer, which is why the <a href="simulator.html">fast simulator</
 gets its own copy through the ephemeris (Section 6).</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the millisecond pulsar of the design point. The
+<tr><td><code>T</code></td><td>10 ms</td><td>rotation period (<var>f</var><sub>0</sub> = 100 Hz)</td><td>20 pulses per 0.2 s file (10 per 0.1 s before 20 Oct); close to J0437 (5.76 ms), the millisecond pulsar of the reference scenario. The
 scenario runs use B0329+54 from 52° N, where J0437 never rises (<a href="scenario.html#ship">scenario</a>); the fast simulator takes
 their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <tr><td><code>A</code></td><td>1</td><td>pulsar noise std at the pulse peak (signal scale)</td><td>Sets the scale only; the receiver noise is set relative to it through <code>snrDB</code>.</td><td>generator; <code>addNoiseAndRFI</code> via <code>info_gen</code></td></tr>
@@ -239,7 +239,7 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 <p>The receiver settings are the first ones the observer knows, because they describe the hardware rather than the sky.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the target 4×4 array.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
+<tr><td><code>fLow</code>, <code>fHigh</code></td><td>1.2, 1.6 GHz</td><td>observed RF band (<var>B</var> = 400 MHz)</td><td>The band of the array. The voltage chain uses the full 400 MHz. About 150 MHz of it is clean of RFI at 70 K (the antenna team, via Jasper, 23 Nov 2026), so <code>runScenario</code>'s design point uses channels 33–80 only: 1300–1450 MHz, an assumed placement (<a href="scenario.html#receiver">scenario</a>). These defaults are unchanged.</td><td>dispersion (as bandpass), noise (SNR band), IQ check, dedispersion, channelizer</td></tr>
 <tr><td><code>fLO</code></td><td>1.3 GHz</td><td>local oscillator</td><td><b>Off-centre on purpose</b>: puts the band at −100…+300 MHz so a mirrored frequency mapping would fail visibly (<a href="receiver.html#lo">receiver</a>). The original reference was 1.4 GHz.</td><td>IQ; dedispersion and channelizer via <code>info_IQ</code></td></tr>
 <tr><td><code>fs</code></td><td>800 MHz</td><td>complex IQ sample rate</td><td>Needed for the off-centre band: +300 MHz must fit in the flat passband (cutoff 0.9·400 = 360 MHz). The original reference was 500 MHz.</td><td>IQ; everything after via <code>info_IQ</code></td></tr>
 <tr><td><code>filterOrder</code></td><td>2048</td><td>IQ low-pass order (2049 taps)</td><td>Transition ≈ 9.8 MHz at 80 dB, so the band sits well inside the flat passband; odd length → integer delay, removed exactly.</td><td>IQ</td></tr>
@@ -250,14 +250,14 @@ their real periods.</td><td>generator; <code>ephem.f0</code></td></tr>
 the band.</p>
 <div class="table-wrap"><table>
 <tr><th>Name</th><th>Value</th><th>Meaning</th><th>Why this value</th><th>Used by</th></tr>
-<tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.2 s run gives precise checks. The target is −54 dB; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
+<tr><td><code>snrDB</code></td><td>−5 dB</td><td><var>S</var><sub>peak</sub>/SEFD (ρ = 0.316); <code>Inf</code> = no noise</td><td>A bright pulsar: SNR ~93 per pulse, so a 0.2 s run gives precise checks. The targets are −38 dB (B0329+54) and −44 dB (J0437) at the array's design point; the sweeps cover −25…+20 dB.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>noiseSeed</code></td><td>seed + 1 = 43</td><td>receiver-noise random stream</td><td>Different from the pulsar seed; "seed 43" is the reference realization in every comparison.</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>rfiOn</code></td><td>false</td><td>switch the RFI scenario on</td><td>Noise-only is the reference; RFI is studied on purpose (<code>runRFITest</code>).</td><td>main</td></tr>
 <tr><td><code>rfiList</code></td><td>'illustrative'</td><td>which list <code>rfi</code> is taken from: <code>'illustrative'</code> (5 sources) or <code>'realistic'</code> (16 sources, B5e, 9 Oct)</td><td>The illustrative list stays the default, so main and all tests are unchanged (Jasper).</td><td>main</td></tr>
 <tr><td><code>rfiSelect</code></td><td>[]</td><td>which sources of the chosen list (illustrative: 1 L1, 2 L2, 3 radar, 4 carrier, 5 impulses); [] = all</td><td>Test one source at a time.</td><td>main</td></tr>
 <tr><td><code>rfi</code></td><td>5 <code>rfiSource</code> structs</td><td>the illustrative L-band scenario (table on <a href="receiver.html#rfi">receiver</a>)</td><td>Radar PRF 373 Hz (not a pulsar harmonic); carrier 1351.3 MHz (not a channel edge).</td><td><code>addNoiseAndRFI</code></td></tr>
 <tr><td><code>rfiScenario</code></td><td>= the full illustrative list</td><td>kept before <code>rfiSelect</code> / <code>rfiOn</code> are applied</td><td><code>runRFITest</code> picks cases from it.</td><td><code>runRFITest</code></td></tr>
-<tr><td><code>rfiRealistic</code></td><td>16 <code>rfiSource</code> structs</td><td>the realistic L-band scenario for the reference hardware (table on <a href="receiver.html#realistic">receiver</a>)</td><td>GNSS, two rotating radars, LTE band 32, Inmarsat, impulses, a local carrier; levels from a link budget (±10 dB).</td><td><code>runRFITest</code> (cases 14–15), main if chosen</td></tr>
+<tr><td><code>rfiRealistic</code></td><td>16 <code>rfiSource</code> structs</td><td>the realistic L-band scenario for the reference hardware (table on <a href="receiver.html#realistic">receiver</a>)</td><td>GNSS, two rotating radars, LTE band 32, Inmarsat, impulses, a local carrier; levels from a link budget (±10 dB) made on 9 Oct 2026 for the 0.61 m² receiver planned then, and not re-estimated for the array.</td><td><code>runRFITest</code> (cases 14–15), main if chosen</td></tr>
 <tr><td><code>scintOn</code></td><td>false</td><td>switch interstellar scintillation on in the fast simulator (<code>simulateFold</code>; the voltage chain has none)</td><td>Off keeps every validation run as it was; on for scenario runs (<a href="physics.html#scint">physics</a>).</td><td>scenario scripts (fast simulator)</td></tr>
 <tr><td><code>scint</code></td><td>bandwidth 740 MHz, timescale 2290 s, band [fLow fHigh]</td><td>scintle bandwidth (HWHM) and time (1/e) of J0437 at 1.4 GHz</td><td>IAR 2020 (arXiv:2010.00010), rescaled from Keith et al. 2013; varies between epochs by factors 2–3.</td><td>—</td></tr>
 <tr><td><code>scintSim</code></td><td>[] (= <code>scint</code> when <code>scintOn</code>)</td><td>what to pass as <code>simulateFold</code>'s <code>'Scintillation'</code> option</td><td>[] means off, bit for bit the same as leaving the option out.</td><td>scenario scripts</td></tr>
@@ -277,7 +277,7 @@ the band.</p>
 <tr><td><code>excision</code></td><td>true</td><td>channel path: RFI excision before dedispersion</td><td>Default since 8 Oct (Jasper); costs 0.0125 % of clean data, no TOA change (<a href="excision.html#results">B3</a>). For a weak pulsar only: above −5 dB or noise-free it blanks the pulse itself, and main warns (<a href="excision.html#limits">limits</a>).</td><td>main</td></tr>
 <tr><td><code>excisionArgs</code></td><td>{}</td><td>name-value options for <code>detectRFI</code></td><td>Its defaults are the validated ones (windows 1–16, P<sub>FA</sub> 10⁻⁶, guard 10, frequency guard 7).</td><td><code>detectRFI</code></td></tr>
 <tr><td><code>noiseCal</code></td><td>false</td><td>channel path: per-channel noise calibration (20 Oct)</td><td>Measures each channel's noise (V, X) on the observation's own off-pulse time bins and folds with it, so error bars and χ² follow what RFI leaves (B5e: χ² 1.07–1.25 with the flat-channel model). Off by default: the validations used the flat model. <code>proc.noiseCalOnPulse</code> (optional) sets the half-width left out around the pulse (default 1.5 FWHM per component).</td><td><code>processIQ</code>, <code>rfiProfile</code>, <code>foldProfile</code></td></tr>
-<tr><td><code>periodicMask</code></td><td><b>false</b> (since 9 Oct; true 8–9 Oct)</td><td>with excision: find periodic RFI (radars) in the detections and blank all its predicted pulses</td><td>Needed only for a radar locked to the pulsar (seen only through weak sidelobes it would otherwise dominate the TOA at −54 dB; with the mask 0.001 µs, <a href="excision.html#periodic">B6</a>). Off by default since 9 Oct (Jasper): with many false flags it accepts false emitters and blanked ~30 % of the data (<a href="limits.html">limits</a>); fix designed in <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>.</td><td><code>periodicRFI</code>, main</td></tr>
+<tr><td><code>periodicMask</code></td><td><b>false</b> (since 9 Oct; true 8–9 Oct)</td><td>with excision: find periodic RFI (radars) in the detections and blank all its predicted pulses</td><td>Needed only for a radar locked to the pulsar (seen only through weak sidelobes it would otherwise dominate the TOA at −54 dB, the design target until 23 November 2026; with the mask 0.001 µs, <a href="excision.html#periodic">B6</a>). Off by default since 9 Oct (Jasper): with many false flags it accepts false emitters and blanked ~30 % of the data (<a href="limits.html">limits</a>); fix designed in <a href="../logs/2026-10-09_handover-B-closed.md"><code>2026-10-09_handover-B-closed.md</code></a>.</td><td><code>periodicRFI</code>, main</td></tr>
 <tr><td><code>periodicArgs</code></td><td>{}</td><td>name-value options for <code>periodicRFI</code></td><td>Defaults: ≥ 6 pulses, ±4 samples, chance &lt; 10⁻⁶, PRF 50 Hz – 20 kHz.</td><td><code>periodicRFI</code></td></tr>
 </table></div>
 

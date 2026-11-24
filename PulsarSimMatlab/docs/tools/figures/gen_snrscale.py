@@ -11,7 +11,7 @@ dB = np.linspace(-60, 25, 341)
 s = np.array([snrPulse(10**(d/10)) for d in dB])
 weak = np.sqrt(B*sp*np.sqrt(np.pi))                  # SNR = weak*rho for weak pulses
 print('weak-signal factor', weak)
-for d in (-54, -20, -5, 20):
+for d in (-44.2, -38, -20, -5, 20):
     print(d, snrPulse(10**(d/10)))
 o = []
 A = Ax(90, 40, 560, 250, (-60, 25), (1e-4, 3e3), logy=True)
@@ -23,7 +23,7 @@ o.append(f'<path class="curve" d="{A.path(dB, s)}"/>')
 y7 = A.Y(7)
 o.append(f'<path class="dash" d="M{A.x0} {y7:.1f} H{A.x0+A.w}"/>')
 o.append(f'<text class="sub" x="{A.X(-59):.1f}" y="{y7-6:.1f}">SNR 7: one good TOA</text>')
-pts = [(-54, 'design target', 'right'), (-20, 'original plan (30 Sep)', 'right'), (-5, 'test runs', 'left')]
+pts = [(-44.2, 'J0437−4715, design point', 'right'), (-20, 'original plan (30 Sep)', 'right'), (-5, 'test runs', 'left')]
 for d, lab, side in pts:
     v = snrPulse(10**(d/10)); x, y = float(A.X(d)), float(A.Y(v))
     o.append(f'<path class="dot2" d="M{x-4:.1f} {y:.1f} a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>')
@@ -39,20 +39,21 @@ o.append(f'<text class="sub" x="{A.X(24):.1f}" y="{A.Y(s[-1])+18:.1f}" text-anch
 o.append(f'<text class="sub" x="{A.X(24):.1f}" y="{A.Y(s[-1])+32:.1f}" text-anchor="end">limits itself</text>')
 # side notes
 nx = 672
-notes = [('ttl', 'At the design target'), ('sub', 'ρ = 10⁻⁵·⁴ = 4.0·10⁻⁶'), ('sub', 'One pulse: SNR 0.0015.'),
-         ('sub', 'SNR grows as √(turns folded), so'), ('sub', 'one TOA at SNR 7 needs ~2·10⁷ turns:'),
-         ('sub', '~62 h for this 10 ms pulsar.'), ('sub', ''), ('ttl', 'The test runs'),
-         ('sub', '−5 dB is ~80,000× brighter:'), ('sub', 'every turn gives a usable TOA,'),
+notes = [('ttl', 'At the design point'), ('sub', 'ρ = 10⁻⁴·⁴² = 3.8·10⁻⁵'), ('sub', 'One pulse: SNR 0.015.'),
+         ('sub', 'SNR grows as √(turns folded):'), ('sub', 'SNR 7 needs ~2.4·10⁵ turns,'),
+         ('sub', '~41 min for this 10 ms pulsar.'), ('sub', ''), ('ttl', 'The test runs'),
+         ('sub', '−5 dB is ~8,300× brighter:'), ('sub', 'every turn gives a usable TOA,'),
          ('sub', 'so a short run (0.2 s, 15–16 TOAs)'), ('sub', 'tests the whole chain.')]
 for i, (c, line) in enumerate(notes):
     o.append(f'<text class="{c}" x="{nx}" y="{58 + 17*i}">{line}</text>')
 svg = '''<figure class="scroll">
-<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design target and the test runs marked">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design point and the test runs marked">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure 3.3.</b> What a value of <code>snrDB</code> means, from the radiometer equation that <code>addNoiseAndRFI</code> prints (flat
 400 MHz band, the 0.5 ms Gaussian pulse; ~1.5 % optimistic). For weak pulses the SNR of one pulse is 388·ρ (dashed). At high
 <code>snrDB</code> the pulsar's own noise takes over. The time per TOA (side note) uses the fold's 373·ρ per turn, which includes the
-baseline loss; the 62 h is the <a href="scenario.html">scenario page</a>'s number for this pulsar.</figcaption>
+baseline loss. It holds for this test pulsar with one polarization in 400 MHz; J0437−4715 itself, with two polarizations in the
+150 MHz of the design point, needs 1.7 h of data per TOA when followed through its pass (<a href="scenario.html">scenario</a>).</figcaption>
 </figure>'''
 open('snrscale.svg', 'w').write(svg)

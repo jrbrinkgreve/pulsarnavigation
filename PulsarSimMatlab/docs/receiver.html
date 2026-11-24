@@ -192,11 +192,11 @@ the same sample rate (4 GHz) and dispersion does not change the in-band density,
 </dl>
 <p>A ratio of spectral densities is used because an SNR per sample, per time bin or after folding would depend on later processing choices:
 the bandwidth, the time resolution, how long one folds. The ratio of spectral densities does not, and neither does dispersion, because each
-frequency still sees the full pulse height, only later. It therefore describes the <em>sky and antenna</em>. A small-antenna design point
-translates straight into it: −54 dB for J0437 on the 0.61 m² array. Every "SNR per pulse" or "per sub-int" follows from it through the radiometer equation (Figure 3.3). A value of <code>Inf</code> means
+frequency still sees the full pulse height, only later. It therefore describes the <em>sky and antenna</em>. The array's design point
+translates straight into it: −44.2 dB for J0437−4715 and −38.0 dB for B0329+54 (<a href="scenario.html#receiver">scenario</a>). Every "SNR per pulse" or "per sub-int" follows from it through the radiometer equation (Figure 3.3). A value of <code>Inf</code> means
 no noise.</p>
 <figure class="scroll">
-<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design target and the test runs marked">
+<svg class="wide" viewBox="0 0 860 330" role="img" aria-label="SNR of one pulse against snrDB: linear for weak pulses, limited by self-noise for strong ones; the design point and the test runs marked">
   <path class="axis" d="M90 290 H650"/>
   <path class="axis" d="M90 40 V290"/>
   <path class="axis" d="M90.0 290 v5"/>
@@ -237,9 +237,9 @@ no noise.</p>
   <path class="curve" d="M90.0 270.3 L91.6 269.5 L93.3 268.6 L94.9 267.8 L96.6 267.0 L98.2 266.1 L99.9 265.3 L101.5 264.5 L103.2 263.6 L104.8 262.8 L106.5 262.0 L108.1 261.1 L109.8 260.3 L111.4 259.4 L113.1 258.6 L114.7 257.8 L116.4 256.9 L118.0 256.1 L119.6 255.3 L121.3 254.4 L122.9 253.6 L124.6 252.8 L126.2 251.9 L127.9 251.1 L129.5 250.3 L131.2 249.4 L132.8 248.6 L134.5 247.7 L136.1 246.9 L137.8 246.1 L139.4 245.2 L141.1 244.4 L142.7 243.6 L144.4 242.7 L146.0 241.9 L147.6 241.1 L149.3 240.2 L150.9 239.4 L152.6 238.5 L154.2 237.7 L155.9 236.9 L157.5 236.0 L159.2 235.2 L160.8 234.4 L162.5 233.5 L164.1 232.7 L165.8 231.9 L167.4 231.0 L169.1 230.2 L170.7 229.4 L172.4 228.5 L174.0 227.7 L175.6 226.8 L177.3 226.0 L178.9 225.2 L180.6 224.3 L182.2 223.5 L183.9 222.7 L185.5 221.8 L187.2 221.0 L188.8 220.2 L190.5 219.3 L192.1 218.5 L193.8 217.7 L195.4 216.8 L197.1 216.0 L198.7 215.1 L200.4 214.3 L202.0 213.5 L203.6 212.6 L205.3 211.8 L206.9 211.0 L208.6 210.1 L210.2 209.3 L211.9 208.5 L213.5 207.6 L215.2 206.8 L216.8 206.0 L218.5 205.1 L220.1 204.3 L221.8 203.4 L223.4 202.6 L225.1 201.8 L226.7 200.9 L228.4 200.1 L230.0 199.3 L231.6 198.4 L233.3 197.6 L234.9 196.8 L236.6 195.9 L238.2 195.1 L239.9 194.2 L241.5 193.4 L243.2 192.6 L244.8 191.7 L246.5 190.9 L248.1 190.1 L249.8 189.2 L251.4 188.4 L253.1 187.6 L254.7 186.7 L256.4 185.9 L258.0 185.1 L259.6 184.2 L261.3 183.4 L262.9 182.5 L264.6 181.7 L266.2 180.9 L267.9 180.0 L269.5 179.2 L271.2 178.4 L272.8 177.5 L274.5 176.7 L276.1 175.9 L277.8 175.0 L279.4 174.2 L281.1 173.4 L282.7 172.5 L284.4 171.7 L286.0 170.9 L287.6 170.0 L289.3 169.2 L290.9 168.3 L292.6 167.5 L294.2 166.7 L295.9 165.8 L297.5 165.0 L299.2 164.2 L300.8 163.3 L302.5 162.5 L304.1 161.7 L305.8 160.8 L307.4 160.0 L309.1 159.2 L310.7 158.3 L312.4 157.5 L314.0 156.7 L315.6 155.8 L317.3 155.0 L318.9 154.2 L320.6 153.3 L322.2 152.5 L323.9 151.7 L325.5 150.8 L327.2 150.0 L328.8 149.2 L330.5 148.3 L332.1 147.5 L333.8 146.7 L335.4 145.8 L337.1 145.0 L338.7 144.2 L340.4 143.3 L342.0 142.5 L343.6 141.7 L345.3 140.8 L346.9 140.0 L348.6 139.2 L350.2 138.3 L351.9 137.5 L353.5 136.7 L355.2 135.9 L356.8 135.0 L358.5 134.2 L360.1 133.4 L361.8 132.5 L363.4 131.7 L365.1 130.9 L366.7 130.1 L368.4 129.2 L370.0 128.4 L371.6 127.6 L373.3 126.8 L374.9 126.0 L376.6 125.1 L378.2 124.3 L379.9 123.5 L381.5 122.7 L383.2 121.9 L384.8 121.0 L386.5 120.2 L388.1 119.4 L389.8 118.6 L391.4 117.8 L393.1 117.0 L394.7 116.2 L396.4 115.4 L398.0 114.6 L399.6 113.7 L401.3 112.9 L402.9 112.1 L404.6 111.3 L406.2 110.5 L407.9 109.8 L409.5 109.0 L411.2 108.2 L412.8 107.4 L414.5 106.6 L416.1 105.8 L417.8 105.0 L419.4 104.3 L421.1 103.5 L422.7 102.7 L424.4 102.0 L426.0 101.2 L427.6 100.4 L429.3 99.7 L430.9 98.9 L432.6 98.2 L434.2 97.5 L435.9 96.7 L437.5 96.0 L439.2 95.3 L440.8 94.6 L442.5 93.8 L444.1 93.1 L445.8 92.4 L447.4 91.7 L449.1 91.0 L450.7 90.4 L452.4 89.7 L454.0 89.0 L455.6 88.4 L457.3 87.7 L458.9 87.1 L460.6 86.4 L462.2 85.8 L463.9 85.2 L465.5 84.6 L467.2 84.0 L468.8 83.4 L470.5 82.8 L472.1 82.2 L473.8 81.7 L475.4 81.1 L477.1 80.6 L478.7 80.0 L480.4 79.5 L482.0 79.0 L483.6 78.5 L485.3 78.0 L486.9 77.5 L488.6 77.1 L490.2 76.6 L491.9 76.2 L493.5 75.7 L495.2 75.3 L496.8 74.9 L498.5 74.5 L500.1 74.1 L501.8 73.7 L503.4 73.3 L505.1 72.9 L506.7 72.6 L508.4 72.2 L510.0 71.9 L511.6 71.6 L513.3 71.2 L514.9 70.9 L516.6 70.6 L518.2 70.3 L519.9 70.0 L521.5 69.8 L523.2 69.5 L524.8 69.2 L526.5 69.0 L528.1 68.7 L529.8 68.5 L531.4 68.3 L533.1 68.0 L534.7 67.8 L536.4 67.6 L538.0 67.4 L539.6 67.2 L541.3 67.0 L542.9 66.8 L544.6 66.6 L546.2 66.4 L547.9 66.3 L549.5 66.1 L551.2 65.9 L552.8 65.8 L554.5 65.6 L556.1 65.5 L557.8 65.3 L559.4 65.2 L561.1 65.0 L562.7 64.9 L564.4 64.8 L566.0 64.6 L567.6 64.5 L569.3 64.4 L570.9 64.3 L572.6 64.2 L574.2 64.1 L575.9 63.9 L577.5 63.8 L579.2 63.7 L580.8 63.6 L582.5 63.5 L584.1 63.4 L585.8 63.3 L587.4 63.2 L589.1 63.2 L590.7 63.1 L592.4 63.0 L594.0 62.9 L595.6 62.8 L597.3 62.7 L598.9 62.6 L600.6 62.6 L602.2 62.5 L603.9 62.4 L605.5 62.3 L607.2 62.3 L608.8 62.2 L610.5 62.1 L612.1 62.1 L613.8 62.0 L615.4 61.9 L617.1 61.9 L618.7 61.8 L620.4 61.7 L622.0 61.7 L623.6 61.6 L625.3 61.6 L626.9 61.5 L628.6 61.4 L630.2 61.4 L631.9 61.3 L633.5 61.3 L635.2 61.2 L636.8 61.2 L638.5 61.1 L640.1 61.1 L641.8 61.0 L643.4 61.0 L645.1 60.9 L646.7 60.9 L648.4 60.8 L650.0 60.8"/>
   <path class="dash" d="M90 128.0 H650"/>
   <text class="sub" x="96.6" y="122.0">SNR 7: one good TOA</text>
-  <path class="dot2" d="M125.5 250.3 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
-  <text class="lbl" x="138.5" y="254.3">-54 dB: 0.0015 per pulse</text>
-  <text class="sub" x="138.5" y="268.3">design target</text>
+  <path class="dot2" d="M190.1 217.5 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
+  <text class="lbl" x="203.1" y="221.5">-44.2 dB: 0.015 per pulse</text>
+  <text class="sub" x="203.1" y="235.5">J0437−4715, design point</text>
   <path class="dot2" d="M349.5 136.7 a4 4 0 1 0 8 0 a4 4 0 1 0 -8 0"/>
   <text class="lbl" x="362.5" y="140.7">-20 dB: 3.85 per pulse</text>
   <text class="sub" x="362.5" y="154.7">original plan (30 Sep)</text>
@@ -249,15 +249,15 @@ no noise.</p>
   <text class="sub" x="248.1" y="170.0" transform="rotate(-30 248.1 170.0)">weak pulses: SNR = 388·ρ</text>
   <text class="sub" x="643.4" y="78.8" text-anchor="end">self-noise: the pulsar</text>
   <text class="sub" x="643.4" y="92.8" text-anchor="end">limits itself</text>
-  <text class="ttl" x="672" y="58">At the design target</text>
-  <text class="sub" x="672" y="75">ρ = 10⁻⁵·⁴ = 4.0·10⁻⁶</text>
-  <text class="sub" x="672" y="92">One pulse: SNR 0.0015.</text>
-  <text class="sub" x="672" y="109">SNR grows as √(turns folded), so</text>
-  <text class="sub" x="672" y="126">one TOA at SNR 7 needs ~2·10⁷ turns:</text>
-  <text class="sub" x="672" y="143">~62 h for this 10 ms pulsar.</text>
+  <text class="ttl" x="672" y="58">At the design point</text>
+  <text class="sub" x="672" y="75">ρ = 10⁻⁴·⁴² = 3.8·10⁻⁵</text>
+  <text class="sub" x="672" y="92">One pulse: SNR 0.015.</text>
+  <text class="sub" x="672" y="109">SNR grows as √(turns folded):</text>
+  <text class="sub" x="672" y="126">SNR 7 needs ~2.4·10⁵ turns,</text>
+  <text class="sub" x="672" y="143">~41 min for this 10 ms pulsar.</text>
   <text class="sub" x="672" y="160"></text>
   <text class="ttl" x="672" y="177">The test runs</text>
-  <text class="sub" x="672" y="194">−5 dB is ~80,000× brighter:</text>
+  <text class="sub" x="672" y="194">−5 dB is ~8,300× brighter:</text>
   <text class="sub" x="672" y="211">every turn gives a usable TOA,</text>
   <text class="sub" x="672" y="228">so a short run (0.2 s, 15–16 TOAs)</text>
   <text class="sub" x="672" y="245">tests the whole chain.</text>
@@ -265,7 +265,8 @@ no noise.</p>
 <figcaption><b>Figure 3.3.</b> What a value of <code>snrDB</code> means, from the radiometer equation that <code>addNoiseAndRFI</code> prints (flat
 400 MHz band, the 0.5 ms Gaussian pulse; ~1.5 % optimistic). For weak pulses the SNR of one pulse is 388·ρ (dashed). At high
 <code>snrDB</code> the pulsar's own noise takes over. The time per TOA (side note) uses the fold's 373·ρ per turn, which includes the
-baseline loss; the 62 h is the <a href="scenario.html">scenario page</a>'s number for this pulsar.</figcaption>
+baseline loss. It holds for this test pulsar with one polarization in 400 MHz; J0437−4715 itself, with two polarizations in the
+150 MHz of the design point, needs 1.7 h of data per TOA when followed through its pass (<a href="scenario.html">scenario</a>).</figcaption>
 </figure>
 <p>To make a value of <code>snrDB</code> concrete, the stage prints at run time the radiometer prediction for a Gaussian power profile <var>p</var>(<var>t</var>), including self-noise,
 in a flat band <var>B</var> = 400 MHz (stored in <code>info.prediction</code>):</p>
@@ -582,12 +583,16 @@ carrier is at 1351.3 MHz, not 1350 MHz, because 1350 MHz is exactly the edge bet
 unrepresentative special case.</p>
 <details><summary>History</summary><p>Jasper's decision, 9 Oct 2026.</p></details>
 <p id="realistic">The illustrative list tests each kind of source on its own. The <b>realistic scenario</b> <span class="badge validated">validated</span>,
-<code>rfiRealistic</code>, chosen with <code>rfiList = 'realistic'</code>, instead estimates what the reference hardware would actually
-see: the 0.61 m² array (3×3 when the list was made, 4×4 since 20 November 2026, with the same gain and beam),
-<var>T</var><sub>sys</sub> ≈ 70 K, a ground station. Receiver noise <var>kT</var><sub>sys</sub><var>B</var> = −124 dBW in 400 MHz, and INR is
-relative to that. The array gain is ~22 dBi in the main beam (~15°), ~0–3 dBi to the rest of the sky, and −10 dBi assumed towards the
-horizon. GNSS levels are the published minimum received power + ~3 dB, summed over the visible satellites. The other levels are
-link-budget estimates (±10 dB).</p>
+<code>rfiRealistic</code>, chosen with <code>rfiList = 'realistic'</code>, instead estimates what a real array would see. It is a link
+budget made on 9 Oct 2026 for the array of that time, a 0.61 m² ground station with <var>T</var><sub>sys</sub> ≈ 70 K. Receiver noise
+<var>kT</var><sub>sys</sub><var>B</var> = −124 dBW in 400 MHz, and INR is relative to that. The gain of that array was ~22 dBi in the main
+beam (~15°), ~0–3 dBi to the rest of the sky, and −10 dBi assumed towards the horizon. GNSS levels are the published minimum received
+power + ~3 dB, summed over the visible satellites. The other levels are link-budget estimates (±10 dB).</p>
+<p>The list has not been re-estimated for the array of 23 November 2026. Three things are known for that array. About 150 MHz of the
+band is clean of RFI, at a measured 70 K (the antenna team, via Jasper). Its beam is about 6° wide, with a directivity of 29.2 dBi
+(Claude's arithmetic from 3 m²), so its gain towards each source differs from the list's. And the scenario runs at the design point cut
+the modelled RFI to channels 33–80 (1300–1450 MHz), where the list has the radar at 1332.9 MHz, the carrier at 1388.9 MHz and the
+impulses (<a href="scenario.html#rfivariants">scenario</a>).</p>
 <div class="table-wrap"><table>
 <tr><th>Source</th><th>Type</th><th>Parameters</th><th>INR</th></tr>
 <tr><td>GNSS L1 band (~30 satellites)</td><td>noise</td><td>1575.42 MHz, 2.046 MHz (many satellites add up to Gaussian noise)</td><td>−14 dB</td></tr>
@@ -894,7 +899,7 @@ run lasts seconds. The clock matters over hours and days, so the fast simulator 
 <div class="table-wrap"><table>
 <tr><th>Effect</th><th>What it does</th><th>Size, and what follows</th></tr>
 <tr><td>Offset, rate and wander of the clock</td><td>Shift every TOA.</td><td>A temperature-compensated crystal (TCXO) drifts about 3.6 µs
-per hour, an oven-controlled one (OCXO) 4–36 ns. B0329+54's 734 µs TOAs tolerate a TCXO; J0437's 13 µs TOAs need an OCXO or better. The
+per hour, an oven-controlled one (OCXO) 4–36 ns. B0329+54's 705 µs TOAs tolerate a TCXO; J0437's 13 µs TOAs need an OCXO or better. The
 clock offset and rate become part of the navigation state.</td></tr>
 <tr><td>Frequency error within a fold</td><td>Smears the fold like an uncorrected Doppler shift.</td><td>10⁻⁹ over an hour is 3.6 µs:
 below B0329+54's bins. A commercial SDR's uncorrected 2·10⁻⁶ is 7.2 ms per hour, so its rate must be estimated (the predictor's <a href="fold.html#makepredictor"><code>'Clock'</code> option</a>).</td></tr>
@@ -1132,11 +1137,11 @@ the grid are refused (<code>makeClock:range</code>).</dd>
 <p>Both scenario scripts give the receiver an SDR clock: the crystal preset's noise, and a rate drawn uniformly within ±2 ppm.</p>
 <p>In <code>runScenario</code>, with <code>motion.clock</code> <code>"sdr"</code>, the observer knows the clock from a port calibration
 to 1 ms in offset and 10⁻⁹ in rate. By default it then tracks the clock day by day: after each day it fits all its TOAs with
-<code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run (true rate
-−1.17·10⁻⁶) it keeps 300 of 302 TOAs, and the position is the same as with a perfect clock (<a href="navigation.html#navfit">navigation</a>). In <code>runShip</code> each
+<code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run at the array's design point (B0329+54 followed through its pass; Claude's run, 23 Nov) it keeps 2631 of 2634 TOAs,
+and the east estimate moves by 3 km against an error bar of ±9.4 km (<a href="navigation.html#navfit">navigation</a>). In <code>runShip</code> each
 seed draws its own clock, and the observer's filter carries the clock's offset and rate. With a calibrated start the port calibration's errors, 1 ms and 10⁻⁹, are drawn and given to the filter as <code>'ClockPrior'</code>
 (<a href="navigation.html#ship">navigation</a>).</p>
-<p>The clock the observer has not estimated then stays at a few hundred µs per day. That is harmless for B0329+54's 6.6 ms pulse, but
+<p>The clock the observer has not estimated then stays at a few hundred µs (108–420 µs rms per week in that run). That is harmless for B0329+54's 6.6 ms pulse, but
 too much for J0437's 0.14 ms.</p>
 
 <h3 id="clock-tests">Tests (<code>tests/testMakeClock.m</code>)</h3>

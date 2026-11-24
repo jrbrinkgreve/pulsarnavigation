@@ -2,7 +2,8 @@ import numpy as np
 from plotsvg import Ax, pow10
 # runLockedRadar (B5b / B6, 8 Oct; excision.html section 6 table): TOA bias from a radar locked to the pulsar
 # (400 Hz = 4 f0, worst pulse phase), against snrDB, for each excision setting. |bias| in us; the -20 dB value of
-# the periodic-mask case is 0 (not drawn on a log axis).
+# the periodic-mask case is 0 (not drawn on a log axis). -54 dB is the weakest level of the run's table (the design
+# target until 23 Nov 2026); the design-point levels of 23 Nov (-38.0 and -44.2 dB) are marked, they were not run.
 snr = np.array([-20, -30, -40, -54])
 cases = [('excision off: locks on the radar', None, 'curve4'),
          ('instant edges, excision on', [5.5, 64, 662, 1453], 'curve4'),
@@ -17,8 +18,10 @@ o.append(A.frame(xticks=[-54, -50, -40, -30, -20], yticks=[1e-3, 1e-2, 0.1, 1, 1
                  xlab='snrDB', ylab='|TOA bias| from the locked radar [µs]', yfmt=lambda v: f'{v:g}'))
 o.append(f'<path class="dash" d="M{A.x0} {A.Y(1):.1f} H{A.x0 + A.w}"/>')
 o.append(f'<text class="sub" x="{A.x0 + A.w - 4}" y="{A.Y(1) - 5:.1f}" text-anchor="end">1 µs</text>')
-o.append(f'<path class="thin" d="M{A.X(-54):.1f} {A.y0} V{A.y0 + A.h}"/>')
-o.append(f'<text class="sub" x="{A.X(-54) + 4:.1f}" y="{A.y0 + 12}">design target</text>')
+for lvl, lab, anchor in ((-44.2, 'J0437−4715', 'end'), (-38.0, 'B0329+54', 'start')):
+    dx = -4 if anchor == 'end' else 4
+    o.append(f'<path class="thin" d="M{A.X(lvl):.1f} {A.y0} V{A.y0 + A.h}"/>')
+    o.append(f'<text class="sub" x="{A.X(lvl) + dx:.1f}" y="{A.y0 + 12}" text-anchor="{anchor}">{lab}</text>')
 labels = []
 for name, vals, cls in cases:
     if vals is None:
@@ -46,6 +49,7 @@ svg = '''<figure class="scroll">
 <figcaption><b>Figure E.6.</b> The TOA bias left after excision by a radar locked to the pulsar's period (PRF 400 Hz = 4 <var>f</var><sub>0</sub>, worst
 pulse phase, DM 5), from the table above. A fixed leftover grows as 1/ρ when the pulsar gets weaker, so the lines rise about ten-fold per 10 dB.
 Every two extra guard channels cut the bias 3–4×. Guard 7, the default, keeps it below 1 µs down to −51 dB, and the periodic mask
-(Section E8) down to −58 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
+(Section E8) down to −58 dB. The vertical lines are the two pulsars at the array's design point (−44.2 and −38.0 dB); the run's weakest
+level is −54 dB. With instant radar edges (dashed), the guard does not help.</figcaption>
 </figure>'''
 open('locked.svg', 'w').write(svg)

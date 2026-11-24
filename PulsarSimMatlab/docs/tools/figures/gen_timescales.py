@@ -2,9 +2,10 @@ import numpy as np
 import re
 # Time scales of the pipeline on one log ruler (parameters.html), from the parameters: RF sample 1/f_in, IQ sample 1/fs,
 # channel sample 1/(4/3 * 3.125 MHz), detected bin 4 channel samples, phase bin T/nBin, pulse sigma_t and FWHM, dispersion
-# sweep at DM 25 (since 20 Oct; 6.3 ms at DM 5), period T, file length L (0.2 s since 20 Oct); RFI: impulse 200 ns, radar pulse 2 us; time per TOA: J0437 worst case ~21 h
-# (scenario.html), the simulated pulsar at -54 dB ~62 h (SNR 7, ~373*rho per turn); J0437 worst case with its measured profile in the
-# fast simulator 82-95 h (scenario.html #hundred; added 22 Oct 2026).
+# sweep at DM 25 (since 20 Oct; 6.3 ms at DM 5), period T, file length L (0.2 s since 20 Oct); RFI: impulse 200 ns, radar pulse 2 us; time per TOA at the array's design point
+# of 23 Nov 2026 (SEFD 6.44e4 Jy, 150 MHz): J0437's catalogue estimate 0.42 h (scenario.html R2), the simulated pulsar at -44.2 dB
+# ~0.7 h (SNR 7, ~373*rho per turn), J0437 with its measured profile in the fast simulator 1.7 h (scenario.html #hundred). Until
+# 23 Nov 2026 these were the worst case of the 0.61 m^2 receiver: 21 h, 62 h at -54 dB, and 82-95 h.
 T = 10e-3
 items = [  # (seconds, name, value text, category, row)
     (1/4e9, 'RF sample', '0.25 ns', 'grid', 'a1'),
@@ -20,9 +21,9 @@ items = [  # (seconds, name, value text, category, row)
     (T, 'period', '10 ms', 'psr', 'a1'),
     (0.2, 'file length L', '0.2 s', 'run', 'a2'),
     (1.0, 'reference runs', '1 s', 'run', 'a1'),
-    (21*3600, 'J0437 TOA, catalogue est.', '21 h', 'run', 'a1'),
-    (82*3600, 'J0437 TOA, simulated', '82–95 h', 'run', 'a2'),
-    (62*3600, 'TOA at −54 dB (sim. pulsar)', '62 h', 'run', 'b1')]
+    (0.42*3600, 'J0437 TOA, catalogue est.', '0.42 h', 'run', 'a2'),
+    (1.7*3600, 'J0437 TOA, simulated', '1.7 h', 'run', 'a1'),
+    (0.7*3600, 'TOA at −44.2 dB (sim. pulsar)', '0.7 h', 'run', 'b1')]
 col = {'grid': 'var(--accent)', 'psr': 'var(--why)', 'rfi': 'var(--warn)', 'run': 'var(--fg)'}
 x0, x1, lo, hi = 40, 820, -10, 6
 X = lambda t: x0 + (np.log10(t) - lo)/(hi - lo)*(x1 - x0)
@@ -50,14 +51,14 @@ lx = 40
 for cat, lab in (('grid', 'sampling and processing grid'), ('psr', 'the pulsar'), ('rfi', 'interference'), ('run', 'runs and time per TOA')):
     o.append(f'<circle cx="{lx + 4}" cy="{ya + 126}" r="4" style="fill:{col[cat]}"/><text class="sub" x="{lx + 13}" y="{ya + 130}">{lab}</text>')
     lx += 190
-o.append(f'<text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to days (log scale)</text>')
+o.append(f'<text class="ttl" x="40" y="20">time scales, from a quarter nanosecond to hours (log scale)</text>')
 svg = '''<figure class="scroll">
-<svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 62 hours a TOA takes at -54 dB">
+<svg class="wide" viewBox="0 0 860 296" role="img" aria-label="Time scales of the pipeline on one logarithmic ruler, from the 0.25 ns RF sample to the 1.7 hours a J0437 TOA takes at the array's design point">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure 2.</b> Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase bins
-resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the design point needs about a
-million times longer, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
+resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the array's design point needs thousands of
+times longer (0.23 h for B0329+54, 1.7 h for J0437), and a position needs weeks of TOAs, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>'''
 open('timescales.svg', 'w').write(svg)

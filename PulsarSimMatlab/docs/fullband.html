@@ -334,7 +334,7 @@ from 800 million complex samples per second to 1 million power values, so everyt
 <p>After dedispersion the pulse is still noise; only its variance carries the signal (<a href="sky.html#gen-phys">Section 1.1</a>).
 |<var>z</var>|² estimates the variance. For noise whose variance follows a known profile, a profile-weighted sum of |<var>z</var>|² is the
 optimal (Neyman–Pearson) test statistic. The optimal order is therefore: square, then fold the turns, then match the template.
-Everything linear (dedispersion, RFI blanking, later beamforming) must happen before the square, because after it the phase is gone.</p>
+Everything linear (dedispersion, RFI blanking, and beamforming, which the array does in analogue hardware) must happen before the square, because after it the phase is gone.</p>
 <p>Each 1 µs bin averages about <var>B</var><sub>n</sub>·Δ<var>t</var> ≈ 390 independent samples, so its noise is 1/√390 ≈ 5.1 % of its mean
 (the radiometer equation).</p>
 

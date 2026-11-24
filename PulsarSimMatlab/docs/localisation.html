@@ -104,8 +104,9 @@ velocity, and the clock adds its rate. These unknowns change in time, so a Kalma
 vehicle.</p>
 <p>How well each component is known depends on the TOA precision, and the precision runs into a limit at half a turn. One TOA with an
 uncertainty σ locates the receiver to <var>c</var>·σ along the pulsar's
-direction. B0329+54's TOAs have about 734 µs, which is 220 km per TOA; after 30 days of TOAs, each equatorial component of a fixed site
-should be known to about ±30 km. J0437's TOAs have about 13 µs, which is 3.9 km per TOA, but J0437 is too far south to be seen from the
+direction. B0329+54's TOAs have about 705 µs, which is 211 km per TOA. With the pulsar followed through its pass at the array's design
+point, 30 days of TOAs give the east component of a fixed site to ±9.4 km and the radial one to ±11.9 km
+(<a href="navigation.html#firstresult">navigation</a>). J0437's TOAs have about 13 µs, which is 3.8 km per TOA, but J0437 is too far south to be seen from the
 Netherlands. The fold cannot tell a pulse that is <var>f</var>·<var>r</var> turns late from one that is a whole turn later, so a TOA is
 unambiguous only while the position error stays below half a period times <var>c</var>:</p>
 <div class="table-wrap"><table>
@@ -425,8 +426,8 @@ sight that grazes the Sun.</td></tr>
   <path class="thin" d="M240 578 H304.5"/>
   <circle class="s1f" cx="304.5" cy="578" r="5"><title>curvature, 1 kpc: 1.2 µs</title></circle>
   <text class="sub" x="313.5" y="582" text-anchor="start">1.2 µs</text>
-  <path class="dash" d="M468.1 464 V616"/>
-  <text class="sub" x="473.1" y="626" text-anchor="start">B0329+54 TOA noise</text>
+  <path class="dash" d="M467.0 464 V616"/>
+  <text class="sub" x="472.0" y="626" text-anchor="start">B0329+54 TOA noise</text>
   <path class="dash" d="M364.7 464 V616"/>
   <text class="sub" x="359.7" y="626" text-anchor="end">J0437 TOA noise</text>
 </svg>
@@ -512,7 +513,7 @@ orbit shifts by up to 10⁻⁴. <code>delayModel</code> has no dispersion term.<
 <tr><td>A probe's own clock</td><td>Proper time instead of TDB (section 5).</td><td>A rate of up to about 10⁻⁸ in the outer solar system,
 mostly absorbed by the clock estimate.</td></tr>
 </table></div>
-<p>B0329+54's TOAs have about 734 µs of noise, so only precession and the exact orbit matter for it against real data. J0437's 13 µs TOAs
+<p>B0329+54's TOAs have about 705 µs of noise, so only precession and the exact orbit matter for it against real data. J0437's 13 µs TOAs
 also need nutation, and its binary orbit. A timing precision near 100 ns would need every row.</p>
 <details><summary>History</summary>
 <p>Added 21 Oct 2026 at Jasper's request: the docs had the delay terms on the block D page, but no overview of how a position follows

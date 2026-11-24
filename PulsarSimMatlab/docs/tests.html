@@ -451,8 +451,8 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#simvschain"><code>expSimVsChain</code></a></td><td>experiment C2: simulator vs voltage chain (σ, P<sub>D</sub>, outliers, H0)</td><td>~1 min</td><td><span class="badge validated">agrees (Jasper's run, 23 Oct)</span></td></tr>
 <tr><td><a href="#simrfi"><code>expSimRFI</code></a></td><td>experiment C4b: simulator with RFI profiles vs <code>runRFITest</code></td><td>~6 min</td><td><span class="badge validated">agrees within ~1 % (Jasper's runs, 23 Oct; part 2 with the 21 Oct profiles, 27 Oct)</span></td></tr>
 <tr><td><a href="#compchain"><code>expComponentsChain</code></a></td><td>experiment: a multi-component pulse on the voltage chain vs <code>simulateFold</code></td><td>~30 min</td><td><span class="badge validated">agrees within ~1 % (Jasper's run, 23 Oct)</span></td></tr>
-<tr><td><a href="#expnavfit"><code>expNavFit</code></a></td><td>experiment D4a, D4b: B0329+54's site offset from the 30-day motion runs</td><td>~1 s (+ ~10 s per SDR file)</td><td><span class="badge validated">reproduced (Jasper's run, 23 Oct)</span></td></tr>
-<tr><td><a href="#expnavplan"><code>expNavPlan</code></a></td><td>experiment D4c-0: which extra pulsars help (<code>navFit</code> <code>'Predict'</code>)</td><td>~10 s</td><td><span class="badge validated">reproduced (Jasper's run, 23 Oct)</span></td></tr>
+<tr><td><a href="#expnavfit"><code>expNavFit</code></a></td><td>experiment D4a, D4b: B0329+54's site offset from the 30-day motion runs</td><td>~1 s (+ ~10 s per SDR file)</td><td><span class="badge written">edited 23 Nov for the design point: Claude's run (Jasper's run of 23 Oct reproduced the earlier numbers)</span></td></tr>
+<tr><td><a href="#expnavplan"><code>expNavPlan</code></a></td><td>experiment D4c-0: which extra pulsars help (<code>navFit</code> <code>'Predict'</code>)</td><td>~10 s</td><td><span class="badge written">edited 23 Nov for the design point: Claude's run (Jasper's run of 23 Oct reproduced the earlier numbers)</span></td></tr>
 <tr><td><a href="#samplingrate"><code>expSamplingRate</code></a></td><td>experiment: sample rate vs matched filter, E/N<sub>0</sub>, square law</td><td>~20 s</td><td><span class="badge written">passes (Claude's run, 9 Oct)</span></td></tr>
 <tr><td><a href="#demobinning"><code>demoBinningMatchedFilter</code></a></td><td>demo: matched filter at full rate vs binned vs decimated</td><td>~15 s</td><td><span class="badge written">demo, no PASS/FAIL (9 Oct)</span></td></tr>
 </table></div>
@@ -1024,7 +1024,8 @@ USNO series to 2.25 µs rms. The five checks are in the
 do not, for the faults of the risk register (<code>logs/2026-11-02_risk-register.md</code>) that would move the position without a
 warning. Each case puts one fault into the truth through <code>trueResiduals</code> and compares the fit's answer with a prediction.
 The schedule is <code>testNavFit</code>'s, B0329+54 from 52° N 5° E with 734 µs per TOA, but with the TOAs evenly spaced, one every
-2.4 h, so that the prediction holds to a fraction of a percent. The first case is the oscillator's daily temperature term (FM-11).</p>
+2.4 h, so that the prediction holds to a fraction of a percent. That is the TOA budget of the receiver planned before 23 November 2026,
+and the test keeps it. The first case is the oscillator's daily temperature term (FM-11).</p>
 <p>A crystal follows its temperature, and the temperature follows the solar day. A daily rate term of amplitude <var>a</var> gives a clock
 error <var>A</var> sin(2π<var>t</var>/86400 s), with <var>A</var> = <var>a</var> · 86400 s / 2π, which is 137.5 µs at <var>a</var> = 10⁻⁸.
 The position signal is a sine at the sidereal day, 4 min shorter. A least-squares sidereal sine over a span <var>T</var> keeps
@@ -1032,7 +1033,8 @@ sinc(Δω<var>T</var>/2) of the clock term, where Δω is the difference of the 
 100 days. An equatorial offset <var>d</var> gives a sine of amplitude <var>d</var> cos δ / <var>c</var>, so the fit moves the site by
 <var>c</var><var>A</var> sinc(Δω<var>T</var>/2) / cos δ. For <var>a</var> = 10⁻⁸ that is 70.3 km after 30 days and 62.7 km after 100.</p>
 <p>Without noise, the fit's equatorial shift matches this prediction to 0.1 % at three phases and both spans, against a tolerance of 2 %.
-In units of the fit's own error the bias grows with the span, because the error shrinks and the bias hardly does:</p>
+In units of the fit's own error the bias grows with the span, because the error shrinks and the bias hardly does. At the array's
+design point the fit's error is about a third of the test's (× 0.329), so the same bias in km is about three times as many σ:</p>
 <div class="table-wrap"><table>
 <tr><th>Rate amplitude <var>a</var></th><th>30 days (±31.1 km)</th><th>100 days (±17.0 km)</th></tr>
 <tr><td>10⁻⁹</td><td>0.23 σ</td><td>0.37 σ</td></tr>
@@ -1269,28 +1271,37 @@ little memory; the comparison does not depend on DM. It runs at −5 dB on the c
 <p>So multi-component profiles are now checked end to end: in the generator, through the chain, and in the simulator. Claude's run,
 21 Oct (28 min).</p>
 
-<h2 id="expnavfit"><code>expNavFit</code> (experiment, 22 Oct)</h2>
+<h2 id="expnavfit"><code>expNavFit</code> (experiment, 22 Oct; design point 23 Nov)</h2>
 <p>B0329+54 alone finds a site 100 km east of the assumed one, with honest error bars.</p>
-<p>The experiment loads <code>runScenario</code>'s 30-day motion runs (52° N, nominal and worst-case flux, a perfect clock) and fits the
-good TOAs with <code>navFit</code>, with each TOA's row averaged over its sub-ints. It first fits the noise-free true residuals, which give
-the offset itself, and compares the fit's error with the one <code>'Predict'</code> computes from the schedule alone. With the SDR clock
-files it also reports the clock the observer had not estimated, per week, and the final fit with the clock model.</p>
+<p>The experiment loads <code>runScenario</code>'s 30-day motion runs (52° N, a perfect clock) for the design points in its setting
+<code>fluxes</code>, by default <code>"array3m2"</code>; <code>["nominal", "worst"]</code> reads the runs from before 23 November 2026.
+It fits the good TOAs with <code>navFit</code>, with each TOA's row averaged over its sub-ints. It first fits the noise-free true
+residuals, which give the offset itself, and compares the fit's error with the one <code>'Predict'</code> computes from the schedule
+alone. With the SDR clock files of the first design point it also reports the clock the observer had not estimated, per week, and the
+final fit with the clock model. The runs follow the pulsar through its pass.</p>
 <div class="table-wrap"><table>
-<tr><th>Run, 30 days</th><th class="num">east (truth 100 km)</th><th class="num">stated error from <code>'Predict'</code></th></tr>
-<tr><td>nominal flux</td><td class="num">36.5 ± 29.6 km</td><td class="num">29.4 km</td></tr>
-<tr><td>worst-case flux</td><td class="num">82.2 ± 110.3 km</td><td class="num">109.1 km</td></tr>
-<tr><td>nominal, SDR clock tracked daily</td><td class="num">35.1 ± 29.7 km</td><td class="num">–</td></tr>
+<tr><th>Run, 30 days, the array's design point</th><th class="num">good TOAs</th><th class="num">east (truth 100 km)</th><th class="num">radial (truth 0)</th></tr>
+<tr><td>perfect clock</td><td class="num">2634</td><td class="num">73.9 ± 9.4 km</td><td class="num">+7.1 ± 11.9 km</td></tr>
+<tr><td>SDR clock tracked daily</td><td class="num">2631</td><td class="num">70.8 ± 9.4 km</td><td class="num">+9.2 ± 11.9 km</td></tr>
+<tr><td>SDR clock not tracked</td><td class="num">1866</td><td class="num">104.3 ± 9.5 km</td><td class="num">−3.0 ± 12.0 km</td></tr>
 </table></div>
-<p>The true residuals give 99.994 km. The nominal estimate is 2.1σ low: the same noise draw gives the same shortfall at 1000 km, and the
-later days of a 100-day run land on the truth (<a href="navigation.html#navfit">navigation</a>). Claude's runs, 22 Oct.</p>
+<p>The true residuals give 99.994 km, and <code>'Predict'</code> gives 9.3 km against the fit's 9.4 km. The precision is the error bar.
+The first two estimates are low because these runs share their seeds, and so one noise draw; eight independent draws have a mean of
+93.2 km and a spread of 10.0 km (<a href="navigation.html#firstresult">navigation</a>). Claude's runs, 23 Nov 2026. With
+<code>"nominal"</code> and <code>"worst"</code> the script gave 36.5 ± 29.6 km and 82.2 ± 110.3 km on 22 Oct 2026, which Jasper's run
+of 23 Oct reproduced.</p>
 
-<h2 id="expnavplan"><code>expNavPlan</code> (experiment, 22 Oct)</h2>
+<h2 id="expnavplan"><code>expNavPlan</code> (experiment, 22 Oct; design point 23 Nov)</h2>
 <p>Extra pulsars from 52° N add little to the equatorial position, but they separate the polar component from the clock's wander.</p>
 <p>The study needs no simulation. It builds TOA schedules from each pulsar's real passes above 20° at 52° N, 5° E, and asks
 <code>navFit</code>'s <code>'Predict'</code> mode for the errors they would give: east, radial, and polar with a calibrated start, with a
-perfect clock and with the crystal clock. B0329+54's TOA rate comes from the scenario runs; the others' from the scenario page's table.
-For B0329+54 alone it predicts what the real fits gave: ±29.6 km east and ±16.3 km polar in 30 days. The results are on the
-<a href="navigation.html#plan">navigation page</a>. Claude's run, 22 Oct (~10 s).</p>
+perfect clock and with the crystal clock. Its setting <code>fluxes</code> chooses one of three input sets. The default,
+<code>"array3m2"</code>, takes B0329+54 from the scenario run at the design point (0.233 h per TOA at 705 µs) and the others from the
+scenario page's table (B0950+08 1.30 h, B1642−03 5.6 h, B1929+10 11.5 h per TOA; σ 738, 326 and 480 µs). <code>"nominal"</code> and
+<code>"worst"</code> are the inputs from before 23 November 2026. Every pulsar is taken as followed whenever it is up, each in its own
+beam; the array's two fixed beams do not do that, so the study is for the panel on a tracking mount and more beams than it has.
+For B0329+54 alone it predicts what the real fits gave: ±9.5 km east and ±5.4 km polar in 30 days. The results are on the
+<a href="navigation.html#plan">navigation page</a>. Claude's run, 23 Nov 2026 (~10 s).</p>
 
 <h2 id="samplingrate"><code>expSamplingRate</code> (experiment, 9 Oct)</h2>
 <p>A higher post-detection rate <code>f_out</code> does not help: the information is set by bandwidth × time.</p>

@@ -39,7 +39,7 @@ svg = '''<figure class="scroll">
 </svg>
 <figcaption><b>Figure P.2.</b> Why the processing squares the voltage (toy numbers: 300 samples per turn, a pulsar twice as strong as the receiver noise at
 its peak so it shows in one turn). Every turn is new noise; only its loudness repeats. Averaging the voltage over many turns gives zero,
-pulse or not (b). Averaging the power gives the profile (c). The real signal is ~50 dB weaker, which is why it takes millions of turns
-instead of 500.</figcaption>
+pulse or not (b). Averaging the power gives the profile (c). The real signals are 41–47 dB weaker (−38.0 and −44.2 dB at the design
+point), which is why J0437−4715 takes about a million turns instead of 500.</figcaption>
 </figure>'''
 open('whysquare.svg', 'w').write(svg)

@@ -22,8 +22,10 @@ rows = [('header', 'Noise-free chain and −5 dB reference'),
         ('RFI: noise only (expSimRFI, 400 TOAs)', 1.004, 0.035),
         ('RFI: realistic scenario', 0.958, 0.035),       # the 21 Oct (30-lag) RFI profiles, rerun 23 Oct (was 0.957)
         ('RFI: narrow carriers', 1.083, 0.035),          # (was 1.069 with the 20 Oct profiles)
-        ('B0329+54, 100 days, all 978 TOAs', 1.156, 1/np.sqrt(2*978)),
-        ('J0437, 100 days, 76 TOAs', 1.129, 1/np.sqrt(2*76)),
+        # 23 Nov 2026: the 100-day runs at the design point "array3m2" (Claude's runs); until then the runs of 21-22 Oct at the
+        # nominal point of the 0.61 m^2 receiver: B0329+54 978 TOAs 1.156, J0437 76 TOAs 1.129
+        ('B0329+54, 100 days, all 8649 TOAs', 1.124, 1/np.sqrt(2*8649)),
+        ('J0437, 100 days, 709 TOAs', 1.233, 1/np.sqrt(2*709)),
         ('header', 'Navigation fit and filter (block D)'),
         ('navFit, east, 400 realizations', 0.991, 1/np.sqrt(800)),
         ('navFit, radial', 0.973, 1/np.sqrt(800)),
@@ -69,9 +71,10 @@ svg = f'''<figure class="scroll">
 own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</var> TOAs or pulls). The voltage-chain checks agree with 1
 within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
 of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection
-statistic has the predicted spread. The fast simulator reproduces honest error bars; its 100-day runs show B0329+54's heavy tail (1.9 %
-of the TOAs beyond 3σ), while the core of the distribution has a width of 1.01. The navigation rows are pulls of the fitted position
-(and clock) against the truth. The fit agrees with 1; the filter's north pulls are 0.91. The ship's pulls (32 per axis) are 0.84–0.86,
-and its ideal twin's on the same TOAs 0.81: the TOA chain adds nothing measurable.</figcaption>
+statistic has the predicted spread. The fast simulator reproduces honest error bars at −5 dB. Its 100-day runs at the array's design
+point (Claude's runs, 23 Nov 2026) give 1.12 for B0329+54, with 0.1 % of the TOAs more than 5σ off, and 1.23 for J0437, which is open.
+The navigation rows are pulls of the fitted position (and clock) against the truth. The fit agrees with 1; the filter's north pulls are
+0.91. The ship's pulls (32 per axis) are 0.84–0.86, and its ideal twin's on the same TOAs 0.81: the TOA chain adds nothing measurable.
+The navigation and ship rows were made with the TOA budget of the receiver planned before 23 November 2026.</figcaption>
 </figure>'''
 open('honesty.svg', 'w').write(svg)

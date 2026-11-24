@@ -13,15 +13,19 @@
 <p class="lede">How the pipeline got to its current form, session by session, and every design decision with the
 reason it was taken. The dated logs in <code>logs/</code> have the full detail.</p>
 
-<p>The full-band chain was built and validated first (block 1, to 6 Oct). The reference scenario then showed that the target is
-~54 dB below the noise and full of interference. So a channelized front end (A) and RFI excision (B) came next, before the fast
+<p>The full-band chain was built and validated first (block 1, to 6 Oct). The reference scenario then showed that the target was
+~54 dB below the noise (38–44 dB at the array's design point of 23 Nov) and full of interference. So a channelized front end (A) and RFI excision (B) came next, before the fast
 simulator.</p>
 <p>The review week (12–16 Oct) went through every stage again, to understand and refine it. Then the processing became one function,
-cut at the IQ file (19 Oct), and block C, the fast simulator, started (20 Oct). It made the first TOA budgets for the real scenario: a
+cut at the IQ file (19 Oct), and block C, the fast simulator, started (20 Oct). It made the first TOA budgets for the scenario of that time: a
 ship near the Netherlands timing B0329+54, and J0437 from further south.</p>
 <p>Block D followed (21–22 Oct): the receiver's motion, the phase prediction, the clock, and the navigation fit and filter. Blocks C and
-D were both closed on 22 Oct. A simulated ship keeps within 73 km rms of its track with two pulsars and a drifting clock. Next is block
-E, the full navigation system in simulation; block F, the real implementation, comes after it. Every design decision is listed below, with its reason.</p>
+D were both closed on 22 Oct. A simulated ship kept within 73 km rms of its track with two pulsars and a drifting clock; its code was
+archived on 5 Nov.</p>
+<p>The goal now is a static site: an array that does not move, at a position not known beforehand (Jasper, 2 and 20 Nov). On 23 Nov the
+array became about 3 m² with two fixed analogue beams. It is the default design point of <code>runScenario.m</code> since that day, and
+the scenario and navigation results were rerun for it (Claude's runs). Next is block E, a fixed position from several pulsars in
+simulation; block F, the real implementation, comes after it. Every design decision is listed below, with its reason.</p>
 
 <div class="toc"><b>On this page</b><ol>
 <li><a href="#timeline">Session by session</a></li>
@@ -391,6 +395,34 @@ tests put these and four earlier risks into the data and check the stages' respo
 "found" half a turn off, and a lost buffer is an exact clock step. The F ingest's plan for gaps already works with today's excision
 code.</li>
 </ul>
+<h3>23 November — the array as it is being built</h3>
+<ul>
+<li>Jasper reported the array hardware after talking with the antenna engineering team: about 3 m² of effective area, a 4×4 grid of
+tiles with 256 dual-polarized bowtie elements, and analogue beamforming hardwired to two directions, with four analogue outputs.
+Until then these pages assumed 0.61 m² (3×3 elements, 4×4 since 20 November) and a digital beamformer on 32 data streams. The team
+specifies the receiver by its SEFD and its sensitivity, not by an SNR: 6.4·10⁴ Jy and 0.043 m²/K at 70 K, against 3.2·10⁵ Jy and
+0.0087 m²/K before. No code changed and nothing was rerun, so every simulated result stays at the 0.61 m² design point
+(<a href="scenario.html#hardware">scenario, Section R1.1</a>). That was the state when the hardware was recorded; the next entry changed it.</li>
+</ul>
+<h3>23 November, later — the new array becomes the design point</h3>
+<ul>
+<li><b>The default of <code>runScenario.m</code></b> (Jasper: "Yes, make default"): a third design point, <code>"array3m2"</code>, with an
+SEFD of 6.44·10⁴ Jy (3 m², 70 K), two polarizations, and channels 33–80 of the 128 (1300–1450 MHz) for the 150 MHz that is clean. Where
+the clean part really sits is not known. The two design points of October keep their names and give the same TOAs as before, bit for
+bit (Claude's check). The RFI variants stay in, with the modelled RFI cut to the channels in use (Jasper: "you can still include RFI
+to make sure that chain remains tested").</li>
+<li><b>The reruns</b> (Claude's runs, not yet Jasper's): with the pulsar followed through its pass, B0329+54 from 52° N needs 0.23 h of
+data per SNR 7 TOA (86.5 TOAs a day, σ 705 µs), and J0437−4715 from 30° S 1.75 h (6.9 a day, σ 12.8 µs). A site 100 km east is then
+known to ±9.4 km east and ±11.9 km radial after 30 days, and to ±5.1 and ±6.5 km after 100 days. In a single pass through a fixed
+beam B0329+54 reaches an SNR of 11.5 per pass, with a TOA error of 459 µs per pass, for the 6.3° beam that follows from 3 m² (17.4 and
+303 µs if the beam is 15°; the team's measured beam width decides). One fixed beam alone gives no position
+(<a href="scenario.html">scenario</a>, <a href="navigation.html">navigation</a>).</li>
+<li><b>A lesson on seeds:</b> the 30-day fit returned 73.9 ± 9.4 km for 100 km. Runs that share their seeds share their noise; eight
+independent draws gave a mean of 93.2 km with a spread of 10.0 km, so the error bars are right (<a href="lessons.html">lessons</a>).</li>
+<li><b>The docs' numbers</b> (Jasper: "the documentation has many numbers still referencing the old situation with 0.61 m^2 area etc.
+update those as well in every page"): the pages now state the new design point. The old numbers stay only in dated entries such as
+the ones on this page, and with runs that were made at their own level.</li>
+</ul>
 
 <h2 id="decisions">2. Decision log</h2>
 <p>Every choice that shaped the code, with the reason. "Jasper" marks decisions he made; the others were proposed with the physics and
@@ -505,6 +537,16 @@ not a complete reasoning".</td></tr>
 in one place what could make the pipeline fail, and which failures it would not notice by itself.</td></tr>
 <tr><td>2 Nov</td><td>The navigation tests on hold; the navigation part redesigned in the week of 9 November (Jasper)</td><td>The project's
 final deliverable changes, so tests written for the present navigation stage could be wasted.</td></tr>
+<tr><td>20 Nov</td><td>The end goal right now is a static site; the ship is not a goal or a next step (Jasper)</td><td>Jasper: "the end goal
+right now is just a static site". The ship code was archived on 5 Nov.</td></tr>
+<tr><td>23 Nov</td><td>The 3 m² array is the default design point of <code>runScenario.m</code>, with the RFI variants kept (Jasper)</td><td>The
+budgets must describe the array that is being built; the October design points stay selectable, so their results stay reproducible.</td></tr>
+<tr><td>23 Nov</td><td>One design point: no worst case and no "nominal / worst" pairs for the new array (Jasper)</td><td>No worst case exists for the new array. The old pair stays in dated records only.</td></tr>
+<tr><td>23 Nov</td><td>Two figures of merit, never mixed: the integration time per TOA with the pulsar followed, and the SNR per pass
+through a fixed beam (Jasper)</td><td>They come from different runs: a pulsar followed through its pass, which for this hardware needs a tracking mount, and a drift
+through a fixed beam. A position number must say which case it belongs to.</td></tr>
+<tr><td>23 Nov</td><td>The stage pages' weak-signal level is −44.2 dB (J0437−4715) and −38.0 dB (B0329+54), no longer −54 dB (Jasper)</td><td>−54 dB
+was J0437−4715 at the worst case of the 0.61 m² array. Numbers from runs at −54 dB keep that level until they are rerun.</td></tr>
 </table></div>
 
 <h2 id="logs">3. The session logs</h2>
@@ -568,6 +610,9 @@ exact RFI thresholds (where they come from, window and block, their cost) and th
 existing stages against a real receiver: three new risks (FM-40 to FM-42), two fault tests and their numbers, four new actions</td></tr>
 <tr><td><a href="../logs/2026-11-04_docs-number-audit.md"><code>2026-11-04_docs-number-audit.md</code></a></td><td>audit of the docs' numbers
 against the current defaults: what was stale, what lacked its DM, and the fixes</td></tr>
+<tr><td><a href="../logs/2026-11-23_array-3m2-analog-beams.md"><code>2026-11-23_array-3m2-analog-beams.md</code></a></td><td>the array
+hardware of 23 November: about 3 m², two fixed analogue beams; the team's terms (SEFD, sensitivity, G/T); the scratch runs, the new
+default design point of <code>runScenario.m</code> and its validation</td></tr>
 </table></div>
 <p>The <code>.md</code> files open as plain text in the browser.</p>
 

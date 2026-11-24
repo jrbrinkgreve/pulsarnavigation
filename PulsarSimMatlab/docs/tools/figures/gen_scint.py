@@ -51,8 +51,8 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure P.7.</b> Interstellar scintillation as the fast simulator draws it (one random realization; stronger colour = more flux, full colour at
-3× the mean). (a) J0437 at 1.4 GHz: its scintles (~740 MHz) are wider than our 400 MHz band, so the whole band brightens and fades together,
-about every 40 minutes. (b) The same with 50 MHz scintles: the band holds several scintles, and at any moment some channels are bright and
+3× the mean). (a) J0437 at 1.4 GHz: its scintles (~740 MHz) are wider than the 400 MHz band drawn here, and far wider than the 150 MHz in use at the
+design point, so the whole band brightens and fades together, about every 40 minutes. (b) The same with 50 MHz scintles: the band holds several scintles, and at any moment some channels are bright and
 others faint. (c) J0437's flux over the band against time: long stretches well below its catalogue average, and some well above.</figcaption>
 </figure>'''
 open('scint.svg', 'w').write(svg)

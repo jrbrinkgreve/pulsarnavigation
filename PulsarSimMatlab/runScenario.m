@@ -2,10 +2,20 @@
 RUNSCENARIO - TOA budget of the reference scenario with the fast simulator (block C)
 
 How many hours of data does one TOA take, how many good TOAs come per day, how precise are they
-and are their error bars honest - for the 4x4 array (dual polarization, 1.2-1.6 GHz, 128
-channels) observing B0329+54 from the Netherlands (52 N) and J0437-4715 from 30 S (a ship that
-sailed south), each at the nominal and the worst-case flux. Folds are drawn by simulateFold;
-the observer forms TOAs with adaptiveSubints (merge short sub-ints until SNR ~7) and foldToTOA.
+and are their error bars honest - for the array (dual polarization, 1.2-1.6 GHz) observing
+B0329+54 from the Netherlands (52 N) and J0437-4715 from 30 S (a ship that sailed south). Folds
+are drawn by simulateFold; the observer forms TOAs with adaptiveSubints (merge short sub-ints
+until SNR ~7) and foldToTOA.
+
+Design points ('fluxes'; each is an SEFD and the channels in use, of the 128 of the 1 s chain runs):
+  "array3m2"  the default since 23 Nov 2026 (Jasper: "Yes, make default"): the array as reported by
+              the antenna team, about 3 m^2 at a measured ~70 K -> SEFD 6.44e4 Jy; of 1.2-1.6 GHz
+              about 150 MHz is clean of RFI, here channels 33-80 (1300-1450 MHz; which 150 MHz it is
+              in reality is not known yet). That hardware has two fixed analogue beams; this
+              script still follows the pulsar through its pass (below), which is the array on a
+              tracking mount.
+  "nominal"   0.61 m^2, 70 K -> 3.2e5 Jy, all 128 channels (400 MHz): the design point of every
+  "worst"     run before 23 Nov 2026, and 0.3 m^2, 80 K -> 7.4e5 Jy. Unchanged, bit for bit.
 
 Assumptions (notes §11, simulator.html):
   - passes: elevation >= 20 deg, one per sidereal day (B0329+54 from 52 N: 19.6 h, never below
@@ -47,12 +57,14 @@ Assumptions (notes §11, simulator.html):
     profile (since 21 Oct; the single Gaussian with W50 left out its wings: W_eq 2.4x, ~5x the data
     per TOA);
     rho from S1400, the SEFD and the pulse area of the profile;
-  - 128 channels with the forward band-edge taper on the truth side (item 3); channel noise
+  - the design point's channels (128, or 48 for "array3m2") with the forward band-edge taper on
+    the truth side (item 3; the taper touches only the three channels at each band edge); channel noise
     settings (Bnoise, binDt, clean noise coefficients) of the 1 s noise-only RFI profile;
   - variants: 'clean' (receiver noise only); 'rfi' (realistic RFI profile of the 1 s chain run,
     stationary; the observer's flat-channel noise model, as the pipeline by default); 'rfiCal'
     (the same, the observer calibrates each channel's noise: 'ObserverNoise' 'measured', the
-    pipeline's proc.noiseCal); 'rfiCalScint' (+ scintillation, adaptive groups); 'rfiCalScintFixed'
+    pipeline's proc.noiseCal). With fewer channels than 128 the RFI profile is cut to the design
+    point's channels (pickChannels), and the scintillation band to their frequencies; 'rfiCalScint' (+ scintillation, adaptive groups); 'rfiCalScintFixed'
     (fixed groups of the median length of rfiCalScint, for comparison: what the adaptive length buys).
 Per day, the pass is cut into chunks (memory) on sub-int boundaries, so the sub-int grid is
 the one a single call would give. The sub-ints of the group still open at the end of a chunk
@@ -70,7 +82,7 @@ block D3c, choices agreed with Jasper: perfect clock first, rate known to 1e-9, 
 %}
 
 pulsars  = ["B0329", "J0437"];
-fluxes   = ["nominal", "worst"];
+fluxes   = "array3m2";               % "array3m2" (default since 23 Nov 2026), "nominal", "worst"; see above
 variants = "clean";                  % "clean", "rfi", "rfiCal", "rfiCalScint", "rfiCalScintFixed"
                                      % (the fixed variant needs the rfiCalScint result first)
 nDays    = 30;                       % simulated days
@@ -108,7 +120,10 @@ cB = [cB(:, 1), cB(:, 2) / 360, cB(:, 3) * 2*sqrt(2*log(2)) / 360];
 cJ = [0.045599 -0.205164 0.029901; 0.043891 -0.113820 0.028824; 0.103938 -0.038174 0.261016;
       0.215798 -0.000947 0.053271; 0.462737 -0.000766 0.010044; 0.262274  0.007027 0.027132;
       0.310520  0.009091 0.008531; 0.028718  0.147582 0.073914];   % [amplitude, centre, FWHM] (turns)
-sefd = struct('nominal', 3.2e5, 'worst', 7.4e5);
+sefd = struct('nominal', 3.2e5, 'worst', 7.4e5, ...
+    'array3m2', 2 * 1.380649e-23 * 70 / 3 / 1e-26);          % 2 k T_sys / A_eff: 3 m^2, 70 K -> 6.44e4 Jy
+chanSel = struct('nominal', 1:nCh, 'worst', 1:nCh, ...     % the channels in use (of the chain's 128)
+    'array3m2', 33:80);                                    % 1300-1450 MHz: ~150 MHz clean (assumed place)
 psr.B0329 = struct('name', 'B0329+54', 'f0', 1/0.714519699726, 'ra', 53.2474, 'dec', 54.5787, 'lat', 52.0, 'lon', 5.0, ...
     'fwhm', 0.0092, 'comps', cB, 'S1400', 0.203, 'nBin', 2048, ...   % narrowest component 11 bins
     'scint', struct('bandwidth', 7e6, 'timescale', 780, 'band', [fLow fHigh]), ...   % (1024: 5.6 bins,
@@ -121,11 +136,11 @@ for pn = string(fieldnames(psr)).'
     ps = psr.(pn);
     prof = gaussianTemplate(2^16, profileOf(ps));
     wEq = sum(prof) / 2^16;                         % pulse area [turns] of the unit-peak profile
-    for fl = ["nominal", "worst"]
+    for fl = string(fieldnames(sefd)).'
         psr.(pn).rho.(fl) = 10*log10(ps.S1400 / (sefd.(fl) * wEq));
     end
-    fprintf('runScenario: %s, W_eq %.2f ms, rho %.2f / %.2f dB (nominal / worst)\n', ps.name, ...
-        wEq / ps.f0 * 1e3, psr.(pn).rho.nominal, psr.(pn).rho.worst);
+    fprintf('runScenario: %s, W_eq %.2f ms, rho %.2f / %.2f / %.2f dB (nominal / worst / array3m2)\n', ps.name, ...
+        wEq / ps.f0 * 1e3, psr.(pn).rho.nominal, psr.(pn).rho.worst, psr.(pn).rho.array3m2);
 end
 
 summary = struct([]);
@@ -151,7 +166,12 @@ for ip = 1:numel(pulsars)
                 continue
             end
             tCase = tic;
-            simArgs = {'NChan', nCh, 'ChannelGain', gc, 'NPol', nPol, 'NBin', ps.nBin, ...
+            idx = chanSel.(fl); PRf = PR; scF = ps.scint;       % the design point's channels
+            if numel(idx) < nCh                                 % a part of the band: cut the RFI profile and
+                PRf = pickChannels(PR, idx);                    % the scintillation band to it
+                scF.band = fLow + [idx(1) - 1, idx(end)] * chanWidth;
+            end
+            simArgs = {'NChan', numel(idx), 'ChannelGain', gc(idx), 'NPol', nPol, 'NBin', ps.nBin, ...
                 'SubintPeriods', nPer, 'Verbose', false};
             if isempty(ps.comps), simArgs = [simArgs, {'FWHM', ps.fwhm}]; %#ok<AGROW>
             else, simArgs = [simArgs, {'Components', ps.comps}]; end %#ok<AGROW>
@@ -161,12 +181,12 @@ for ip = 1:numel(pulsars)
                 case "clean"                        % receiver noise only
                     simArgs = [simArgs, {'Bnoise', BnC, 'BinDt', dtC, 'NoiseCoeffs', ncC}]; %#ok<AGROW>
                 case {"rfi", "rfiCal", "rfiCalScint", "rfiCalScintFixed"}
-                    simArgs = [simArgs, {'RFI', PR}]; %#ok<AGROW>     % realistic RFI after excision
+                    simArgs = [simArgs, {'RFI', PRf}]; %#ok<AGROW>    % realistic RFI after excision
                     if contains(va, "Cal")          % the observer calibrates each channel's noise
                         simArgs = [simArgs, {'ObserverNoise', 'measured'}]; %#ok<AGROW>
                     end
                     if contains(va, "Scint")
-                        simArgs = [simArgs, {'Scintillation', ps.scint}]; %#ok<AGROW>
+                        simArgs = [simArgs, {'Scintillation', scF}]; %#ok<AGROW>
                     end
                     if endsWith(va, "Fixed")        % fixed groups: the adaptive case's median length
                         fA = fullfile(outDir, sprintf('scenario_%s_%s_rfiCalScint_%dd.mat', pulsars(ip), fl, nDays));
@@ -266,6 +286,7 @@ for ip = 1:numel(pulsars)
             summary = [summary, S]; %#ok<AGROW>
             R = struct('groups', G, 'summary', S, 'pulsar', ps, 'flux', fl, 'variant', va, ...
                 'nDays', nDays, 'passes', passes, 'nPer', nPer, 'nPol', nPol, 'dPhi', dPhi, ...
+                'sefd', sefd.(fl), 'chanIdx', idx, ...
                 'motion', motion, 'motionTruth', motionRecord(M), ...
                 'maxDriftPerSubint', maxDrift, ...
                 'made', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')));
@@ -470,6 +491,15 @@ x = sort(x(:));
 if isempty(x), v = NaN; return, end
 if isscalar(x), v = x; return, end
 v = interp1(linspace(0, 1, numel(x)), x, p);
+end
+
+function P = pickChannels(P, idx)
+%PICKCHANNELS  An RFI profile (rfiProfile) cut to the channels idx: every per-channel field, and nChan.
+% simulateFold asks for a profile with exactly its own number of channels.
+P.chanFreqs = P.chanFreqs(idx); P.level = P.level(idx); P.noiseCoeffs = P.noiseCoeffs(idx, :);
+P.validFraction = P.validFraction(idx); P.nValidBins = P.nValidBins(idx);
+P.nChan = numel(idx);
+P.label = sprintf('%s, channels %d-%d', P.label, idx(1), idx(end));
 end
 
 function g = chanGain(fLow, fHigh, chanWidth, nCh)

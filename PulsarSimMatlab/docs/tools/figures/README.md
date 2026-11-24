@@ -18,7 +18,7 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_timeprec.py` | float32 vs double time resolution; a clock built by adding 1/fs drifts | conventions.html (Figure C.3) |
 | `gen_datarate.py` | bytes written per second of signal by each stage, against the 24 GB memory | pipeline.html (Figure O.4) |
 | `gen_freqplan.py` | the frequency plan: RF band, LO, baseband, IQ low-pass, 128 channels | parameters.html (Figure 1) |
-| `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA: the catalogue estimate and the simulated 82–95 h) | parameters.html (Figure 2) |
+| `gen_timescales.py` | every time scale of the pipeline on one log ruler (J0437's TOA at the array's design point of 23 Nov 2026: the catalogue estimate 0.42 h and the simulated 1.7 h) | parameters.html (Figure 2) |
 | `gen_visibility.py` | hours per day above 20° elevation vs station latitude, candidate pulsars | scenario.html (Figure R.2) |
 | `gen_experiments.py` | what each run script varies and keeps fixed (the voltage-chain scripts, runRFIProfile, and the fast-simulator scripts runScenario and runShip) | scripts.html (Figure 1) |
 | `gen_testmatrix.py` | regression / algebra / physics checks per unit test, run times (the 33 tests of `runAllTests` and experiment 3a) | tests.html (Figure 2) |
@@ -34,7 +34,7 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_disp.py` | dispersion delay across the band, taper W(f) | sky.html (Figure 2.2) |
 | `gen_kernel.py` | the kernel as a chirp; the design grid and its empty zone | sky.html (Figure 2.3) |
 | `gen_rxorder.py` | what dedispersion does to the pulsar, an impulse and a carrier (why RFI is added after dispersion) | receiver.html (Figure 3.2) |
-| `gen_snrscale.py` | SNR of one pulse against snrDB, design target and test runs | receiver.html (Figure 3.3) |
+| `gen_snrscale.py` | SNR of one pulse against snrDB, the design point (J0437−4715, −44.2 dB) and the test runs | receiver.html (Figure 3.3) |
 | `gen_rfiscene.py` | the realistic RFI list sketched in time and frequency | receiver.html (Figure 3.4) |
 | `gen_radar.py` | radar pulse spectrum with instant / 0.1 µs edges; rotating-antenna gain | receiver.html (Figure 3.5) |
 | `gen_iq.py` | spectra through the IQ stage | receiver.html (Figure 4.1) |
@@ -63,16 +63,16 @@ scripts' captions match the pages word for word (checked 30 Oct by running every
 | `gen_excision.py` | one channel through detectRFI, blanking, dedispersion, W | excision.html (Figure E.3) |
 | `gen_fold.py` | folding in three steps | fold.html (Figure 7.1) |
 | `gen_toa.py` | FFTFIT: profile, cross-correlation, weights | toa.html (Figure 8.1) |
-| `gen_navsignal.py` | the navigation signal: three days of simulated B0329+54 TOAs and 30 days by hour angle against the 193 µs daily sine (reads `data/scenario/pre-22oct-tag/…_30d_motion_perfect.mat`, local only; needs scipy) | navigation.html (Figure 10.1) |
-| `gen_navship.py` | the ship: one ship's drift (truth against the smoothed filter, east and north); the track errors of eight ships, dead reckoning against both starts (reads `data/scenario/ship_14d_nominal*.mat`, local only; needs scipy) | navigation.html (Figures 10.5, 10.6) |
-| `gen_navfit.py` | navFit converging: the east offset fitted to the first N of 100 days (reads `data/scenario/scenario_B0329_nominal_clean_100d_motion_perfect.mat`, local only; needs scipy) | navigation.html (Figure 10.3) |
+| `gen_navsignal.py` | the navigation signal: one day of simulated B0329+54 TOAs and 30 days by hour angle against the 193 µs daily sine (reads `data/scenario/scenario_B0329_array3m2_clean_30d_motion_perfect.mat`, the design point of 23 Nov 2026, local only; needs scipy) | navigation.html (Figure 10.1) |
+| `gen_navship.py` | the ship: one ship's drift (truth against the smoothed filter, east and north); the track errors of eight ships, dead reckoning against both starts (reads `data/scenario/ship_14d_nominal*.mat`, the archived ship runs of 22 Oct 2026 at the nominal design point of the 0.61 m² receiver, local only; needs scipy) | navigation.html (Figures 10.5, 10.6) |
+| `gen_navfit.py` | navFit converging: the east offset fitted to the first N of 100 days (reads `data/scenario/scenario_B0329_array3m2_clean_100d_motion_perfect.mat`, the design point of 23 Nov 2026, local only; needs scipy) | navigation.html (Figure 10.3) |
 | `gen_navavg.py` | a TOA is a time-average: the daily signal of a 100 km offset, a 10 h TOA and a two-pass TOA against one time per TOA | navigation.html (Figure 10.2) |
-| `gen_navplan.py` | the planning study: the polar error with a crystal clock per pulsar set, 30 and 100 days (logged numbers) | navigation.html (Figure 10.4) |
+| `gen_navplan.py` | the planning study: the polar error with a crystal clock per pulsar set, 30 and 100 days (logged numbers of 23 Nov 2026, the design point "array3m2") | navigation.html (Figure 10.4) |
 | `gen_det.py` | T0 and Tmax under H0 / H1 (simulated, ~1 min) | detection.html (Figure D.2) |
 | `gen_results.py` | phase D sweep and threshold sweep | results.html (Figure 2) |
 | `gen_simvschain.py` | fast simulator vs voltage chain: median σ and P_D against ρ (C2) | simulator.html (Figure F.3) |
 | `gen_scint.py` | scintillation as simulateFold draws it: dynamic spectra (J0437, 50 MHz scintles), J0437's band-averaged flux | physics.html (Figure P.7) |
-| `gen_scen.py` | time per TOA vs precision of the candidate pulsars | scenario.html (Figure R.1) |
+| `gen_scen.py` | time per TOA vs precision of the candidate pulsars at the array's design point (typed in from the scenario table) | scenario.html (Figure R.1) |
 | `gen_clock.py` | the receiver clock's "crystal" preset: σ_y(τ) and its three noise parts from `makeClock`'s formula; the time error τ·σ_y(τ) against the TCXO and OCXO estimates and the pulse widths | receiver.html (Figure 4a.1) |
 | `gen_clockdraw.py` | what `makeClock` draws: one day of each noise (white, flicker, random walk) as time error; eight crystal clocks over 30 days against τ·σ_y(τ) (a port of its three generators; numpy's random numbers) | receiver.html (Figure 4a.2) |
 | `gen_delays.py` | the delay terms for B0329+54 from 52° N: orbital Roemer over 2026, rotational Roemer over two days, Einstein, Shapiro; every term's size on one log scale against the TOA noise (uses `delaymodel.py`) | localisation.html (Figure L.3) |
