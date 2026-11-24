@@ -396,9 +396,20 @@ clean, over 120 passes through the beam centre:</p>
 <tr><td>6.3° (R1.1)</td><td>0.545 h</td><td class="num">120 of 120</td><td>11.49 (10.38–12.62; 9.00)</td><td class="num">459 µs</td><td class="num">1.12</td></tr>
 </table></div>
 <p>The beam width is a working assumption, to be measured on the built array (R1.1). Two things
-lower the SNR of a pass, and both are scaled from this run, not simulated. A pass off the beam centre loses gain: a zenith-facing
-panel has B0329+54 2.6° off centre, which gives SNR × 0.62. And on a low-flux day (the 5th percentile, 0.45 of the mean flux, from the
-literature) the SNR is about 5.</p>
+lower the SNR of a pass. A pass off the beam centre loses gain: a zenith-facing panel has B0329+54 2.6° off centre, which leaves 0.62
+of the gain. And the flux varies: on a low-flux day (the 5th percentile, 0.45 of the mean flux, from the literature) the pulse is
+that much weaker. Both were simulated as passes at the lower gain, with 240 passes per case (scratch runs of 24 Nov 2026, new seeds):</p>
+<div class="table-wrap"><table>
+<tr><th>Case</th><th class="num">Gain on the pulsar</th><th>SNR per pass, median (10–90 %; lowest)</th><th class="num">Passes detected</th><th class="num">Passes at SNR ≥ 7</th><th class="num">TOA error per pass</th><th class="num">rms/pred</th></tr>
+<tr><td>Beam centre</td><td class="num">1</td><td>11.40 (10.02–12.78; 8.44)</td><td class="num">100 %</td><td class="num">100 %</td><td class="num">462 µs</td><td class="num">1.06</td></tr>
+<tr><td>The second beam, 20° off the panel's normal</td><td class="num">0.94</td><td>10.72 (9.34–12.10; 7.76)</td><td class="num">100 %</td><td class="num">100 %</td><td class="num">492 µs</td><td class="num">1.07</td></tr>
+<tr><td>Off centre: a zenith-facing panel without a tilt</td><td class="num">0.62</td><td>7.17 (5.81–8.54; 4.17)</td><td class="num">99.2 %</td><td class="num">57 %</td><td class="num">735 µs</td><td class="num">1.15</td></tr>
+<tr><td>A low-flux day</td><td class="num">0.45</td><td>5.23 (3.88–6.63; 2.41)</td><td class="num">74.6 %</td><td class="num">7 %</td><td class="num">927 µs</td><td class="num">1.70</td></tr>
+<tr><td>Off centre on a low-flux day</td><td class="num">0.28</td><td>3.54 (2.47–4.79; 1.85)</td><td class="num">17.9 %</td><td class="num">0 %</td><td class="num">1092 µs</td><td class="num">2.80</td></tr>
+</table></div>
+<p>The medians follow the gain, as scaling says. What the simulation adds is the behaviour near the threshold. Without a tilt of 2.6°
+towards the pulsar, only 57 % of the passes reach SNR 7. On a low-flux day a quarter of the passes is lost, and the error bars are no
+longer honest (the errors are 1.7 times the stated ones). The second beam is almost as good as the first.</p>
 <p>A TOA per day is not yet a position. A pulsar that is seen every day at the same hour angle gives no position at all: the site's
 delay at that hour angle is a constant, and it merges with the pulsar's own phase constant. The position from fixed beams, over 30 days
 of passes with the true site 100 km east of the assumed one (scratch runs):</p>

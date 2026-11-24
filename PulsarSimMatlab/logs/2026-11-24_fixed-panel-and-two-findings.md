@@ -121,6 +121,34 @@ The changelog entry of 24 Nov in `maintenance.html` has a sentence on it.
 
 For a next docs job: tell a subagent explicitly that a dated note keeps its numbers and gets the new ones beside it.
 
+## Unit tests and single-pass checks (later on 24 Nov; Claude's runs)
+
+Asked "is there any other compute you /we can do?", I listed four runs; Jasper: "Tests + pass checks".
+
+**`runAllTests`: 33 of 33 passed** (15.3 min, with the other job running beside it). It is the first full run since
+`runScenario.m`, `tests/expNavFit.m` and `tests/expNavPlan.m` changed on 23 Nov. The tests do not call those three, so
+this shows that nothing else moved; it is not a test of the new design point. Not Jasper's run.
+
+**Single-pass checks, fixed panel** (scratch copy `runScenario3m2.m`; B0329+54, a 6.3° beam, design point, clean; 240
+passes per case, new seeds; a gain g on the pulsar is run as SEFD / g; "detected" is the pipeline's good-TOA flag):
+
+| Case | Gain | SNR per pass, median (10–90 %; lowest) | Detected | SNR ≥ 7 | TOA error | spread of error/σ |
+|---|---|---|---|---|---|---|
+| beam centre | 1 | 11.40 (10.02–12.78; 8.44) | 100 % | 100 % | 462 µs | 1.06 |
+| second beam, 20° off the normal (cos 20°) | 0.94 | 10.72 (9.34–12.10; 7.76) | 100 % | 100 % | 492 µs | 1.07 |
+| off centre: zenith-facing, no tilt (2.6° off) | 0.62 | 7.17 (5.81–8.54; 4.17) | 99.2 % | 57 % | 735 µs | 1.15 |
+| low-flux day (5th percentile, literature) | 0.45 | 5.23 (3.88–6.63; 2.41) | 74.6 % | 7 % | 927 µs | 1.70 |
+| off centre on a low-flux day | 0.28 | 3.54 (2.47–4.79; 1.85) | 17.9 % | 0 % | 1092 µs | 2.80 |
+
+The medians follow the gain, as the scaling of 23 Nov said (7.1 and about 5 predicted). New: without the 2.6° tilt only
+57 % of the passes reach SNR 7; on a low-flux day a quarter of the passes is lost and the errors are 1.7 times the
+stated ones; the second beam is nearly as good as the first, so the two-beam position of 108 km becomes about 112 km
+(scaled from the two TOA errors, not simulated). Docs: scenario R7.4 (the table), limits (one sentence), the changelog.
+
+Not run, offered: both beams over 100 days with an SDR clock; the 6-day SDR tracking table.
+
+Files: `.claude/runs/2026-11-24_passchecks/` (`passchecks.m`, `passchecks.log`, `runAllTests.log`).
+
 ## Files
 
 `.claude/runs/2026-11-24_investigate/investigate.m` and `investigate.log` (gitignored, this Mac only).
