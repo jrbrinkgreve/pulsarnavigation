@@ -64,7 +64,7 @@ svg = '''<figure class="scroll">
 as √<var>N</var> and is clear after a few thousand turns. (b) SNR against observing time for the simulated 10 ms pulsar (SNR per turn ≈
 373·ρ, for one polarization in the voltage chain's 400 MHz): each 10 dB weaker signal needs 100× longer. At −44.2 dB, the level of
 J0437−4715 at the array's design point, a TOA with SNR 7 takes this pulsar about 41 minutes, and at B0329+54's −38 dB about 2.3 minutes.
-The real pulsars have other pulse shapes, and the design point has two polarizations in 150 MHz: followed through their passes, the fast
+The real pulsars have other pulse shapes, and the design point has two polarizations in 150 MHz: followed through their passes (the what-if of a tracking mount), the fast
 simulator gives 1.7 h of data per TOA for J0437−4715 and 0.23 h for B0329+54 (Claude's runs, 23 Nov;
 <a href="scenario.html#hundred">scenario</a>).</figcaption>
 </figure>'''

@@ -10,10 +10,10 @@
 <main>
 <h1>Status and roadmap</h1>
 <p class="lede">Where the project stands, the order of the remaining work, and why it is in that order.</p>
-<p class="meta">Status as of 23 November 2026: blocks A–D closed. Block E leads to the position of a static array from several pulsars;
+<p class="meta">Status as of 24 November 2026: blocks A–D closed. Block E leads to the position of a static array from several pulsars;
 since 2 Nov the site is not known beforehand. Its first step, E0, is a review week: days 1 and 2 are done (26–27 Oct). The navigation
 redesign for a static site is a proposal that waits for Jasper's OK, and nothing of it is built. Since 23 Nov the design point is the
-array of about 3 m² with two fixed analogue beams. F later. Session-by-session history: <code>logs/</code>.</p>
+array of about 3 m² with two fixed analogue beams; since 24 Nov its panel is taken as fixed. F later. Session-by-session history: <code>logs/</code>.</p>
 
 <p>Most of the pipeline is done: the validated full-band chain (block 1), the channelized front end (A), RFI excision (B, closed for now), the
 review week (12–16 Oct), and the processing as one function, <code>processIQ</code> (19 Oct).</p>
@@ -22,8 +22,8 @@ observing passes, scintillation, adaptive sub-ints, dual polarization, multi-com
 Its scenario runs give TOA budgets for B0329+54, seen from the Netherlands, and J0437, seen from 30° S
 (<a href="scenario.html#hundred">scenario</a>; rerun on 23 Nov at the array's design point, Claude's runs).</p>
 <p>Block D closed the same day. It covers motion, phase prediction, the receiver's clock and navigation. All its unit tests pass in Jasper's
-runs; the scenario and ship runs are Claude's. A fixed site 100 km east is found by B0329+54 alone, followed through its pass: to ±9.4 km
-east and ±11.9 km radial after 30 days, and ±5.1 and ±6.5 km after 100 days, at the array's design point (Claude's runs, 23 Nov). The
+runs; the scenario and ship runs are Claude's. A fixed site 100 km east is found by B0329+54 alone when it is followed through its
+pass. For the array's fixed panel that is a what-if, and its numbers are given with the fixed panel's own, below. The
 receiver's own crystal clock is tracked day by day without losing TOAs. The archived ship runs of 22 Oct, at the design point before
 23 November 2026 (0.61 m²), kept a ship over 14 days within 73 km rms of its track with a calibrated start, against 379 km by dead
 reckoning (Claude's runs). And JPL's DE440 with TDB − TT, precession and nutation is in place for real data.</p>
@@ -42,10 +42,16 @@ nothing of it is built. On 5 Nov the ship's code (<code>navFilter</code>, <code>
 hardware, fixed in two directions, with four analogue outputs. The 32 data streams and the digital beamformer in block E's endpoint
 do not exist in this hardware. In the team's terms its SEFD is 6.44·10⁴ Jy at 70 K, and about 150 MHz of the band is clean of RFI.
 Since the same day this is the design point, the default of <code>runScenario.m</code>, and the scenario and navigation results were
-rerun for it (Claude's runs). They come as two figures of merit that are not mixed. With the pulsar followed through its pass,
-B0329+54 needs 0.23 h of data per SNR 7 TOA. In a single pass through a fixed beam it reaches an SNR of 11.5 per pass for the 6.3° beam
-that follows from 3 m², and 17.4 if the beam is 15°; the two do not belong to one filled aperture, and the team's measured beam width
-decides (<a href="scenario.html#hardware">scenario</a>). Block E's plan has not been revised (<a href="#blockE">below</a>).</p>
+rerun for it (Claude's runs).</p>
+<p>On 24 Nov Jasper gave three working assumptions: the panel is fixed, its beam is about 6° wide (to be measured on the built array),
+and a power splitter keeps both beams live all the time. The fixed panel is therefore the case. B0329+54 drifts through a beam once a
+day and gives one detection per pass, at an SNR of 11.5 (10.4–12.6 for 80 % of the passes; the lowest of 120 was 9.0), with a TOA error
+of 459 µs; every one of 120 simulated passes was detected. One beam on the pulsar gives no position, and both beams on it give ±108 km
+along one axis after 30 days and nothing along the other (scratch runs). So with the fixed panel as it stands, the array detects and
+times B0329+54 every day but does not yet locate itself: a position needs the pulsar at several hour angles. Tracking is kept as a
+what-if: on a tracking mount B0329+54 needs 0.23 h of data per SNR 7 TOA and gives 86.5 TOAs a day, and a site 100 km east is found to
+±9.4 km east and ±11.9 km radial after 30 days, and to ±5.1 and ±6.5 km after 100 days (the repository's scripts;
+<a href="scenario.html#merit">scenario</a>). Block E's plan has not been revised (<a href="#blockE">below</a>).</p>
 <p>Block F follows: the real implementation, with IQ recordings at the Netherlands site from the antenna, mixer and SDR through
 <code>processIQ</code>, and the processing on a GPU or FPGA, checked stage by stage against <code>processIQ</code>.</p>
 
@@ -98,6 +104,9 @@ several pulsars (<a href="#blockE">below</a>).</td></tr>
 with two fixed analogue beams and four analogue outputs</b> (the antenna team, via Jasper; <a href="scenario.html#hardware">scenario</a>).
 The same day it became the default design point of <code>runScenario.m</code> (SEFD 6.44·10⁴ Jy, channels 33–80 of the 128), and the
 scenario and navigation results were rerun for it (Claude's runs).</td></tr>
+<tr><td>24 Nov</td><td>Jasper's working assumptions: <b>the panel is fixed</b>, with tracking as a what-if; the beam is about 6° wide; a
+splitter keeps both beams live. Two observations from the reruns explained from the saved runs: J0437−4715's wrong-peak fits, and
+<code>pChi2</code> under scintillation (<a href="limits.html#estimation">limits</a>). No code change.</td></tr>
 </table></div>
 
 <figure class="scroll">
@@ -310,7 +319,7 @@ interface had to be fixed before writing a simulator that emulates it.</p></div>
 <p>The alternative was to add motion (D) first, in the voltage simulator. That failed because a TOA takes far more data than the
 voltage simulator can make. For the design point of that time (0.61 m²) the catalogue estimate of 6 Oct gave ~20 h per J0437 TOA,
 longer than one pass. At the array's design point of 23 Nov a TOA still takes 0.23 h of data for B0329+54 and 1.7 h for J0437−4715,
-each followed through its pass (<a href="scenario.html#hundred">scenario</a>). Neither can be simulated at voltage level: the default
+each followed through its pass, the what-if of a tracking mount (<a href="scenario.html#hundred">scenario</a>). Neither can be simulated at voltage level: the default
 path writes ~72.5 GB per second (~61 GB on the full band). The fast simulator draws folded profiles directly, with the exact noise model validated in blocks 1 and A, so
 <code>detectPulsar</code> and <code>estimateTOA</code> run unchanged on it. Motion (D) is then a hard requirement: folding across passes
 needs a phase that stays coherent over days.</p></div>
@@ -388,8 +397,8 @@ included, after the two fixes); the chain check of <code>noiseCal</code>; <code>
 <p>Two puzzles were understood: channel 61's extra non-Gaussianity averages out as 1/turns (the <code>testRFIChain</code> rerun), and
 the error bars at SNR ~7 with B0329+54's five-component template were mostly bin resolution, fixed with NBin 2048; a rare low-SNR outlier remains
 (<a href="scenario.html#simulated">scenario</a>, <a href="limits.html#estimation">limits</a>). The 100-day runs (Claude's runs, 22 Oct)
-then found the low-SNR tail: 1.9 % of B0329+54's TOAs lay beyond 3σ (at the design point of that time; for the reruns of 23 Nov the
-recorded tail is 0.1 % beyond 5σ). The navigation
+then found the low-SNR tail: 1.9 % of B0329+54's TOAs lay beyond 3σ (at the design point of that time; in the reruns of 23 Nov it is
+1.34 % beyond 3σ and 0.14 % beyond 5σ). The navigation
 fit's outlier model is sized for it.</p>
 <p>Parked at the close were the time structure of rotating radars (C3d), refractive scintillation, excision of bright pulses and of RFI
 locked to the pulsar's period, and merging identical channels for very long runs (<a href="simulator.html#limits">simulator</a>).</p>
@@ -437,7 +446,7 @@ validated 22 Oct</span> <span class="badge todo">J0437's orbit and real trajecto
 </table></div>
 <p>The results (<a href="results.html#blockD">validation record</a>): B0329+54 alone, followed through its pass, finds a fixed site
 100 km east to ±9.4 km east and ±11.9 km radial in 30 days, and to ±5.1 and ±6.5 km in 100 days, at the array's design point (Claude's
-runs, 23 Nov). In the ship comparison (eight ships, 14 days; Claude's runs of 22 Oct at the design point before 23 November 2026,
+runs, 23 Nov; for the fixed panel a what-if, the panel on a tracking mount). In the ship comparison (eight ships, 14 days; Claude's runs of 22 Oct at the design point before 23 November 2026,
 0.61 m², archived) the smoothed track stayed within 73 km rms of the truth with a calibrated start,
 against 379 km for dead reckoning, and its error bars agreed with those of an ideal twin. JPL's DE440 matches JPL Horizons to 4.5 cm for the geocentre, and to 28–30 m for a site. The details are on the pages <a href="fold.html#prediction">phase
 prediction (stage 7a)</a> and <a href="navigation.html#next">navigation (stage 10)</a>. With this, block D closed, and block E turned
@@ -460,6 +469,9 @@ written, with a note where the hardware no longer fits; revising them is Jasper'
 point: the default of <code>runScenario.m</code> (SEFD 6.44·10⁴ Jy, about 150 MHz clean, two polarizations), for which the scenario and
 navigation results were rerun (Claude's runs). No worst case is defined for it, so the endpoint's "worst-case flux" has no counterpart
 yet. The hardware and the results are on the <a href="scenario.html#hardware">scenario page</a>.</p>
+<p>Working assumptions since 24 Nov (Jasper): the panel is fixed, with tracking shown as a what-if; the beam is about 6° wide, to be
+measured on the built array; and a power splitter keeps both beams live. A fixed panel sees a pulsar at one hour angle per beam, so
+the endpoint's position needs more hour angles than one beam gives (<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
 <h3>Decisions (Jasper, 23 Oct)</h3>
 <div class="table-wrap"><table>
 <tr><th>Topic</th><th>Decision</th></tr>
@@ -470,7 +482,7 @@ uncertainty in the fold are parked.</td></tr>
 <tr><td>Array</td><td>All data streams are processed: 16 elements × 2 polarizations, with digital beamforming. The array became 4×4 on 20 November 2026, on the same 0.61 m² (it was 3×3, with 18 streams), so the sensitivity is unchanged. Dual polarization on all 16 elements is assumed from the 3×3 design. <b>Overtaken on 23 November 2026:</b> the hardware has about 3 m² and two fixed analogue beams, with 4 analogue outputs and no digital beamforming (above). This row has not been decided anew.</td></tr>
 <tr><td>Integration time</td><td>As short as possible. The fast simulator may run as long as needed to map precision against time.</td></tr>
 <tr><td>Later</td><td>The target precision, and the array hardware (element layout and spacing, element type, phase coherence of the SDR
-channels, calibration). The array hardware is known since 23 November 2026 (above); whether the panel is fixed or on a mount is still open.</td></tr>
+channels, calibration). The array hardware is known since 23 November 2026 (above). Since 24 November 2026 the panel is taken as fixed, with tracking as a what-if (Jasper's working assumption).</td></tr>
 </table></div>
 <h3>The steps</h3>
 <div class="table-wrap"><table>
@@ -530,7 +542,7 @@ With the hardware of 23 Nov the steering weights are gone, because the beams are
 still arrives as two polarizations, on separate outputs.</p>
 <p>The second is about integration time. The equatorial components improve as 1/√T: twice the precision costs four times the time. The
 numbers of 23 Oct were for the design point of that time; the planning study rerun at the array's design point
-(<code>expNavPlan</code>, Claude's run of 23 Nov) gives for B0329+54 alone about ±9.5 km east after 30 days and ±5.2 km after 100 days.
+(<code>expNavPlan</code>, Claude's run of 23 Nov; part of the what-if of a tracking mount) gives for B0329+54 alone about ±9.5 km east after 30 days and ±5.2 km after 100 days.
 With the crystal clock the polar component does not improve with time (28 km after 30 and after 100 days), because the clock's wander
 looks like a polar offset; pulsars at other declinations or a better oscillator separate the two.</p>
 <p>The third is about extra pulsars. A pulsar's weight in the fit goes as 1/(σ<sub>TOA</sub>·√hours per TOA)². From 52° N, B0950+08,
@@ -548,7 +560,7 @@ in its own beam, which the hardware of 23 Nov does not do. On 23 Oct, at the wor
 The register (<code>logs/2026-11-02_risk-register.md</code>) has 39 scenarios, FM-1 to FM-39. Most are already on this list; these
 sixteen actions are new, in order of priority, and none is built:
 <ol>
-<li>FM-11, test: a daily (solar-day) rate term in <code>makeClock</code>, and the position bias it gives in <code>expNavFit</code>. With the planned TCXO it may be 2–25 times the fit's own error (an estimate of 2 Nov against ±30 km, the design point of that time; the fit's error is now ±9.4 km, so the same term weighs about three times more). Before E5. The test is written (<a href="tests.html#navfitfaults"><code>testNavFitFaults</code></a> case 1, Claude's run).</li>
+<li>FM-11, test: a daily (solar-day) rate term in <code>makeClock</code>, and the position bias it gives in <code>expNavFit</code>. With the planned TCXO it may be 2–25 times the fit's own error (an estimate of 2 Nov against ±30 km, the design point of that time; the fit's error is now ±9.4 km with the pulsar followed, so the same term weighs about three times more). Before E5. The test is written (<a href="tests.html#navfitfaults"><code>testNavFitFaults</code></a> case 1, Claude's run).</li>
 <li>FM-8, development and test: a switch in <code>processIQ</code> for an inverted band. For F, a check of the frequency mapping with a known line (GPS L1) before the first observation.</li>
 <li>FM-9, development and test: an F ingest that reads the SDR's time stamps and overflow flags, and blanks the gaps. The test runs now, with clock steps in <code>trueResiduals</code>.</li>
 <li>FM-10, test, then development: <code>runScenario</code> with an uncalibrated ±2 ppm clock; if no TOAs come, a rate search at acquisition.</li>

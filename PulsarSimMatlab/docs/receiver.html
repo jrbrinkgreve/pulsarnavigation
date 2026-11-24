@@ -1137,7 +1137,7 @@ the grid are refused (<code>makeClock:range</code>).</dd>
 <p>Both scenario scripts give the receiver an SDR clock: the crystal preset's noise, and a rate drawn uniformly within ±2 ppm.</p>
 <p>In <code>runScenario</code>, with <code>motion.clock</code> <code>"sdr"</code>, the observer knows the clock from a port calibration
 to 1 ms in offset and 10⁻⁹ in rate. By default it then tracks the clock day by day: after each day it fits all its TOAs with
-<code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run at the array's design point (B0329+54 followed through its pass; Claude's run, 23 Nov) it keeps 2631 of 2634 TOAs,
+<code>navFit</code> and the clock model, and folds the next day with the predicted clock. In the 30-day run at the array's design point (B0329+54 followed through its pass, the what-if of a tracking mount; Claude's run, 23 Nov) it keeps 2631 of 2634 TOAs,
 and the east estimate moves by 3 km against an error bar of ±9.4 km (<a href="navigation.html#navfit">navigation</a>). In <code>runShip</code> each
 seed draws its own clock, and the observer's filter carries the clock's offset and rate. With a calibrated start the port calibration's errors, 1 ms and 10⁻⁹, are drawn and given to the filter as <code>'ClockPrior'</code>
 (<a href="navigation.html#ship">navigation</a>).</p>

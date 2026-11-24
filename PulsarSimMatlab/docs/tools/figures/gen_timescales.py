@@ -59,6 +59,6 @@ svg = '''<figure class="scroll">
 <figcaption><b>Figure 2.</b> Every time scale of the pipeline on one ruler, computed from the parameters. Each step of the processing moves to a coarser grid
 that is still much finer than the next scale it must resolve: the 0.96 µs detected bins resolve a 2 µs radar pulse; the 4.9 µs phase bins
 resolve the 212 µs pulse. The 0.2 s file holds twenty turns (16 complete after the 31.5 ms sweep); a TOA at the array's design point needs thousands of
-times longer (0.23 h for B0329+54, 1.7 h for J0437), and a position needs weeks of TOAs, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
+times longer (0.23 h for B0329+54, 1.7 h for J0437, each followed through its pass), and a position needs weeks of TOAs, which is why the <a href="simulator.html">fast simulator</a> draws folded profiles instead.</figcaption>
 </figure>'''
 open('timescales.svg', 'w').write(svg)

@@ -71,7 +71,7 @@ clock offset.</p>
 <div class="stats">
   <div class="stat"><div class="v">1 µs ≈ 300 m</div><div class="k">timing error becomes position error at the speed of light</div></div>
   <div class="stat"><div class="v">−44 dB</div><div class="k">pulse peak of J0437−4715 below the receiver noise at the array's design point (B0329+54: −38 dB)</div></div>
-  <div class="stat"><div class="v">0.23 h</div><div class="k">of data per arrival time of B0329+54 when it is followed through its pass (J0437−4715: 1.7 h); simulated, Claude's run</div></div>
+  <div class="stat"><div class="v">SNR 11.5</div><div class="k">of B0329+54 per pass through the fixed beam: one arrival time a day, to 459 µs (Claude's scratch run; what if tracked: 0.23 h of data each)</div></div>
   <div class="stat"><div class="v">0.95 ± 0.08</div><div class="k">actual / stated TOA error over 90 TOAs: the error bars are honest</div></div>
 </div>
 
@@ -85,13 +85,13 @@ clock offset.</p>
 <h2>What makes this hard</h2>
 <div class="cards">
   <a class="card" href="physics.html#emission"><b>The pulse is noise</b><span>No waveform to correlate with: the information is in the power, so the processing squares, then folds.</span></a>
-  <a class="card" href="scenario.html"><b>It is extremely weak</b><span>38 to 44 dB below the noise at the array's design point. One pulse is invisible; a TOA takes a quarter of an hour to hours.</span></a>
+  <a class="card" href="scenario.html"><b>It is extremely weak</b><span>38 to 44 dB below the noise at the array's design point. One pulse is invisible; the brightest northern pulsar gives one TOA per pass through the beam.</span></a>
   <a class="card" href="physics.html#dispersion"><b>The sky smears it</b><span>Interstellar electrons spread each pulse over 31.5 ms across the band (DM 25). It must be undone exactly.</span></a>
   <a class="card" href="excision.html"><b>Interference is far stronger</b><span>One radar pulse outweighs ~8,000 pulses of J0437−4715: it must be blanked, not reduced.</span></a>
   <a class="card" href="toa.html"><b>Error bars must be honest</b><span>A navigation filter trusts the stated σ. Much of the code exists to make it exact.</span></a>
 </div>
 
-<h2>Status · 23 November 2026</h2>
+<h2>Status · 24 November 2026</h2>
 <div class="strip">
   <div class="done"><b>Block 1 ✓</b>full-band chain, noise, detection</div>
   <div class="done"><b>A ✓</b>channelized front end</div>
@@ -105,9 +105,7 @@ clock offset.</p>
 <p>The latest closed block is D: motion, the clock and navigation. The receiver moves with the Earth and its ship, and it times its data
 with its own oscillator. Block D predicts the pulse phase the receiver should see, so that a fold stays aligned over hours. It also gives
 the simulator a true trajectory and clock, against which the observer's assumed ones are wrong. The difference is the navigation signal,
-and the navigation fit turns it into a position. For a fixed site, B0329+54 alone finds the two equatorial components to ±9.4 km and
-±11.9 km in 30 days, when it is followed through its pass at the array's design point (Claude's run, 23 Nov;
-<a href="navigation.html#navfit">navigation</a>). Block D closed with a simulated ship that timed B0329+54 and B0950+08 for 14 days with a
+and the navigation fit turns it into a position (<a href="navigation.html#navfit">navigation</a>). Block D closed with a simulated ship that timed B0329+54 and B0950+08 for 14 days with a
 drifting SDR clock. Those runs are a dated record for the receiver planned then (0.61 m²): with a calibrated start the ship stayed within
 73 km rms of its true track at the nominal design point, against 379 km for dead reckoning, and at 298 km rms in the worst case
 (<a href="navigation.html#ship-worst">navigation</a>). Since 5 Nov the ship's code is archived
@@ -126,9 +124,17 @@ built (status 20 Nov). Block F, the real implementation on antenna data, follows
 <p>The array hardware changed on 23 Nov (the antenna team, via Jasper). It is about 3 m², with two fixed analogue beams and four
 analogue outputs, where block E had planned a digital beamformer on a smaller array. Its SEFD is 6.44·10⁴ Jy at 70 K, and about 150 MHz
 of the band is clean of RFI: that is now the design point of the scenario runs (<a href="scenario.html#receiver">scenario, Section R1</a>).
-The runs were repeated on 23 Nov (Claude's runs). They give two figures of merit, which are kept apart. When the pulsar is followed
-through its pass, which needs the panel on a tracking mount, B0329+54 takes 0.23 h of data per TOA and gives 87 TOAs a day. When it drifts
-once a day through a fixed beam, one pass has an SNR of about 11.5 (<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
+The runs were repeated on 23 Nov (Claude's runs). On 24 Nov Jasper gave three working assumptions: the panel is fixed, its beam is
+about 6° wide, and a power splitter keeps both beams live all the time.</p>
+<p>The fixed panel sees B0329+54 drift through a beam once a day. One pass gives one detection, at an SNR of 11.5 (10.4–12.6 for 80 %
+of the passes; the lowest of 120 was 9.0), and one TOA with an error of 459 µs. Every one of 120 simulated passes was detected. With one
+beam on the pulsar that gives no position: one hour angle a day makes the site's delay a constant, which merges with the pulsar's own
+phase constant. With both beams on B0329+54, 30 days give ±108 km along one axis (0.958 east, 0.287 radial) and nothing along the other.
+So with the fixed panel as it stands, the array detects and times B0329+54 every day but does not yet locate itself; a position needs
+the pulsar at several hour angles. These are scratch runs, because the repository's script has no drift through a beam.</p>
+<p>What if the panel were on a tracking mount? Followed through its pass, B0329+54 takes 0.23 h of data per TOA and gives 86.5 TOAs a
+day, and 30 days locate a fixed site to ±9.4 km east and ±11.9 km radial (the repository's scripts;
+<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
 <p>Badges on this site: <span class="badge validated">validated</span> checked against ground truth in Jasper's own run;
 <span class="badge written">written</span> exists, not yet validated; <span class="badge todo">todo</span> not implemented.</p>
 <details><summary>Status per block, in detail</summary>
@@ -145,7 +151,7 @@ once a day through a fixed beam, one pass has an SNR of about 11.5 (<a href="sce
 <tr><td>B parked</td><td>Periodic-mask fix (design in the block-B handover). The per-channel noise level measured on the data was parked too; it was built on 20 Oct as a switch (<code>noiseCal</code>, off by default)</td><td><span class="badge todo">parked 9 Oct</span></td></tr>
 <tr><td>Review</td><td>Review week: <code>blankingWeights</code> long-bin fix (12 Oct); code review of the whole codebase (13 Oct, 33 items): fixes, reuse checks in <code>main.m</code>, <code>runAllTests</code>, generator unit test, frozen test data in <code>data/test/</code>; every stage explained in these docs (14–16 Oct)</td><td><span class="badge validated">12–16 Oct</span></td></tr>
 <tr><td><code>processIQ</code></td><td>The whole processing as one function (IQ in, fold out), and <code>foldToTOA</code> (TOAs, detection, good TOAs); <code>main.m</code> and the run scripts use them</td><td><span class="badge validated">19 Oct</span></td></tr>
-<tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. The scenario runs give the TOA budgets, over 30 and 100 days (Claude's runs; at the array's design point since 23 Nov). A few
+<tr><td>C</td><td>Fast simulator of folded profiles (<code>simulateFold</code>): channels, RFI after excision, observing passes, scintillation, adaptive sub-ints, dual polarization, multi-component profiles. Validated in Jasper's runs. The scenario runs give the TOA budgets, over 30 and 100 days (Claude's runs; at the array's design point since 23 Nov, with the pulsar followed: the what-if of a tracking mount). A few
 refinements are parked (simulator page)</td><td><span class="badge validated">closed 22 Oct</span></td></tr>
 <tr><td>D</td><td>Barycentric phase prediction, Doppler, clock: <code>makeTrajectory</code>, <code>delayModel</code>, <code>makePredictor</code>,
 <code>foldProfile</code> <code>'Predictor'</code>, <code>trueResiduals</code>, <code>makeClock</code>; the observer's clock estimate; the

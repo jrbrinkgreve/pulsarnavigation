@@ -358,6 +358,13 @@ not done: the repository script still follows the pulsar, and the single-pass nu
 with those limits: SNR 11.5 per pass for a 6.3° beam (FM-1); ±9.4 km east after 30 days when the pulsar is followed, no
 position from one fixed beam, 108 km along one axis from both (FM-43). Log: `logs/2026-11-23_array-3m2-analog-beams.md`.
 
+**24 Nov.** R14 has an answer for now (Jasper: "its fixed for now, but we can still show tracking as a what-if scenario"),
+with a beam of about 6° and a splitter as working assumptions. FM-43 therefore applies in full: with the panel fixed the
+array gives no position from one beam. R1 (the drift through a fixed beam in the simulator) becomes the first development.
+Two additions from an analysis of the reruns: J0437−4715 has wrong-peak fits about ±57 µs off in 2.5 % of its TOAs at
+SNR 7.3, with an ordinary χ² (FM-26, FM-27); and under scintillation pChi2 < 0.05 rings for 10–11 % of B0329+54's TOAs,
+because the channels differ in pulse amplitude (FM-16, FM-41). Log: `logs/2026-11-24_fixed-panel-and-two-findings.md`.
+
 ### Open
 
 - The ratings are a draft for Jasper's review. The four estimates were checked (above); FM-11 rose to 25, FM-26 fell to 6.

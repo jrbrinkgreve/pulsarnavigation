@@ -167,12 +167,13 @@ them, and so do the many millisecond pulsars that are binaries (<a href="navigat
 <p>A long fold also needs a prior position. A station position error δr gives a daily-varying delay error up to δr/c, which smears a long fold:
 J0437 needs the position to ≲ 4 km, wide-pulse normal pulsars tolerate ~100 km. A fix from scratch starts from the normal pulsars and refines with J0437.</p>
 <p>How far navigation gets with all this is known so far only from simulations without timing noise (<a href="results.html#blockD">validation
-record</a>). From 52° N,
-B0329+54 alone finds a fixed site to ±9.4 km east and ±11.9 km radial in 30 days at the array's design point, when it is followed
-through its pass, which needs the panel on a tracking mount (Claude's run, 23 Nov 2026). The hardware has two
-fixed beams that a pulsar drifts through. The repository's simulator has no such drift yet; scratch runs give an SNR of about 11.5 for
-one pass of B0329+54, no position from one fixed beam, and ±108 km along one axis from both
-(<a href="scenario.html#pass">scenario, Section R7.4</a>). The ship results are a dated record for the receiver planned before
+record</a>). The array's panel is fixed, with two beams that a pulsar drifts through once a day. The repository's simulator has no
+such drift yet. Scratch runs give B0329+54, from 52° N, an SNR of 11.5 per pass with a TOA error of 459 µs, no position from one beam
+on the pulsar, and ±108 km along one axis after 30 days from both (<a href="scenario.html#pass">scenario, Section R7.4</a>). So with
+the fixed panel as it stands, the array detects and times B0329+54 every day but does not yet locate itself: a position needs the
+pulsar at several hour angles. A pass 2.6° off the beam centre (SNR × 0.62) and a low-flux day (SNR about 5) are scaled from those
+runs, not simulated. What if the panel were on a tracking mount: followed through its pass, B0329+54 alone finds a fixed site to
+±9.4 km east and ±11.9 km radial in 30 days (Claude's run, 23 Nov 2026). The ship results are a dated record for the receiver planned before
 23 November 2026 (0.61 m², 400 MHz), and were not rerun: a ship
 with B0329+54, B0950+08 and a drifting SDR clock stayed within 73 km rms of its track over 14 days, with a calibrated start, at nominal flux
 (SEFD 3.2·10⁵ Jy). At worst-case flux (7.4·10⁵ Jy) the same ship was at 298 km rms, against 372 km for dead reckoning
@@ -224,8 +225,16 @@ cases: bins must be ≤ 1/10 of the spectral template width. That width is 0.007
 (see <a href="toa.html#template">TOA</a>).</p>
 <p>What is left are rare outliers at SNR ~7. With adaptive groups, a few of B0329+54's TOAs land one core width off, 5–9
 times their error bar: 0.1 % lie more than 5σ off in the runs at the array's design point, and about 0.5 % did in the 30-day runs of October 2026. χ² cannot flag them. The cause is the estimator's threshold effect: the narrow core sits on a broad component,
-and noise now and then moves the best match onto that shoulder (<a href="scenario.html">scenario</a>). At SNR 10 there were none in 600 TOAs. Over the 100 days of the October runs (the design points before 23 November 2026) the tail was larger: 1.9 % of B0329+54's TOAs lay beyond 3σ, against 0.27 % for a Gaussian, while the core
-stayed honest. That fraction has not been taken from the runs at the array's design point (<a href="scenario.html#hundred">scenario</a>).</p>
+and noise now and then moves the best match onto that shoulder (<a href="scenario.html">scenario</a>). At SNR 10 there were none in 600 TOAs. Over 100 days at the array's design point (8649 TOAs, the pulsar followed) 1.34 % of B0329+54's TOAs lie beyond 3σ, against 0.27 % for a Gaussian, 0.36 % beyond 4σ and 0.14 % beyond 5σ; the largest single error is 13σ, and inside 3σ the spread is 1.03
+(<a href="scenario.html#hundred">scenario</a>).</p>
+<p>Two observations from the same runs were explained on 24 Nov 2026 (Claude's analysis of the saved runs). J0437's error bars look
+23–33 % too small because about 2.5 % of its TOAs at SNR 7.3 are fitted one sharp template peak over, about ±57 µs off, while the core
+is right (<a href="scenario.html#j0437profile">scenario, Section R7.3</a>). The options, none built: a higher target SNR for pulsars with
+several sharp peaks, a wrong-peak term in the TOA's likelihood, or a component of ±57 µs in the fit's outlier model. And with
+scintillation 10–11 % of B0329+54's TOAs have a <code>pChi2</code> below 0.05, because the channels then differ in pulse amplitude while
+the fit assumes equal amplitudes; the TOAs are not worse (<a href="toa.html#pchi2">TOA, Section 8.4</a>). The options, none built:
+expect it and widen the alarm for scintillating pulsars, or estimate the channel amplitudes over a scintillation time and give them to
+the fit (<code>'ChannelGain'</code>).</p>
 <p>These outliers are handled in navigation, not in the grouping. The groups stay at SNR 7, for the larger number of TOAs. The navigation fit uses
 redundancy: its error model is a mixture of the stated Gaussian and a 4× wider one that takes 2 % of the TOAs
 (<code>navFit</code> and <code>navFilter</code>, <code>'OutlierFraction'</code> 0.02, <code>'OutlierScale'</code> 4). An outlier then

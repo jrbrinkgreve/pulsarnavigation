@@ -52,7 +52,7 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + f'''
 </svg>
 <figcaption><b>Figure 10.3.</b> The east component of the site offset fitted to the first <var>N</var> days of B0329+54's simulated TOAs (the array's design point,
-the pulsar followed through its pass, perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.1f} km after 30 days and
+the pulsar followed through its pass, the what-if of a tracking mount; perfect clock; truth 100 km east). The error shrinks as 1/√<var>N</var>: ±{err[29]:.1f} km after 30 days and
 ±{err[99]:.1f} km after 100 (<code>navFit</code> itself, with its outlier model: 91.2 ± 5.1 km after 100 days). After 30 days this noise draw sits
 low, at {est[29]:.0f} km; the later days pull it back. Data: <code>runScenario</code>'s 100-day motion run (Claude's run, 23 Nov 2026), fitted with
 <code>navFit</code>'s model by weighted least squares.</figcaption>

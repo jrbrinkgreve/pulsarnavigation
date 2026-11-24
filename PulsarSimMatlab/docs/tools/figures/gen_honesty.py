@@ -72,7 +72,7 @@ own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</va
 within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
 of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection
 statistic has the predicted spread. The fast simulator reproduces honest error bars at −5 dB. Its 100-day runs at the array's design
-point (Claude's runs, 23 Nov 2026) give 1.12 for B0329+54, with 0.1 % of the TOAs more than 5σ off, and 1.23 for J0437, which is open.
+point (Claude's runs, 23 Nov 2026) give 1.12 for B0329+54, with 0.1 % of the TOAs more than 5σ off, and 1.23 for J0437, where 2.5 % of the TOAs are fitted one template peak over.
 The navigation rows are pulls of the fitted position (and clock) against the truth. The fit agrees with 1; the filter's north pulls are
 0.91. The ship's pulls (32 per axis) are 0.84–0.86, and its ideal twin's on the same TOAs 0.81: the TOA chain adds nothing measurable.
 The navigation and ship rows were made with the TOA budget of the receiver planned before 23 November 2026.</figcaption>

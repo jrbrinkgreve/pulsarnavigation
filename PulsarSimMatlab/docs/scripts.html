@@ -365,8 +365,8 @@ and J0437 from 30° S (passes of 12.3 h), with dual polarization. B0329+54 has f
 design point the script takes the band-edge taper values of its channels, the RFI profile cut to them (the local function
 <code>pickChannels</code>), and the scintillation band at their frequencies. The result file also stores the SEFD (<code>sefd</code>)
 and the channels (<code>chanIdx</code>). At every design point the script follows the pulsar through its pass, above 20° elevation with
-constant gain. For the array that is the panel on a tracking mount; a drift through one of its fixed beams is not in the script
-(<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
+constant gain. The array's panel is fixed, so for the array these runs are a what-if, the panel on a tracking mount; a drift through
+one of its fixed beams, the case of the hardware, is not in the script (<a href="scenario.html#merit">scenario, Section R1.2</a>).</p>
 <details><summary>Validation of the change</summary><p>Claude's runs, 23 Nov 2026: the committed and the edited script give identical
 TOAs for <code>"nominal"</code> clean over 3 days and for <code>"worst"</code> with <code>rfiCal</code> and <code>rfiCalScint</code> over
 2 days; the default reproduces the scratch run it was derived from exactly (2596 TOAs in 30 days). Not yet run by Jasper.</p></details>
@@ -399,7 +399,7 @@ the circular mean of its sub-ints' (<code>sideTag</code>), clamped to their span
 (<code>tSub</code>), so that the navigation fit can average its row the same way.</li>
 <li>With the SDR clock the observer tracks it (<code>motion.track</code> <code>"daily"</code>). After each day it fits all its TOAs so
 far with <code>navFit</code> and the clock model, predicts its clock for the next day, and folds that day with the prediction. Until it
-has 20 TOAs it keeps the calibration from port: less than a day at the array's design point, with 87 TOAs a day, and about two days
+has 20 TOAs it keeps the calibration from port: less than a day at the array's design point, with 87 TOAs a day when the pulsar is followed, and about two days
 at the earlier design point. <code>"none"</code> keeps the calibration throughout; those files get
 the suffix <code>_notrack</code>.</li>
 </ul>

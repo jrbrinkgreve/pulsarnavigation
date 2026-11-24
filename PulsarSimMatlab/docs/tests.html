@@ -1278,7 +1278,8 @@ little memory; the comparison does not depend on DM. It runs at −5 dB on the c
 It fits the good TOAs with <code>navFit</code>, with each TOA's row averaged over its sub-ints. It first fits the noise-free true
 residuals, which give the offset itself, and compares the fit's error with the one <code>'Predict'</code> computes from the schedule
 alone. With the SDR clock files of the first design point it also reports the clock the observer had not estimated, per week, and the
-final fit with the clock model. The runs follow the pulsar through its pass.</p>
+final fit with the clock model. The runs follow the pulsar through its pass: for the array's fixed panel a what-if, the panel on a
+tracking mount.</p>
 <div class="table-wrap"><table>
 <tr><th>Run, 30 days, the array's design point</th><th class="num">good TOAs</th><th class="num">east (truth 100 km)</th><th class="num">radial (truth 0)</th></tr>
 <tr><td>perfect clock</td><td class="num">2634</td><td class="num">73.9 ± 9.4 km</td><td class="num">+7.1 ± 11.9 km</td></tr>
@@ -1299,7 +1300,7 @@ perfect clock and with the crystal clock. Its setting <code>fluxes</code> choose
 <code>"array3m2"</code>, takes B0329+54 from the scenario run at the design point (0.233 h per TOA at 705 µs) and the others from the
 scenario page's table (B0950+08 1.30 h, B1642−03 5.6 h, B1929+10 11.5 h per TOA; σ 738, 326 and 480 µs). <code>"nominal"</code> and
 <code>"worst"</code> are the inputs from before 23 November 2026. Every pulsar is taken as followed whenever it is up, each in its own
-beam; the array's two fixed beams do not do that, so the study is for the panel on a tracking mount and more beams than it has.
+beam; the array's two fixed beams do not do that, so the study is part of the what-if: a tracking mount, and more beams than the array has.
 For B0329+54 alone it predicts what the real fits gave: ±9.5 km east and ±5.4 km polar in 30 days. The results are on the
 <a href="navigation.html#plan">navigation page</a>. Claude's run, 23 Nov 2026 (~10 s).</p>
 

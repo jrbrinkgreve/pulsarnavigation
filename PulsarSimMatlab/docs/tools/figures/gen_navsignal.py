@@ -79,7 +79,7 @@ svg = '''<figure class="scroll">
 <figcaption><b>Figure 10.1.</b> The navigation signal in the simulated data. Left: one day of B0329+54's TOAs for a site 100 km east of the assumed one
 (grey: the pulsar below 20°). Each TOA's error bar, about {np.median(s):.0f} µs, is four times the signal, a daily sine of 193 µs. Right: all {len(t)} TOAs of
 30 days averaged in 2-hour bins of hour angle, where the sine stands out. Data: the 30-day run of <code>runScenario</code> with
-<code>motion.on</code> at the array's design point, the pulsar followed through its pass (Claude's run, 23 Nov 2026); the constant offset
+<code>motion.on</code> at the array's design point, the pulsar followed through its pass: the what-if of a tracking mount (Claude's run, 23 Nov 2026); the constant offset
 of the profile reference is removed.</figcaption>
 </figure>'''
 open('navsignal.svg', 'w').write(svg)

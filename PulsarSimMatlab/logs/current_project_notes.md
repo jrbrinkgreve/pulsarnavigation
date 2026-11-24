@@ -4230,6 +4230,18 @@ The docs were moved to this design point on every page the same day (two docs su
 be replaced is listed in `maintenance.html`'s changelog and in the log. `tests/expNavFit.m` and `tests/expNavPlan.m` take the design
 point from a `fluxes` setting. Log: `2026-11-23_array-3m2-analog-beams.md`.
 
+*Working assumptions, 24 Nov 2026 (Jasper).* The beam: "3 m^2 in a square array implies 6 deg, thats okay as a working assumption
+for now". The mount: "its fixed for now, but we can still show tracking as a what-if scenario". The beams: "splitter is an okay
+working assumption". So the fixed panel is the case: B0329+54 at SNR 11.5 per pass (TOA error 459 µs; scratch runs), no position
+from one beam, 108 km along one axis from both beams in 30 d. The runs with the pulsar followed (0.23 h per TOA, ±9.4 km east in
+30 d, the planning study) are a what-if for a tracking mount. With the panel fixed the array detects and times B0329+54 every day
+but does not locate itself; the simulator's drift through a fixed beam (risk register R1) is now the main missing piece. The same
+day two observations of the reruns were explained from the saved files: J0437−4715's spread of 1.23–1.33 is a tail of wrong-peak
+fits about ±57 µs off (2.5 % of TOAs at SNR 7.3; the core is honest), and B0329+54's 10–11 % with pChi2 < 0.05 under scintillation
+comes from channels of unequal pulse amplitude against a fit that assumes equal ones, visible now that a TOA (10–12 min) is shorter
+than the scintillation time. Tail fractions at the design point, B0329+54: 1.34 % beyond 3σ, 0.36 % beyond 4σ, 0.14 % beyond 5σ.
+Log: `2026-11-24_fixed-panel-and-two-findings.md`.
+
 *Time per TOA* (radiometer equation SNR = (S_mean/SEFD)·√(n_pol·B·t)·√((P − W_eq)/W_eq),
 n_pol 2, B 400 MHz, target SNR 7 from the threshold sweep). P, DM, W50, S₁₄₀₀ from the
 **ATNF catalogue v2.6.5** (queried 6 Oct 2026; all pulsars with S₁₄₀₀ > 25 mJy plus MSPs

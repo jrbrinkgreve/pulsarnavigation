@@ -20,13 +20,19 @@ to within a few percent, from weak signals to strong ones. The noise model is co
 designed. Below that SNR some TOAs lock onto noise peaks, and the good-TOA rule removes them. Interference is the exception: a radar
 destroys TOAs unless it is excised.</p>
 <p>The fast simulator reproduces the voltage chain, from the detection threshold to high SNR, with and without RFI. Over 100 simulated
-days at the array's design point the error bars are about 10 % too small for B0329+54, and 0.1 % of its TOAs lie more than 5σ off, so
-the navigation fit expects outliers. With motion and a drifting clock, the navigation fit finds the position with honest error bars.
-B0329+54 alone, followed through its pass, gives ±9.4 km east and ±11.9 km radial in 30 days for a fixed site. A fixed panel sees one
-pass a day through a beam, with an SNR of about 11.5 per pass, and one beam gives no position
-(<a href="scenario.html#pass">scenario, Section R7.4</a>).</p>
+days at the array's design point the error bars are about 10 % too small for B0329+54, and 1.34 % of its TOAs lie beyond 3σ and 0.14 %
+beyond 5σ, so the navigation fit expects outliers. With motion and a drifting clock, the navigation fit finds the position with honest
+error bars.</p>
+<p>The array's panel is fixed. B0329+54 drifts through a beam once a day and gives one detection per pass, at an SNR of 11.5
+(10.4–12.6 for 80 % of the passes; the lowest of 120 was 9.0), with a TOA error of 459 µs; every one of 120 simulated passes was
+detected. With one beam on the pulsar that gives no position, and with both beams on it ±108 km along one axis after 30 days and
+nothing along the other (scratch runs; <a href="scenario.html#pass">scenario, Section R7.4</a>). So with the fixed panel as it stands,
+the array detects and times B0329+54 every day but does not yet locate itself: a position needs the pulsar at several hour angles.
+What if the panel were on a tracking mount: followed through its pass, B0329+54 takes 0.23 h of data per TOA, gives 86.5 TOAs a day,
+and locates a fixed site to ±9.4 km east and ±11.9 km radial in 30 days.</p>
 <p>The scenario and fixed-site results below (sections 12 and 15) are for the array's design point: an SEFD of 6.44·10⁴ Jy and
-150 MHz (<a href="scenario.html#receiver">scenario, Section R1</a>). They are Claude's runs of 23 November 2026. The ship results are
+150 MHz (<a href="scenario.html#receiver">scenario, Section R1</a>). They are Claude's runs of 23 November 2026, and they follow the
+pulsar through its pass, so they belong to the what-if. The ship results are
 a dated record for the receiver planned before that date (0.61 m², 400 MHz): within 73 km rms of the track at its nominal design point
 (SEFD 3.2·10⁵ Jy), and 298 km rms against 372 km for dead reckoning at its worst case (7.4·10⁵ Jy;
 <a href="navigation.html#ship-worst">navigation</a>).</p>
@@ -209,7 +215,7 @@ own 1σ uncertainty (from the record, or ≈ 1/√(2<var>n</var>) for <var>n</va
 within a few percent, except the good TOAs at SNR 3.8, below the design threshold of 6–7. The phase D points at −25 and −20 dB are off the scale (11 and 12) because
 of outliers; with the good-TOA rule those outliers are removed (threshold sweep). The noise-only row shows that the detection
 statistic has the predicted spread. The fast simulator reproduces honest error bars at −5 dB. Its 100-day runs at the array's design
-point (Claude's runs, 23 Nov 2026) give 1.12 for B0329+54, with 0.1 % of the TOAs more than 5σ off, and 1.23 for J0437, which is open.
+point (Claude's runs, 23 Nov 2026) give 1.12 for B0329+54, with 0.1 % of the TOAs more than 5σ off, and 1.23 for J0437, where 2.5 % of the TOAs are fitted one template peak over.
 The navigation rows are pulls of the fitted position (and clock) against the truth. The fit agrees with 1; the filter's north pulls are
 0.91. The ship's pulls (32 per axis) are 0.84–0.86, and its ideal twin's on the same TOAs 0.81: the TOA chain adds nothing measurable.
 The navigation and ship rows were made with the TOA budget of the receiver planned before 23 November 2026.</figcaption>
@@ -572,8 +578,8 @@ noise calibration removes it (<a href="scenario.html#rfivariants">scenario</a>).
 </table></div>
 <h3>The TOA budgets over 100 days (<code>runScenario</code>, 23 Nov; Claude's runs)</h3>
 <p>The scenario runs give the budgets of the <a href="scenario.html#hundred">reference scenario</a> at the array's design point:
-B0329+54 from 52° N and J0437 from 30° S, each followed through its pass. These are integration times per TOA, not the SNR of a
-single pass:</p>
+B0329+54 from 52° N and J0437 from 30° S, each followed through its pass: the what-if of a tracking mount. These are integration
+times per TOA, not the SNR of a single pass:</p>
 <div class="table-wrap"><table>
 <tr><th>Case</th><th class="num">good TOAs</th><th class="num">per day</th><th class="num">hours per TOA</th><th class="num">σ<sub>TOA</sub></th><th class="num">rms/pred</th><th class="num">beyond 5σ</th></tr>
 <tr><td>B0329+54, clean</td><td class="num">8649</td><td class="num">86.5</td><td class="num">0.23</td><td class="num">705 µs</td><td class="num">1.12</td><td class="num">0.1 %</td></tr>
@@ -581,9 +587,13 @@ single pass:</p>
 <tr><td>J0437, clean</td><td class="num">709</td><td class="num">7.09</td><td class="num">1.67</td><td class="num">12.8 µs</td><td class="num">1.23</td><td class="num">0.6 %</td></tr>
 <tr><td>J0437, RFI + calibration + scintillation</td><td class="num">1009</td><td class="num">10.1</td><td class="num">0.33</td><td class="num">12.3 µs</td><td class="num">1.13</td><td class="num">0.2 %</td></tr>
 </table></div>
-<p>The error bars are about 10 % too small for B0329+54. J0437's are 23 % too small in the clean run (33 % over 30 days); that is open
-and has not been looked into. With scintillation 10 % of B0329+54's TOAs have a pChi2 below 0.05, where 5 % is expected; also open.
-The fractions beyond 3σ and 4σ have not been taken from these runs.</p>
+<p>The error bars are about 10 % too small for B0329+54. Its tail, in the clean run: 1.34 % of the TOAs beyond 3σ, 0.36 % beyond 4σ
+and 0.14 % beyond 5σ, with a spread of 1.03 inside 3σ and a largest single error of 13σ; with RFI and scintillation 1.41 %, 0.30 % and
+0.13 %. J0437's error bars look 23 % too small in the clean run (33 % over 30 days), but its core is right, with a robust spread of
+1.01: 18 of its 709 TOAs are wrong-peak fits, about ±57 µs off (<a href="scenario.html#j0437profile">scenario, Section R7.3</a>). With
+scintillation 10 % of B0329+54's TOAs have a pChi2 below 0.05, where 5 % is expected: the channels then differ in pulse amplitude while
+the fit assumes equal amplitudes, and the TOAs are not worse (<a href="toa.html#pchi2">TOA, Section 8.4</a>). These three readings are
+Claude's analysis of the saved runs, 24 Nov 2026.</p>
 <details><summary>History: the 100-day runs of 21–22 Oct 2026</summary><p>At the design points before 23 November 2026 (0.61 m²,
 400 MHz) the clean cases gave: B0329+54 978 TOAs (9.78 a day, 1.97 h per TOA, 734 µs) at nominal flux and 187 (1.87 a day, 10.1 h,
 741 µs) in the worst case; J0437 76 TOAs (0.76 a day, 16.0 h, 13.0 µs) and 14 (0.14 a day, 82 h, 13.1 µs). The core of B0329+54's
@@ -637,9 +647,12 @@ noise calibration) was reproduced bit for bit on 27 Oct. Still Claude's runs onl
 <h2 id="blockD">15. Block D: from TOAs to a position (22 Oct; the fixed site rerun on 23 Nov)</h2>
 <p>These runs give the fast simulator the truth of a receiver that is not where the observer thinks, and a clock that drifts
 (<a href="simulator.html#truth">the simulator's truth</a>). The observer then fits its position. All are Claude's runs; the functions
-they use are validated (<a href="#jasper22">section 14</a>). The fixed-site runs and the planning study are at the array's design
-point, with the pulsar followed through its pass. The ship runs are a dated record at the design points before 23 November 2026.</p>
-<h3>A fixed site 100 km east (<code>expNavFit</code> on <code>runScenario</code> motion runs, 23 Nov)</h3>
+they use are validated (<a href="#jasper22">section 14</a>). The array's fixed panel rests on the SNR of a single pass: in scratch runs
+over 30 days of passes, one beam on the pulsar gives a singular fit and no position, and both beams on the pulsar give ±108 km along one
+axis (<a href="scenario.html#pass">scenario, Section R7.4</a>). The fixed-site runs and the planning study below are the what-if of a
+tracking mount: at the array's design point, with the pulsar followed through its pass. The ship runs are a dated record at the design
+points before 23 November 2026.</p>
+<h3>What if on a tracking mount: a fixed site 100 km east (<code>expNavFit</code> on <code>runScenario</code> motion runs, 23 Nov)</h3>
 <p>B0329+54 alone from 52° N, followed through its pass, with <code>navFit</code>'s averaged rows. The error per component matches the
 precision that <code>'Predict'</code> computes from the TOA schedule alone: 9.3 km against 9.4 km east in 30 days.</p>
 <div class="table-wrap"><table>
@@ -663,17 +676,14 @@ a shrink of a few per cent towards the assumed site is not excluded, and not est
 2634 TOAs. Per week, the rms of the clock it has not estimated is 420, 108, 200, 138 and 346 µs: harmless against B0329+54's 6.6 ms
 pulse. Without tracking, the run keeps 1866 TOAs (62.2 a day, 0.30 h per TOA, 615 µs), and the clock it has not estimated grows from
 1618 µs to 6213 µs rms per week.</p>
-<p>A fixed panel is a different case, and rests on the SNR of a single pass. In scratch runs over 30 days of passes, one beam on the
-pulsar gives a singular fit and no position; both beams on the pulsar give ±108 km along one axis for a 6.3° beam, and ±71 km if the
-beam is 15° (<a href="scenario.html#pass">scenario, Section R7.4</a>).</p>
 <details><summary>History: the fixed-site runs of 22 Oct 2026</summary><p>At the design points before 23 November 2026 (0.61 m²,
 400 MHz): nominal flux with a perfect clock, 302 TOAs, east 36.5 ± 29.6 km and radial +9.9 ± 37.2 km (<code>'Predict'</code> 29.4 km);
 with the SDR clock tracked, 300 TOAs and 35.1 ± 29.7 km; worst-case flux, 59 TOAs and 82.2 ± 110.3 km (<code>'Predict'</code>
 109.1 km). With a 1000 km offset and the same seeds, 947.2 ± 29.8 km; over 100 days 80.3 ± 16.4 km. The low 30-day estimate was read
 as one noise draw then.</p></details>
 <h3>Which pulsars help (<code>expNavPlan</code>, 23 Nov)</h3>
-<p><code>navFit</code>'s <code>'Predict'</code> mode on the real pass schedules from 52° N, at the array's design point. The study
-takes every pulsar as followed whenever it is up, each in its own beam, which the hardware does not do. Extra pulsars
+<p><code>navFit</code>'s <code>'Predict'</code> mode on the real pass schedules from 52° N, at the array's design point. The study is
+part of the what-if: it takes every pulsar as followed whenever it is up, each in its own beam, which the hardware does not do. Extra pulsars
 add little to the two equatorial components. With a real clock their gain is the polar component: they separate it from the clock's
 wander.</p>
 <div class="table-wrap"><table>

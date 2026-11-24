@@ -19,8 +19,8 @@ places each pulse where the true trajectory and clock put it.</p>
 <a href="tests.html#simrfi"><code>expSimRFI</code></a> · the truth of a moving receiver: <a href="#truth"><code>trueResiduals</code></a>
 · block C</p>
 
-<p>At the array's design point a TOA of B0329+54 needs 0.23 hours of data and one of J0437 about 1.7 hours, and a position needs weeks
-of TOAs (<a href="scenario.html#hundred">scenario</a>).
+<p>At the array's design point a TOA of B0329+54 needs 0.23 hours of data and one of J0437 about 1.7 hours when the pulsar is followed
+through its pass, and a position needs weeks of TOAs (<a href="scenario.html#hundred">scenario</a>).
 The voltage chain writes about 72.5 GB per second on the default path, so even one TOA is out of reach. But after the fold, everything is
 described by a few validated numbers per phase bin: the mean (baseline plus the smoothed pulse), the variance (the radiometer equation),
 and the correlation with the neighbouring bins. <code>simulateFold</code> draws exactly that: 20 hours in 60 s sub-ints take 0.05 s.</p>
@@ -602,7 +602,8 @@ B0329+54's 6.6 ms pulse, too much for J0437's 0.14 ms (<a href="scripts.html#sce
 estimate the observer used are averaged over its sub-ints. Its time tag is the time nearest its mean time whose sidereal phase is the
 circular mean of its sub-ints' (<code>sideTag</code>), and it carries its sub-ints' times (<code>tSub</code>) for the navigation fit's
 averaged rows (<a href="navigation.html#averaged">navigation</a>). The 30-day run of B0329+54 with the true site 100 km east and a
-perfect clock gives the navigation fit its data. At the array's design point, with the pulsar followed through its pass, it has
+perfect clock gives the navigation fit its data. At the array's design point, with the pulsar followed through its pass (for the
+array's fixed panel a what-if, a tracking mount), it has
 2634 good TOAs (88 per day) of 711 µs. The motion costs no TOAs: the same run without it gave 2596. The navigation fit on this run
 finds the east component to ±9.4 km and the radial one to ±11.9 km, so the 100 km offset is detected at 7.9σ; the estimate itself,
 73.9 km, is low, mostly through its noise draw (<a href="navigation.html#firstresult">navigation</a>; Claude's run, 23 Nov 2026).</p>

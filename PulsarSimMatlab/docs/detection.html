@@ -230,7 +230,9 @@ pulse phase. Detection and the χ² flag of the TOA fit catch different failures
 <tr><td>radar spike in the profile</td><td>large (it correlates)</td><td>≫ 1</td><td>rejected by χ²</td></tr>
 <tr><td>pulse + carrier</td><td>large</td><td>~1.3</td><td>kept (by design)</td></tr>
 </table></div>
-<p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there". A good TOA must therefore pass both.</p>
+<p>Detection catches "nothing there" (noise-peak outliers); χ² catches "something wrong there". A good TOA must therefore pass both.
+The finer check <code>pChi2</code> also reacts to scintillation, which gives the channels unequal pulse amplitudes: it then falls below
+0.05 about twice as often as stated, while the TOAs are not worse (<a href="toa.html#pchi2">TOA, Section 8.4</a>).</p>
 
 <h2 id="good">D5 · Good TOAs (in <code>foldToTOA</code>)</h2>
 <div class="sig">[toa, detection, info] = foldToTOA(fold, info_fold, profileFWHM, Bnoise, 'Weighting', weighting)</div>

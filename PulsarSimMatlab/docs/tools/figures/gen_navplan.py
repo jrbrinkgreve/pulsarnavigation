@@ -35,7 +35,7 @@ svg = '''<figure class="scroll">
   ''' + '\n  '.join(o) + '''
 </svg>
 <figcaption><b>Figure 10.4.</b> The error of the polar component (along the Earth's axis), with a calibrated start and the crystal clock, from 52° N at
-the array's design point, with every pulsar followed whenever it is up. B0329+54 alone cannot tell the polar offset from the clock's wander,
+the array's design point, with every pulsar followed whenever it is up (part of the what-if of a tracking mount). B0329+54 alone cannot tell the polar offset from the clock's wander,
 and more days do not help (28 km after 30 and after 100 days). Pulsars at other declinations separate the two: B0950+08 brings it to 12 km
 in 100 days, all three extra pulsars to 8 km. With a perfect clock B0329+54 alone already reaches 3 km. Numbers: the planning study
 (<code>tests/expNavPlan.m</code>), from <code>navFit</code>'s <code>'Predict'</code>.</figcaption>

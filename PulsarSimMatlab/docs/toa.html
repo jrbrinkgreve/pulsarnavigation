@@ -241,11 +241,23 @@ with <code>gammainc</code>. With uncorrelated bins this is the ordinary χ² tai
 <code>flagChi2</code> and <code>MaxRedChi2</code> = 2 still decide which TOAs are good.</p>
 <p>Reporting rather than dropping was one of three options: keep the threshold 2 alone, add a probability threshold that drops TOAs, or report <code>pChi2</code>
 without dropping anything. A sensitive threshold that drops TOAs would throw away every TOA in the narrow-carrier case, whose error bars
-are only 3.4 % too small, which for navigation is worse than the problem. Gross failures, such as a wrong peak, are therefore still
-dropped by the threshold 2, and a noise model that is a few percent off is made visible. The fix for such a case is the per-channel noise
+are only 3.4 % too small, which for navigation is worse than the problem. A gross misfit of the profile, one that pushes the reduced χ² above 2, is therefore still
+dropped by the threshold, and a noise model that is a few percent off is made visible. Not every gross error is such a misfit: at SNR 7
+a fit that lands one sharp peak over, as happens for about 2.5 % of J0437−4715's TOAs, has an ordinary χ² and passes both
+(analysis of 24 Nov 2026, Section 8.7). The fix for such a case is the per-channel noise
 calibration (the switch <code>noiseCal</code>, off by default). <code>testOptimalTOA</code> test 4 checks <code>pChi2</code> itself: it draws 800 profiles per SNR
 level with the exact covariance of a blanked fold, for 'equal' and 'optimal' weighting; <code>pChi2</code> is uniform by a
 Kolmogorov–Smirnov test at the 10⁻³ level.</p>
+<p>One cause makes <code>pChi2</code> small without a fault in the noise model: scintillation. It gives every channel its own pulse
+amplitude, while the 'optimal' fit assumes the same amplitude in every channel (<code>ChannelGain</code> 1, Section 8.6). The misfit
+adds to χ² in proportion to SNR². In the scenario runs with scintillation at the array's design point, 10–11 % of B0329+54's TOAs have
+<code>pChi2</code> below 0.05, where 5 % is expected: the mean χ²<sub>red</sub> rises by 0.0070, which is 0.40 of its spread.
+B0329+54's scintles are 7 MHz wide, about two channels, and a TOA there takes 10–12 min, less than the scintillation time of 13 min,
+so the amplitudes do not average out within a TOA. J0437, whose scintles (740 MHz) are wider than the band, shows nothing (3.7 %). The
+TOAs are not worse: the spread of (TOA − truth)/σ is 1.11 with and without scintillation, and none is dropped. On real data the alarm
+will therefore ring about twice as often as stated for a scintillating pulsar, for this reason alone (Claude's analysis of 24 Nov 2026
+of the saved runs, in which the pulsar is followed through its pass;
+<a href="scenario.html#rfivariants">scenario, Section R8</a>).</p>
 <details><summary>History</summary>
 <p>The χ² flag: phase E, 6 Oct 2026. <code>pChi2</code>: Jasper's design choice of 16 Oct (option C of the three above). The noise
 calibration <code>noiseCal</code> was implemented on 20 Oct.</p></details>
@@ -487,7 +499,8 @@ and <code>foldToTOA</code> also take a component matrix, with rows [amplitude, c
 Gaussians, scaled to a maximum of 1, and phase 0 is the components' reference point, which is not necessarily the peak. An example:
 B0329+54 at 1410 MHz has five components (arXiv:1703.03582, Table 2): a core at 0, a broad component at −0.003 turns, and outer ones at
 −0.032, +0.021 and +0.026 turns. A single Gaussian with the catalogue W<sub>50</sub> would put only half its flux in the pulse area, and so
-overstate the peak by 3 dB.</p>
+overstate the peak by 3 dB. A template with two sharp peaks close together has its own failure at low SNR: J0437's are 57 µs apart, and
+about 2.5 % of its TOAs at SNR 7.3 are fitted one peak over (<a href="scenario.html#j0437profile">scenario, Section R7.3</a>).</p>
 <div class="callout warn"><span class="ttl">Bins must be fine compared with the template</span>
 <p>Whatever its shape, the template must match how the data were binned. A profile bin is the pulse averaged over a time bin (binDt·<var>f</var>₀ turns) and spread over about one phase bin, but the template is
 the unsmoothed pulse at the bin centres. If the bins are coarse compared with the pulse, the model no longer matches the data, and the error
