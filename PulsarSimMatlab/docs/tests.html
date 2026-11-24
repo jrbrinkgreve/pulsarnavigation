@@ -441,7 +441,7 @@ and passes when the measurement lies within a few of those σ. The algebra check
 <tr><td><a href="#makepred"><code>testMakePredictor</code></a></td><td><code>makePredictor</code> D2a (the predicted phase)</td><td>~5 s</td><td><span class="badge validated">passes (Jasper's run, 5 Nov)</span></td></tr>
 <tr><td><a href="#foldpred"><code>testFoldPredictor</code></a></td><td><code>foldProfile</code> <code>'Predictor'</code> D2b; <code>mergeSubints</code> on it</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 5 Nov)</span></td></tr>
 <tr><td><a href="#trueres"><code>testTrueResiduals</code></a></td><td><code>trueResiduals</code> D3a (the true arrival against the prediction)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 5 Nov)</span></td></tr>
-<tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~2 min</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
+<tr><td><a href="#navfit"><code>testNavFit</code></a></td><td><code>navFit</code> D4a, D4b (the site and the clock from the TOAs)</td><td>~2 min</td><td><span class="badge validated">checks 1–11 pass (Jasper's run, 22 Oct)</span> <span class="badge written">check 12 passes (Claude's run, 24 Nov)</span></td></tr>
 <tr><td><a href="#loadeph"><code>testLoadEphemeris</code></a></td><td><code>loadEphemeris</code> D5a (JPL's DE440)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#makeclock"><code>testMakeClock</code></a></td><td><code>makeClock</code> D3b (the receiver's clock)</td><td>~2 s</td><td><span class="badge validated">passes (Jasper's run, 22 Oct)</span></td></tr>
 <tr><td><a href="#navfitfaults"><code>testNavFitFaults</code></a></td><td><code>navFit</code> under the risk register's faults (FM-11: the clock's daily temperature term)</td><td>~3 s</td><td><span class="badge written">passes (Claude's run, 2 Nov)</span></td></tr>
@@ -1006,7 +1006,11 @@ grows from a known start as the Kalman model says. The five checks are in the re
 <p>The navigation fit recovers known site offsets to a few metres without noise. Its error bars are honest with Gaussian noise, and stay
 honest with 2 % outliers, where plain least squares is 51 % overconfident. With a crystal clock the position stays honest, and the
 fitted clock is honest too. A TOA spread over many hours is fitted without bias once its row is averaged over its sub-integrations.
-The eleven checks are on the <a href="navigation.html#navfit">navigation page</a>.</p>
+The first eleven checks are on the <a href="navigation.html#navfit">navigation page</a>. Check 12 (24 Nov 2026, Claude's run) moves
+one TOA of 300 by 150, 160 and 500σ. Beyond about 154σ the mixture's two exponentials underflow, and until that day the whole fit came
+out as NaN. Now every fit is finite, the TOA is flagged, and its pull on the east estimate is 16.2, 17.4 and 57.3 km (0.53, 0.57 and
+1.88 of the error), in proportion to its distance within 6 %. So the fit survives such a TOA but is not immune to it; a gate is on the
+to-do list (FM-26).</p>
 
 <h2 id="navfilter"><code>testNavFilter</code> (22 Oct; archived)</h2>
 <p>Archived in <code>old/moving_platform/</code> on 5 Nov 2026, with <code>navFilter</code>. For a fixed site the Kalman filter and smoother give the batch fit's answer. On a moving ship they track the dead-reckoning error with

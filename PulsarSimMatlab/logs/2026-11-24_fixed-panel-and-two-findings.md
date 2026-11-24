@@ -145,9 +145,82 @@ The medians follow the gain, as the scaling of 23 Nov said (7.1 and about 5 pred
 stated ones; the second beam is nearly as good as the first, so the two-beam position of 108 km becomes about 112 km
 (scaled from the two TOA errors, not simulated). Docs: scenario R7.4 (the table), limits (one sentence), the changelog.
 
-Not run, offered: both beams over 100 days with an SDR clock; the 6-day SDR tracking table.
+Run afterwards, at Jasper's "run the two short ones meanwhile" (`.claude/runs/2026-11-24_shortruns/`):
+
+**Six days with the SDR clock, design point, pulsar followed** (repository script; true rate −1.17·10⁻⁶). The rms per
+day of the clock the observer had not estimated: tracked 1064, 128, 202, 263, 46, 51 µs (521 TOAs); not tracked 1064,
+1152, 1030, 785, 506, 231 µs (511 TOAs). With 85–90 TOAs a day the tracking starts within day 1, so day 2 is at 128 µs,
+where the October run (10 TOAs a day) had 1316 µs. The scripts page's table is replaced.
+
+**Both fixed beams on B0329+54 over 100 days** (scratch copy for the passes, a perfect clock; 200 TOAs of 461 µs):
+- the well-determined axis [east 0.958, radial 0.287] is known to ±58.7 km (30 days: ±108 km); the other axis stays
+  undetermined. This draw's estimate is 11 km for a truth of 96 km, 1.4σ low.
+- A crystal clock's wander (`makeClock` "crystal"), added to the TOAs in 40 realizations and fitted with `navFit`'s
+  clock model: the estimate moves by 4.2 km rms, and the stated error stays ±58.8 km. The wander over the 2.23 h between
+  the two passes is 2.2 µs rms (76 µs over a day). I did not run the observer's daily tracking inside this case: with
+  two hour angles its own position fit is nearly singular.
+- The same fits without the clock model returned NaN, with "matrix is singular" warnings from `navFit`. Looked
+  into at Jasper's "Yes, look into it": the section "`navFit` returns NaN for one far outlier" below. It is not the
+  two-beam geometry.
+- A daily (solar-day) line in the clock, noise-free, 100 days: the bias along the axis is ±0.39 km per µs of amplitude
+  at phases 0° and 180° and ±0.25 km per µs at 90° and 270°, so up to 0.46 km per µs. That is FM-11 for the fixed panel:
+  a TCXO's 138–1375 µs for ±1 K gives 64–630 km, a single-oven OCXO's 0.3–1.5 µs gives under 1 km. My arithmetic of
+  23 Nov gave 0.53 km per µs for 30 days; over 100 days the line slips against the sidereal day, which lowers it.
+Docs: the scripts page's table, three sentences in navigation's fixed-panel subsection, the changelog.
 
 Files: `.claude/runs/2026-11-24_passchecks/` (`passchecks.m`, `passchecks.log`, `runAllTests.log`).
+
+## `navFit` returns NaN for one far outlier (found 24 Nov; not fixed)
+
+**Cause.** In the robust iteration (`navFit.m` lines 175–179) each TOA's weight comes from
+`gamma = core ./ (core + wide)`, with `core = (1 − ε) exp(−u²/2)` and `wide = ε/k · exp(−u²/(2k²))`, u the residual in
+units of σ. For |u| above about 38.6 k (154 for k = 4) both exponentials underflow to zero in double precision
+(exp(−154²/32) = 1.4·10⁻³²², exp(−155²/32) = 0). Then gamma = 0/0 = NaN, the weight is NaN, and one NaN weight makes
+the whole least-squares solution NaN. The only sign is MATLAB's "matrix is singular" warning.
+
+**Reproduced without two beams** (`testNavFit`'s schedule: 300 TOAs of 734 µs, one TOA moved; Claude's run):
+
+| The one TOA is off by | east estimate | outliers flagged | NaN weights |
+|---|---|---|---|
+| 0 | −39.75 ± 31.11 km | 0 | 0 |
+| 10σ | −39.42 ± 31.20 km | 1 | 0 |
+| 100σ | −24.71 ± 31.20 km | 1 | 0 |
+| 150σ | −16.53 ± 31.20 km | 1 | 0 |
+| 160σ, 200σ, 500σ | NaN | 0 | all 300 |
+
+In the two-beam case of today the clock wander was 61 ms rms (up to 140 ms) against a TOA error of 461 µs, so without
+a clock model 19 of 200 TOAs lay beyond 154σ of the first fit, and every weight became NaN.
+
+**Why it matters.** This is the scenario of FM-26: a false TOA at a random phase is up to half a period off, about
+500σ for B0329+54. The register says such a TOA "still pulls with 1/16 weight"; in fact it makes the fit NaN. A real
+clock step (FM-9) or a restart would do the same. And the table shows the second half of FM-26 too: below the
+underflow the pull grows with the distance, 15 km at 100σ and 23 km at 150σ for one TOA in 300, against an error of
+31 km, because the wide component is a Gaussian of fixed width.
+
+**Options (none applied; Jasper's OK needed).**
+1. A guard, one line after the gamma line: a non-finite gamma becomes 0, so the TOA goes to the wide component. It
+   changes no existing result (every finite gamma is untouched), and the fit stays finite. The far outlier still
+   pulls with weight 1/k².
+2. The guard plus what FM-26's action 12 asks for: a gate, or an outlier component that is uniform in phase, so that a
+   TOA far beyond any plausible error gets no weight at all. A design change, with its test (`testNavFitFaults`
+   case 4, on hold since 2 Nov).
+Either way a unit test belongs with it: one TOA 500σ off must leave the fit finite and close to the fit without it.
+
+**Fixed (option 1) at Jasper's "apply the guard and the unit test, then commit and push".**
+- `functions/navFit.m`: after the gamma line, `gamma(~isfinite(gamma)) = 0;`, and five lines in the header that say
+  what happens beyond 154σ and that the mixture has no gate.
+- `tests/testNavFit.m`: check 12. One TOA of 300 moved by 150, 160 and 500σ: every fit finite, no NaN in gamma, the TOA
+  flagged (at 500σ the shifted fit flags one more), the pull on east 16.2, 17.4 and 57.3 km (0.53, 0.57 and 1.88 of the
+  error), in proportion to the distance within 6.1 % (tolerance 10 %). My first tolerances (5 %, exactly one added
+  outlier) were too tight and I loosened them to what the fit does; the header says why.
+- Validation (Claude's runs): `testNavFit` ALL PASSED, and its checks 1–11 print character for character as in the
+  full run earlier today, so no existing result moved. The reproduction now gives finite fits at 160, 200 and 500σ
+  (east −14.9, −8.4, +41.0 km against −39.8 km without the outlier: the pull, 2.6 error bars at 500σ).
+- The "close to the fit without it" of the line above is therefore not met and not claimed: that needs the gate.
+- Docs: tests page (section and badge), navigation's mixture paragraph, the changelog; notes §8 item 24; the risk
+  register's FM-26. `api.html` regenerated after the commit.
+
+Files: `.claude/runs/2026-11-24_shortruns/nanrepro.m`, `nanrepro.log`.
 
 ## Files
 

@@ -2826,6 +2826,13 @@ identical; east 414.2, north 182.6 km (DR 355.1), stated 155.0 / 142.1 km, pulls
     check 6): `sum(abs(h).^2)` and 1 − inside/E in single resolve only 6e-8, so `info.leakage` was 0 or a multiple
     of 6e-8 (1.79e-7) instead of ~1.2e-12, and could not tell a good guard from a marginal one. Fix: the two sums
     in double; output bit-identical. Lesson: a diagnostic computed in the data's precision can hide in its noise.
+24. **navFit's robust fit returned NaN for one far outlier** (24 Nov, found when a clock's wander was fitted without the
+    clock model): `gamma = core ./ (core + wide)` is 0/0 once a TOA lies more than about 38.6 k σ from the fit (154σ for
+    k = 4), because both exponentials underflow; one NaN weight makes the whole solution NaN, with only MATLAB's
+    "matrix is singular" warning. Fix: a non-finite gamma becomes 0, the wide component (one line; testNavFit checks 1–11
+    print identically; new check 12: one TOA 150, 160 and 500σ off). Not fixed: such a TOA still pulls with weight 1/k²,
+    0.5 of the east error at 150σ and 1.9 at 500σ for one TOA in 300 (FM-26: a gate). Lesson: a ratio of two small
+    probabilities needs its far tail checked; a false TOA at a random phase (up to 500σ) or a clock step is exactly there.
 
 ---
 

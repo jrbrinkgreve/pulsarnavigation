@@ -365,6 +365,13 @@ Two additions from an analysis of the reruns: J0437−4715 has wrong-peak fits a
 SNR 7.3, with an ordinary χ² (FM-26, FM-27); and under scintillation pChi2 < 0.05 rings for 10–11 % of B0329+54's TOAs,
 because the channels differ in pulse amplitude (FM-16, FM-41). Log: `logs/2026-11-24_fixed-panel-and-two-findings.md`.
 
+**24 Nov, FM-26 corrected and half fixed.** The row says a false TOA up to 500σ off "still pulls with 1/16 weight". In fact
+any TOA more than about 154σ from the fit made `navFit` return NaN for everything (both exponentials of the mixture
+underflow: 0/0). Fixed the same day with a one-line guard and `testNavFit` check 12 (Jasper: "apply the guard and the unit
+test"); a clock step (FM-9) had the same effect. What the row says now holds: such a TOA pulls with weight 1/k², 0.5 of
+the east error at 150σ and 1.9 at 500σ for one TOA in 300. The gate or uniform outlier component of action 12 is still
+to do.
+
 ### Open
 
 - The ratings are a draft for Jasper's review. The four estimates were checked (above); FM-11 rose to 25, FM-26 fell to 6.

@@ -343,7 +343,11 @@ axis) and polar; with <code>"calibrated"</code> also east, north and up.</p>
 <p>The fit must also survive the far-off TOAs, so its noise model is a mixture. Most TOAs follow their error bar; a fraction ε = 2 % scatter k = 4 times wider. The fit
 repeats: each TOA gets its probability of belonging to the core, its weight follows from that, and the weighted fit is solved again until
 it no longer changes. A hard cut, such as dropping every TOA beyond 4σ, does not work: the 100-day runs show a continuum of far-off TOAs
-between 3σ and 5σ, so a cut either keeps some or throws away good ones.</p>
+between 3σ and 5σ, so a cut either keeps some or throws away good ones. The mixture has a limit at the far end, found on 24 Nov 2026.
+A TOA more than about 154σ off, such as a false TOA at a random phase or a clock step, made both terms of its probability underflow to
+zero, and the whole fit came out as NaN. Such a TOA now gets the wide component's weight (<code>testNavFit</code> check 12). It is still not
+ignored: with weight 1/k² its pull grows with its distance, 0.5 of the east error at 150σ and 1.9 at 500σ for one TOA in 300. A gate
+for such TOAs is on the to-do list (FM-26).</p>
 <p>East lies entirely in the equatorial plane, so an offset to the east is fully visible to one pulsar; north and up each have a part along
 the Earth's axis. For B0329+54 from 52° N, followed for 30 days at the design point (the what-if; 2634 TOAs of 711 µs), east is known to ±9.4 km
 and radial to ±11.9 km. A calibrated start gives the polar component to ±5.4 km, because the constant uses every TOA at once.</p>
@@ -524,8 +528,11 @@ truth.</td></tr>
 singular: 30 days of passes give no position, because the site's delay at that one hour angle is a constant, and it merges with the
 pulsar's own phase constant. With both beams on the pulsar, the second 2.23 h after culmination, 30 days give ±108 km along one axis
 (0.958 east, 0.287 radial); the other axis stays undetermined. These are scratch runs with the true site 100 km east, and they rest on
-the SNR of a single pass, 11.5 (<a href="scenario.html#pass">scenario, Section R7.4</a>). A position therefore needs the pulsar at
-several hour angles. The rest of Section 10.2 is the what-if in which a tracking mount provides them.</p>
+the SNR of a single pass, 11.5 (<a href="scenario.html#pass">scenario, Section R7.4</a>). Over 100 days the same axis is known to ±59 km.
+A crystal clock's wander hardly matters to it: over the 2.23 h between the two passes it is 2 µs, and 40 realizations of it moved the
+estimate by 4 km (scratch runs of 24 Nov 2026, the wander added to the TOAs and fitted with the clock model). A daily line in the clock
+does matter: it biases the estimate along that axis by up to 0.46 km per µs of its amplitude (noise-free, 100 days), which is the
+oscillator's temperature term of FM-11. A position therefore needs the pulsar at several hour angles. The rest of Section 10.2 is the what-if in which a tracking mount provides them.</p>
 
 <h3 id="firstresult">What if on a tracking mount: B0329+54 finds a 100 km offset <span class="badge written">Claude's run</span></h3>
 <p>The simulator's scenario runs put the true site 100 km east of the assumed one, with a perfect clock, and <code>navFit</code> fits the

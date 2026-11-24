@@ -44,7 +44,16 @@ times over 30 days (2026-03-01 on), sigma 734 us each - the scenario's nominal c
      the truth), pull std 1 +- 0.15. With the point model at the circular-mean tag (as the run
      scripts tag their TOAs): east damped, its mean below 90 % of the truth (expected: the daily
      sine averaged over 10 h is 0.74 of its value at the middle, over 5 h 0.93).
-Errors at the end if any check fails. (22 Oct 2026, block D4a; tests 8-10 block D4b; 11 D4d.)
+ 12. One TOA far outside the mixture (24 Nov 2026): the site as assumed, noise, and one TOA moved by
+     150, 160 and 500 sigma. Beyond about 154 sigma both exponentials of the mixture underflow and
+     the TOA's gamma was 0/0, which made the whole fit NaN. Now: every fit is finite with no NaN in
+     gamma, the TOA is flagged (at most one more TOA changes its flag as the fit moves; one does at
+     500 sigma), and its pull grows in proportion to its
+     distance (160 / 150 and 500 / 150 of the pull at 150 sigma, within 10 %; the other TOAs' weights
+     shift a little as the fit moves, 6 % at 500 sigma): it has the wide
+     component's weight 1 / k^2 on both sides of the underflow. Shown: the pull in km and in units
+     of the east error - the mixture has no gate, so a far TOA still moves the fit (FM-26).
+Errors at the end if any check fails. (22 Oct 2026, block D4a; tests 8-10 block D4b; 11 D4d; 12: 24 Nov.)
 %}
 
 root = fullfile(fileparts(mfilename('fullpath')), '..');
@@ -232,6 +241,26 @@ fprintf(['11. TOAs as time-averages (10 h, or 5 + 5 h a day apart), %d realizati
          'point model at the tag east %.1f km (%.2f of the truth): %s\n'], nR11, mean(eA) / 1e3, std(eA) / 1e3, std(zA), ...
     mean(eP) / 1e3, mean(eP) / 1000e3, passStr(ok11));
 if ~ok11, fails{end+1} = 'time-averages'; end
+
+% 12. One TOA far outside the mixture: the fit stays finite (the 0/0 of gamma beyond ~154 sigma)
+rs12 = RandStream('mt19937ar', 'Seed', 12);
+r12 = sig * randn(rs12, 1, N); iBad = round(N / 2);
+tq = struct('t', t, 'r', r12, 'sigma', sig * ones(1, N));
+f12 = navFit(tq, b0329, siteA);
+offs = [150 160 500]; pull = zeros(1, 3); fin = true(1, 3); flagged = true(1, 3); extra = zeros(1, 3);
+for j = 1:3
+    rj = r12; rj(iBad) = rj(iBad) + offs(j) * sig;
+    fj = navFit(setfield(tq, 'r', rj), b0329, siteA); %#ok<SFLD>
+    fin(j) = all(isfinite([fj.east fj.eastErr fj.radial fj.radialErr fj.chi2Core])) && ~any(isnan(fj.gamma)) && fj.nIter < 50;
+    flagged(j) = fj.outlier(iBad); extra(j) = nnz(fj.outlier) - nnz(f12.outlier);
+    pull(j) = fj.east - f12.east;
+end
+lin = pull(2:3) / pull(1) ./ (offs(2:3) / offs(1));
+ok12 = all(fin) && all(flagged) && all(extra >= 1 & extra <= 2) && all(abs(lin - 1) < 0.10);
+fprintf(['12. one TOA 150 / 160 / 500 sigma off: finite, no NaN %s; flagged %s (outliers added %s); pull on east %s km (%s of its ' ...
+         'error), in proportion to the distance within %.1f %%: %s\n'], mat2str(fin), mat2str(flagged), mat2str(extra), ...
+    mat2str(round(pull / 1e3, 1)), mat2str(round(pull / f12.eastErr, 2)), 100 * max(abs(lin - 1)), passStr(ok12));
+if ~ok12, fails{end+1} = 'far outlier'; end
 
 if isempty(fails)
     fprintf('testNavFit: ALL PASSED\n');

@@ -403,15 +403,17 @@ has 20 TOAs it keeps the calibration from port: less than a day at the array's d
 at the earlier design point. <code>"none"</code> keeps the calibration throughout; those files get
 the suffix <code>_notrack</code>.</li>
 </ul>
-<p>A 6-day check with the SDR clock (true rate −1.17·10⁻⁶) shows why the tracking matters. It is the run of 22 Oct 2026, at the nominal
-design point of the receiver planned then (about 10 TOAs a day), and was not repeated. The table gives, per day, the rms of the clock
-the observer had not estimated; the pulse is 6.6 ms wide.</p>
+<p>A 6-day check with the SDR clock (true rate −1.17·10⁻⁶) shows why the tracking matters. It is at the array's design point, with
+the pulsar followed (the what-if of a tracking mount; Claude's run, 24 Nov 2026): 85 to 90 TOAs a day. The table gives, per day, the
+rms of the clock the observer had not estimated; the pulse is 6.6 ms wide.</p>
 <div class="table-wrap"><table>
 <tr><th>Day</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th></tr>
-<tr><td>tracked</td><td class="num">1062 µs</td><td class="num">1316 µs</td><td class="num">43 µs</td><td class="num">45 µs</td><td class="num">282 µs</td><td class="num">33 µs</td></tr>
-<tr><td>not tracked</td><td class="num">1062 µs</td><td class="num">1150 µs</td><td class="num">1044 µs</td><td class="num">784 µs</td><td class="num">521 µs</td><td class="num">246 µs</td></tr>
+<tr><td>tracked</td><td class="num">1064 µs</td><td class="num">128 µs</td><td class="num">202 µs</td><td class="num">263 µs</td><td class="num">46 µs</td><td class="num">51 µs</td></tr>
+<tr><td>not tracked</td><td class="num">1064 µs</td><td class="num">1152 µs</td><td class="num">1030 µs</td><td class="num">785 µs</td><td class="num">506 µs</td><td class="num">231 µs</td></tr>
 </table></div>
-<p>Day 2's 1.3 ms came from a rate fitted to one day; tracking therefore starts at 20 TOAs. In the 30-day run at the array's design
+<p>Tracking starts at 20 TOAs, which is within the first day here, so day 2 is already at 128 µs; 521 TOAs are kept with tracking and 511
+without. In the run of 22 Oct 2026, at the design point before 23 November (about 10 TOAs a day), day 2 was at 1.3 ms from a rate fitted
+to one day, which is where the rule of 20 TOAs comes from. In the 30-day run at the array's design
 point (Claude's run, 23 Nov 2026) the clock the observer had not estimated has an rms per week of 420, 108, 200, 138 and 346 µs, and
 2631 TOAs are kept, against 2634 with a perfect clock (<a href="navigation.html#navfit">navigation</a>).</p>
 <p>For J0437 a 1 ms clock-offset error is 0.17 turns, far outside its pulse, so <code>adaptiveSubints</code> would close no groups.

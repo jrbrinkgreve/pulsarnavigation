@@ -53,7 +53,10 @@ TOA gets the probability gamma that it belongs to the core, its weight becomes g
 (1 - gamma) / (k sigma)^2, and the weighted least squares is solved again, until the estimate
 changes by less than 1e-9 of its error (EM for the mixture with eps and k fixed). An outlier
 then counts about k^2 = 16 times less, instead of pulling the fit. 'Robust' false: plain
-weighted least squares.
+weighted least squares. A TOA further off than about 38.6 k sigma (154 sigma for k = 4) makes both
+exponentials underflow to zero, so its gamma would be 0/0: it is set to 0, the wide component
+(24 Nov 2026; until then one such TOA made the whole fit NaN). Such a TOA still pulls with weight
+1 / k^2, in proportion to its distance: the mixture has no gate (risk register FM-26).
 
 Inputs:
   toa    struct of [1 x N] vectors: t (time of the TOA, s since J2000, TT), r (residual, s;
@@ -176,6 +179,7 @@ else
             core = (1 - e) * exp(-u.^2 / 2);
             wide = e / k * exp(-u.^2 / (2 * k^2));
             gamma = core ./ (core + wide);
+            gamma(~isfinite(gamma)) = 0;                % |u| > ~38.6 k: both exponentials underflow, 0/0 -> wide
             w = gamma ./ sg.^2 + (1 - gamma) ./ (k * sg).^2;
             [pNew, cov, xh] = gls(A, r, w, K);
             step = max(abs(pNew - p) ./ sqrt(diag(cov)));
